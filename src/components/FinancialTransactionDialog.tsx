@@ -95,12 +95,12 @@ export const FinancialTransactionDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Nova Transação</DialogTitle>
           <DialogDescription>Adicione uma receita ou despesa</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <Label>Tipo *</Label>
             <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>

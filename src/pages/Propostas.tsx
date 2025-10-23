@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Pause, Trash2, MessageCircle } from "lucide-react";
+import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Pause, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -55,7 +55,7 @@ const Propostas = () => {
   const [viewProposal, setViewProposal] = useState<Proposal | null>(null);
   const [editProposal, setEditProposal] = useState<Proposal | null>(null);
   const [deleteProposalId, setDeleteProposalId] = useState<string | null>(null);
-  const [sendingWhatsApp, setSendingWhatsApp] = useState<string | null>(null);
+  const [lastEmailSent, setLastEmailSent] = useState<{ [key: string]: number }>({});
   const { toast } = useToast();
 
   const [newProposal, setNewProposal] = useState({
@@ -169,6 +169,20 @@ const Propostas = () => {
   };
 
   const handleSendProposal = async (proposalId: string) => {
+    const now = Date.now();
+    const lastSent = lastEmailSent[proposalId] || 0;
+    const tenMinutesInMs = 10 * 60 * 1000;
+    
+    if (now - lastSent < tenMinutesInMs) {
+      const remainingMinutes = Math.ceil((tenMinutesInMs - (now - lastSent)) / 60000);
+      toast({
+        title: "Aguarde",
+        description: `Você pode enviar novamente em ${remainingMinutes} minuto(s).`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSending(proposalId);
     try {
       const { error } = await supabase.functions.invoke("send-proposal", {
@@ -177,6 +191,7 @@ const Propostas = () => {
 
       if (error) throw error;
 
+      setLastEmailSent({ ...lastEmailSent, [proposalId]: now });
       toast({
         title: "Proposta enviada!",
         description: "A proposta foi enviada para o cliente.",
@@ -191,35 +206,6 @@ const Propostas = () => {
       });
     } finally {
       setSending(null);
-    }
-  };
-
-  const handleSendWhatsApp = async (proposal: Proposal) => {
-    setSendingWhatsApp(proposal.id);
-    try {
-      const { error } = await supabase.functions.invoke("send-whatsapp-proposal", {
-        body: {
-          proposalId: proposal.id,
-          customerPhone: proposal.customers.phone,
-        },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Enviado via WhatsApp!",
-        description: "A proposta foi enviada via WhatsApp para o cliente.",
-      });
-      fetchData();
-    } catch (error: any) {
-      console.error("Erro ao enviar via WhatsApp:", error);
-      toast({
-        title: "Erro ao enviar WhatsApp",
-        description: error.message || "Verifique se a API do WhatsApp está configurada.",
-        variant: "destructive",
-      });
-    } finally {
-      setSendingWhatsApp(null);
     }
   };
 
@@ -551,45 +537,24 @@ const Propostas = () => {
                     Editar
                   </Button>
                   {proposal.status === "pending" && (
-                    <>
-                      <Button
-                        onClick={() => handleSendProposal(proposal.id)}
-                        disabled={sending === proposal.id}
-                        size="sm"
-                        className="gap-2"
-                      >
-                        {sending === proposal.id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Enviando...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-4 h-4" />
-                            Enviar Email
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        onClick={() => handleSendWhatsApp(proposal)}
-                        disabled={sendingWhatsApp === proposal.id}
-                        size="sm"
-                        variant="secondary"
-                        className="gap-2"
-                      >
-                        {sendingWhatsApp === proposal.id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Enviando...
-                          </>
-                        ) : (
-                          <>
-                            <MessageCircle className="w-4 h-4" />
-                            WhatsApp
-                          </>
-                        )}
-                      </Button>
-                    </>
+                    <Button
+                      onClick={() => handleSendProposal(proposal.id)}
+                      disabled={sending === proposal.id}
+                      size="sm"
+                      className="gap-2 col-span-2"
+                    >
+                      {sending === proposal.id ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          Enviar Email
+                        </>
+                      )}
+                    </Button>
                   )}
                   {(proposal.status === "pending" || proposal.status === "sent") && (
                     <Button

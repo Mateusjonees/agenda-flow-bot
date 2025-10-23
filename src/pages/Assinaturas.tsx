@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, CreditCard, TrendingUp } from "lucide-react";
+import { Plus, Users, TrendingUp } from "lucide-react";
 
 interface SubscriptionPlan {
   id: string;
@@ -203,9 +203,9 @@ const Assinaturas = () => {
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Planos e Assinaturas</h1>
+          <h1 className="text-3xl font-bold">Planos</h1>
           <p className="text-muted-foreground mt-1">
-            Gerencie planos recorrentes e mensalidades
+            Gerencie planos e pacotes para seus clientes
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -292,7 +292,7 @@ const Assinaturas = () => {
         </Dialog>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Planos Ativos</CardTitle>
@@ -304,7 +304,7 @@ const Assinaturas = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assinaturas Ativas</CardTitle>
+            <CardTitle className="text-sm font-medium">Clientes com Planos</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -313,27 +313,11 @@ const Assinaturas = () => {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Mensal Recorrente</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(
-                subscriptions
-                  .filter(s => s.status === "active")
-                  .reduce((sum, s) => sum + (s.subscription_plans?.price || 0), 0)
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <Tabs defaultValue="plans" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="plans">Planos</TabsTrigger>
-          <TabsTrigger value="subscriptions">Assinaturas</TabsTrigger>
+          <TabsTrigger value="plans">Planos Disponíveis</TabsTrigger>
         </TabsList>
 
         <TabsContent value="plans" className="space-y-4">
@@ -375,55 +359,6 @@ const Assinaturas = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="subscriptions" className="space-y-4">
-          {subscriptions.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <p className="text-muted-foreground">Nenhuma assinatura ativa</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {subscriptions.map((sub) => (
-                <Card key={sub.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle>{sub.customers?.name}</CardTitle>
-                        <CardDescription>{sub.subscription_plans?.name}</CardDescription>
-                      </div>
-                      {getStatusBadge(sub.status)}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Valor:</span>
-                        <span className="font-medium">
-                          {formatCurrency(sub.subscription_plans?.price || 0)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Próxima cobrança:</span>
-                        <span className="font-medium">
-                          {new Date(sub.next_billing_date).toLocaleDateString("pt-BR")}
-                        </span>
-                      </div>
-                      {sub.failed_payments_count > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Falhas de pagamento:</span>
-                          <span className="font-medium text-destructive">
-                            {sub.failed_payments_count}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
       </Tabs>
     </div>
   );

@@ -331,29 +331,29 @@ const Tarefas = () => {
 
       <Card className="bg-muted/50">
         <CardHeader>
-          <CardTitle>Tarefas Automáticas</CardTitle>
+          <CardTitle>Sugestões de Follow-up e Marketing</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm">
             <p className="text-muted-foreground mb-4">
-              O sistema gera tarefas automaticamente baseado em eventos:
+              O sistema gera sugestões automáticas de ações de relacionamento:
             </p>
             <ul className="space-y-2">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 text-accent flex-shrink-0" />
-                <span><strong>Pós-venda:</strong> 24h após cada agendamento concluído</span>
+                <span><strong>Follow-up pós-venda:</strong> Contato 24h após atendimento para avaliar satisfação</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 text-accent flex-shrink-0" />
-                <span><strong>Follow-up de proposta:</strong> 48h após envio sem resposta</span>
+                <span><strong>Acompanhamento de proposta:</strong> Lembrete 48h após envio sem resposta</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 text-accent flex-shrink-0" />
-                <span><strong>Cobrança:</strong> Quando Pix expira sem pagamento</span>
+                <span><strong>Reativação de clientes:</strong> Sugestão de contato para clientes inativos há mais de 60 dias</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 text-accent flex-shrink-0" />
-                <span><strong>Reativação:</strong> Clientes inativos há mais de 60 dias</span>
+                <span><strong>Marketing programado:</strong> Lembretes para campanhas e promoções</span>
               </li>
             </ul>
           </div>
