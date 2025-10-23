@@ -6,6 +6,7 @@ import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationBell } from "@/components/NotificationBell";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import logo from "@/assets/logo.png";
@@ -80,6 +81,7 @@ const Layout = ({ children }: LayoutProps) => {
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 <ThemeToggle />
+                <NotificationBell />
                 <Button
                   variant="ghost"
                   size="icon"
