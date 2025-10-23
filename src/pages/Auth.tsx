@@ -105,27 +105,37 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-white p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src={logo} alt="SmartAgenda" className="w-32 h-32 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-foreground mb-2">SmartAgenda+</h1>
-          <p className="text-muted-foreground">Gestão inteligente para seu negócio</p>
+          <img src={logo} alt="SmartAgenda" className="w-24 h-24 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-foreground mb-2">SmartAgenda</h1>
+          <p className="text-sm text-muted-foreground">Gestão inteligente para seu negócio</p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Acesse sua conta</CardTitle>
-            <CardDescription>Entre ou crie uma nova conta para continuar</CardDescription>
+        <Card className="bg-[hsl(var(--auth-card))] border-none shadow-2xl">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-white text-xl">Acesse sua conta</CardTitle>
+            <CardDescription className="text-gray-400 text-sm">Entre ou crie uma nova conta para continuar</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Entrar</TabsTrigger>
-                <TabsTrigger value="signup">Criar Conta</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 bg-[hsl(var(--auth-card))] border border-gray-800 p-1">
+                <TabsTrigger 
+                  value="signin"
+                  className="data-[state=active]:bg-[hsl(var(--auth-card))] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-700 text-gray-400"
+                >
+                  Entrar
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="signup"
+                  className="data-[state=active]:bg-[hsl(var(--auth-card))] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-700 text-gray-400"
+                >
+                  Criar Conta
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
+                <form onSubmit={handleSignIn} className="space-y-4 mt-6">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">E-mail</Label>
+                    <Label htmlFor="signin-email" className="text-white text-sm">E-mail</Label>
                     <Input
                       id="signin-email"
                       type="email"
@@ -134,10 +144,11 @@ const Auth = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={loading}
                       required
+                      className="bg-black/50 border-gray-800 text-white placeholder:text-gray-500 focus-visible:ring-gray-700"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">Senha</Label>
+                    <Label htmlFor="signin-password" className="text-white text-sm">Senha</Label>
                     <Input
                       id="signin-password"
                       type="password"
@@ -146,9 +157,14 @@ const Auth = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={loading}
                       required
+                      className="bg-black/50 border-gray-800 text-white placeholder:text-gray-500 focus-visible:ring-gray-700"
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-primary hover:bg-primary/90 text-white mt-6" 
+                    disabled={loading}
+                  >
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -162,9 +178,9 @@ const Auth = () => {
               </TabsContent>
               
               <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
+                <form onSubmit={handleSignUp} className="space-y-4 mt-6">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Nome</Label>
+                    <Label htmlFor="signup-name" className="text-white text-sm">Nome</Label>
                     <Input
                       id="signup-name"
                       type="text"
@@ -173,10 +189,11 @@ const Auth = () => {
                       onChange={(e) => setName(e.target.value)}
                       disabled={loading}
                       required
+                      className="bg-black/50 border-gray-800 text-white placeholder:text-gray-500 focus-visible:ring-gray-700"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">E-mail</Label>
+                    <Label htmlFor="signup-email" className="text-white text-sm">E-mail</Label>
                     <Input
                       id="signup-email"
                       type="email"
@@ -185,10 +202,11 @@ const Auth = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={loading}
                       required
+                      className="bg-black/50 border-gray-800 text-white placeholder:text-gray-500 focus-visible:ring-gray-700"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Senha</Label>
+                    <Label htmlFor="signup-password" className="text-white text-sm">Senha</Label>
                     <Input
                       id="signup-password"
                       type="password"
@@ -198,9 +216,14 @@ const Auth = () => {
                       disabled={loading}
                       required
                       minLength={6}
+                      className="bg-black/50 border-gray-800 text-white placeholder:text-gray-500 focus-visible:ring-gray-700"
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-primary hover:bg-primary/90 text-white mt-6" 
+                    disabled={loading}
+                  >
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
