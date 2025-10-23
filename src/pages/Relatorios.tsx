@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ interface FinancialSummary {
 }
 
 const Relatorios = () => {
+  const navigate = useNavigate();
   const [inactiveCustomers, setInactiveCustomers] = useState<InactiveCustomer[]>([]);
   const [timeSlotAnalysis, setTimeSlotAnalysis] = useState<TimeSlotAnalysis[]>([]);
   const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null);
@@ -191,6 +193,13 @@ const Relatorios = () => {
       const totalExpenses = expenseData?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
       const pendingAmount = pendingPayments?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
 
+      console.log("Dados financeiros carregados:", {
+        incomeRecords: incomeData?.length || 0,
+        expenseRecords: expenseData?.length || 0,
+        totalRevenue,
+        totalExpenses,
+      });
+
       setFinancialSummary({
         total_revenue: totalRevenue,
         total_expenses: totalExpenses,
@@ -275,7 +284,7 @@ const Relatorios = () => {
 
         {/* Resumo Financeiro */}
         <TabsContent value="financial" className="space-y-4">
-          {financialSummary && (
+          {financialSummary ? (
             <>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
@@ -325,57 +334,72 @@ const Relatorios = () => {
                 </Card>
               </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="w-5 h-5 text-primary" />
-                    Próximos Passos Recomendados
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {financialSummary.pending_payments > 0 && (
-                      <div className="flex items-start gap-3 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                        <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="font-medium">Pagamentos Pendentes</p>
-                          <p className="text-sm text-muted-foreground">
-                            Você tem {formatCurrency(financialSummary.pending_payments)} em pagamentos pendentes. 
-                            Considere enviar lembretes aos clientes.
-                          </p>
+              {financialSummary.total_revenue === 0 && financialSummary.total_expenses === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <DollarSign className="w-16 h-16 text-muted-foreground/50 mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Nenhum dado financeiro encontrado</h3>
+                    <p className="text-muted-foreground text-center max-w-md mb-4">
+                      Comece registrando suas transações na página de Financeiro para visualizar relatórios detalhados aqui.
+                    </p>
+                    <Button onClick={() => navigate("/financeiro")}>
+                      Ir para Financeiro
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="w-5 h-5 text-primary" />
+                      Próximos Passos Recomendados
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {financialSummary.pending_payments > 0 && (
+                        <div className="flex items-start gap-3 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                          <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-medium">Pagamentos Pendentes</p>
+                            <p className="text-sm text-muted-foreground">
+                              Você tem {formatCurrency(financialSummary.pending_payments)} em pagamentos pendentes. 
+                              Considere enviar lembretes aos clientes.
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {financialSummary.profit < 0 && (
-                      <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
-                        <TrendingDown className="w-5 h-5 text-red-600 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="font-medium">Atenção ao Prejuízo</p>
-                          <p className="text-sm text-muted-foreground">
-                            Suas despesas estão superiores às receitas. Revise seus custos e considere ajustar preços.
-                          </p>
+                      {financialSummary.profit < 0 && (
+                        <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+                          <TrendingDown className="w-5 h-5 text-red-600 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-medium">Atenção ao Prejuízo</p>
+                            <p className="text-sm text-muted-foreground">
+                              Suas despesas estão superiores às receitas. Revise seus custos e considere ajustar preços.
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {financialSummary.canceled_appointments > 5 && (
-                      <div className="flex items-start gap-3 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                        <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="font-medium">Taxa de Cancelamento Alta</p>
-                          <p className="text-sm text-muted-foreground">
-                            {financialSummary.canceled_appointments} cancelamentos nos últimos 30 dias. 
-                            Considere enviar lembretes automáticos antes dos agendamentos.
-                          </p>
+                      {financialSummary.canceled_appointments > 5 && (
+                        <div className="flex items-start gap-3 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                          <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-medium">Taxa de Cancelamento Alta</p>
+                            <p className="text-sm text-muted-foreground">
+                              {financialSummary.canceled_appointments} cancelamentos nos últimos 30 dias. 
+                              Considere enviar lembretes automáticos antes dos agendamentos.
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </>
-          )}
+          ) : null}
         </TabsContent>
 
         {/* Clientes Inativos */}

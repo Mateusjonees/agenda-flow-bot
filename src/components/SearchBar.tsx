@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, X, Calendar, Users, FileText, DollarSign } from "lucide-react";
+import { Search, Calendar, Users, FileText, DollarSign, CheckSquare, Package, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -21,43 +21,89 @@ export function SearchBar() {
   const { data: results, isLoading } = useQuery({
     queryKey: ["search", search],
     queryFn: async () => {
-      if (!search || search.length < 2) return { appointments: [], customers: [], proposals: [], transactions: [] };
+      if (!search || search.length < 2) return { 
+        appointments: [], 
+        customers: [], 
+        proposals: [], 
+        transactions: [],
+        tasks: [],
+        inventory: [],
+        subscriptions: []
+      };
 
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { appointments: [], customers: [], proposals: [], transactions: [] };
+      if (!user) return { 
+        appointments: [], 
+        customers: [], 
+        proposals: [], 
+        transactions: [],
+        tasks: [],
+        inventory: [],
+        subscriptions: []
+      };
 
       const searchPattern = `%${search}%`;
 
       // Buscar agendamentos
       const { data: appointments } = await supabase
         .from("appointments")
-        .select("id, title, start_time, customers(name)")
+        .select("id, title, start_time, description, customers(name)")
         .eq("user_id", user.id)
-        .ilike("title", searchPattern)
+        .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
+        .order("start_time", { ascending: false })
         .limit(5);
 
       // Buscar clientes
       const { data: customers } = await supabase
         .from("customers")
-        .select("id, name, phone, email")
+        .select("id, name, phone, email, notes")
         .eq("user_id", user.id)
-        .or(`name.ilike.${searchPattern},phone.ilike.${searchPattern},email.ilike.${searchPattern}`)
+        .or(`name.ilike.${searchPattern},phone.ilike.${searchPattern},email.ilike.${searchPattern},notes.ilike.${searchPattern}`)
+        .order("created_at", { ascending: false })
         .limit(5);
 
       // Buscar propostas
       const { data: proposals } = await supabase
         .from("proposals")
-        .select("id, title, status, customers(name)")
+        .select("id, title, status, description, customers(name)")
         .eq("user_id", user.id)
-        .ilike("title", searchPattern)
+        .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
+        .order("created_at", { ascending: false })
         .limit(5);
 
       // Buscar transações
       const { data: transactions } = await supabase
         .from("financial_transactions")
-        .select("id, description, amount, type")
+        .select("id, description, amount, type, payment_method")
         .eq("user_id", user.id)
-        .ilike("description", searchPattern)
+        .or(`description.ilike.${searchPattern},payment_method.ilike.${searchPattern}`)
+        .order("transaction_date", { ascending: false })
+        .limit(5);
+
+      // Buscar tarefas
+      const { data: tasks } = await supabase
+        .from("tasks")
+        .select("id, title, description, status, priority")
+        .eq("user_id", user.id)
+        .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      // Buscar estoque
+      const { data: inventory } = await supabase
+        .from("inventory_items")
+        .select("id, name, description, category, sku")
+        .eq("user_id", user.id)
+        .or(`name.ilike.${searchPattern},description.ilike.${searchPattern},category.ilike.${searchPattern},sku.ilike.${searchPattern}`)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      // Buscar assinaturas
+      const { data: subscriptions } = await supabase
+        .from("subscriptions")
+        .select("id, status, customers(name), subscription_plans(name)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
         .limit(5);
 
       return {
@@ -65,6 +111,9 @@ export function SearchBar() {
         customers: customers || [],
         proposals: proposals || [],
         transactions: transactions || [],
+        tasks: tasks || [],
+        inventory: inventory || [],
+        subscriptions: subscriptions || [],
       };
     },
     enabled: search.length >= 2,
@@ -87,6 +136,15 @@ export function SearchBar() {
       case "transaction":
         navigate("/financeiro");
         break;
+      case "task":
+        navigate("/tarefas");
+        break;
+      case "inventory":
+        navigate("/estoque");
+        break;
+      case "subscription":
+        navigate("/assinaturas");
+        break;
     }
   };
 
@@ -96,7 +154,7 @@ export function SearchBar() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Buscar clientes, agendamentos..."
+          placeholder="Buscar em todo o sistema..."
           className="w-full h-9 pl-9 pr-4 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           onClick={() => setOpen(true)}
           readOnly
@@ -105,7 +163,7 @@ export function SearchBar() {
 
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput 
-          placeholder="Buscar clientes, agendamentos..." 
+          placeholder="Buscar em todo o sistema..." 
           value={search}
           onValueChange={setSearch}
         />
@@ -193,6 +251,66 @@ export function SearchBar() {
                         <div className="font-medium">{transaction.description}</div>
                         <div className="text-xs text-muted-foreground">
                           R$ {transaction.amount} • {transaction.type === "income" ? "Receita" : "Despesa"}
+                        </div>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+
+              {results?.tasks && results.tasks.length > 0 && (
+                <CommandGroup heading="Tarefas">
+                  {results.tasks.map((task: any) => (
+                    <CommandItem
+                      key={task.id}
+                      onSelect={() => handleSelect("task", task.id)}
+                      className="cursor-pointer"
+                    >
+                      <CheckSquare className="mr-2 h-4 w-4" />
+                      <div className="flex-1">
+                        <div className="font-medium">{task.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {task.status} • {task.priority}
+                        </div>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+
+              {results?.inventory && results.inventory.length > 0 && (
+                <CommandGroup heading="Estoque">
+                  {results.inventory.map((item: any) => (
+                    <CommandItem
+                      key={item.id}
+                      onSelect={() => handleSelect("inventory", item.id)}
+                      className="cursor-pointer"
+                    >
+                      <Package className="mr-2 h-4 w-4" />
+                      <div className="flex-1">
+                        <div className="font-medium">{item.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.category} {item.sku ? `• SKU: ${item.sku}` : ''}
+                        </div>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+
+              {results?.subscriptions && results.subscriptions.length > 0 && (
+                <CommandGroup heading="Assinaturas">
+                  {results.subscriptions.map((sub: any) => (
+                    <CommandItem
+                      key={sub.id}
+                      onSelect={() => handleSelect("subscription", sub.id)}
+                      className="cursor-pointer"
+                    >
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      <div className="flex-1">
+                        <div className="font-medium">{sub.customers?.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {sub.subscription_plans?.name} • {sub.status}
                         </div>
                       </div>
                     </CommandItem>
