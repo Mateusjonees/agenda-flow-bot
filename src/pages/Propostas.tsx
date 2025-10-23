@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ interface Service {
 }
 
 const Propostas = () => {
+  const navigate = useNavigate();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [filteredProposals, setFilteredProposals] = useState<Proposal[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -256,7 +258,7 @@ const Propostas = () => {
   const handleCancelProposal = async (proposalId: string) => {
     const { error } = await supabase
       .from("proposals")
-      .update({ status: "cancelled" })
+      .update({ status: "canceled" })
       .eq("id", proposalId);
 
     if (error) {
@@ -327,7 +329,7 @@ const Propostas = () => {
       rejected: { label: "Recusada", variant: "destructive" },
       expired: { label: "Expirada", variant: "destructive" },
       confirmed: { label: "Confirmada", variant: "default" },
-      cancelled: { label: "Cancelada", variant: "destructive" },
+      canceled: { label: "Cancelada", variant: "destructive" },
       paused: { label: "Pausada", variant: "outline" },
     };
     const config = statusMap[status] || statusMap.pending;
@@ -556,7 +558,7 @@ const Propostas = () => {
               {/* Barra de status superior */}
               <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${
                 proposal.status === "confirmed" ? "from-accent to-green-500" :
-                proposal.status === "cancelled" ? "from-destructive to-red-600" :
+                proposal.status === "canceled" ? "from-destructive to-red-600" :
                 proposal.status === "accepted" ? "from-blue-500 to-purple-500" :
                 "from-yellow-500 to-orange-500"
               }`} />
@@ -626,7 +628,7 @@ const Propostas = () => {
                 
                 {/* Botões de ação */}
                 <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                  {proposal.status === "pending" && (
+                  {(proposal.status === "pending" || proposal.status === "sent") && (
                     <>
                       <Button 
                         size="sm" 
@@ -661,11 +663,18 @@ const Propostas = () => {
                       className="w-full gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary transition-all"
                       onClick={(e) => {
                         e.stopPropagation();
+                        navigate("/agendamentos");
                       }}
                     >
                       <CalendarIcon className="w-4 h-4" />
                       Ver Agendamento
                     </Button>
+                  )}
+                  
+                  {proposal.status === "canceled" && (
+                    <div className="w-full text-center text-sm text-muted-foreground py-2">
+                      Proposta cancelada
+                    </div>
                   )}
                 </div>
               </CardContent>
