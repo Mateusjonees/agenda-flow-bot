@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import logo from "@/assets/logo.jpg";
+import logo from "@/assets/logo.png";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -102,10 +102,10 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-white p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src={logo} alt="SmartAgenda" className="w-24 h-24 mx-auto rounded-2xl mb-4" />
+          <img src={logo} alt="SmartAgenda" className="w-32 h-32 mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-foreground mb-2">SmartAgenda+</h1>
           <p className="text-muted-foreground">Gestão inteligente para seu negócio</p>
         </div>

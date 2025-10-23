@@ -6,7 +6,7 @@ import { Calendar, Users, Settings, LogOut, Menu, X, LayoutDashboard, DollarSign
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import logo from "@/assets/logo.jpg";
+import logo from "@/assets/logo.png";
 
 interface LayoutProps {
   children: ReactNode;
@@ -69,7 +69,7 @@ const Layout = ({ children }: LayoutProps) => {
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <img src={logo} alt="SmartAgenda" className="w-10 h-10 rounded-xl" />
+              <img src={logo} alt="SmartAgenda" className="w-10 h-10" />
               <span className="text-xl font-bold hidden sm:inline-block">SmartAgenda+</span>
             </div>
           </div>
