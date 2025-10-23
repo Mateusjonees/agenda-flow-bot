@@ -7,12 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, addWeeks, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FinishAppointmentDialog } from "@/components/FinishAppointmentDialog";
 
 type Customer = {
   id: string;
@@ -41,6 +42,8 @@ const Agendamentos = () => {
   const [notes, setNotes] = useState("");
   const [viewType, setViewType] = useState<"day" | "week" | "month">("week");
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [finishDialogOpen, setFinishDialogOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<{ id: string; title: string } | null>(null);
   
   const queryClient = useQueryClient();
 
@@ -218,16 +221,34 @@ const Agendamentos = () => {
                 </div>
                 <div className="flex-1 min-h-[40px]">
                   {hourAppointments.length > 0 ? (
-                    <div className="space-y-2">
-                      {hourAppointments.map((apt) => (
+                     <div className="space-y-2">
+                       {hourAppointments.map((apt) => (
                         <div key={apt.id} className="bg-primary/10 border-l-4 border-primary p-2 rounded">
-                          <div className="font-semibold text-sm">{apt.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {apt.customers?.name} • {format(parseISO(apt.start_time), "HH:mm")} - {format(parseISO(apt.end_time), "HH:mm")}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-sm">{apt.title}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {apt.customers?.name} • {format(parseISO(apt.start_time), "HH:mm")} - {format(parseISO(apt.end_time), "HH:mm")}
+                              </div>
+                            </div>
+                            {apt.status === "scheduled" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 gap-1 flex-shrink-0"
+                                onClick={() => {
+                                  setSelectedAppointment({ id: apt.id, title: apt.title });
+                                  setFinishDialogOpen(true);
+                                }}
+                              >
+                                <CheckCircle className="w-3 h-3" />
+                                Finalizar
+                              </Button>
+                            )}
                           </div>
                         </div>
-                      ))}
-                    </div>
+                       ))}
+                     </div>
                   ) : (
                     <div className="text-sm text-muted-foreground">Disponível</div>
                   )}
@@ -283,15 +304,28 @@ const Agendamentos = () => {
                 return (
                   <div
                     key={`${day.toISOString()}-${hour}`}
-                    className="p-2 border-l hover:bg-muted/50 transition-colors min-h-[60px]"
-                  >
-                    {dayHourAppointments.map((apt) => (
-                      <div key={apt.id} className="bg-primary/10 border-l-2 border-primary p-1 rounded mb-1 text-xs">
-                        <div className="font-semibold truncate">{apt.title}</div>
-                        <div className="text-muted-foreground truncate">{apt.customers?.name}</div>
-                      </div>
-                    ))}
-                  </div>
+                     className="p-2 border-l hover:bg-muted/50 transition-colors min-h-[60px]"
+                   >
+                     {dayHourAppointments.map((apt) => (
+                       <div key={apt.id} className="bg-primary/10 border-l-2 border-primary p-1 rounded mb-1 text-xs group relative">
+                         <div className="font-semibold truncate">{apt.title}</div>
+                         <div className="text-muted-foreground truncate">{apt.customers?.name}</div>
+                         {apt.status === "scheduled" && (
+                           <Button
+                             size="sm"
+                             variant="ghost"
+                             className="absolute top-1 right-1 h-6 px-2 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                             onClick={() => {
+                               setSelectedAppointment({ id: apt.id, title: apt.title });
+                               setFinishDialogOpen(true);
+                             }}
+                           >
+                             <CheckCircle className="w-3 h-3" />
+                           </Button>
+                         )}
+                       </div>
+                     ))}
+                   </div>
                 );
               })}
             </div>
@@ -346,17 +380,31 @@ const Agendamentos = () => {
                 >
                   {format(day, "d")}
                 </div>
-                <div className="space-y-1">
-                  {dayAppointments.slice(0, 3).map((apt) => (
-                    <div key={apt.id} className="bg-primary/10 border-l-2 border-primary p-1 rounded text-xs">
-                      <div className="font-semibold truncate">{format(parseISO(apt.start_time), "HH:mm")}</div>
-                      <div className="truncate">{apt.title}</div>
-                    </div>
-                  ))}
-                  {dayAppointments.length > 3 && (
-                    <div className="text-xs text-muted-foreground">+{dayAppointments.length - 3} mais</div>
-                  )}
-                </div>
+                 <div className="space-y-1">
+                   {dayAppointments.slice(0, 3).map((apt) => (
+                     <div 
+                       key={apt.id} 
+                       className="bg-primary/10 border-l-2 border-primary p-1 rounded text-xs group cursor-pointer"
+                       onClick={() => {
+                         if (apt.status === "scheduled") {
+                           setSelectedAppointment({ id: apt.id, title: apt.title });
+                           setFinishDialogOpen(true);
+                         }
+                       }}
+                     >
+                       <div className="font-semibold truncate">{format(parseISO(apt.start_time), "HH:mm")}</div>
+                       <div className="truncate">{apt.title}</div>
+                       {apt.status === "scheduled" && (
+                         <div className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                           Clique para finalizar
+                         </div>
+                       )}
+                     </div>
+                   ))}
+                   {dayAppointments.length > 3 && (
+                     <div className="text-xs text-muted-foreground">+{dayAppointments.length - 3} mais</div>
+                   )}
+                 </div>
               </div>
             );
           })}
@@ -525,6 +573,15 @@ const Agendamentos = () => {
           )}
         </CardContent>
       </Card>
+
+      {selectedAppointment && (
+        <FinishAppointmentDialog
+          open={finishDialogOpen}
+          onOpenChange={setFinishDialogOpen}
+          appointmentId={selectedAppointment.id}
+          appointmentTitle={selectedAppointment.title}
+        />
+      )}
     </div>
   );
 };
