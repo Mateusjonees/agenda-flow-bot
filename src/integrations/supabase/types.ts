@@ -325,6 +325,66 @@ export type Database = {
           },
         ]
       }
+      inventory_items: {
+        Row: {
+          category: string | null
+          cost_price: number | null
+          created_at: string
+          current_stock: number
+          description: string | null
+          id: string
+          image_url: string | null
+          is_kit: boolean
+          kit_items: Json | null
+          minimum_stock: number
+          name: string
+          sale_price: number | null
+          sku: string | null
+          tags: string[] | null
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          cost_price?: number | null
+          created_at?: string
+          current_stock?: number
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_kit?: boolean
+          kit_items?: Json | null
+          minimum_stock?: number
+          name: string
+          sale_price?: number | null
+          sku?: string | null
+          tags?: string[] | null
+          unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          cost_price?: number | null
+          created_at?: string
+          current_stock?: number
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_kit?: boolean
+          kit_items?: Json | null
+          minimum_stock?: number
+          name?: string
+          sale_price?: number | null
+          sku?: string | null
+          tags?: string[] | null
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       loyalty_cards: {
         Row: {
           created_at: string
@@ -655,6 +715,48 @@ export type Database = {
           },
         ]
       }
+      stock_movements: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          new_stock: number
+          previous_stock: number
+          quantity: number
+          reason: string | null
+          reference_id: string | null
+          reference_type: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          new_stock: number
+          previous_stock: number
+          quantity: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          new_stock?: number
+          previous_stock?: number
+          quantity?: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           billing_frequency: string
@@ -822,7 +924,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_low_stock_and_create_tasks: { Args: never; Returns: undefined }
+      update_inventory_stock: {
+        Args: {
+          p_item_id: string
+          p_quantity: number
+          p_reason?: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_type: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
