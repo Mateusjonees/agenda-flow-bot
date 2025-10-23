@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Users, CheckCircle2, TrendingUp, ListTodo } from "lucide-react";
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Calendar, Users, CheckCircle2, TrendingUp, ListTodo, Plus, Clock, DollarSign, Package } from "lucide-react";
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { TaskList } from "@/components/TaskList";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 interface Stats {
   todayAppointments: number;
@@ -13,7 +16,18 @@ interface Stats {
   completedToday: number;
 }
 
+type Appointment = {
+  id: string;
+  title: string;
+  start_time: string;
+  end_time: string;
+  customers?: {
+    name: string;
+  };
+};
+
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<Stats>({
     todayAppointments: 0,
     weekAppointments: 0,
@@ -21,6 +35,33 @@ const Dashboard = () => {
     completedToday: 0,
   });
   const [loading, setLoading] = useState(true);
+
+  // Buscar agendamentos de hoje
+  const { data: todayAppointments = [] } = useQuery({
+    queryKey: ["today-appointments"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const today = new Date();
+      const todayStart = startOfDay(today);
+      const todayEnd = endOfDay(today);
+
+      const { data, error } = await supabase
+        .from("appointments")
+        .select(`
+          *,
+          customers(name)
+        `)
+        .eq("user_id", user.id)
+        .gte("start_time", todayStart.toISOString())
+        .lte("start_time", todayEnd.toISOString())
+        .order("start_time");
+
+      if (error) throw error;
+      return data as Appointment[];
+    },
+  });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -103,13 +144,42 @@ const Dashboard = () => {
     },
   ];
 
+  const quickActions = [
+    {
+      title: "Novo Agendamento",
+      icon: Calendar,
+      color: "from-primary to-primary-hover",
+      action: () => navigate("/agendamentos"),
+    },
+    {
+      title: "Novo Cliente",
+      icon: Users,
+      color: "from-accent to-green-500",
+      action: () => navigate("/clientes"),
+    },
+    {
+      title: "Movimentação Financeira",
+      icon: DollarSign,
+      color: "from-blue-500 to-blue-600",
+      action: () => navigate("/financeiro"),
+    },
+    {
+      title: "Registrar Estoque",
+      icon: Package,
+      color: "from-purple-500 to-purple-600",
+      action: () => navigate("/estoque"),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-4xl font-bold text-foreground mb-2">Dashboard</h1>
-        <p className="text-muted-foreground">
-          {format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold text-foreground mb-2">Dashboard</h1>
+          <p className="text-muted-foreground">
+            {format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -135,11 +205,85 @@ const Dashboard = () => {
         })}
       </div>
 
+      {/* Ações Rápidas */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <ListTodo className="h-5 w-5" />
-            <CardTitle>O Que Fazer Hoje</CardTitle>
+          <CardTitle>Ações Rápidas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            {quickActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Button
+                  key={action.title}
+                  variant="outline"
+                  className="h-auto p-4 flex flex-col items-center gap-2 hover:shadow-md transition-all"
+                  onClick={action.action}
+                >
+                  <div className={`p-3 rounded-lg bg-gradient-to-br ${action.color}`}>
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-center">{action.title}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Agendamentos de Hoje */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              <CardTitle>Agendamentos de Hoje</CardTitle>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => navigate("/agendamentos")}>
+              Ver Todos
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {todayAppointments.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              Nenhum agendamento para hoje
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {todayAppointments.map((apt) => (
+                <div
+                  key={apt.id}
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium">{apt.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {apt.customers?.name}
+                    </p>
+                  </div>
+                  <div className="text-sm font-medium">
+                    {format(parseISO(apt.start_time), "HH:mm")} - {format(parseISO(apt.end_time), "HH:mm")}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Tarefas */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ListTodo className="h-5 w-5" />
+              <CardTitle>Tarefas Pendentes</CardTitle>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => navigate("/tarefas")}>
+              Ver Todas
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -147,76 +291,6 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Bem-vindo ao SmartAgenda+</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-muted-foreground">
-              Sistema completo de gestão para pequenos negócios com automação inteligente.
-            </p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-accent" />
-                Agenda inteligente com controle de horários
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-accent" />
-                Gestão completa de clientes
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-accent" />
-                Controle de status de pagamentos
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-accent" />
-                Tarefas automatizadas inteligentes
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Próximos Passos</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-muted-foreground mb-4">
-              Configure seu negócio e comece a agendar!
-            </p>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-xs font-bold text-primary">1</span>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Configure seu negócio</p>
-                  <p className="text-sm text-muted-foreground">Defina horários e informações</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-xs font-bold text-primary">2</span>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Adicione seus clientes</p>
-                  <p className="text-sm text-muted-foreground">Cadastre seus clientes ativos</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-xs font-bold text-primary">3</span>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Crie agendamentos</p>
-                  <p className="text-sm text-muted-foreground">Comece a organizar sua agenda</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 };
