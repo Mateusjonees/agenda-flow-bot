@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Pause, Trash2, Filter, CheckCircle, XCircle, Calendar as CalendarIcon, User, DollarSign, Sparkles } from "lucide-react";
+import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Trash2, Filter, CheckCircle, XCircle, Calendar as CalendarIcon, User, DollarSign, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -235,25 +235,6 @@ const Propostas = () => {
     }
   };
 
-  const handlePauseProposal = async (proposalId: string) => {
-    const { error } = await supabase
-      .from("proposals")
-      .update({ status: "paused" })
-      .eq("id", proposalId);
-
-    if (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível pausar a proposta.",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Proposta pausada!",
-      });
-      fetchData();
-    }
-  };
 
   const handleCancelProposal = async (proposalId: string) => {
     const { error } = await supabase
