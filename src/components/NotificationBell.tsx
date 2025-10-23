@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, Calendar, ListTodo } from "lucide-react";
+import { Bell, Calendar, ListTodo, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -12,6 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface Appointment {
   id: string;
@@ -28,54 +29,118 @@ interface Task {
 }
 
 export function NotificationBell() {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  const fetchNotifications = async () => {
-    setLoading(true);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+  // Buscar notificações não vistas
+  const { data: notifications, isLoading } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { appointments: [], tasks: [] };
 
-    // Buscar atendimentos do dia
-    const { data: appointmentsData } = await supabase
-      .from("appointments")
-      .select("id, title, start_time, customer_id")
-      .eq("user_id", user.id)
-      .gte("start_time", today.toISOString())
-      .lt("start_time", tomorrow.toISOString())
-      .order("start_time", { ascending: true });
+      // Buscar atendimentos do dia
+      const { data: appointmentsData } = await supabase
+        .from("appointments")
+        .select("id, title, start_time, customer_id")
+        .eq("user_id", user.id)
+        .gte("start_time", today.toISOString())
+        .lt("start_time", tomorrow.toISOString())
+        .order("start_time", { ascending: true });
 
-    // Buscar tarefas pendentes
-    const { data: tasksData } = await supabase
-      .from("tasks")
-      .select("id, title, due_date, priority")
-      .eq("user_id", user.id)
-      .eq("status", "pending")
-      .lte("due_date", tomorrow.toISOString())
-      .order("due_date", { ascending: true })
-      .limit(10);
+      // Buscar tarefas pendentes
+      const { data: tasksData } = await supabase
+        .from("tasks")
+        .select("id, title, due_date, priority")
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+        .lte("due_date", tomorrow.toISOString())
+        .order("due_date", { ascending: true })
+        .limit(10);
 
-    setAppointments(appointmentsData || []);
-    setTasks(tasksData || []);
-    setLoading(false);
+      // Buscar notificações já vistas
+      const { data: viewedData } = await supabase
+        .from("notification_views")
+        .select("notification_type, notification_id")
+        .eq("user_id", user.id);
+
+      const viewedSet = new Set(
+        viewedData?.map((v) => `${v.notification_type}-${v.notification_id}`) || []
+      );
+
+      // Filtrar apenas não vistas
+      const unseenAppointments = (appointmentsData || []).filter(
+        (apt) => !viewedSet.has(`appointment-${apt.id}`)
+      );
+      const unseenTasks = (tasksData || []).filter(
+        (task) => !viewedSet.has(`task-${task.id}`)
+      );
+
+      return {
+        appointments: unseenAppointments,
+        tasks: unseenTasks,
+      };
+    },
+    enabled: open,
+  });
+
+  // Mutation para marcar todas como vistas
+  const markAllAsViewed = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !notifications) return;
+
+      const viewsToInsert = [
+        ...notifications.appointments.map((apt) => ({
+          user_id: user.id,
+          notification_type: "appointment",
+          notification_id: apt.id,
+        })),
+        ...notifications.tasks.map((task) => ({
+          user_id: user.id,
+          notification_type: "task",
+          notification_id: task.id,
+        })),
+      ];
+
+      if (viewsToInsert.length > 0) {
+        await supabase.from("notification_views").upsert(viewsToInsert, {
+          onConflict: "user_id,notification_type,notification_id",
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen && notifications && (notifications.appointments.length > 0 || notifications.tasks.length > 0)) {
+      // Marcar todas como vistas quando fechar o popover
+      markAllAsViewed.mutate();
+    }
   };
 
-  const totalNotifications = appointments.length + tasks.length;
+  const totalNotifications = notifications
+    ? notifications.appointments.length + notifications.tasks.length
+    : 0;
+
+  const appointments = notifications?.appointments || [];
+  const tasks = notifications?.tasks || [];
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
           className="relative"
-          onClick={fetchNotifications}
         >
           <Bell className="w-4 h-4" />
           {totalNotifications > 0 && (
@@ -91,19 +156,32 @@ export function NotificationBell() {
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between p-4 border-b">
           <h4 className="font-semibold">Notificações</h4>
-          {totalNotifications > 0 && (
-            <Badge variant="secondary">{totalNotifications}</Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {totalNotifications > 0 && (
+              <>
+                <Badge variant="secondary">{totalNotifications}</Badge>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => markAllAsViewed.mutate()}
+                  className="h-7 gap-1 text-xs"
+                >
+                  <Check className="w-3 h-3" />
+                  Marcar todas
+                </Button>
+              </>
+            )}
+          </div>
         </div>
         
         <ScrollArea className="h-[400px]">
-          {loading ? (
+          {isLoading ? (
             <div className="p-4 text-center text-muted-foreground text-sm">
               Carregando...
             </div>
           ) : totalNotifications === 0 ? (
             <div className="p-4 text-center text-muted-foreground text-sm">
-              Nenhuma notificação no momento
+              Nenhuma notificação nova
             </div>
           ) : (
             <div className="p-2">

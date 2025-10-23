@@ -471,6 +471,33 @@ export type Database = {
           },
         ]
       }
+      notification_views: {
+        Row: {
+          created_at: string
+          id: string
+          notification_id: string
+          notification_type: string
+          user_id: string
+          viewed_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notification_id: string
+          notification_type: string
+          user_id: string
+          viewed_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notification_id?: string
+          notification_type?: string
+          user_id?: string
+          viewed_at?: string
+        }
+        Relationships: []
+      }
       pix_charges: {
         Row: {
           amount: number

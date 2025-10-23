@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "@/components/NotificationBell";
+import { SearchBar } from "@/components/SearchBar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import logo from "@/assets/logo.png";
@@ -70,13 +71,7 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
 
               <div className="flex-1 max-w-md mx-4">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Buscar..."
-                    className="w-full h-9 px-4 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
+                <SearchBar />
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
