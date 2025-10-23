@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Calendar, Users, FileText, DollarSign, CheckSquare, Package, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,19 @@ export function SearchBar() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
+
+  // Adicionar atalho Ctrl+K
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen((open) => !open);
+      }
+    };
+
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
 
   const { data: results, isLoading } = useQuery({
     queryKey: ["search", search],
@@ -42,16 +55,16 @@ export function SearchBar() {
         subscriptions: []
       };
 
-      const searchPattern = `%${search}%`;
+      const searchPattern = `%${search.toLowerCase()}%`;
 
-      // Buscar agendamentos
+      // Buscar agendamentos - melhorado para buscar também pelo nome do cliente
       const { data: appointments } = await supabase
         .from("appointments")
-        .select("id, title, start_time, description, customers(name)")
+        .select("id, title, start_time, description, customer_id, customers(name)")
         .eq("user_id", user.id)
         .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
         .order("start_time", { ascending: false })
-        .limit(5);
+        .limit(10);
 
       // Buscar clientes
       const { data: customers } = await supabase
@@ -60,16 +73,16 @@ export function SearchBar() {
         .eq("user_id", user.id)
         .or(`name.ilike.${searchPattern},phone.ilike.${searchPattern},email.ilike.${searchPattern},notes.ilike.${searchPattern}`)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(10);
 
-      // Buscar propostas
+      // Buscar propostas - melhorado
       const { data: proposals } = await supabase
         .from("proposals")
-        .select("id, title, status, description, customers(name)")
+        .select("id, title, status, description, customer_id, customers(name)")
         .eq("user_id", user.id)
         .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(10);
 
       // Buscar transações
       const { data: transactions } = await supabase
@@ -78,7 +91,7 @@ export function SearchBar() {
         .eq("user_id", user.id)
         .or(`description.ilike.${searchPattern},payment_method.ilike.${searchPattern}`)
         .order("transaction_date", { ascending: false })
-        .limit(5);
+        .limit(10);
 
       // Buscar tarefas
       const { data: tasks } = await supabase
@@ -87,7 +100,7 @@ export function SearchBar() {
         .eq("user_id", user.id)
         .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(10);
 
       // Buscar estoque
       const { data: inventory } = await supabase
@@ -96,24 +109,61 @@ export function SearchBar() {
         .eq("user_id", user.id)
         .or(`name.ilike.${searchPattern},description.ilike.${searchPattern},category.ilike.${searchPattern},sku.ilike.${searchPattern}`)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(10);
 
-      // Buscar assinaturas
-      const { data: subscriptions } = await supabase
+      // Buscar assinaturas com informações do cliente e plano
+      const { data: subscriptionsRaw } = await supabase
         .from("subscriptions")
-        .select("id, status, customers(name), subscription_plans(name)")
+        .select("id, status, customer_id, plan_id")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(10);
+
+      // Buscar informações complementares se houver assinaturas
+      let subscriptions: any[] = [];
+      if (subscriptionsRaw && subscriptionsRaw.length > 0) {
+        const customerIds = [...new Set(subscriptionsRaw.map(s => s.customer_id))];
+        const planIds = [...new Set(subscriptionsRaw.map(s => s.plan_id))];
+
+        const [customersData, plansData] = await Promise.all([
+          supabase.from("customers").select("id, name").in("id", customerIds),
+          supabase.from("subscription_plans").select("id, name").in("id", planIds)
+        ]);
+
+        subscriptions = subscriptionsRaw.map(sub => ({
+          ...sub,
+          customer_name: customersData.data?.find(c => c.id === sub.customer_id)?.name,
+          plan_name: plansData.data?.find(p => p.id === sub.plan_id)?.name
+        }));
+      }
+
+      // Filtrar agendamentos e propostas também pelo nome do cliente
+      const filteredAppointments = appointments?.filter(apt => 
+        apt.title?.toLowerCase().includes(search.toLowerCase()) ||
+        apt.description?.toLowerCase().includes(search.toLowerCase()) ||
+        apt.customers?.name?.toLowerCase().includes(search.toLowerCase())
+      );
+
+      const filteredProposals = proposals?.filter(prop => 
+        prop.title?.toLowerCase().includes(search.toLowerCase()) ||
+        prop.description?.toLowerCase().includes(search.toLowerCase()) ||
+        prop.customers?.name?.toLowerCase().includes(search.toLowerCase())
+      );
+
+      const filteredSubscriptions = subscriptions?.filter(sub => 
+        sub.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
+        sub.plan_name?.toLowerCase().includes(search.toLowerCase()) ||
+        sub.status?.toLowerCase().includes(search.toLowerCase())
+      );
 
       return {
-        appointments: appointments || [],
+        appointments: filteredAppointments || [],
         customers: customers || [],
-        proposals: proposals || [],
+        proposals: filteredProposals || [],
         transactions: transactions || [],
         tasks: tasks || [],
         inventory: inventory || [],
-        subscriptions: subscriptions || [],
+        subscriptions: filteredSubscriptions || [],
       };
     },
     enabled: search.length >= 2,
@@ -155,10 +205,13 @@ export function SearchBar() {
         <input
           type="text"
           placeholder="Buscar em todo o sistema..."
-          className="w-full h-9 pl-9 pr-4 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full h-9 pl-9 pr-20 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
           onClick={() => setOpen(true)}
           readOnly
         />
+        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+          <span className="text-xs">⌘</span>K
+        </kbd>
       </div>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
@@ -308,9 +361,9 @@ export function SearchBar() {
                     >
                       <CreditCard className="mr-2 h-4 w-4" />
                       <div className="flex-1">
-                        <div className="font-medium">{sub.customers?.name}</div>
+                        <div className="font-medium">{sub.customer_name}</div>
                         <div className="text-xs text-muted-foreground">
-                          {sub.subscription_plans?.name} • {sub.status}
+                          {sub.plan_name} • {sub.status}
                         </div>
                       </div>
                     </CommandItem>
