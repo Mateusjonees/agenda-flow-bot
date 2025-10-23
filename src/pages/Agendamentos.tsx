@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, addWeeks, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FinishAppointmentDialog } from "@/components/FinishAppointmentDialog";
+import { EditAppointmentDialog } from "@/components/EditAppointmentDialog";
 
 type Customer = {
   id: string;
@@ -43,7 +44,9 @@ const Agendamentos = () => {
   const [viewType, setViewType] = useState<"day" | "week" | "month">("week");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [finishDialogOpen, setFinishDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<{ id: string; title: string } | null>(null);
+  const [editAppointmentId, setEditAppointmentId] = useState<string>("");
   
   const queryClient = useQueryClient();
 
@@ -232,18 +235,32 @@ const Agendamentos = () => {
                               </div>
                             </div>
                             {apt.status === "scheduled" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 gap-1 flex-shrink-0"
-                                onClick={() => {
-                                  setSelectedAppointment({ id: apt.id, title: apt.title });
-                                  setFinishDialogOpen(true);
-                                }}
-                              >
-                                <CheckCircle className="w-3 h-3" />
-                                Finalizar
-                              </Button>
+                              <div className="flex gap-1 flex-shrink-0">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 gap-1"
+                                  onClick={() => {
+                                    setEditAppointmentId(apt.id);
+                                    setEditDialogOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                  Editar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 gap-1"
+                                  onClick={() => {
+                                    setSelectedAppointment({ id: apt.id, title: apt.title });
+                                    setFinishDialogOpen(true);
+                                  }}
+                                >
+                                  <CheckCircle className="w-3 h-3" />
+                                  Finalizar
+                                </Button>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -302,30 +319,43 @@ const Agendamentos = () => {
                 });
 
                 return (
-                  <div
-                    key={`${day.toISOString()}-${hour}`}
-                     className="p-2 border-l hover:bg-muted/50 transition-colors min-h-[60px]"
-                   >
-                     {dayHourAppointments.map((apt) => (
-                       <div key={apt.id} className="bg-primary/10 border-l-2 border-primary p-1 rounded mb-1 text-xs group relative">
-                         <div className="font-semibold truncate">{apt.title}</div>
-                         <div className="text-muted-foreground truncate">{apt.customers?.name}</div>
-                         {apt.status === "scheduled" && (
-                           <Button
-                             size="sm"
-                             variant="ghost"
-                             className="absolute top-1 right-1 h-6 px-2 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                             onClick={() => {
-                               setSelectedAppointment({ id: apt.id, title: apt.title });
-                               setFinishDialogOpen(true);
-                             }}
-                           >
-                             <CheckCircle className="w-3 h-3" />
-                           </Button>
-                         )}
-                       </div>
-                     ))}
-                   </div>
+                     <div
+                       key={`${day.toISOString()}-${hour}`}
+                        className="p-2 border-l hover:bg-muted/50 transition-colors min-h-[60px]"
+                      >
+                        {dayHourAppointments.map((apt) => (
+                          <div key={apt.id} className="bg-primary/10 border-l-2 border-primary p-1 rounded mb-1 text-xs group relative">
+                            <div className="font-semibold truncate">{apt.title}</div>
+                            <div className="text-muted-foreground truncate">{apt.customers?.name}</div>
+                            {apt.status === "scheduled" && (
+                              <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => {
+                                    setEditAppointmentId(apt.id);
+                                    setEditDialogOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => {
+                                    setSelectedAppointment({ id: apt.id, title: apt.title });
+                                    setFinishDialogOpen(true);
+                                  }}
+                                >
+                                  <CheckCircle className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                 );
               })}
             </div>
@@ -384,19 +414,36 @@ const Agendamentos = () => {
                    {dayAppointments.slice(0, 3).map((apt) => (
                      <div 
                        key={apt.id} 
-                       className="bg-primary/10 border-l-2 border-primary p-1 rounded text-xs group cursor-pointer"
-                       onClick={() => {
-                         if (apt.status === "scheduled") {
-                           setSelectedAppointment({ id: apt.id, title: apt.title });
-                           setFinishDialogOpen(true);
-                         }
-                       }}
+                       className="bg-primary/10 border-l-2 border-primary p-1 rounded text-xs group relative"
                      >
                        <div className="font-semibold truncate">{format(parseISO(apt.start_time), "HH:mm")}</div>
                        <div className="truncate">{apt.title}</div>
                        {apt.status === "scheduled" && (
-                         <div className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                           Clique para finalizar
+                         <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                           <Button
+                             size="sm"
+                             variant="ghost"
+                             className="h-5 w-5 p-0"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setEditAppointmentId(apt.id);
+                               setEditDialogOpen(true);
+                             }}
+                           >
+                             <Pencil className="w-2.5 h-2.5" />
+                           </Button>
+                           <Button
+                             size="sm"
+                             variant="ghost"
+                             className="h-5 w-5 p-0"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setSelectedAppointment({ id: apt.id, title: apt.title });
+                               setFinishDialogOpen(true);
+                             }}
+                           >
+                             <CheckCircle className="w-2.5 h-2.5" />
+                           </Button>
                          </div>
                        )}
                      </div>
@@ -580,6 +627,14 @@ const Agendamentos = () => {
           onOpenChange={setFinishDialogOpen}
           appointmentId={selectedAppointment.id}
           appointmentTitle={selectedAppointment.title}
+        />
+      )}
+      
+      {editAppointmentId && (
+        <EditAppointmentDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          appointmentId={editAppointmentId}
         />
       )}
     </div>
