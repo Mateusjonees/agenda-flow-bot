@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Settings, LogOut, Menu, X, LayoutDashboard } from "lucide-react";
+import { Calendar, Users, Settings, LogOut, Menu, X, LayoutDashboard, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
 
@@ -49,6 +49,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/", label: "Dashboard", icon: LayoutDashboard },
     { path: "/agendamentos", label: "Agendamentos", icon: Calendar },
     { path: "/clientes", label: "Clientes", icon: Users },
+    { path: "/financeiro", label: "Financeiro", icon: DollarSign },
     { path: "/configuracoes", label: "Configurações", icon: Settings },
   ];
 
