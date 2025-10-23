@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, TrendingUp, TrendingDown, DollarSign, PieChart } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { DailyClosing } from "@/components/DailyClosing";
 
 interface FinancialSummary {
   income: number;
@@ -80,10 +81,13 @@ const Financeiro = () => {
             {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
-        <Button className="gap-2">
-          <Plus className="w-4 h-4" />
-          Nova Transação
-        </Button>
+        <div className="flex gap-3">
+          <DailyClosing />
+          <Button className="gap-2">
+            <Plus className="w-4 h-4" />
+            Nova Transação
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
