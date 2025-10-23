@@ -655,6 +655,117 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          billing_frequency: string
+          created_at: string
+          description: string | null
+          id: string
+          included_services: Json
+          is_active: boolean
+          name: string
+          price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_frequency?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          included_services?: Json
+          is_active?: boolean
+          name: string
+          price: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_frequency?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          included_services?: Json
+          is_active?: boolean
+          name?: string
+          price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscription_usage: {
+        Row: {
+          appointment_id: string | null
+          id: string
+          service_type: string
+          subscription_id: string
+          used_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          id?: string
+          service_type: string
+          subscription_id: string
+          used_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          id?: string
+          service_type?: string
+          subscription_id?: string
+          used_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          customer_id: string
+          failed_payments_count: number
+          id: string
+          last_billing_date: string | null
+          last_payment_attempt: string | null
+          next_billing_date: string
+          payment_method: string
+          plan_id: string
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          failed_payments_count?: number
+          id?: string
+          last_billing_date?: string | null
+          last_payment_attempt?: string | null
+          next_billing_date: string
+          payment_method?: string
+          plan_id: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          failed_payments_count?: number
+          id?: string
+          last_billing_date?: string | null
+          last_payment_attempt?: string | null
+          next_billing_date?: string
+          payment_method?: string
+          plan_id?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
