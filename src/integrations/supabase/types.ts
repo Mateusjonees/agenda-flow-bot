@@ -120,6 +120,7 @@ export type Database = {
           created_at: string
           id: string
           phone: string | null
+          profile_image_url: string | null
           slot_duration: number | null
           updated_at: string
           user_id: string
@@ -134,6 +135,7 @@ export type Database = {
           created_at?: string
           id?: string
           phone?: string | null
+          profile_image_url?: string | null
           slot_duration?: number | null
           updated_at?: string
           user_id: string
@@ -148,6 +150,7 @@ export type Database = {
           created_at?: string
           id?: string
           phone?: string | null
+          profile_image_url?: string | null
           slot_duration?: number | null
           updated_at?: string
           user_id?: string
