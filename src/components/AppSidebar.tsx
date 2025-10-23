@@ -16,11 +16,9 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
 
 const navItems = [
@@ -37,15 +35,12 @@ const navItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
   const location = useLocation();
-  const collapsed = state === "collapsed";
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarContent>
+    <Sidebar collapsible="icon" className="border-r">
+      <SidebarContent className="pt-4">
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
@@ -54,10 +49,10 @@ export function AppSidebar() {
                 
                 return (
                   <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton asChild isActive={isActive}>
+                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
                       <NavLink to={item.path}>
-                        <Icon className="w-4 h-4" />
-                        {!collapsed && <span>{item.label}</span>}
+                        <Icon className="w-5 h-5" />
+                        <span>{item.label}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

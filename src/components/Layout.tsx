@@ -50,23 +50,35 @@ const Layout = ({ children }: LayoutProps) => {
   if (!user) return null;
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+    <SidebarProvider defaultOpen>
+      <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
-          <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-            <div className="flex h-14 items-center justify-between px-4 gap-4">
-              <div className="flex items-center gap-3">
-                <SidebarTrigger />
-                <div className="flex items-center gap-2">
-                  <img src={logo} alt="SmartAgenda" className="w-8 h-8" />
-                  <span className="text-lg font-bold hidden sm:inline-block">SmartAgenda</span>
+          <header className="sticky top-0 z-40 w-full border-b bg-background">
+            <div className="flex h-16 items-center gap-4 px-6">
+              <SidebarTrigger className="-ml-2" />
+              
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <img src={logo} alt="SmartAgenda" className="w-9 h-9" />
+                <div className="hidden sm:block">
+                  <h1 className="text-lg font-bold leading-none">SmartAgenda</h1>
+                  <p className="text-xs text-muted-foreground">Gestão de Agendamentos</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex-1 max-w-md mx-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar..."
+                    className="w-full h-9 px-4 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <ThemeToggle />
                 <Button
                   variant="ghost"
@@ -81,8 +93,10 @@ const Layout = ({ children }: LayoutProps) => {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 p-6">
-            {children}
+          <main className="flex-1 overflow-auto">
+            <div className="p-6">
+              {children}
+            </div>
           </main>
         </div>
       </div>
