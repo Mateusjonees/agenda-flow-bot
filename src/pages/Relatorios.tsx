@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
   TrendingUp, 
   TrendingDown, 
   Users, 
@@ -15,8 +16,12 @@ import {
   AlertCircle,
   Clock,
   Target,
-  Loader2
+  Loader2,
+  Package,
+  BarChart3,
+  PieChart as PieChartIcon
 } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -48,11 +53,29 @@ interface FinancialSummary {
   pending_payments: number;
 }
 
+interface InventoryItem {
+  id: string;
+  name: string;
+  category: string;
+  current_stock: number;
+  minimum_stock: number;
+  cost_price: number;
+  sale_price: number;
+}
+
+interface InventoryChartData {
+  name: string;
+  value: number;
+  cost: number;
+}
+
 const Relatorios = () => {
   const navigate = useNavigate();
   const [inactiveCustomers, setInactiveCustomers] = useState<InactiveCustomer[]>([]);
   const [timeSlotAnalysis, setTimeSlotAnalysis] = useState<TimeSlotAnalysis[]>([]);
   const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null);
+  const [inventoryData, setInventoryData] = useState<InventoryItem[]>([]);
+  const [chartType, setChartType] = useState<"pie" | "bar">("pie");
   const [loading, setLoading] = useState(true);
   const [reactivating, setReactivating] = useState<string | null>(null);
   const { toast } = useToast();
@@ -208,6 +231,17 @@ const Relatorios = () => {
         pending_payments: pendingAmount,
       });
 
+      // Buscar dados do estoque
+      const { data: inventory } = await supabase
+        .from("inventory_items")
+        .select("id, name, category, current_stock, minimum_stock, cost_price, sale_price")
+        .eq("user_id", user.id)
+        .order("current_stock", { ascending: false });
+
+      if (inventory) {
+        setInventoryData(inventory);
+      }
+
     } catch (error) {
       console.error("Erro ao carregar relatórios:", error);
       toast({
@@ -276,8 +310,9 @@ const Relatorios = () => {
       </div>
 
       <Tabs defaultValue="financial" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="financial">Financeiro</TabsTrigger>
+          <TabsTrigger value="inventory">Estoque</TabsTrigger>
           <TabsTrigger value="inactive">Clientes Inativos</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
         </TabsList>
@@ -400,6 +435,219 @@ const Relatorios = () => {
               )}
             </>
           ) : null}
+        </TabsContent>
+
+        {/* Relatório de Estoque */}
+        <TabsContent value="inventory" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="w-5 h-5 text-primary" />
+                    Relatório de Estoque
+                  </CardTitle>
+                  <CardDescription>
+                    Visualização do estoque atual por categoria e produto
+                  </CardDescription>
+                </div>
+                <Select value={chartType} onValueChange={(value: "pie" | "bar") => setChartType(value)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pie">
+                      <div className="flex items-center gap-2">
+                        <PieChartIcon className="w-4 h-4" />
+                        Gráfico Pizza
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="bar">
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4" />
+                        Gráfico Barras
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {inventoryData.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Nenhum item em estoque encontrado.</p>
+                  <Button 
+                    onClick={() => navigate("/estoque")} 
+                    className="mt-4"
+                    variant="outline"
+                  >
+                    Adicionar Itens ao Estoque
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Gráfico */}
+                  <div className="h-[400px]">
+                    {chartType === "pie" ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={(() => {
+                              const categoryMap = new Map<string, { value: number; cost: number }>();
+                              inventoryData.forEach(item => {
+                                const category = item.category || "Sem categoria";
+                                const current = categoryMap.get(category) || { value: 0, cost: 0 };
+                                categoryMap.set(category, {
+                                  value: current.value + item.current_stock,
+                                  cost: current.cost + (item.current_stock * (item.cost_price || 0))
+                                });
+                              });
+                              return Array.from(categoryMap.entries()).map(([name, data]) => ({
+                                name,
+                                value: data.value,
+                                cost: data.cost
+                              }));
+                            })()}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={120}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {(() => {
+                              const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
+                              const categoryMap = new Map<string, { value: number; cost: number }>();
+                              inventoryData.forEach(item => {
+                                const category = item.category || "Sem categoria";
+                                const current = categoryMap.get(category) || { value: 0, cost: 0 };
+                                categoryMap.set(category, {
+                                  value: current.value + item.current_stock,
+                                  cost: current.cost + (item.current_stock * (item.cost_price || 0))
+                                });
+                              });
+                              return Array.from(categoryMap.entries()).map((_, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ));
+                            })()}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number, name: string, props: any) => [
+                              `${value} unidades (${formatCurrency(props.payload.cost)})`,
+                              name
+                            ]}
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={(() => {
+                            const categoryMap = new Map<string, { value: number; cost: number }>();
+                            inventoryData.forEach(item => {
+                              const category = item.category || "Sem categoria";
+                              const current = categoryMap.get(category) || { value: 0, cost: 0 };
+                              categoryMap.set(category, {
+                                value: current.value + item.current_stock,
+                                cost: current.cost + (item.current_stock * (item.cost_price || 0))
+                              });
+                            });
+                            return Array.from(categoryMap.entries()).map(([name, data]) => ({
+                              name,
+                              quantity: data.value,
+                              cost: data.cost
+                            }));
+                          })()}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis yAxisId="left" />
+                          <YAxis yAxisId="right" orientation="right" />
+                          <Tooltip />
+                          <Legend />
+                          <Bar yAxisId="left" dataKey="quantity" fill="hsl(var(--primary))" name="Quantidade" />
+                          <Bar yAxisId="right" dataKey="cost" fill="hsl(var(--accent))" name="Valor Total" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+
+                  {/* Estatísticas */}
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-sm font-medium text-muted-foreground mb-1">
+                          Total de Itens
+                        </div>
+                        <div className="text-2xl font-bold">
+                          {inventoryData.length}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-sm font-medium text-muted-foreground mb-1">
+                          Qtd. Total em Estoque
+                        </div>
+                        <div className="text-2xl font-bold">
+                          {inventoryData.reduce((sum, item) => sum + item.current_stock, 0)}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-sm font-medium text-muted-foreground mb-1">
+                          Valor Total (Custo)
+                        </div>
+                        <div className="text-2xl font-bold">
+                          {formatCurrency(
+                            inventoryData.reduce((sum, item) => 
+                              sum + (item.current_stock * (item.cost_price || 0)), 0
+                            )
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Alertas de estoque baixo */}
+                  {inventoryData.some(item => item.current_stock <= item.minimum_stock) && (
+                    <Card className="border-destructive/50 bg-destructive/5">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-destructive">
+                          <AlertCircle className="w-5 h-5" />
+                          Itens com Estoque Baixo
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {inventoryData
+                            .filter(item => item.current_stock <= item.minimum_stock)
+                            .map(item => (
+                              <div key={item.id} className="flex items-center justify-between p-3 bg-background rounded-lg">
+                                <div>
+                                  <p className="font-medium">{item.name}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {item.category || "Sem categoria"}
+                                  </p>
+                                </div>
+                                <Badge variant="destructive">
+                                  {item.current_stock} / {item.minimum_stock}
+                                </Badge>
+                              </div>
+                            ))
+                          }
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Clientes Inativos */}
