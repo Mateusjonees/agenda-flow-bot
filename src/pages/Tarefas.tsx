@@ -4,20 +4,39 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TaskList } from "@/components/TaskList";
-import { ListTodo, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { ListTodo, CheckCircle2, Clock, XCircle, Plus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 const Tarefas = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [stats, setStats] = useState({
     pending: 0,
     completed: 0,
     overdue: 0,
   });
+  const [open, setOpen] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    due_date: "",
+    related_entity_id: "",
+    priority: "medium",
+    status: "pending",
+  });
 
   useEffect(() => {
     checkAuth();
     fetchStats();
+    fetchCustomers();
   }, []);
 
   const checkAuth = async () => {
@@ -53,13 +72,172 @@ const Tarefas = () => {
     });
   };
 
+  const fetchCustomers = async () => {
+    const { data } = await supabase
+      .from("customers")
+      .select("id, name")
+      .order("name");
+    
+    if (data) {
+      setCustomers(data);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { error } = await supabase
+      .from("tasks")
+      .insert({
+        user_id: session.user.id,
+        title: formData.title,
+        description: formData.description,
+        due_date: new Date(formData.due_date).toISOString(),
+        priority: formData.priority,
+        status: formData.status,
+        type: "manual",
+        related_entity_type: formData.related_entity_id ? "customer" : null,
+        related_entity_id: formData.related_entity_id || null,
+      });
+
+    if (error) {
+      toast({
+        title: "Erro ao criar tarefa",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Tarefa criada!",
+      });
+      setOpen(false);
+      setFormData({
+        title: "",
+        description: "",
+        due_date: "",
+        related_entity_id: "",
+        priority: "medium",
+        status: "pending",
+      });
+      fetchStats();
+    }
+  };
+
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Tarefas</h1>
-        <p className="text-muted-foreground mt-1">
-          Gerencie suas tarefas e atividades automatizadas
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Tarefas</h1>
+          <p className="text-muted-foreground mt-1">
+            Gerencie suas tarefas e atividades automatizadas
+          </p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Tarefa
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Criar Nova Tarefa</DialogTitle>
+              <DialogDescription>
+                Adicione uma nova tarefa manual ao sistema
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Título *</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Descrição</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="due_date">Data de Vencimento *</Label>
+                <Input
+                  id="due_date"
+                  type="datetime-local"
+                  value={formData.due_date}
+                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customer">Responsável (Cliente)</Label>
+                <Select
+                  value={formData.related_entity_id}
+                  onValueChange={(value) => setFormData({ ...formData, related_entity_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="priority">Prioridade</Label>
+                <Select
+                  value={formData.priority}
+                  onValueChange={(value) => setFormData({ ...formData, priority: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Baixa</SelectItem>
+                    <SelectItem value="medium">Média</SelectItem>
+                    <SelectItem value="high">Alta</SelectItem>
+                    <SelectItem value="urgent">Urgente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => setFormData({ ...formData, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                    <SelectItem value="in_progress">Em Progresso</SelectItem>
+                    <SelectItem value="completed">Concluída</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit">Criar Tarefa</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -96,6 +274,7 @@ const Tarefas = () => {
         <TabsList>
           <TabsTrigger value="today">Hoje</TabsTrigger>
           <TabsTrigger value="all">Todas</TabsTrigger>
+          <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="today" className="space-y-4">
@@ -128,6 +307,23 @@ const Tarefas = () => {
             </CardHeader>
             <CardContent>
               <TaskList showAll={true} maxItems={100} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5" />
+                <CardTitle>Histórico de Tarefas</CardTitle>
+              </div>
+              <CardDescription>
+                Tarefas concluídas e canceladas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TaskList showCompleted={true} maxItems={100} />
             </CardContent>
           </Card>
         </TabsContent>

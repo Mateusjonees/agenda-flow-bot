@@ -29,33 +29,40 @@ interface Task {
   due_date: string;
   related_entity_type: string;
   related_entity_id: string;
+  completed_at?: string;
+  updated_at: string;
 }
 
 interface TaskListProps {
   showAll?: boolean;
+  showCompleted?: boolean;
   maxItems?: number;
 }
 
-export const TaskList = ({ showAll = false, maxItems = 10 }: TaskListProps) => {
+export const TaskList = ({ showAll = false, showCompleted = false, maxItems = 10 }: TaskListProps) => {
   const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchTasks();
-  }, [showAll]);
+  }, [showAll, showCompleted]);
 
   const fetchTasks = async () => {
     let query = supabase
       .from("tasks")
-      .select("*")
-      .in("status", ["pending", "in_progress"])
-      .order("due_date", { ascending: true });
+      .select("*");
 
-    if (!showAll) {
-      const today = new Date();
-      today.setHours(23, 59, 59, 999);
-      query = query.lte("due_date", today.toISOString());
+    if (showCompleted) {
+      query = query.in("status", ["completed", "cancelled"]).order("completed_at", { ascending: false });
+    } else {
+      query = query.in("status", ["pending", "in_progress"]).order("due_date", { ascending: true });
+      
+      if (!showAll) {
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        query = query.lte("due_date", today.toISOString());
+      }
     }
 
     if (maxItems) {
@@ -146,7 +153,11 @@ export const TaskList = ({ showAll = false, maxItems = 10 }: TaskListProps) => {
         <CardContent className="flex flex-col items-center justify-center py-10">
           <CheckCircle2 className="h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-muted-foreground">
-            {showAll ? "Nenhuma tarefa pendente" : "Nenhuma tarefa para hoje"}
+            {showCompleted 
+              ? "Nenhuma tarefa no histórico" 
+              : showAll 
+                ? "Nenhuma tarefa pendente" 
+                : "Nenhuma tarefa para hoje"}
           </p>
         </CardContent>
       </Card>
@@ -156,14 +167,16 @@ export const TaskList = ({ showAll = false, maxItems = 10 }: TaskListProps) => {
   return (
     <div className="space-y-3">
       {tasks.map((task) => (
-        <Card key={task.id} className={isOverdue(task.due_date) ? "border-destructive" : ""}>
+        <Card key={task.id} className={!showCompleted && isOverdue(task.due_date) ? "border-destructive" : ""}>
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <Checkbox
-                checked={false}
-                onCheckedChange={() => handleCompleteTask(task.id)}
-                className="mt-1"
-              />
+              {!showCompleted && (
+                <Checkbox
+                  checked={false}
+                  onCheckedChange={() => handleCompleteTask(task.id)}
+                  className="mt-1"
+                />
+              )}
               <div className="flex-1 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -178,7 +191,12 @@ export const TaskList = ({ showAll = false, maxItems = 10 }: TaskListProps) => {
                   <p className="text-sm text-muted-foreground">{task.description}</p>
                 )}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {isOverdue(task.due_date) ? (
+                  {showCompleted ? (
+                    <div className="flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Concluída em {format(new Date(task.completed_at || task.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </div>
+                  ) : isOverdue(task.due_date) ? (
                     <div className="flex items-center gap-1 text-destructive">
                       <AlertCircle className="h-3 w-3" />
                       Atrasada
