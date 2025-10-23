@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.handle-payment-failure]
 verify_jwt = false
+
+[functions.generate-inactive-customer-tasks]
+verify_jwt = false

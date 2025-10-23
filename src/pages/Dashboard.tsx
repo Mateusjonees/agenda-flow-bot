@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Users, CheckCircle2, TrendingUp } from "lucide-react";
+import { Calendar, Users, CheckCircle2, TrendingUp, ListTodo } from "lucide-react";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { TaskList } from "@/components/TaskList";
 
 interface Stats {
   todayAppointments: number;
@@ -134,6 +135,18 @@ const Dashboard = () => {
         })}
       </div>
 
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <ListTodo className="h-5 w-5" />
+            <CardTitle>O Que Fazer Hoje</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <TaskList maxItems={5} />
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -158,7 +171,7 @@ const Dashboard = () => {
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-accent" />
-                Dashboard com métricas em tempo real
+                Tarefas automatizadas inteligentes
               </li>
             </ul>
           </CardContent>
