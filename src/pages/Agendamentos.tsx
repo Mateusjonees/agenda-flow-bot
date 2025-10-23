@@ -5,8 +5,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
+import { format, addDays, addWeeks, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const Agendamentos = () => {
   const [open, setOpen] = useState(false);
@@ -15,6 +18,8 @@ const Agendamentos = () => {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [viewType, setViewType] = useState<"day" | "week" | "month">("week");
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +38,162 @@ const Agendamentos = () => {
     setDate("");
     setTime("");
     setNotes("");
+  };
+
+  const handlePrevious = () => {
+    if (viewType === "day") {
+      setCurrentDate(addDays(currentDate, -1));
+    } else if (viewType === "week") {
+      setCurrentDate(addWeeks(currentDate, -1));
+    } else {
+      setCurrentDate(addMonths(currentDate, -1));
+    }
+  };
+
+  const handleNext = () => {
+    if (viewType === "day") {
+      setCurrentDate(addDays(currentDate, 1));
+    } else if (viewType === "week") {
+      setCurrentDate(addWeeks(currentDate, 1));
+    } else {
+      setCurrentDate(addMonths(currentDate, 1));
+    }
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  const getDateRangeText = () => {
+    if (viewType === "day") {
+      return format(currentDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    } else if (viewType === "week") {
+      const start = startOfWeek(currentDate, { weekStartsOn: 0 });
+      const end = endOfWeek(currentDate, { weekStartsOn: 0 });
+      return `${format(start, "dd MMM", { locale: ptBR })} - ${format(end, "dd MMM yyyy", { locale: ptBR })}`;
+    } else {
+      return format(currentDate, "MMMM 'de' yyyy", { locale: ptBR });
+    }
+  };
+
+  const renderDayView = () => {
+    const hours = Array.from({ length: 14 }, (_, i) => i + 8); // 8h às 21h
+    
+    return (
+      <div className="border rounded-lg overflow-hidden">
+        <div className="bg-muted p-4 border-b">
+          <h3 className="font-semibold">{format(currentDate, "EEEE", { locale: ptBR })}</h3>
+        </div>
+        <div className="divide-y">
+          {hours.map((hour) => (
+            <div key={hour} className="flex items-center p-4 hover:bg-muted/50 transition-colors">
+              <div className="w-20 text-sm text-muted-foreground">
+                {String(hour).padStart(2, "0")}:00
+              </div>
+              <div className="flex-1 min-h-[40px] text-sm text-muted-foreground">
+                Disponível
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderWeekView = () => {
+    const start = startOfWeek(currentDate, { weekStartsOn: 0 });
+    const end = endOfWeek(currentDate, { weekStartsOn: 0 });
+    const days = eachDayOfInterval({ start, end });
+    const hours = Array.from({ length: 14 }, (_, i) => i + 8);
+
+    return (
+      <div className="border rounded-lg overflow-hidden">
+        <div className="grid grid-cols-8 border-b bg-muted">
+          <div className="p-3"></div>
+          {days.map((day) => (
+            <div
+              key={day.toISOString()}
+              className={`p-3 text-center border-l ${
+                isSameDay(day, new Date()) ? "bg-primary/10" : ""
+              }`}
+            >
+              <div className="text-xs text-muted-foreground">
+                {format(day, "EEE", { locale: ptBR })}
+              </div>
+              <div className={`text-lg font-semibold ${
+                isSameDay(day, new Date()) ? "text-primary" : ""
+              }`}>
+                {format(day, "dd")}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="divide-y">
+          {hours.map((hour) => (
+            <div key={hour} className="grid grid-cols-8">
+              <div className="p-3 text-sm text-muted-foreground border-r">
+                {String(hour).padStart(2, "0")}:00
+              </div>
+              {days.map((day) => (
+                <div
+                  key={`${day.toISOString()}-${hour}`}
+                  className="p-3 border-l hover:bg-muted/50 transition-colors min-h-[60px]"
+                ></div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderMonthView = () => {
+    const start = startOfMonth(currentDate);
+    const end = endOfMonth(currentDate);
+    const days = eachDayOfInterval({ start, end });
+    
+    // Preencher início do mês
+    const startDay = start.getDay();
+    const previousDays = startDay === 0 ? 0 : startDay;
+    const allDays = [
+      ...Array.from({ length: previousDays }, (_, i) => addDays(start, -(previousDays - i))),
+      ...days
+    ];
+
+    return (
+      <div className="border rounded-lg overflow-hidden">
+        <div className="grid grid-cols-7 border-b bg-muted">
+          {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
+            <div key={day} className="p-3 text-center text-sm font-semibold border-l first:border-l-0">
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7">
+          {allDays.map((day, idx) => {
+            const isCurrentMonth = day >= start && day <= end;
+            const isToday = isSameDay(day, new Date());
+            
+            return (
+              <div
+                key={idx}
+                className={`min-h-[100px] p-3 border-b border-l first:border-l-0 hover:bg-muted/50 transition-colors ${
+                  !isCurrentMonth ? "bg-muted/30 text-muted-foreground" : ""
+                }`}
+              >
+                <div
+                  className={`text-sm font-semibold mb-1 ${
+                    isToday ? "bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center" : ""
+                  }`}
+                >
+                  {format(day, "d")}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -129,12 +290,36 @@ const Agendamentos = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Calendário de Agendamentos</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Calendário de Agendamentos</CardTitle>
+            <Tabs value={viewType} onValueChange={(v) => setViewType(v as "day" | "week" | "month")}>
+              <TabsList>
+                <TabsTrigger value="day">Dia</TabsTrigger>
+                <TabsTrigger value="week">Semana</TabsTrigger>
+                <TabsTrigger value="month">Mês</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" onClick={handlePrevious}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="icon" onClick={handleNext}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" onClick={handleToday} className="gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                Hoje
+              </Button>
+            </div>
+            <h3 className="text-lg font-semibold capitalize">{getDateRangeText()}</h3>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-64 text-muted-foreground">
-            <p>Nenhum agendamento encontrado. Crie seu primeiro agendamento!</p>
-          </div>
+          {viewType === "day" && renderDayView()}
+          {viewType === "week" && renderWeekView()}
+          {viewType === "month" && renderMonthView()}
         </CardContent>
       </Card>
     </div>
