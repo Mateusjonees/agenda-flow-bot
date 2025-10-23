@@ -252,7 +252,7 @@ export function SearchBar() {
               )}
 
               {results?.appointments && results.appointments.length > 0 && (
-                <CommandGroup heading="Agendamentos">
+                <CommandGroup heading="Atendimentos">
                   {results.appointments.map((apt: any) => (
                     <CommandItem
                       key={apt.id}

@@ -477,8 +477,8 @@ const Agendamentos = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Agendamentos</h1>
-          <p className="text-muted-foreground">Gerencie todos os seus agendamentos</p>
+          <h1 className="text-4xl font-bold text-foreground mb-2">Atendimentos</h1>
+          <p className="text-muted-foreground">Gerencie todos os seus atendimentos</p>
         </div>
         <div className="flex gap-2">
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
@@ -664,7 +664,7 @@ const Agendamentos = () => {
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="text-muted-foreground">Carregando agendamentos...</div>
+              <div className="text-muted-foreground">Carregando atendimentos...</div>
             </div>
           ) : (
             <>

@@ -24,7 +24,7 @@ import {
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/tarefas", label: "Tarefas", icon: ListTodo },
-  { path: "/agendamentos", label: "Agendamentos", icon: Calendar },
+  { path: "/agendamentos", label: "Atendimentos", icon: Calendar },
   { path: "/clientes", label: "Clientes", icon: Users },
   { path: "/propostas", label: "Propostas", icon: FileText },
   { path: "/assinaturas", label: "Assinaturas", icon: Repeat },

@@ -188,7 +188,7 @@ const Layout = ({ children }: LayoutProps) => {
                 <img src={logo} alt="SmartAgenda" className="w-9 h-9" />
                 <div className="hidden sm:block">
                   <h1 className="text-lg font-bold leading-none">SmartAgenda</h1>
-                  <p className="text-xs text-muted-foreground">Gestão de Agendamentos</p>
+                  <p className="text-xs text-muted-foreground">Gestão de Atendimentos</p>
                 </div>
               </div>
 

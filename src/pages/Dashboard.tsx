@@ -153,13 +153,13 @@ const Dashboard = () => {
 
   const statCards = [
     {
-      title: "Agendamentos Hoje",
+      title: "Atendimentos Hoje",
       value: stats.todayAppointments,
       icon: Calendar,
       gradient: "from-primary to-primary-hover",
     },
     {
-      title: "Agendamentos Semana",
+      title: "Atendimentos Semana",
       value: stats.weekAppointments,
       icon: TrendingUp,
       gradient: "from-primary to-primary-hover",
@@ -349,7 +349,7 @@ const Dashboard = () => {
               <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500">
                 <Clock className="h-5 w-5 text-white" />
               </div>
-              <CardTitle className="text-2xl font-bold">Agendamentos de Hoje</CardTitle>
+              <CardTitle className="text-2xl font-bold">Atendimentos de Hoje</CardTitle>
             </div>
             <Button 
               size="sm" 
