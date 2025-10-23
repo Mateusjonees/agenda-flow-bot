@@ -65,6 +65,38 @@ const Dashboard = () => {
     },
   });
 
+  // Buscar serviços populares (últimos 30 dias)
+  const { data: popularServices = [] } = useQuery({
+    queryKey: ["popular-services"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const thirtyDaysAgo = subDays(new Date(), 30);
+
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("title")
+        .eq("user_id", user.id)
+        .gte("start_time", thirtyDaysAgo.toISOString());
+
+      if (error) throw error;
+
+      // Contar ocorrências de cada serviço
+      const serviceCounts = (data || []).reduce((acc: Record<string, number>, apt: any) => {
+        const service = apt.title || "Outros";
+        acc[service] = (acc[service] || 0) + 1;
+        return acc;
+      }, {});
+
+      // Converter para array e ordenar
+      return Object.entries(serviceCounts)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 5); // Top 5 serviços
+    },
+  });
+
   useEffect(() => {
     const fetchStats = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -173,23 +205,19 @@ const Dashboard = () => {
     },
   ];
 
-  // Dados para gráfico de tendência
-  const trendData = [
-    { day: "Seg", appointments: 4 },
-    { day: "Ter", appointments: 6 },
-    { day: "Qua", appointments: 5 },
-    { day: "Qui", appointments: 8 },
-    { day: "Sex", appointments: 7 },
-    { day: "Sáb", appointments: 3 },
-    { day: "Dom", appointments: 2 },
+  // Dados para gráfico de serviços com cores dinâmicas
+  const colors = [
+    "hsl(var(--primary))",
+    "hsl(var(--accent))",
+    "hsl(142 76% 36%)",
+    "hsl(38 92% 50%)",
+    "hsl(262 83% 58%)",
   ];
 
-  const serviceData = [
-    { name: "Corte", value: 45, color: "hsl(var(--primary))" },
-    { name: "Barba", value: 30, color: "hsl(var(--accent))" },
-    { name: "Coloração", value: 15, color: "hsl(142 76% 36%)" },
-    { name: "Outros", value: 10, color: "hsl(38 92% 50%)" },
-  ];
+  const serviceData = popularServices.map((service, index) => ({
+    ...service,
+    color: colors[index % colors.length],
+  }));
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -232,53 +260,6 @@ const Dashboard = () => {
         <Card className="border-0 shadow-xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent">
-                <TrendingUp className="w-5 h-5 text-white" />
-              </div>
-              <CardTitle className="text-2xl font-bold">Agendamentos da Semana</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <ResponsiveContainer width="100%" height={250}>
-              <AreaChart data={trendData}>
-                <defs>
-                  <linearGradient id="colorAppointments" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
-                  </linearGradient>
-                </defs>
-                <XAxis 
-                  dataKey="day" 
-                  stroke="hsl(var(--muted-foreground))"
-                  style={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  stroke="hsl(var(--muted-foreground))"
-                  style={{ fontSize: 12 }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="appointments" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorAppointments)" 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20">
-            <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-gradient-to-br from-accent to-green-500">
                 <Package className="w-5 h-5 text-white" />
               </div>
@@ -286,31 +267,40 @@ const Dashboard = () => {
             </div>
           </CardHeader>
           <CardContent className="pt-6">
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={serviceData}>
-                <XAxis 
-                  dataKey="name" 
-                  stroke="hsl(var(--muted-foreground))"
-                  style={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  stroke="hsl(var(--muted-foreground))"
-                  style={{ fontSize: 12 }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                  {serviceData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {serviceData.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                  <Package className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">Nenhum serviço registrado ainda</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={serviceData}>
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="hsl(var(--muted-foreground))"
+                    style={{ fontSize: 12 }}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))"
+                    style={{ fontSize: 12 }}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                    {serviceData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
