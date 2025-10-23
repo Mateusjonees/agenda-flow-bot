@@ -289,31 +289,37 @@ const Agendamentos = () => {
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Calendário de Agendamentos</CardTitle>
-            <Tabs value={viewType} onValueChange={(v) => setViewType(v as "day" | "week" | "month")}>
-              <TabsList>
-                <TabsTrigger value="day">Dia</TabsTrigger>
-                <TabsTrigger value="week">Semana</TabsTrigger>
-                <TabsTrigger value="month">Mês</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-          <div className="flex items-center justify-between mt-4">
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <CardTitle>Calendário</CardTitle>
+              <Tabs value={viewType} onValueChange={(v) => setViewType(v as "day" | "week" | "month")}>
+                <TabsList className="h-9">
+                  <TabsTrigger value="day" className="text-xs">Dia</TabsTrigger>
+                  <TabsTrigger value="week" className="text-xs">Semana</TabsTrigger>
+                  <TabsTrigger value="month" className="text-xs">Mês</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={handlePrevious}>
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="icon" onClick={handleNext}>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" onClick={handleToday} className="gap-2">
+              <Button variant="outline" size="sm" onClick={handleToday} className="gap-2 h-9">
                 <CalendarIcon className="w-4 h-4" />
                 Hoje
               </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" onClick={handlePrevious} className="h-9 w-9">
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleNext} className="h-9 w-9">
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
-            <h3 className="text-lg font-semibold capitalize">{getDateRangeText()}</h3>
+          </div>
+          
+          <div className="flex items-center justify-center">
+            <h3 className="text-2xl font-bold capitalize">{getDateRangeText()}</h3>
           </div>
         </CardHeader>
         <CardContent>
