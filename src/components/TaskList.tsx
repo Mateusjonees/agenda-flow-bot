@@ -14,7 +14,9 @@ import {
   CreditCard,
   UserX,
   Package,
-  Calendar
+  Calendar,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -37,21 +39,43 @@ interface TaskListProps {
   showAll?: boolean;
   showCompleted?: boolean;
   maxItems?: number;
+  searchQuery?: string;
+  selectedType?: string | null;
 }
 
-export const TaskList = ({ showAll = false, showCompleted = false, maxItems = 10 }: TaskListProps) => {
+export const TaskList = ({ 
+  showAll = false, 
+  showCompleted = false, 
+  maxItems = 10,
+  searchQuery = "",
+  selectedType = null
+}: TaskListProps) => {
   const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchTasks();
-  }, [showAll, showCompleted]);
+  }, [showAll, showCompleted, searchQuery, selectedType]);
 
   const fetchTasks = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     let query = supabase
       .from("tasks")
-      .select("*");
+      .select("*")
+      .eq("user_id", user.id);
+
+    // Filtrar por tipo/categoria
+    if (selectedType) {
+      query = query.eq("type", selectedType);
+    }
+
+    // Filtrar por busca
+    if (searchQuery && searchQuery.length >= 2) {
+      query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+    }
 
     if (showCompleted) {
       query = query.in("status", ["completed", "cancelled"]).order("completed_at", { ascending: false });
@@ -106,6 +130,26 @@ export const TaskList = ({ showAll = false, showCompleted = false, maxItems = 10
     }
   };
 
+  const handleDeleteTask = async (taskId: string) => {
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", taskId);
+
+    if (error) {
+      toast({
+        title: "Erro ao deletar tarefa",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Tarefa deletada!",
+      });
+      fetchTasks();
+    }
+  };
+
   const getTaskIcon = (type: string) => {
     const icons: Record<string, any> = {
       post_sale: MessageSquare,
@@ -139,6 +183,32 @@ export const TaskList = ({ showAll = false, showCompleted = false, maxItems = 10
     return labels[priority] || priority;
   };
 
+  const getTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      manual: "Manual",
+      post_sale: "Pós-venda",
+      followup: "Follow-up",
+      payment: "Pagamento",
+      reactivation: "Reativação",
+      restock: "Reposição",
+      preparation: "Preparação",
+    };
+    return labels[type] || type;
+  };
+
+  const getTypeColor = (type: string) => {
+    const colors: Record<string, string> = {
+      manual: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+      post_sale: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+      followup: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300 border-green-200 dark:border-green-800",
+      payment: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800",
+      reactivation: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300 border-orange-200 dark:border-orange-800",
+      restock: "bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300 border-pink-200 dark:border-pink-800",
+      preparation: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
+    };
+    return colors[type] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700";
+  };
+
   const isOverdue = (dueDate: string) => {
     return new Date(dueDate) < new Date();
   };
@@ -167,7 +237,14 @@ export const TaskList = ({ showAll = false, showCompleted = false, maxItems = 10
   return (
     <div className="space-y-3">
       {tasks.map((task) => (
-        <Card key={task.id} className={!showCompleted && isOverdue(task.due_date) ? "border-destructive" : ""}>
+        <Card 
+          key={task.id} 
+          className={`${
+            !showCompleted && isOverdue(task.due_date) 
+              ? "border-2 border-destructive bg-destructive/5" 
+              : ""
+          } transition-all hover:shadow-md`}
+        >
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               {!showCompleted && (
@@ -178,35 +255,67 @@ export const TaskList = ({ showAll = false, showCompleted = false, maxItems = 10
                 />
               )}
               <div className="flex-1 space-y-2">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="font-medium flex-1">{task.title}</h4>
                   <div className="flex items-center gap-2">
-                    {getTaskIcon(task.type)}
-                    <h4 className="font-medium">{task.title}</h4>
+                    {!showCompleted && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            // TODO: Implementar edição
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteTask(task.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                   </div>
-                  <Badge variant={getPriorityColor(task.priority) as any}>
-                    {getPriorityLabel(task.priority)}
-                  </Badge>
                 </div>
                 {task.description && (
                   <p className="text-sm text-muted-foreground">{task.description}</p>
                 )}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {showCompleted ? (
-                    <div className="flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Concluída em {format(new Date(task.completed_at || task.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </div>
-                  ) : isOverdue(task.due_date) ? (
-                    <div className="flex items-center gap-1 text-destructive">
-                      <AlertCircle className="h-3 w-3" />
-                      Atrasada
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {format(new Date(task.due_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </div>
-                  )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge 
+                    variant="outline" 
+                    className={`${getTypeColor(task.type)} border text-xs px-2 py-0.5`}
+                  >
+                    {getTypeLabel(task.type)}
+                  </Badge>
+                  <Badge 
+                    variant={getPriorityColor(task.priority) as any}
+                    className="text-xs px-2 py-0.5"
+                  >
+                    {getPriorityLabel(task.priority)}
+                  </Badge>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    {showCompleted ? (
+                      <>
+                        <CheckCircle2 className="h-3 w-3" />
+                        {format(new Date(task.completed_at || task.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </>
+                    ) : isOverdue(task.due_date) ? (
+                      <>
+                        <AlertCircle className="h-3 w-3 text-destructive" />
+                        <span className="text-destructive font-medium">Atrasada</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="h-3 w-3" />
+                        {format(new Date(task.due_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

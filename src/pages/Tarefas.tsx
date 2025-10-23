@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TaskList } from "@/components/TaskList";
-import { ListTodo, CheckCircle2, Clock, XCircle, Plus } from "lucide-react";
+import { ListTodo, CheckCircle2, Clock, XCircle, Plus, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
 const Tarefas = () => {
@@ -22,6 +23,9 @@ const Tarefas = () => {
     completed: 0,
     overdue: 0,
   });
+  const [typeStats, setTypeStats] = useState<Record<string, number>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedType, setSelectedType] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
   const [formData, setFormData] = useState({
@@ -31,6 +35,7 @@ const Tarefas = () => {
     related_entity_id: "",
     priority: "medium",
     status: "pending",
+    type: "manual",
   });
 
   useEffect(() => {
@@ -48,28 +53,46 @@ const Tarefas = () => {
 
   const fetchStats = async () => {
     const now = new Date().toISOString();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
     const { count: pendingCount } = await supabase
       .from("tasks")
       .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
       .in("status", ["pending", "in_progress"]);
 
     const { count: completedCount } = await supabase
       .from("tasks")
       .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
       .eq("status", "completed");
 
     const { count: overdueCount } = await supabase
       .from("tasks")
       .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
       .eq("status", "pending")
       .lt("due_date", now);
+
+    // Buscar estatísticas por tipo
+    const { data: typeData } = await supabase
+      .from("tasks")
+      .select("type")
+      .eq("user_id", user.id)
+      .in("status", ["pending", "in_progress"]);
+
+    const typeCounts: Record<string, number> = {};
+    typeData?.forEach((task) => {
+      typeCounts[task.type] = (typeCounts[task.type] || 0) + 1;
+    });
 
     setStats({
       pending: pendingCount || 0,
       completed: completedCount || 0,
       overdue: overdueCount || 0,
     });
+    setTypeStats(typeCounts);
   };
 
   const fetchCustomers = async () => {
@@ -98,7 +121,7 @@ const Tarefas = () => {
         due_date: new Date(formData.due_date).toISOString(),
         priority: formData.priority,
         status: formData.status,
-        type: "manual",
+        type: formData.type,
         related_entity_type: formData.related_entity_id ? "customer" : null,
         related_entity_id: formData.related_entity_id || null,
       });
@@ -121,18 +144,45 @@ const Tarefas = () => {
         related_entity_id: "",
         priority: "medium",
         status: "pending",
+        type: "manual",
       });
       fetchStats();
     }
+  };
+
+  const getTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      manual: "Manual",
+      post_sale: "Pós-venda",
+      followup: "Follow-up",
+      payment: "Pagamento",
+      reactivation: "Reativação",
+      restock: "Reposição",
+      preparation: "Preparação",
+    };
+    return labels[type] || type;
+  };
+
+  const getTypeColor = (type: string) => {
+    const colors: Record<string, string> = {
+      manual: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+      post_sale: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
+      followup: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
+      payment: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300",
+      reactivation: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
+      restock: "bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300",
+      preparation: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300",
+    };
+    return colors[type] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
   };
 
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Tarefas</h1>
+          <h1 className="text-3xl font-bold">Tarefas+</h1>
           <p className="text-muted-foreground mt-1">
-            Gerencie suas tarefas e atividades automatizadas
+            {stats.pending} pendentes
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -214,6 +264,26 @@ const Tarefas = () => {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="type">Categoria</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) => setFormData({ ...formData, type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Manual</SelectItem>
+                    <SelectItem value="post_sale">Pós-venda</SelectItem>
+                    <SelectItem value="followup">Follow-up</SelectItem>
+                    <SelectItem value="payment">Pagamento</SelectItem>
+                    <SelectItem value="reactivation">Reativação</SelectItem>
+                    <SelectItem value="restock">Reposição</SelectItem>
+                    <SelectItem value="preparation">Preparação</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={formData.status}
@@ -238,6 +308,18 @@ const Tarefas = () => {
             </form>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Campo de Pesquisa */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Pesquisar tarefas..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -270,6 +352,31 @@ const Tarefas = () => {
         </Card>
       </div>
 
+      {/* Filtros por Categoria */}
+      <div className="flex gap-2 flex-wrap">
+        <Badge
+          variant={selectedType === null ? "default" : "outline"}
+          className="cursor-pointer px-4 py-2 text-sm"
+          onClick={() => setSelectedType(null)}
+        >
+          Todas {stats.pending}
+        </Badge>
+        {Object.entries(typeStats)
+          .sort(([, a], [, b]) => b - a)
+          .map(([type, count]) => (
+            <Badge
+              key={type}
+              variant={selectedType === type ? "default" : "outline"}
+              className={`cursor-pointer px-4 py-2 text-sm ${
+                selectedType === type ? "" : getTypeColor(type)
+              }`}
+              onClick={() => setSelectedType(type)}
+            >
+              {getTypeLabel(type)} {count}
+            </Badge>
+          ))}
+      </div>
+
       <Tabs defaultValue="today" className="space-y-4">
         <TabsList>
           <TabsTrigger value="today">Hoje</TabsTrigger>
@@ -289,7 +396,7 @@ const Tarefas = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TaskList showAll={false} maxItems={50} />
+              <TaskList showAll={false} maxItems={50} searchQuery={searchQuery} selectedType={selectedType} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -306,7 +413,7 @@ const Tarefas = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TaskList showAll={true} maxItems={100} />
+              <TaskList showAll={true} maxItems={100} searchQuery={searchQuery} selectedType={selectedType} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -323,7 +430,7 @@ const Tarefas = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TaskList showCompleted={true} maxItems={100} />
+              <TaskList showCompleted={true} maxItems={100} searchQuery={searchQuery} selectedType={selectedType} />
             </CardContent>
           </Card>
         </TabsContent>
