@@ -492,6 +492,121 @@ export type Database = {
           },
         ]
       }
+      proposals: {
+        Row: {
+          accepted_at: string | null
+          after_images: string[] | null
+          appointment_id: string | null
+          before_images: string[] | null
+          created_at: string
+          customer_id: string
+          deposit_amount: number | null
+          deposit_percentage: number | null
+          description: string | null
+          discount_amount: number | null
+          discount_percentage: number | null
+          final_amount: number
+          follow_up_sent_at: string | null
+          id: string
+          notes: string | null
+          pix_charge_id: string | null
+          rejected_at: string | null
+          sent_at: string | null
+          services: Json
+          signature_data: string | null
+          signature_ip: string | null
+          status: string
+          title: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+          valid_until: string
+          viewed_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          after_images?: string[] | null
+          appointment_id?: string | null
+          before_images?: string[] | null
+          created_at?: string
+          customer_id: string
+          deposit_amount?: number | null
+          deposit_percentage?: number | null
+          description?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          final_amount: number
+          follow_up_sent_at?: string | null
+          id?: string
+          notes?: string | null
+          pix_charge_id?: string | null
+          rejected_at?: string | null
+          sent_at?: string | null
+          services?: Json
+          signature_data?: string | null
+          signature_ip?: string | null
+          status?: string
+          title: string
+          total_amount: number
+          updated_at?: string
+          user_id: string
+          valid_until: string
+          viewed_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          after_images?: string[] | null
+          appointment_id?: string | null
+          before_images?: string[] | null
+          created_at?: string
+          customer_id?: string
+          deposit_amount?: number | null
+          deposit_percentage?: number | null
+          description?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          final_amount?: number
+          follow_up_sent_at?: string | null
+          id?: string
+          notes?: string | null
+          pix_charge_id?: string | null
+          rejected_at?: string | null
+          sent_at?: string | null
+          services?: Json
+          signature_data?: string | null
+          signature_ip?: string | null
+          status?: string
+          title?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+          valid_until?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_pix_charge_id_fkey"
+            columns: ["pix_charge_id"]
+            isOneToOne: false
+            referencedRelation: "pix_charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           appointment_id: string

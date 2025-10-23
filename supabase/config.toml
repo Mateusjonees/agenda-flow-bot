@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.reactivate-customer]
 verify_jwt = true
+
+[functions.send-proposal]
+verify_jwt = true
+
+[functions.proposal-follow-up]
+verify_jwt = false
