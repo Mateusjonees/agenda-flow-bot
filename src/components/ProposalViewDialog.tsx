@@ -28,6 +28,8 @@ export const ProposalViewDialog = ({ proposal, open, onOpenChange }: ProposalVie
       rejected: { label: "Recusada", variant: "destructive" },
       expired: { label: "Expirada", variant: "destructive" },
       paused: { label: "Pausada", variant: "outline" },
+      confirmed: { label: "Confirmada", variant: "default" },
+      cancelled: { label: "Cancelada", variant: "destructive" },
     };
     const config = statusMap[status] || statusMap.pending;
     return <Badge variant={config.variant}>{config.label}</Badge>;

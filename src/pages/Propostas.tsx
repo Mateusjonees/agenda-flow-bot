@@ -9,12 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Pause, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Pause, Trash2, Filter, CheckCircle, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { ProposalViewDialog } from "@/components/ProposalViewDialog";
 import { ProposalEditDialog } from "@/components/ProposalEditDialog";
+import { ProposalConfirmDialog } from "@/components/ProposalConfirmDialog";
 
 interface Proposal {
   id: string;
@@ -48,15 +50,22 @@ interface Service {
 
 const Propostas = () => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [filteredProposals, setFilteredProposals] = useState<Proposal[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
   const [viewProposal, setViewProposal] = useState<Proposal | null>(null);
   const [editProposal, setEditProposal] = useState<Proposal | null>(null);
+  const [confirmProposal, setConfirmProposal] = useState<Proposal | null>(null);
   const [deleteProposalId, setDeleteProposalId] = useState<string | null>(null);
   const [lastEmailSent, setLastEmailSent] = useState<{ [key: string]: number }>({});
   const { toast } = useToast();
+
+  // Filtros
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterCustomer, setFilterCustomer] = useState<string>("all");
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const [newProposal, setNewProposal] = useState({
     customer_id: "",
@@ -71,6 +80,21 @@ const Propostas = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    // Aplicar filtros
+    let filtered = [...proposals];
+
+    if (filterStatus !== "all") {
+      filtered = filtered.filter(p => p.status === filterStatus);
+    }
+
+    if (filterCustomer !== "all") {
+      filtered = filtered.filter(p => p.customer_id === filterCustomer);
+    }
+
+    setFilteredProposals(filtered);
+  }, [proposals, filterStatus, filterCustomer]);
 
   const fetchData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -229,6 +253,26 @@ const Propostas = () => {
     }
   };
 
+  const handleCancelProposal = async (proposalId: string) => {
+    const { error } = await supabase
+      .from("proposals")
+      .update({ status: "cancelled" })
+      .eq("id", proposalId);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível cancelar a proposta.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Proposta cancelada!",
+      });
+      fetchData();
+    }
+  };
+
   const handleDeleteProposal = async () => {
     if (!deleteProposalId) return;
 
@@ -282,6 +326,9 @@ const Propostas = () => {
       accepted: { label: "Aceita", variant: "default" },
       rejected: { label: "Recusada", variant: "destructive" },
       expired: { label: "Expirada", variant: "destructive" },
+      confirmed: { label: "Confirmada", variant: "default" },
+      cancelled: { label: "Cancelada", variant: "destructive" },
+      paused: { label: "Pausada", variant: "outline" },
     };
     const config = statusMap[status] || statusMap.pending;
     return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -301,13 +348,57 @@ const Propostas = () => {
           <h1 className="text-4xl font-bold text-foreground mb-2">Propostas e Orçamentos</h1>
           <p className="text-muted-foreground">Crie e gerencie propostas profissionais para seus clientes</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" />
-              Nova Proposta
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Filter className="w-4 h-4" />
+                Filtros
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-4">
+                <div>
+                  <Label>Status</Label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="pending">Pendente</SelectItem>
+                      <SelectItem value="sent">Enviada</SelectItem>
+                      <SelectItem value="confirmed">Confirmada</SelectItem>
+                      <SelectItem value="cancelled">Cancelada</SelectItem>
+                      <SelectItem value="accepted">Aceita</SelectItem>
+                      <SelectItem value="rejected">Recusada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Cliente</Label>
+                  <Select value={filterCustomer} onValueChange={setFilterCustomer}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      {customers.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                Nova Proposta
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Criar Nova Proposta</DialogTitle>
@@ -457,13 +548,14 @@ const Propostas = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      ) : proposals.length === 0 ? (
+      ) : filteredProposals.length === 0 ? (
         <Card>
           <CardContent className="pt-6 text-center">
             <FileText className="w-12 h-12 mx-auto mb-3 opacity-50 text-muted-foreground" />
@@ -472,7 +564,7 @@ const Propostas = () => {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {proposals.map((proposal) => (
+          {filteredProposals.map((proposal) => (
             <Card key={proposal.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -531,11 +623,32 @@ const Propostas = () => {
                     variant="outline"
                     size="sm"
                     className="gap-2"
-                    disabled={proposal.status === "accepted"}
+                    disabled={proposal.status === "confirmed" || proposal.status === "accepted"}
                   >
                     <Edit className="w-4 h-4" />
                     Editar
                   </Button>
+                  {(proposal.status === "pending" || proposal.status === "sent") && (
+                    <>
+                      <Button
+                        onClick={() => setConfirmProposal(proposal)}
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Confirmar
+                      </Button>
+                      <Button
+                        onClick={() => handleCancelProposal(proposal.id)}
+                        variant="destructive"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Cancelar
+                      </Button>
+                    </>
+                  )}
                   {proposal.status === "pending" && (
                     <Button
                       onClick={() => handleSendProposal(proposal.id)}
@@ -567,16 +680,17 @@ const Propostas = () => {
                       Pausar
                     </Button>
                   )}
-                  <Button
-                    onClick={() => setDeleteProposalId(proposal.id)}
-                    variant="destructive"
-                    size="sm"
-                    className="gap-2"
-                    disabled={proposal.status === "accepted"}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Excluir
-                  </Button>
+                  {(proposal.status !== "confirmed" && proposal.status !== "accepted") && (
+                    <Button
+                      onClick={() => setDeleteProposalId(proposal.id)}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Excluir
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -596,6 +710,13 @@ const Propostas = () => {
         onOpenChange={(open) => !open && setEditProposal(null)}
         onSuccess={fetchData}
         customers={customers}
+      />
+
+      <ProposalConfirmDialog
+        proposal={confirmProposal}
+        open={!!confirmProposal}
+        onOpenChange={(open) => !open && setConfirmProposal(null)}
+        onSuccess={fetchData}
       />
 
       <AlertDialog open={!!deleteProposalId} onOpenChange={(open) => !open && setDeleteProposalId(null)}>

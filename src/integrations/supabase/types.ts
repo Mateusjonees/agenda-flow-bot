@@ -25,6 +25,7 @@ export type Database = {
           payment_method: string | null
           payment_status: string | null
           price: number | null
+          proposal_id: string | null
           start_time: string
           status: string
           title: string
@@ -41,6 +42,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string | null
           price?: number | null
+          proposal_id?: string | null
           start_time: string
           status?: string
           title: string
@@ -57,6 +59,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string | null
           price?: number | null
+          proposal_id?: string | null
           start_time?: string
           status?: string
           title?: string
@@ -69,6 +72,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
             referencedColumns: ["id"]
           },
         ]

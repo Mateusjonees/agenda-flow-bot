@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle, Pencil } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle, Pencil, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, addWeeks, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -48,6 +49,11 @@ const Agendamentos = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<{ id: string; title: string } | null>(null);
   const [editAppointmentId, setEditAppointmentId] = useState<string>("");
   
+  // Filtros
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterCustomer, setFilterCustomer] = useState<string>("all");
+  const [filterOpen, setFilterOpen] = useState(false);
+  
   const queryClient = useQueryClient();
 
   // Buscar clientes
@@ -65,7 +71,7 @@ const Agendamentos = () => {
   });
 
   // Buscar agendamentos
-  const { data: appointments = [], isLoading } = useQuery({
+  const { data: allAppointments = [], isLoading } = useQuery({
     queryKey: ["appointments", currentDate, viewType],
     queryFn: async () => {
       let startDate: Date;
@@ -95,6 +101,13 @@ const Agendamentos = () => {
       if (error) throw error;
       return data as Appointment[];
     },
+  });
+
+  // Aplicar filtros
+  const appointments = allAppointments.filter(apt => {
+    if (filterStatus !== "all" && apt.status !== filterStatus) return false;
+    if (filterCustomer !== "all" && apt.customer_id !== filterCustomer) return false;
+    return true;
   });
 
   // Mutation para criar agendamento
@@ -467,8 +480,49 @@ const Agendamentos = () => {
           <h1 className="text-4xl font-bold text-foreground mb-2">Agendamentos</h1>
           <p className="text-muted-foreground">Gerencie todos os seus agendamentos</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
+        <div className="flex gap-2">
+          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Filter className="w-4 h-4" />
+                Filtros
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-4">
+                <div>
+                  <Label>Status</Label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="scheduled">Agendado</SelectItem>
+                      <SelectItem value="completed">Concluído</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Cliente</Label>
+                  <Select value={filterCustomer} onValueChange={setFilterCustomer}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      {customers.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="w-4 h-4" />
               Novo Agendamento

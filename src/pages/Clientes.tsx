@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Phone, Mail, User, CalendarPlus, ListTodo } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Phone, Mail, User, CalendarPlus, ListTodo, Search, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LoyaltyCard } from "@/components/LoyaltyCard";
 import { CustomerCoupons } from "@/components/CustomerCoupons";
+import { CustomerHistory } from "@/components/CustomerHistory";
 
 interface Customer {
   id: string;
@@ -23,8 +25,10 @@ interface Customer {
 
 const Clientes = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [newCustomer, setNewCustomer] = useState({
     name: "",
     phone: "",
@@ -54,6 +58,22 @@ const Clientes = () => {
   useEffect(() => {
     fetchCustomers();
   }, []);
+
+  useEffect(() => {
+    // Aplicar filtros de busca
+    if (!searchTerm) {
+      setFilteredCustomers(customers);
+      return;
+    }
+
+    const filtered = customers.filter(customer =>
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.phone.includes(searchTerm) ||
+      (customer.email?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+    );
+
+    setFilteredCustomers(filtered);
+  }, [customers, searchTerm]);
 
   const fetchCustomers = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -272,26 +292,37 @@ const Clientes = () => {
         </Dialog>
       </div>
 
+      {/* Barra de pesquisa */}
+      <div className="relative">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nome, telefone ou email..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
       {loading ? (
         <Card>
           <CardContent className="pt-6 text-center">
             <p className="text-muted-foreground">Carregando clientes...</p>
           </CardContent>
         </Card>
-      ) : customers.length === 0 ? (
+      ) : filteredCustomers.length === 0 ? (
         <Card>
           <CardHeader>
             <CardTitle>Lista de Clientes</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-64 text-muted-foreground">
-              <p>Nenhum cliente cadastrado. Adicione seu primeiro cliente!</p>
+              <p>{searchTerm ? "Nenhum cliente encontrado com esse termo." : "Nenhum cliente cadastrado. Adicione seu primeiro cliente!"}</p>
             </div>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {customers.map((customer) => (
+          {filteredCustomers.map((customer) => (
             <Card 
               key={customer.id} 
               className="hover:shadow-lg transition-shadow cursor-pointer"
@@ -339,12 +370,21 @@ const Clientes = () => {
                   {selectedCustomer.name}
                 </DialogTitle>
                 <DialogDescription>
-                  Informações do cliente, fidelidade e cupons disponíveis
+                  Informações completas do cliente
                 </DialogDescription>
               </DialogHeader>
 
-              {/* Botões de ação rápida */}
-              <div className="flex gap-2">
+              <Tabs defaultValue="info" className="mt-4">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="info">Informações</TabsTrigger>
+                  <TabsTrigger value="history">Histórico</TabsTrigger>
+                  <TabsTrigger value="loyalty">Fidelidade</TabsTrigger>
+                  <TabsTrigger value="coupons">Cupons</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="info" className="space-y-4">
+                  {/* Botões de ação rápida */}
+                  <div className="flex gap-2">
                 <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" className="flex-1 gap-2">
@@ -417,115 +457,123 @@ const Clientes = () => {
                       <Button onClick={handleAddTask} className="w-full">
                         Criar Tarefa
                       </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
 
-                <Dialog open={appointmentDialogOpen} onOpenChange={setAppointmentDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="flex-1 gap-2">
-                      <CalendarPlus className="w-4 h-4" />
-                      Novo Agendamento
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Novo Agendamento para {selectedCustomer.name}</DialogTitle>
-                      <DialogDescription>
-                        Crie um agendamento relacionado a este cliente
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="appointment-service">Serviço *</Label>
-                        <Input
-                          id="appointment-service"
-                          value={appointmentForm.service}
-                          onChange={(e) => setAppointmentForm({ ...appointmentForm, service: e.target.value })}
-                          placeholder="Ex: Corte de cabelo"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="appointment-date">Data *</Label>
-                        <Input
-                          id="appointment-date"
-                          type="date"
-                          value={appointmentForm.date}
-                          onChange={(e) => setAppointmentForm({ ...appointmentForm, date: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="appointment-time">Horário *</Label>
-                        <Input
-                          id="appointment-time"
-                          type="time"
-                          value={appointmentForm.time}
-                          onChange={(e) => setAppointmentForm({ ...appointmentForm, time: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="appointment-duration">Duração</Label>
-                        <Select value={appointmentForm.duration} onValueChange={(value) => setAppointmentForm({ ...appointmentForm, duration: value })}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="30">30 minutos</SelectItem>
-                            <SelectItem value="60">1 hora</SelectItem>
-                            <SelectItem value="90">1h 30min</SelectItem>
-                            <SelectItem value="120">2 horas</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="appointment-notes">Observações</Label>
-                        <Textarea
-                          id="appointment-notes"
-                          value={appointmentForm.notes}
-                          onChange={(e) => setAppointmentForm({ ...appointmentForm, notes: e.target.value })}
-                          placeholder="Detalhes do agendamento..."
-                          rows={3}
-                        />
-                      </div>
-                      <Button onClick={handleAddAppointment} className="w-full">
-                        Criar Agendamento
+                  <Dialog open={appointmentDialogOpen} onOpenChange={setAppointmentDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="flex-1 gap-2">
+                        <CalendarPlus className="w-4 h-4" />
+                        Novo Agendamento
                       </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-              
-              <div className="space-y-4">
-                {/* Informações básicas */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Informações de Contato</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-muted-foreground" />
-                      <span>{selectedCustomer.phone}</span>
-                    </div>
-                    {selectedCustomer.email && (
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Novo Agendamento para {selectedCustomer.name}</DialogTitle>
+                        <DialogDescription>
+                          Crie um agendamento relacionado a este cliente
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="appointment-service">Serviço *</Label>
+                          <Input
+                            id="appointment-service"
+                            value={appointmentForm.service}
+                            onChange={(e) => setAppointmentForm({ ...appointmentForm, service: e.target.value })}
+                            placeholder="Ex: Corte de cabelo"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="appointment-date">Data *</Label>
+                          <Input
+                            id="appointment-date"
+                            type="date"
+                            value={appointmentForm.date}
+                            onChange={(e) => setAppointmentForm({ ...appointmentForm, date: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="appointment-time">Horário *</Label>
+                          <Input
+                            id="appointment-time"
+                            type="time"
+                            value={appointmentForm.time}
+                            onChange={(e) => setAppointmentForm({ ...appointmentForm, time: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="appointment-duration">Duração</Label>
+                          <Select value={appointmentForm.duration} onValueChange={(value) => setAppointmentForm({ ...appointmentForm, duration: value })}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="30">30 minutos</SelectItem>
+                              <SelectItem value="60">1 hora</SelectItem>
+                              <SelectItem value="90">1h 30min</SelectItem>
+                              <SelectItem value="120">2 horas</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="appointment-notes">Observações</Label>
+                          <Textarea
+                            id="appointment-notes"
+                            value={appointmentForm.notes}
+                            onChange={(e) => setAppointmentForm({ ...appointmentForm, notes: e.target.value })}
+                            placeholder="Detalhes do agendamento..."
+                            rows={3}
+                          />
+                        </div>
+                        <Button onClick={handleAddAppointment} className="w-full">
+                          Criar Agendamento
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Informações básicas */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Informações de Contato</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-muted-foreground" />
-                        <span>{selectedCustomer.email}</span>
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <span>{selectedCustomer.phone}</span>
                       </div>
-                    )}
-                    {selectedCustomer.notes && (
-                      <div className="pt-2 border-t">
-                        <p className="text-sm text-muted-foreground">{selectedCustomer.notes}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                      {selectedCustomer.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <span>{selectedCustomer.email}</span>
+                        </div>
+                      )}
+                      {selectedCustomer.notes && (
+                        <div className="pt-2 border-t">
+                          <p className="text-sm text-muted-foreground">{selectedCustomer.notes}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+                </TabsContent>
 
-                {/* Cartão Fidelidade */}
-                <LoyaltyCard customerId={selectedCustomer.id} />
+                <TabsContent value="history">
+                  <CustomerHistory customerId={selectedCustomer.id} />
+                </TabsContent>
 
-                {/* Cupons */}
-                <CustomerCoupons customerId={selectedCustomer.id} />
-              </div>
+                <TabsContent value="loyalty">
+                  <LoyaltyCard customerId={selectedCustomer.id} />
+                </TabsContent>
+
+                <TabsContent value="coupons">
+                  <CustomerCoupons customerId={selectedCustomer.id} />
+                </TabsContent>
+              </Tabs>
             </>
           )}
         </DialogContent>
