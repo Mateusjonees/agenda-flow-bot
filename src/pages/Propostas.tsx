@@ -4,14 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2 } from "lucide-react";
+import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Pause, Trash2, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
+import { ProposalViewDialog } from "@/components/ProposalViewDialog";
+import { ProposalEditDialog } from "@/components/ProposalEditDialog";
 
 interface Proposal {
   id: string;
@@ -49,6 +52,10 @@ const Propostas = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
+  const [viewProposal, setViewProposal] = useState<Proposal | null>(null);
+  const [editProposal, setEditProposal] = useState<Proposal | null>(null);
+  const [deleteProposalId, setDeleteProposalId] = useState<string | null>(null);
+  const [sendingWhatsApp, setSendingWhatsApp] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [newProposal, setNewProposal] = useState({
@@ -185,6 +192,78 @@ const Propostas = () => {
     } finally {
       setSending(null);
     }
+  };
+
+  const handleSendWhatsApp = async (proposal: Proposal) => {
+    setSendingWhatsApp(proposal.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-whatsapp-proposal", {
+        body: {
+          proposalId: proposal.id,
+          customerPhone: proposal.customers.phone,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Enviado via WhatsApp!",
+        description: "A proposta foi enviada via WhatsApp para o cliente.",
+      });
+      fetchData();
+    } catch (error: any) {
+      console.error("Erro ao enviar via WhatsApp:", error);
+      toast({
+        title: "Erro ao enviar WhatsApp",
+        description: error.message || "Verifique se a API do WhatsApp está configurada.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingWhatsApp(null);
+    }
+  };
+
+  const handlePauseProposal = async (proposalId: string) => {
+    const { error } = await supabase
+      .from("proposals")
+      .update({ status: "paused" })
+      .eq("id", proposalId);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível pausar a proposta.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Proposta pausada!",
+      });
+      fetchData();
+    }
+  };
+
+  const handleDeleteProposal = async () => {
+    if (!deleteProposalId) return;
+
+    const { error } = await supabase
+      .from("proposals")
+      .delete()
+      .eq("id", deleteProposalId);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir a proposta.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Proposta excluída!",
+      });
+      fetchData();
+    }
+    setDeleteProposalId(null);
   };
 
   const addService = () => {
@@ -451,30 +530,87 @@ const Propostas = () => {
                   </div>
                 )}
                 
-                <div className="flex gap-2 pt-2">
-                  {proposal.status === "pending" && (
-                    <Button
-                      onClick={() => handleSendProposal(proposal.id)}
-                      disabled={sending === proposal.id}
-                      className="flex-1 gap-2"
-                      size="sm"
-                    >
-                      {sending === proposal.id ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Enviando...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4" />
-                          Enviar
-                        </>
-                      )}
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" className="gap-2">
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <Button
+                    onClick={() => setViewProposal(proposal)}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
                     <Eye className="w-4 h-4" />
                     Ver
+                  </Button>
+                  <Button
+                    onClick={() => setEditProposal(proposal)}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    disabled={proposal.status === "accepted"}
+                  >
+                    <Edit className="w-4 h-4" />
+                    Editar
+                  </Button>
+                  {proposal.status === "pending" && (
+                    <>
+                      <Button
+                        onClick={() => handleSendProposal(proposal.id)}
+                        disabled={sending === proposal.id}
+                        size="sm"
+                        className="gap-2"
+                      >
+                        {sending === proposal.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            Enviar Email
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => handleSendWhatsApp(proposal)}
+                        disabled={sendingWhatsApp === proposal.id}
+                        size="sm"
+                        variant="secondary"
+                        className="gap-2"
+                      >
+                        {sendingWhatsApp === proposal.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : (
+                          <>
+                            <MessageCircle className="w-4 h-4" />
+                            WhatsApp
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  )}
+                  {(proposal.status === "pending" || proposal.status === "sent") && (
+                    <Button
+                      onClick={() => handlePauseProposal(proposal.id)}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <Pause className="w-4 h-4" />
+                      Pausar
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => setDeleteProposalId(proposal.id)}
+                    variant="destructive"
+                    size="sm"
+                    className="gap-2"
+                    disabled={proposal.status === "accepted"}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Excluir
                   </Button>
                 </div>
               </CardContent>
@@ -482,6 +618,37 @@ const Propostas = () => {
           ))}
         </div>
       )}
+
+      <ProposalViewDialog
+        proposal={viewProposal}
+        open={!!viewProposal}
+        onOpenChange={(open) => !open && setViewProposal(null)}
+      />
+
+      <ProposalEditDialog
+        proposal={editProposal}
+        open={!!editProposal}
+        onOpenChange={(open) => !open && setEditProposal(null)}
+        onSuccess={fetchData}
+        customers={customers}
+      />
+
+      <AlertDialog open={!!deleteProposalId} onOpenChange={(open) => !open && setDeleteProposalId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta proposta? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteProposal} className="bg-destructive text-destructive-foreground">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

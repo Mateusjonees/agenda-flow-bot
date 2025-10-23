@@ -48,6 +48,7 @@ const Assinaturas = () => {
     description: "",
     price: "",
     billing_frequency: "monthly",
+    duration_months: "3",
     included_services: [{ service: "", quantity: "1", frequency: "month" }],
   });
 
@@ -252,21 +253,35 @@ const Assinaturas = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="frequency">Frequência de Cobrança</Label>
-                  <Select
-                    value={newPlan.billing_frequency}
-                    onValueChange={(value) => setNewPlan({ ...newPlan, billing_frequency: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="weekly">Semanal</SelectItem>
-                      <SelectItem value="biweekly">Quinzenal</SelectItem>
-                      <SelectItem value="monthly">Mensal</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="duration">Duração (meses)</Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    min="1"
+                    value={newPlan.duration_months}
+                    onChange={(e) => setNewPlan({ ...newPlan, duration_months: e.target.value })}
+                    placeholder="3"
+                  />
                 </div>
+              </div>
+              <div>
+                <Label htmlFor="frequency">Frequência de Cobrança</Label>
+                <Select
+                  value={newPlan.billing_frequency}
+                  onValueChange={(value) => setNewPlan({ ...newPlan, billing_frequency: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">Mensal</SelectItem>
+                    <SelectItem value="quarterly">Trimestral</SelectItem>
+                    <SelectItem value="single">Pagamento Único</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Suporta pagamento via Pix (CobV)
+                </p>
               </div>
               <Button onClick={handleCreatePlan} className="w-full">
                 Criar Plano
@@ -348,6 +363,9 @@ const Assinaturas = () => {
                       <div className="text-sm text-muted-foreground">
                         {getFrequencyLabel(plan.billing_frequency)}
                       </div>
+                      {plan.description && (
+                        <p className="text-sm mt-2">{plan.description}</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
