@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -6,38 +6,154 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
-import { format, addDays, addWeeks, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
+import { format, addDays, addWeeks, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+type Customer = {
+  id: string;
+  name: string;
+};
+
+type Appointment = {
+  id: string;
+  title: string;
+  description: string | null;
+  customer_id: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  notes: string | null;
+  customers?: Customer;
+};
 
 const Agendamentos = () => {
   const [open, setOpen] = useState(false);
-  const [clientName, setClientName] = useState("");
+  const [customerId, setCustomerId] = useState("");
   const [service, setService] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [duration, setDuration] = useState("60");
   const [notes, setNotes] = useState("");
   const [viewType, setViewType] = useState<"day" | "week" | "month">("week");
   const [currentDate, setCurrentDate] = useState(new Date());
+  
+  const queryClient = useQueryClient();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Buscar clientes
+  const { data: customers = [] } = useQuery({
+    queryKey: ["customers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, name")
+        .order("name");
+      
+      if (error) throw error;
+      return data as Customer[];
+    },
+  });
+
+  // Buscar agendamentos
+  const { data: appointments = [], isLoading } = useQuery({
+    queryKey: ["appointments", currentDate, viewType],
+    queryFn: async () => {
+      let startDate: Date;
+      let endDate: Date;
+
+      if (viewType === "day") {
+        startDate = startOfDay(currentDate);
+        endDate = endOfDay(currentDate);
+      } else if (viewType === "week") {
+        startDate = startOfWeek(currentDate, { weekStartsOn: 0 });
+        endDate = endOfWeek(currentDate, { weekStartsOn: 0 });
+      } else {
+        startDate = startOfMonth(currentDate);
+        endDate = endOfMonth(currentDate);
+      }
+
+      const { data, error } = await supabase
+        .from("appointments")
+        .select(`
+          *,
+          customers(id, name)
+        `)
+        .gte("start_time", startDate.toISOString())
+        .lte("start_time", endDate.toISOString())
+        .order("start_time");
+
+      if (error) throw error;
+      return data as Appointment[];
+    },
+  });
+
+  // Mutation para criar agendamento
+  const createAppointment = useMutation({
+    mutationFn: async (appointmentData: {
+      customer_id: string;
+      title: string;
+      description: string;
+      start_time: string;
+      end_time: string;
+      notes: string;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data, error } = await supabase
+        .from("appointments")
+        .insert({
+          ...appointmentData,
+          user_id: user.id,
+          status: "scheduled",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      toast.success("Agendamento criado com sucesso!");
+      setOpen(false);
+      setCustomerId("");
+      setService("");
+      setDate("");
+      setTime("");
+      setDuration("60");
+      setNotes("");
+    },
+    onError: (error) => {
+      toast.error("Erro ao criar agendamento");
+      console.error(error);
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!clientName || !service || !date || !time) {
+    if (!customerId || !service || !date || !time) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 
-    toast.success("Agendamento criado com sucesso!");
-    setOpen(false);
-    
-    // Limpar formulário
-    setClientName("");
-    setService("");
-    setDate("");
-    setTime("");
-    setNotes("");
+    // Criar datetime combinando data e hora
+    const startDateTime = new Date(`${date}T${time}`);
+    const endDateTime = new Date(startDateTime.getTime() + parseInt(duration) * 60000);
+
+    createAppointment.mutate({
+      customer_id: customerId,
+      title: service,
+      description: service,
+      start_time: startDateTime.toISOString(),
+      end_time: endDateTime.toISOString(),
+      notes: notes || "",
+    });
   };
 
   const handlePrevious = () => {
@@ -77,24 +193,48 @@ const Agendamentos = () => {
   };
 
   const renderDayView = () => {
-    const hours = Array.from({ length: 14 }, (_, i) => i + 8); // 8h às 21h
+    const hours = Array.from({ length: 14 }, (_, i) => i + 8);
+    const dayAppointments = appointments.filter(apt => {
+      const aptDate = parseISO(apt.start_time);
+      return isSameDay(aptDate, currentDate);
+    });
     
     return (
       <div className="border rounded-lg overflow-hidden">
         <div className="bg-muted p-4 border-b">
-          <h3 className="font-semibold">{format(currentDate, "EEEE", { locale: ptBR })}</h3>
+          <h3 className="font-semibold capitalize">{format(currentDate, "EEEE", { locale: ptBR })}</h3>
         </div>
         <div className="divide-y">
-          {hours.map((hour) => (
-            <div key={hour} className="flex items-center p-4 hover:bg-muted/50 transition-colors">
-              <div className="w-20 text-sm text-muted-foreground">
-                {String(hour).padStart(2, "0")}:00
+          {hours.map((hour) => {
+            const hourAppointments = dayAppointments.filter(apt => {
+              const aptHour = parseISO(apt.start_time).getHours();
+              return aptHour === hour;
+            });
+
+            return (
+              <div key={hour} className="flex items-center p-4 hover:bg-muted/50 transition-colors">
+                <div className="w-20 text-sm text-muted-foreground">
+                  {String(hour).padStart(2, "0")}:00
+                </div>
+                <div className="flex-1 min-h-[40px]">
+                  {hourAppointments.length > 0 ? (
+                    <div className="space-y-2">
+                      {hourAppointments.map((apt) => (
+                        <div key={apt.id} className="bg-primary/10 border-l-4 border-primary p-2 rounded">
+                          <div className="font-semibold text-sm">{apt.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {apt.customers?.name} • {format(parseISO(apt.start_time), "HH:mm")} - {format(parseISO(apt.end_time), "HH:mm")}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">Disponível</div>
+                  )}
+                </div>
               </div>
-              <div className="flex-1 min-h-[40px] text-sm text-muted-foreground">
-                Disponível
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -107,8 +247,8 @@ const Agendamentos = () => {
     const hours = Array.from({ length: 14 }, (_, i) => i + 8);
 
     return (
-      <div className="border rounded-lg overflow-hidden">
-        <div className="grid grid-cols-8 border-b bg-muted">
+      <div className="border rounded-lg overflow-hidden overflow-x-auto">
+        <div className="grid grid-cols-8 border-b bg-muted min-w-[800px]">
           <div className="p-3"></div>
           {days.map((day) => (
             <div
@@ -117,7 +257,7 @@ const Agendamentos = () => {
                 isSameDay(day, new Date()) ? "bg-primary/10" : ""
               }`}
             >
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground capitalize">
                 {format(day, "EEE", { locale: ptBR })}
               </div>
               <div className={`text-lg font-semibold ${
@@ -128,18 +268,32 @@ const Agendamentos = () => {
             </div>
           ))}
         </div>
-        <div className="divide-y">
+        <div className="divide-y min-w-[800px]">
           {hours.map((hour) => (
             <div key={hour} className="grid grid-cols-8">
               <div className="p-3 text-sm text-muted-foreground border-r">
                 {String(hour).padStart(2, "0")}:00
               </div>
-              {days.map((day) => (
-                <div
-                  key={`${day.toISOString()}-${hour}`}
-                  className="p-3 border-l hover:bg-muted/50 transition-colors min-h-[60px]"
-                ></div>
-              ))}
+              {days.map((day) => {
+                const dayHourAppointments = appointments.filter(apt => {
+                  const aptDate = parseISO(apt.start_time);
+                  return isSameDay(aptDate, day) && aptDate.getHours() === hour;
+                });
+
+                return (
+                  <div
+                    key={`${day.toISOString()}-${hour}`}
+                    className="p-2 border-l hover:bg-muted/50 transition-colors min-h-[60px]"
+                  >
+                    {dayHourAppointments.map((apt) => (
+                      <div key={apt.id} className="bg-primary/10 border-l-2 border-primary p-1 rounded mb-1 text-xs">
+                        <div className="font-semibold truncate">{apt.title}</div>
+                        <div className="text-muted-foreground truncate">{apt.customers?.name}</div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
@@ -152,7 +306,6 @@ const Agendamentos = () => {
     const end = endOfMonth(currentDate);
     const days = eachDayOfInterval({ start, end });
     
-    // Preencher início do mês
     const startDay = start.getDay();
     const previousDays = startDay === 0 ? 0 : startDay;
     const allDays = [
@@ -174,10 +327,15 @@ const Agendamentos = () => {
             const isCurrentMonth = day >= start && day <= end;
             const isToday = isSameDay(day, new Date());
             
+            const dayAppointments = appointments.filter(apt => {
+              const aptDate = parseISO(apt.start_time);
+              return isSameDay(aptDate, day);
+            });
+            
             return (
               <div
                 key={idx}
-                className={`min-h-[100px] p-3 border-b border-l first:border-l-0 hover:bg-muted/50 transition-colors ${
+                className={`min-h-[100px] p-2 border-b border-l first:border-l-0 hover:bg-muted/50 transition-colors ${
                   !isCurrentMonth ? "bg-muted/30 text-muted-foreground" : ""
                 }`}
               >
@@ -187,6 +345,17 @@ const Agendamentos = () => {
                   }`}
                 >
                   {format(day, "d")}
+                </div>
+                <div className="space-y-1">
+                  {dayAppointments.slice(0, 3).map((apt) => (
+                    <div key={apt.id} className="bg-primary/10 border-l-2 border-primary p-1 rounded text-xs">
+                      <div className="font-semibold truncate">{format(parseISO(apt.start_time), "HH:mm")}</div>
+                      <div className="truncate">{apt.title}</div>
+                    </div>
+                  ))}
+                  {dayAppointments.length > 3 && (
+                    <div className="text-xs text-muted-foreground">+{dayAppointments.length - 3} mais</div>
+                  )}
                 </div>
               </div>
             );
@@ -219,14 +388,19 @@ const Agendamentos = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 mt-4">
               <div className="space-y-2">
-                <Label htmlFor="client">Cliente *</Label>
-                <Input
-                  id="client"
-                  placeholder="Nome do cliente"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  required
-                />
+                <Label htmlFor="customer">Cliente *</Label>
+                <Select value={customerId} onValueChange={setCustomerId} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="space-y-2">
@@ -265,6 +439,21 @@ const Agendamentos = () => {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="duration">Duração (minutos) *</Label>
+                <Select value={duration} onValueChange={setDuration}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30">30 minutos</SelectItem>
+                    <SelectItem value="60">1 hora</SelectItem>
+                    <SelectItem value="90">1h 30min</SelectItem>
+                    <SelectItem value="120">2 horas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="notes">Observações</Label>
                 <Textarea
                   id="notes"
@@ -279,8 +468,8 @@ const Agendamentos = () => {
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit">
-                  Criar Agendamento
+                <Button type="submit" disabled={createAppointment.isPending}>
+                  {createAppointment.isPending ? "Criando..." : "Criar Agendamento"}
                 </Button>
               </div>
             </form>
@@ -323,9 +512,17 @@ const Agendamentos = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {viewType === "day" && renderDayView()}
-          {viewType === "week" && renderWeekView()}
-          {viewType === "month" && renderMonthView()}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-muted-foreground">Carregando agendamentos...</div>
+            </div>
+          ) : (
+            <>
+              {viewType === "day" && renderDayView()}
+              {viewType === "week" && renderWeekView()}
+              {viewType === "month" && renderMonthView()}
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
