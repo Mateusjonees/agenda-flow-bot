@@ -161,6 +161,7 @@ const Assinaturas = () => {
         description: "",
         price: "",
         billing_frequency: "monthly",
+        duration_months: "3",
         included_services: [{ service: "", quantity: "1", frequency: "month" }],
       });
       fetchPlans();

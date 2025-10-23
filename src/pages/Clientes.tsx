@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Phone, Mail, User, Gift, Ticket } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Phone, Mail, User, CalendarPlus, ListTodo } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LoyaltyCard } from "@/components/LoyaltyCard";
 import { CustomerCoupons } from "@/components/CustomerCoupons";
@@ -32,6 +33,22 @@ const Clientes = () => {
   });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
+  const [taskForm, setTaskForm] = useState({
+    title: "",
+    description: "",
+    due_date: "",
+    priority: "medium" as "low" | "medium" | "high",
+    status: "pending" as "pending" | "completed" | "cancelled",
+  });
+  const [appointmentForm, setAppointmentForm] = useState({
+    service: "",
+    date: "",
+    time: "",
+    duration: "60",
+    notes: "",
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -89,6 +106,101 @@ const Clientes = () => {
       setDialogOpen(false);
       setNewCustomer({ name: "", phone: "", email: "", notes: "" });
       fetchCustomers();
+    }
+  };
+
+  const handleAddTask = async () => {
+    if (!selectedCustomer || !taskForm.title || !taskForm.due_date) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Título e data de vencimento são obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.from("tasks").insert({
+      user_id: user.id,
+      customer_id: selectedCustomer.id,
+      title: taskForm.title,
+      description: taskForm.description || null,
+      type: "manual",
+      due_date: taskForm.due_date,
+      priority: taskForm.priority,
+      status: taskForm.status,
+    });
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar a tarefa.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Tarefa criada!",
+        description: "A tarefa foi adicionada com sucesso.",
+      });
+      setTaskDialogOpen(false);
+      setTaskForm({
+        title: "",
+        description: "",
+        due_date: "",
+        priority: "medium",
+        status: "pending",
+      });
+    }
+  };
+
+  const handleAddAppointment = async () => {
+    if (!selectedCustomer || !appointmentForm.service || !appointmentForm.date || !appointmentForm.time) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Serviço, data e horário são obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const startDateTime = new Date(`${appointmentForm.date}T${appointmentForm.time}`);
+    const endDateTime = new Date(startDateTime.getTime() + parseInt(appointmentForm.duration) * 60000);
+
+    const { error } = await supabase.from("appointments").insert({
+      customer_id: selectedCustomer.id,
+      user_id: user.id,
+      title: appointmentForm.service,
+      description: appointmentForm.notes || "",
+      start_time: startDateTime.toISOString(),
+      end_time: endDateTime.toISOString(),
+      notes: appointmentForm.notes || "",
+      status: "scheduled",
+    });
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar o agendamento.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Agendamento criado!",
+        description: "O agendamento foi adicionado com sucesso.",
+      });
+      setAppointmentDialogOpen(false);
+      setAppointmentForm({
+        service: "",
+        date: "",
+        time: "",
+        duration: "60",
+        notes: "",
+      });
     }
   };
 
@@ -230,6 +342,158 @@ const Clientes = () => {
                   Informações do cliente, fidelidade e cupons disponíveis
                 </DialogDescription>
               </DialogHeader>
+
+              {/* Botões de ação rápida */}
+              <div className="flex gap-2">
+                <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="flex-1 gap-2">
+                      <ListTodo className="w-4 h-4" />
+                      Nova Tarefa
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Nova Tarefa para {selectedCustomer.name}</DialogTitle>
+                      <DialogDescription>
+                        Crie uma tarefa relacionada a este cliente
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="task-title">Título *</Label>
+                        <Input
+                          id="task-title"
+                          value={taskForm.title}
+                          onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                          placeholder="Ex: Ligar para confirmar agendamento"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="task-description">Descrição</Label>
+                        <Textarea
+                          id="task-description"
+                          value={taskForm.description}
+                          onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                          placeholder="Detalhes da tarefa..."
+                          rows={3}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="task-due-date">Data de Vencimento *</Label>
+                        <Input
+                          id="task-due-date"
+                          type="date"
+                          value={taskForm.due_date}
+                          onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="task-priority">Prioridade</Label>
+                        <Select value={taskForm.priority} onValueChange={(value: any) => setTaskForm({ ...taskForm, priority: value })}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low">Baixa</SelectItem>
+                            <SelectItem value="medium">Média</SelectItem>
+                            <SelectItem value="high">Alta</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="task-status">Status</Label>
+                        <Select value={taskForm.status} onValueChange={(value: any) => setTaskForm({ ...taskForm, status: value })}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pendente</SelectItem>
+                            <SelectItem value="completed">Concluída</SelectItem>
+                            <SelectItem value="cancelled">Cancelada</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button onClick={handleAddTask} className="w-full">
+                        Criar Tarefa
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={appointmentDialogOpen} onOpenChange={setAppointmentDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="flex-1 gap-2">
+                      <CalendarPlus className="w-4 h-4" />
+                      Novo Agendamento
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Novo Agendamento para {selectedCustomer.name}</DialogTitle>
+                      <DialogDescription>
+                        Crie um agendamento relacionado a este cliente
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="appointment-service">Serviço *</Label>
+                        <Input
+                          id="appointment-service"
+                          value={appointmentForm.service}
+                          onChange={(e) => setAppointmentForm({ ...appointmentForm, service: e.target.value })}
+                          placeholder="Ex: Corte de cabelo"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="appointment-date">Data *</Label>
+                        <Input
+                          id="appointment-date"
+                          type="date"
+                          value={appointmentForm.date}
+                          onChange={(e) => setAppointmentForm({ ...appointmentForm, date: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="appointment-time">Horário *</Label>
+                        <Input
+                          id="appointment-time"
+                          type="time"
+                          value={appointmentForm.time}
+                          onChange={(e) => setAppointmentForm({ ...appointmentForm, time: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="appointment-duration">Duração</Label>
+                        <Select value={appointmentForm.duration} onValueChange={(value) => setAppointmentForm({ ...appointmentForm, duration: value })}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="30">30 minutos</SelectItem>
+                            <SelectItem value="60">1 hora</SelectItem>
+                            <SelectItem value="90">1h 30min</SelectItem>
+                            <SelectItem value="120">2 horas</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="appointment-notes">Observações</Label>
+                        <Textarea
+                          id="appointment-notes"
+                          value={appointmentForm.notes}
+                          onChange={(e) => setAppointmentForm({ ...appointmentForm, notes: e.target.value })}
+                          placeholder="Detalhes do agendamento..."
+                          rows={3}
+                        />
+                      </div>
+                      <Button onClick={handleAddAppointment} className="w-full">
+                        Criar Agendamento
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
               
               <div className="space-y-4">
                 {/* Informações básicas */}
