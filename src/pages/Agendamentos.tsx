@@ -624,6 +624,7 @@ const Agendamentos = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>
