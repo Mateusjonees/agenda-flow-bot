@@ -1,11 +1,13 @@
 import { ReactNode, useEffect, useState } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Settings, LogOut, Menu, X, LayoutDashboard, DollarSign, BarChart3, FileText, Repeat, ListTodo, Package } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 import logo from "@/assets/logo.png";
 
 interface LayoutProps {
@@ -14,9 +16,7 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -47,112 +47,46 @@ const Layout = ({ children }: LayoutProps) => {
     navigate("/auth");
   };
 
-  const navItems = [
-    { path: "/", label: "Dashboard", icon: LayoutDashboard },
-    { path: "/tarefas", label: "Tarefas", icon: ListTodo },
-    { path: "/agendamentos", label: "Agendamentos", icon: Calendar },
-    { path: "/clientes", label: "Clientes", icon: Users },
-    { path: "/propostas", label: "Propostas", icon: FileText },
-    { path: "/assinaturas", label: "Assinaturas", icon: Repeat },
-    { path: "/estoque", label: "Estoque", icon: Package },
-    { path: "/financeiro", label: "Financeiro", icon: DollarSign },
-    { path: "/relatorios", label: "Relatórios", icon: BarChart3 },
-    { path: "/configuracoes", label: "Configurações", icon: Settings },
-  ];
-
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <img src={logo} alt="SmartAgenda" className="w-10 h-10" />
-              <span className="text-xl font-bold hidden sm:inline-block">SmartAgenda+</span>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AppSidebar />
+        
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+            <div className="flex h-14 items-center justify-between px-4 gap-4">
+              <div className="flex items-center gap-3">
+                <SidebarTrigger />
+                <div className="flex items-center gap-2">
+                  <img src={logo} alt="SmartAgenda" className="w-8 h-8" />
+                  <span className="text-lg font-bold hidden sm:inline-block">SmartAgenda</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  title="Sair"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
-          </div>
+          </header>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return (
-                <Link key={item.path} to={item.path}>
-                  <Button
-                    variant={isActive ? "secondary" : "ghost"}
-                    className="gap-2"
-                  >
-                    <Icon className="w-4 h-4" />
-                    {item.label}
-                  </Button>
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-              className="hidden md:flex"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
-
-            {/* Mobile Menu Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-          </div>
+          {/* Main Content */}
+          <main className="flex-1 p-6">
+            {children}
+          </main>
         </div>
-
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-border bg-card">
-            <nav className="container py-4 flex flex-col gap-2">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                return (
-                  <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)}>
-                    <Button
-                      variant={isActive ? "secondary" : "ghost"}
-                      className="w-full justify-start gap-2"
-                    >
-                      <Icon className="w-4 h-4" />
-                      {item.label}
-                    </Button>
-                  </Link>
-                );
-              })}
-              <Button
-                variant="ghost"
-                onClick={handleLogout}
-                className="w-full justify-start gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Sair
-              </Button>
-            </nav>
-          </div>
-        )}
-      </header>
-
-      {/* Main Content */}
-      <main className="container py-6">
-        {children}
-      </main>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 };
 
