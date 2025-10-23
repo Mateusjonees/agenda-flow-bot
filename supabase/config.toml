@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.generate-daily-report]
 verify_jwt = true
+
+[functions.send-post-service-message]
+verify_jwt = false

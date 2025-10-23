@@ -145,6 +145,66 @@ export type Database = {
         }
         Relationships: []
       }
+      coupons: {
+        Row: {
+          appointment_id: string | null
+          code: string
+          created_at: string
+          customer_id: string
+          discount_amount: number | null
+          discount_percentage: number | null
+          expires_at: string
+          id: string
+          is_active: boolean
+          updated_at: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          code: string
+          created_at?: string
+          customer_id: string
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          expires_at: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string | null
+          code?: string
+          created_at?: string
+          customer_id?: string
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupons_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string
@@ -265,6 +325,92 @@ export type Database = {
           },
         ]
       }
+      loyalty_cards: {
+        Row: {
+          created_at: string
+          current_stamps: number
+          customer_id: string
+          id: string
+          last_visit_at: string | null
+          rewards_redeemed: number
+          stamps_required: number
+          total_visits: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_stamps?: number
+          customer_id: string
+          id?: string
+          last_visit_at?: string | null
+          rewards_redeemed?: number
+          stamps_required?: number
+          total_visits?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_stamps?: number
+          customer_id?: string
+          id?: string
+          last_visit_at?: string | null
+          rewards_redeemed?: number
+          stamps_required?: number
+          total_visits?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_cards_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_stamps: {
+        Row: {
+          appointment_id: string
+          created_at: string
+          id: string
+          loyalty_card_id: string
+          stamps_added: number
+        }
+        Insert: {
+          appointment_id: string
+          created_at?: string
+          id?: string
+          loyalty_card_id: string
+          stamps_added?: number
+        }
+        Update: {
+          appointment_id?: string
+          created_at?: string
+          id?: string
+          loyalty_card_id?: string
+          stamps_added?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_stamps_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_stamps_loyalty_card_id_fkey"
+            columns: ["loyalty_card_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pix_charges: {
         Row: {
           amount: number
@@ -342,6 +488,54 @@ export type Database = {
             columns: ["transaction_id"]
             isOneToOne: false
             referencedRelation: "financial_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          appointment_id: string
+          comment: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_id: string
+          comment?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string
+          comment?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]
