@@ -172,13 +172,13 @@ const Propostas = () => {
     if (error) {
       toast({
         title: "Erro",
-        description: "Não foi possível criar a proposta.",
+        description: "Não foi possível criar o orçamento.",
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Proposta criada!",
-        description: "A proposta foi criada com sucesso.",
+        title: "Orçamento criado!",
+        description: "O orçamento foi criado com sucesso.",
       });
       setDialogOpen(false);
       setNewProposal({
@@ -219,15 +219,15 @@ const Propostas = () => {
 
       setLastEmailSent({ ...lastEmailSent, [proposalId]: now });
       toast({
-        title: "Proposta enviada!",
-        description: "A proposta foi enviada para o cliente.",
+        title: "Orçamento enviado!",
+        description: "O orçamento foi enviado para o cliente.",
       });
       fetchData();
     } catch (error) {
-      console.error("Erro ao enviar proposta:", error);
+      console.error("Erro ao enviar orçamento:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível enviar a proposta.",
+        description: "Não foi possível enviar o orçamento.",
         variant: "destructive",
       });
     } finally {
@@ -245,12 +245,12 @@ const Propostas = () => {
     if (error) {
       toast({
         title: "Erro",
-        description: "Não foi possível cancelar a proposta.",
+        description: "Não foi possível cancelar o orçamento.",
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Proposta cancelada!",
+        title: "Orçamento cancelado!",
       });
       fetchData();
     }
@@ -267,12 +267,12 @@ const Propostas = () => {
     if (error) {
       toast({
         title: "Erro",
-        description: "Não foi possível excluir a proposta.",
+        description: "Não foi possível excluir o orçamento.",
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Proposta excluída!",
+        title: "Orçamento excluído!",
       });
       fetchData();
     }
@@ -337,9 +337,9 @@ const Propostas = () => {
               </div>
               <div>
                 <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Propostas
+                  Orçamentos
                 </h1>
-                <p className="text-muted-foreground mt-1">Crie e gerencie propostas profissionais</p>
+                <p className="text-muted-foreground mt-1">Crie e gerencie orçamentos profissionais</p>
               </div>
             </div>
           </div>
@@ -349,14 +349,14 @@ const Propostas = () => {
               <DialogTrigger asChild>
                 <Button className="gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-xl hover:scale-105 transition-all">
                   <Plus className="w-4 h-4" />
-                  Nova Proposta
+                  Novo Orçamento
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Criar Nova Proposta</DialogTitle>
+              <DialogTitle>Criar Novo Orçamento</DialogTitle>
               <DialogDescription>
-                Preencha os detalhes da proposta para o cliente
+                Preencha os detalhes do orçamento para o cliente
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -380,7 +380,7 @@ const Propostas = () => {
               </div>
 
               <div>
-                <Label>Título da Proposta *</Label>
+                <Label>Título do Orçamento *</Label>
                 <Input
                   value={newProposal.title}
                   onChange={(e) => setNewProposal({ ...newProposal, title: e.target.value })}
@@ -393,7 +393,7 @@ const Propostas = () => {
                 <Textarea
                   value={newProposal.description}
                   onChange={(e) => setNewProposal({ ...newProposal, description: e.target.value })}
-                  placeholder="Detalhes adicionais da proposta..."
+                  placeholder="Detalhes adicionais do orçamento..."
                   rows={3}
                 />
               </div>
@@ -496,7 +496,7 @@ const Propostas = () => {
               </div>
 
               <Button onClick={handleCreateProposal} className="w-full">
-                Criar Proposta
+                Criar Orçamento
               </Button>
             </div>
           </DialogContent>
@@ -520,8 +520,8 @@ const Propostas = () => {
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted mb-4">
               <FileText className="w-10 h-10 text-muted-foreground" />
             </div>
-            <p className="text-lg font-medium text-muted-foreground">Nenhuma proposta encontrada</p>
-            <p className="text-sm text-muted-foreground mt-2">Crie sua primeira proposta para começar</p>
+            <p className="text-lg font-medium text-muted-foreground">Nenhum orçamento encontrado</p>
+            <p className="text-sm text-muted-foreground mt-2">Crie seu primeiro orçamento para começar</p>
           </CardContent>
         </Card>
       ) : (
@@ -654,7 +654,7 @@ const Propostas = () => {
                   
                   {proposal.status === "canceled" && (
                     <div className="w-full text-center text-sm text-muted-foreground py-2">
-                      Proposta cancelada
+                      Orçamento cancelado
                     </div>
                   )}
                 </div>
@@ -693,7 +693,7 @@ const Propostas = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir esta proposta? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

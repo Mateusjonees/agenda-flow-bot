@@ -99,12 +99,12 @@ export const ProposalEditDialog = ({
     if (error) {
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar a proposta.",
+        description: "Não foi possível atualizar o orçamento.",
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Proposta atualizada!",
+        title: "Orçamento atualizado!",
       });
       onSuccess();
       onOpenChange(false);
@@ -144,8 +144,8 @@ export const ProposalEditDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Editar Proposta</DialogTitle>
-          <DialogDescription>Atualize os detalhes da proposta</DialogDescription>
+          <DialogTitle>Editar Orçamento</DialogTitle>
+          <DialogDescription>Atualize os detalhes do orçamento</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -168,7 +168,7 @@ export const ProposalEditDialog = ({
           </div>
 
           <div>
-            <Label>Título da Proposta *</Label>
+            <Label>Título do Orçamento *</Label>
             <Input
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -181,7 +181,7 @@ export const ProposalEditDialog = ({
             <Textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Detalhes adicionais da proposta..."
+              placeholder="Detalhes adicionais do orçamento..."
               rows={3}
             />
           </div>

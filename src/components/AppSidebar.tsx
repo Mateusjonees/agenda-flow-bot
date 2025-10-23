@@ -26,7 +26,7 @@ const navItems = [
   { path: "/tarefas", label: "Tarefas", icon: ListTodo },
   { path: "/agendamentos", label: "Atendimentos", icon: Calendar },
   { path: "/clientes", label: "Clientes", icon: Users },
-  { path: "/propostas", label: "Propostas", icon: FileText },
+  { path: "/propostas", label: "Orçamentos", icon: FileText },
   { path: "/assinaturas", label: "Assinaturas", icon: Repeat },
   { path: "/estoque", label: "Estoque", icon: Package },
   { path: "/financeiro", label: "Financeiro", icon: DollarSign },

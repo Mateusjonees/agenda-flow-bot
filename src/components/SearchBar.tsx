@@ -272,7 +272,7 @@ export function SearchBar() {
               )}
 
               {results?.proposals && results.proposals.length > 0 && (
-                <CommandGroup heading="Propostas">
+                <CommandGroup heading="Orçamentos">
                   {results.proposals.map((proposal: any) => (
                     <CommandItem
                       key={proposal.id}

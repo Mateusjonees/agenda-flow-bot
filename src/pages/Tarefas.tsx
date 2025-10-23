@@ -345,7 +345,7 @@ const Tarefas = () => {
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 text-accent flex-shrink-0" />
-                <span><strong>Acompanhamento de proposta:</strong> Lembrete 48h após envio sem resposta</span>
+                <span><strong>Acompanhamento de orçamento:</strong> Lembrete 48h após envio sem resposta</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 text-accent flex-shrink-0" />
