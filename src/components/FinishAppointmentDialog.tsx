@@ -57,6 +57,23 @@ export function FinishAppointmentDialog({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      // Buscar informações do appointment antes de atualizar
+      const { data: appointment } = await supabase
+        .from("appointments")
+        .select("customer_id")
+        .eq("id", appointmentId)
+        .single();
+
+      if (!appointment) throw new Error("Agendamento não encontrado");
+
+      // Buscar cartão fidelidade antes da atualização
+      const { data: loyaltyCardBefore } = await supabase
+        .from("loyalty_cards")
+        .select("current_stamps, stamps_required")
+        .eq("user_id", user.id)
+        .eq("customer_id", appointment.customer_id)
+        .single();
+
       // 1. Atualizar status do agendamento
       const { error: updateError } = await supabase
         .from("appointments")
@@ -67,6 +84,17 @@ export function FinishAppointmentDialog({
         .eq("id", appointmentId);
 
       if (updateError) throw updateError;
+
+      // Aguardar um pouco para o trigger executar
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Buscar cartão fidelidade após a atualização
+      const { data: loyaltyCardAfter } = await supabase
+        .from("loyalty_cards")
+        .select("current_stamps, stamps_required, rewards_redeemed")
+        .eq("user_id", user.id)
+        .eq("customer_id", appointment.customer_id)
+        .single();
 
       // 2. Atualizar estoque para cada item usado
       for (const usage of stockUsages) {
@@ -81,11 +109,32 @@ export function FinishAppointmentDialog({
 
         if (stockError) throw stockError;
       }
+
+      return { loyaltyCardBefore, loyaltyCardAfter };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
-      toast.success("Atendimento finalizado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["loyalty-cards"] });
+      
+      // Verificar se o cartão foi completado
+      const { loyaltyCardBefore, loyaltyCardAfter } = data;
+      
+      if (loyaltyCardBefore && loyaltyCardAfter) {
+        const wasCompleted = loyaltyCardBefore.current_stamps + 1 >= loyaltyCardBefore.stamps_required;
+        const rewardsIncreased = loyaltyCardAfter.rewards_redeemed > (loyaltyCardBefore as any).rewards_redeemed;
+        
+        if (wasCompleted || rewardsIncreased) {
+          toast.success("🎉 Parabéns! O cliente completou o cartão fidelidade e ganhou uma visita grátis!", {
+            duration: 5000,
+          });
+        } else {
+          toast.success("Atendimento finalizado com sucesso!");
+        }
+      } else {
+        toast.success("Atendimento finalizado com sucesso!");
+      }
+      
       onOpenChange(false);
       setStockUsages([]);
     },
