@@ -231,7 +231,7 @@ const Dashboard = () => {
             </div>
             <div>
               <h1 className="text-5xl font-extrabold bg-gradient-to-r from-primary via-accent to-purple-600 bg-clip-text text-transparent">
-                Dashboard
+                Painel
               </h1>
               <p className="text-muted-foreground mt-2 flex items-center gap-2">
                 <Clock className="w-4 h-4" />

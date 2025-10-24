@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItems = [
-  { path: "/", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/", label: "Painel", icon: LayoutDashboard },
   { path: "/tarefas", label: "Tarefas", icon: ListTodo },
   { path: "/agendamentos", label: "Atendimentos", icon: Calendar },
   { path: "/clientes", label: "Clientes", icon: Users },
