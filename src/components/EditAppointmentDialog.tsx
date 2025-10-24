@@ -113,11 +113,11 @@ export function EditAppointmentDialog({ open, onOpenChange, appointmentId }: Edi
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] });
-      toast.success("Agendamento atualizado com sucesso!");
+      toast.success("Atendimento atualizado com sucesso!");
       onOpenChange(false);
     },
     onError: (error) => {
-      toast.error("Erro ao atualizar agendamento");
+      toast.error("Erro ao atualizar atendimento");
       console.error(error);
     },
   });
@@ -137,9 +137,9 @@ export function EditAppointmentDialog({ open, onOpenChange, appointmentId }: Edi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Editar Agendamento</DialogTitle>
+          <DialogTitle>Editar Atendimento</DialogTitle>
           <DialogDescription>
-            Atualize as informações do agendamento
+            Atualize as informações do atendimento
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
