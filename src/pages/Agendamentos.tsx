@@ -238,46 +238,44 @@ const Agendamentos = () => {
                 <div className="flex-1 min-h-[40px]">
                   {hourAppointments.length > 0 ? (
                      <div className="space-y-2">
-                       {hourAppointments.map((apt) => (
-                        <div key={apt.id} className="bg-primary/10 border-l-4 border-primary p-2 rounded">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="font-semibold text-sm">{apt.title}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {apt.customers?.name} • {format(parseISO(apt.start_time), "HH:mm")} - {format(parseISO(apt.end_time), "HH:mm")}
-                              </div>
-                            </div>
-                            {apt.status === "scheduled" && (
-                              <div className="flex gap-1 flex-shrink-0">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 gap-1"
-                                  onClick={() => {
-                                    setEditAppointmentId(apt.id);
-                                    setEditDialogOpen(true);
-                                  }}
-                                >
-                                  <Pencil className="w-3 h-3" />
-                                  Editar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 gap-1"
-                                  onClick={() => {
-                                    setSelectedAppointment({ id: apt.id, title: apt.title });
-                                    setFinishDialogOpen(true);
-                                  }}
-                                >
-                                  <CheckCircle className="w-3 h-3" />
-                                  Finalizar
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                       ))}
+                        {hourAppointments.map((apt) => (
+                         <div key={apt.id} className="bg-primary/10 border-l-4 border-primary p-2 rounded">
+                           <div className="flex items-start justify-between gap-2">
+                             <div className="flex-1 min-w-0">
+                               <div className="font-semibold text-sm">{apt.title}</div>
+                               <div className="text-xs text-muted-foreground">
+                                 {apt.customers?.name} • {format(parseISO(apt.start_time), "HH:mm")} - {format(parseISO(apt.end_time), "HH:mm")}
+                               </div>
+                             </div>
+                             <div className="flex gap-1 flex-shrink-0">
+                               <Button
+                                 size="sm"
+                                 variant="ghost"
+                                 className="h-7 gap-1"
+                                 onClick={() => {
+                                   setEditAppointmentId(apt.id);
+                                   setEditDialogOpen(true);
+                                 }}
+                               >
+                                 <Pencil className="w-3 h-3" />
+                                 Editar
+                               </Button>
+                               <Button
+                                 size="sm"
+                                 variant="default"
+                                 className="h-7 gap-1"
+                                 onClick={() => {
+                                   setSelectedAppointment({ id: apt.id, title: apt.title });
+                                   setFinishDialogOpen(true);
+                                 }}
+                               >
+                                 <CheckCircle className="w-3 h-3" />
+                                 Finalizar
+                               </Button>
+                             </div>
+                           </div>
+                         </div>
+                        ))}
                      </div>
                   ) : (
                     <div className="text-sm text-muted-foreground">Disponível</div>
@@ -337,35 +335,39 @@ const Agendamentos = () => {
                         className="p-2 border-l hover:bg-muted/50 transition-colors min-h-[60px]"
                       >
                         {dayHourAppointments.map((apt) => (
-                          <div key={apt.id} className="bg-primary/10 border-l-2 border-primary p-1 rounded mb-1 text-xs group relative">
-                            <div className="font-semibold truncate">{apt.title}</div>
-                            <div className="text-muted-foreground truncate">{apt.customers?.name}</div>
-                            {apt.status === "scheduled" && (
-                              <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div key={apt.id} className="bg-primary/10 border-l-2 border-primary p-1 rounded mb-1 text-xs">
+                            <div className="flex items-start justify-between gap-1">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-semibold truncate">{apt.title}</div>
+                                <div className="text-muted-foreground truncate">{apt.customers?.name}</div>
+                              </div>
+                              <div className="flex gap-0.5 flex-shrink-0">
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-6 w-6 p-0"
+                                  className="h-5 w-5 p-0"
                                   onClick={() => {
                                     setEditAppointmentId(apt.id);
                                     setEditDialogOpen(true);
                                   }}
+                                  title="Editar"
                                 >
                                   <Pencil className="w-3 h-3" />
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-6 w-6 p-0"
+                                  className="h-5 w-5 p-0"
                                   onClick={() => {
                                     setSelectedAppointment({ id: apt.id, title: apt.title });
                                     setFinishDialogOpen(true);
                                   }}
+                                  title="Finalizar"
                                 >
                                   <CheckCircle className="w-3 h-3" />
                                 </Button>
                               </div>
-                            )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -427,38 +429,42 @@ const Agendamentos = () => {
                    {dayAppointments.slice(0, 3).map((apt) => (
                      <div 
                        key={apt.id} 
-                       className="bg-primary/10 border-l-2 border-primary p-1 rounded text-xs group relative"
+                       className="bg-primary/10 border-l-2 border-primary p-1 rounded text-xs"
                      >
-                       <div className="font-semibold truncate">{format(parseISO(apt.start_time), "HH:mm")}</div>
-                       <div className="truncate">{apt.title}</div>
-                       {apt.status === "scheduled" && (
-                         <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                       <div className="flex items-start justify-between gap-1">
+                         <div className="flex-1 min-w-0">
+                           <div className="font-semibold truncate">{format(parseISO(apt.start_time), "HH:mm")}</div>
+                           <div className="truncate">{apt.title}</div>
+                         </div>
+                         <div className="flex gap-0.5 flex-shrink-0">
                            <Button
                              size="sm"
                              variant="ghost"
-                             className="h-5 w-5 p-0"
+                             className="h-4 w-4 p-0"
                              onClick={(e) => {
                                e.stopPropagation();
                                setEditAppointmentId(apt.id);
                                setEditDialogOpen(true);
                              }}
+                             title="Editar"
                            >
                              <Pencil className="w-2.5 h-2.5" />
                            </Button>
                            <Button
                              size="sm"
                              variant="ghost"
-                             className="h-5 w-5 p-0"
+                             className="h-4 w-4 p-0"
                              onClick={(e) => {
                                e.stopPropagation();
                                setSelectedAppointment({ id: apt.id, title: apt.title });
                                setFinishDialogOpen(true);
                              }}
+                             title="Finalizar"
                            >
                              <CheckCircle className="w-2.5 h-2.5" />
                            </Button>
                          </div>
-                       )}
+                       </div>
                      </div>
                    ))}
                    {dayAppointments.length > 3 && (
