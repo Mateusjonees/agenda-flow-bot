@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, TrendingUp } from "lucide-react";
+import { Plus, Users, TrendingUp, CreditCard, FileText, Smartphone, XCircle, RefreshCw } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface SubscriptionPlan {
   id: string;
@@ -42,6 +43,9 @@ const Assinaturas = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [renewSubscription, setRenewSubscription] = useState<Subscription | null>(null);
+  const [cancelSubscription, setCancelSubscription] = useState<Subscription | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<string>("pix");
   
   const [newPlan, setNewPlan] = useState({
     name: "",
@@ -191,8 +195,98 @@ const Assinaturas = () => {
       weekly: "Semanal",
       biweekly: "Quinzenal",
       monthly: "Mensal",
+      quarterly: "Trimestral",
+      single: "Pagamento Único",
     };
     return labels[frequency] || frequency;
+  };
+
+  const handleRenewSubscription = async () => {
+    if (!renewSubscription) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+      // Calcular próxima data de cobrança
+      const nextBillingDate = new Date();
+      nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+
+      // Atualizar assinatura
+      const { error: updateError } = await supabase
+        .from("subscriptions")
+        .update({
+          next_billing_date: nextBillingDate.toISOString(),
+          status: "active",
+          failed_payments_count: 0,
+        })
+        .eq("id", renewSubscription.id);
+
+      if (updateError) throw updateError;
+
+      // Se for PIX, criar cobrança
+      if (paymentMethod === "pix" && renewSubscription.subscription_plans) {
+        const { data: customer } = await supabase
+          .from("customers")
+          .select("name, phone")
+          .eq("id", renewSubscription.customer_id)
+          .single();
+
+        if (customer) {
+          await supabase.from("pix_charges").insert({
+            user_id: user.id,
+            customer_id: renewSubscription.customer_id,
+            customer_name: customer.name,
+            customer_phone: customer.phone,
+            amount: renewSubscription.subscription_plans.price,
+            status: "pending",
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            metadata: {
+              subscription_id: renewSubscription.id,
+              type: "subscription_renewal",
+            },
+          });
+        }
+      }
+
+      toast({
+        title: "Assinatura renovada!",
+        description: `Renovação agendada para ${nextBillingDate.toLocaleDateString("pt-BR")}`,
+      });
+
+      setRenewSubscription(null);
+      fetchSubscriptions();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao renovar assinatura",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!cancelSubscription) return;
+
+    const { error } = await supabase
+      .from("subscriptions")
+      .update({ status: "cancelled" })
+      .eq("id", cancelSubscription.id);
+
+    if (error) {
+      toast({
+        title: "Erro ao cancelar assinatura",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Assinatura cancelada!",
+        description: "A assinatura foi cancelada com sucesso.",
+      });
+      setCancelSubscription(null);
+      fetchSubscriptions();
+    }
   };
 
   if (loading) {
@@ -318,6 +412,7 @@ const Assinaturas = () => {
       <Tabs defaultValue="plans" className="space-y-4">
         <TabsList>
           <TabsTrigger value="plans">Planos Disponíveis</TabsTrigger>
+          <TabsTrigger value="subscriptions">Assinantes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="plans" className="space-y-4">
@@ -359,7 +454,166 @@ const Assinaturas = () => {
           )}
         </TabsContent>
 
+        <TabsContent value="subscriptions" className="space-y-4">
+          {subscriptions.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-10">
+                <p className="text-muted-foreground">Nenhuma assinatura ativa ainda</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {subscriptions.map((subscription) => (
+                <Card key={subscription.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>{subscription.customers?.name}</CardTitle>
+                        <CardDescription>
+                          {subscription.subscription_plans?.name}
+                        </CardDescription>
+                      </div>
+                      {getStatusBadge(subscription.status)}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Valor</p>
+                          <p className="font-semibold">
+                            {formatCurrency(subscription.subscription_plans?.price || 0)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Próximo Pagamento</p>
+                          <p className="font-semibold">
+                            {new Date(subscription.next_billing_date).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                      </div>
+
+                      {subscription.status === "active" && (
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 gap-2"
+                            onClick={() => setRenewSubscription(subscription)}
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                            Renovar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 gap-2 text-destructive hover:bg-destructive/10"
+                            onClick={() => setCancelSubscription(subscription)}
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Cancelar
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
       </Tabs>
+
+      {/* Dialog de Renovação */}
+      <Dialog open={!!renewSubscription} onOpenChange={(open) => !open && setRenewSubscription(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Renovar Assinatura</DialogTitle>
+            <DialogDescription>
+              Escolha a forma de pagamento para renovar a assinatura
+            </DialogDescription>
+          </DialogHeader>
+          
+          {renewSubscription && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">Cliente</p>
+                <p className="font-medium">{renewSubscription.customers?.name}</p>
+                <p className="text-sm text-muted-foreground mt-2">Valor</p>
+                <p className="text-2xl font-bold">
+                  {formatCurrency(renewSubscription.subscription_plans?.price || 0)}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Forma de Pagamento</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pix">
+                      <div className="flex items-center gap-2">
+                        <Smartphone className="w-4 h-4" />
+                        PIX
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="credit_card">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4" />
+                        Cartão de Crédito
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="boleto">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Boleto
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setRenewSubscription(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button className="flex-1" onClick={handleRenewSubscription}>
+                  Confirmar Renovação
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Cancelamento */}
+      <AlertDialog open={!!cancelSubscription} onOpenChange={(open) => !open && setCancelSubscription(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar Assinatura</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja cancelar a assinatura de{" "}
+              <strong>{cancelSubscription?.customers?.name}</strong>?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelSubscription}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirmar Cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
