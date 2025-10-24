@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProposalViewDialog } from "@/components/ProposalViewDialog";
 import { ProposalEditDialog } from "@/components/ProposalEditDialog";
 import { ProposalConfirmDialog } from "@/components/ProposalConfirmDialog";
+import { ScheduleAppointmentDialog } from "@/components/ScheduleAppointmentDialog";
 
 interface Proposal {
   id: string;
@@ -35,6 +36,7 @@ interface Proposal {
   sent_at: string | null;
   accepted_at: string | null;
   created_at: string;
+  appointment_id: string | null;
 }
 
 interface Customer {
@@ -60,6 +62,7 @@ const Propostas = () => {
   const [viewProposal, setViewProposal] = useState<Proposal | null>(null);
   const [editProposal, setEditProposal] = useState<Proposal | null>(null);
   const [confirmProposal, setConfirmProposal] = useState<Proposal | null>(null);
+  const [scheduleProposal, setScheduleProposal] = useState<Proposal | null>(null);
   const [deleteProposalId, setDeleteProposalId] = useState<string | null>(null);
   const [lastEmailSent, setLastEmailSent] = useState<{ [key: string]: number }>({});
   const { toast } = useToast();
@@ -637,7 +640,21 @@ const Propostas = () => {
                     </>
                   )}
                   
-                  {proposal.status === "confirmed" && (
+                  {(proposal.status === "accepted" || proposal.status === "confirmed") && !proposal.appointment_id && (
+                    <Button 
+                      size="sm" 
+                      className="w-full gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-lg transition-all"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setScheduleProposal(proposal);
+                      }}
+                    >
+                      <CalendarIcon className="w-4 h-4" />
+                      Agendar Atendimento
+                    </Button>
+                  )}
+                  
+                  {proposal.status === "confirmed" && proposal.appointment_id && (
                     <Button 
                       size="sm" 
                       variant="outline"
@@ -671,6 +688,17 @@ const Propostas = () => {
         proposal={viewProposal}
         open={!!viewProposal}
         onOpenChange={(open) => !open && setViewProposal(null)}
+        onScheduleAppointment={(proposal) => {
+          setViewProposal(null);
+          setScheduleProposal(proposal);
+        }}
+      />
+
+      <ScheduleAppointmentDialog
+        proposal={scheduleProposal}
+        open={!!scheduleProposal}
+        onOpenChange={(open) => !open && setScheduleProposal(null)}
+        onSuccess={fetchData}
       />
 
       <ProposalEditDialog

@@ -1,5 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -7,10 +9,13 @@ interface ProposalViewDialogProps {
   proposal: any;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onScheduleAppointment?: (proposal: any) => void;
 }
 
-export const ProposalViewDialog = ({ proposal, open, onOpenChange }: ProposalViewDialogProps) => {
+export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleAppointment }: ProposalViewDialogProps) => {
   if (!proposal) return null;
+  
+  const canSchedule = proposal.status === 'accepted' || proposal.status === 'confirmed';
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -115,6 +120,18 @@ export const ProposalViewDialog = ({ proposal, open, onOpenChange }: ProposalVie
           {proposal.sent_at && (
             <div className="text-sm text-muted-foreground">
               Enviada em: {format(new Date(proposal.sent_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            </div>
+          )}
+
+          {canSchedule && onScheduleAppointment && (
+            <div className="pt-4 border-t">
+              <Button 
+                onClick={() => onScheduleAppointment(proposal)} 
+                className="w-full gap-2"
+              >
+                <Calendar className="w-4 h-4" />
+                Agendar Atendimento
+              </Button>
             </div>
           )}
         </div>
