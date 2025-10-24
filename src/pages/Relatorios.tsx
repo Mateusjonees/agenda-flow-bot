@@ -165,13 +165,18 @@ const Relatorios = () => {
         const analysis: TimeSlotAnalysis[] = [];
         slotMap.forEach((value, key) => {
           const [dayOfWeek, hourStr] = key.split("-");
-          analysis.push({
-            day_of_week: dayOfWeek,
-            hour: parseInt(hourStr),
-            appointment_count: value.count,
-            revenue: value.revenue,
-            conversion_rate: value.count > 0 ? (value.revenue / value.count) : 0
-          });
+          const hour = parseInt(hourStr);
+          
+          // Validar se o hour é um número válido
+          if (!isNaN(hour) && hour >= 0 && hour <= 23) {
+            analysis.push({
+              day_of_week: dayOfWeek,
+              hour: hour,
+              appointment_count: value.count,
+              revenue: value.revenue,
+              conversion_rate: value.count > 0 ? (value.revenue / value.count) : 0
+            });
+          }
         });
 
         setTimeSlotAnalysis(
@@ -745,7 +750,7 @@ const Relatorios = () => {
                           </div>
                           <div>
                             <p className="font-medium capitalize">
-                              {slot.day_of_week} às {slot.hour}:00
+                              {slot.day_of_week} às {String(slot.hour).padStart(2, '0')}:00
                             </p>
                             <p className="text-sm text-muted-foreground">
                               {slot.appointment_count} agendamentos • {formatCurrency(slot.revenue)}
@@ -759,28 +764,30 @@ const Relatorios = () => {
                     ))}
                   </div>
 
-                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <Target className="w-5 h-5 text-primary" />
-                      Sugestão Automática
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      Seus horários de maior movimento são{" "}
-                      <strong className="text-foreground capitalize">
-                        {timeSlotAnalysis[0].day_of_week} às {timeSlotAnalysis[0].hour}:00
-                      </strong>{" "}
-                      e{" "}
-                      <strong className="text-foreground capitalize">
-                        {timeSlotAnalysis[1]?.day_of_week} às {timeSlotAnalysis[1]?.hour}:00
-                      </strong>
-                      . Considere:
-                    </p>
-                    <ul className="mt-2 space-y-1 text-sm text-muted-foreground list-disc list-inside">
-                      <li>Aumentar disponibilidade nesses horários</li>
-                      <li>Oferecer promoções em horários menos movimentados</li>
-                      <li>Alocar funcionários extras nos picos</li>
-                    </ul>
-                  </div>
+                  {timeSlotAnalysis.length >= 2 && (
+                    <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                      <h4 className="font-semibold mb-2 flex items-center gap-2">
+                        <Target className="w-5 h-5 text-primary" />
+                        Sugestão Automática
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Seus horários de maior movimento são{" "}
+                        <strong className="text-foreground capitalize">
+                          {timeSlotAnalysis[0].day_of_week} às {String(timeSlotAnalysis[0].hour).padStart(2, '0')}:00
+                        </strong>{" "}
+                        e{" "}
+                         <strong className="text-foreground capitalize">
+                          {timeSlotAnalysis[1]?.day_of_week} às {String(timeSlotAnalysis[1]?.hour).padStart(2, '0')}:00
+                         </strong>
+                        . Considere:
+                      </p>
+                      <ul className="mt-2 space-y-1 text-sm text-muted-foreground list-disc list-inside">
+                        <li>Aumentar disponibilidade nesses horários</li>
+                        <li>Oferecer promoções em horários menos movimentados</li>
+                        <li>Alocar funcionários extras nos picos</li>
+                      </ul>
+                    </div>
+                  )}
                 </>
               )}
             </CardContent>
