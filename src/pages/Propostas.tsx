@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Trash2, Filter, CheckCircle, XCircle, Calendar as CalendarIcon, User, DollarSign, Sparkles } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Trash2, Filter, CheckCircle, XCircle, Calendar as CalendarIcon, User, DollarSign, Sparkles, Search } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -67,10 +68,10 @@ const Propostas = () => {
   const [lastEmailSent, setLastEmailSent] = useState<{ [key: string]: number }>({});
   const { toast } = useToast();
 
-  // Filtros
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  // Filtros e tabs
+  const [activeTab, setActiveTab] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [filterCustomer, setFilterCustomer] = useState<string>("all");
-  const [filterOpen, setFilterOpen] = useState(false);
 
   const [newProposal, setNewProposal] = useState({
     customer_id: "",
@@ -90,16 +91,27 @@ const Propostas = () => {
     // Aplicar filtros
     let filtered = [...proposals];
 
-    if (filterStatus !== "all") {
-      filtered = filtered.filter(p => p.status === filterStatus);
+    // Filtro por tab (status)
+    if (activeTab !== "all") {
+      filtered = filtered.filter(p => p.status === activeTab);
     }
 
+    // Filtro por cliente
     if (filterCustomer !== "all") {
       filtered = filtered.filter(p => p.customer_id === filterCustomer);
     }
 
+    // Filtro por busca (título ou nome do cliente)
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(p => 
+        p.title.toLowerCase().includes(term) || 
+        p.customers.name.toLowerCase().includes(term)
+      );
+    }
+
     setFilteredProposals(filtered);
-  }, [proposals, filterStatus, filterCustomer]);
+  }, [proposals, activeTab, filterCustomer, searchTerm]);
 
   const fetchData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -238,7 +250,6 @@ const Propostas = () => {
     }
   };
 
-
   const handleCancelProposal = async (proposalId: string) => {
     const { error } = await supabase
       .from("proposals")
@@ -304,6 +315,17 @@ const Propostas = () => {
     }
   };
 
+  // Estatísticas por status
+  const stats = {
+    all: proposals.length,
+    pending: proposals.filter(p => p.status === "pending").length,
+    sent: proposals.filter(p => p.status === "sent").length,
+    accepted: proposals.filter(p => p.status === "accepted").length,
+    confirmed: proposals.filter(p => p.status === "confirmed").length,
+    canceled: proposals.filter(p => p.status === "canceled").length,
+    expired: proposals.filter(p => p.status === "expired").length,
+  };
+
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
       pending: { label: "Pendente", variant: "secondary" },
@@ -328,7 +350,7 @@ const Propostas = () => {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
       {/* Header Premium */}
       <div className="relative rounded-3xl overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10" />
@@ -347,342 +369,455 @@ const Propostas = () => {
             </div>
           </div>
           
-          <div className="flex gap-3">
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-xl hover:scale-105 transition-all">
-                  <Plus className="w-4 h-4" />
-                  Novo Orçamento
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Criar Novo Orçamento</DialogTitle>
-              <DialogDescription>
-                Preencha os detalhes do orçamento para o cliente
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Cliente *</Label>
-                <Select
-                  value={newProposal.customer_id}
-                  onValueChange={(value) => setNewProposal({ ...newProposal, customer_id: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Título do Orçamento *</Label>
-                <Input
-                  value={newProposal.title}
-                  onChange={(e) => setNewProposal({ ...newProposal, title: e.target.value })}
-                  placeholder="Ex: Reforma de Banheiro"
-                />
-              </div>
-
-              <div>
-                <Label>Descrição</Label>
-                <Textarea
-                  value={newProposal.description}
-                  onChange={(e) => setNewProposal({ ...newProposal, description: e.target.value })}
-                  placeholder="Detalhes adicionais do orçamento..."
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Serviços *</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addService}>
-                    <Plus className="w-4 h-4 mr-1" />
-                    Adicionar
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {newProposal.services.map((service, idx) => (
-                    <div key={idx} className="flex gap-2 items-end">
-                      <div className="flex-1">
-                        <Input
-                          placeholder="Descrição do serviço"
-                          value={service.description}
-                          onChange={(e) => updateService(idx, "description", e.target.value)}
-                        />
-                      </div>
-                      <div className="w-24">
-                        <Input
-                          type="number"
-                          placeholder="Qtd"
-                          min="1"
-                          value={service.quantity}
-                          onChange={(e) => updateService(idx, "quantity", parseInt(e.target.value) || 1)}
-                        />
-                      </div>
-                      <div className="w-32">
-                        <Input
-                          type="number"
-                          placeholder="Preço unit."
-                          min="0"
-                          step="0.01"
-                          value={service.unit_price}
-                          onChange={(e) => updateService(idx, "unit_price", parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                      {newProposal.services.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeService(idx)}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label>Desconto (%)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={newProposal.discount_percentage}
-                    onChange={(e) => setNewProposal({ ...newProposal, discount_percentage: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-                <div>
-                  <Label>Sinal (%)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={newProposal.deposit_percentage}
-                    onChange={(e) => setNewProposal({ ...newProposal, deposit_percentage: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-                <div>
-                  <Label>Validade (dias)</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={newProposal.valid_days}
-                    onChange={(e) => setNewProposal({ ...newProposal, valid_days: parseInt(e.target.value) || 7 })}
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 bg-muted rounded-lg">
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Valor Total:</span>
-                  <span className="text-primary">{formatCurrency(calculateTotal())}</span>
-                </div>
-                {newProposal.deposit_percentage > 0 && (
-                  <div className="flex justify-between text-sm text-muted-foreground mt-1">
-                    <span>Sinal ({newProposal.deposit_percentage}%):</span>
-                    <span>{formatCurrency((calculateTotal() * newProposal.deposit_percentage) / 100)}</span>
-                  </div>
-                )}
-              </div>
-
-              <Button onClick={handleCreateProposal} className="w-full">
-                Criar Orçamento
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-xl hover:scale-105 transition-all">
+                <Plus className="w-4 h-4" />
+                Novo Orçamento
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-          </div>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Criar Novo Orçamento</DialogTitle>
+                <DialogDescription>
+                  Preencha os detalhes do orçamento para o cliente
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Cliente *</Label>
+                  <Select
+                    value={newProposal.customer_id}
+                    onValueChange={(value) => setNewProposal({ ...newProposal, customer_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Título do Orçamento *</Label>
+                  <Input
+                    value={newProposal.title}
+                    onChange={(e) => setNewProposal({ ...newProposal, title: e.target.value })}
+                    placeholder="Ex: Reforma de Banheiro"
+                  />
+                </div>
+
+                <div>
+                  <Label>Descrição</Label>
+                  <Textarea
+                    value={newProposal.description}
+                    onChange={(e) => setNewProposal({ ...newProposal, description: e.target.value })}
+                    placeholder="Detalhes adicionais do orçamento..."
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Serviços *</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addService}>
+                      <Plus className="w-4 h-4 mr-1" />
+                      Adicionar
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {newProposal.services.map((service, idx) => (
+                      <div key={idx} className="flex gap-2 items-end">
+                        <div className="flex-1">
+                          <Input
+                            placeholder="Descrição do serviço"
+                            value={service.description}
+                            onChange={(e) => updateService(idx, "description", e.target.value)}
+                          />
+                        </div>
+                        <div className="w-24">
+                          <Input
+                            type="number"
+                            placeholder="Qtd"
+                            min="1"
+                            value={service.quantity}
+                            onChange={(e) => updateService(idx, "quantity", parseInt(e.target.value) || 1)}
+                          />
+                        </div>
+                        <div className="w-32">
+                          <Input
+                            type="number"
+                            placeholder="Preço unit."
+                            min="0"
+                            step="0.01"
+                            value={service.unit_price}
+                            onChange={(e) => updateService(idx, "unit_price", parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                        {newProposal.services.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeService(idx)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Desconto (%)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={newProposal.discount_percentage}
+                      onChange={(e) => setNewProposal({ ...newProposal, discount_percentage: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Sinal (%)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={newProposal.deposit_percentage}
+                      onChange={(e) => setNewProposal({ ...newProposal, deposit_percentage: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Validade (dias)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={newProposal.valid_days}
+                      onChange={(e) => setNewProposal({ ...newProposal, valid_days: parseInt(e.target.value) || 7 })}
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 bg-muted rounded-lg">
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Valor Total:</span>
+                    <span className="text-primary">{formatCurrency(calculateTotal())}</span>
+                  </div>
+                  {newProposal.deposit_percentage > 0 && (
+                    <div className="flex justify-between text-sm text-muted-foreground mt-1">
+                      <span>Sinal ({newProposal.deposit_percentage}%):</span>
+                      <span>{formatCurrency((calculateTotal() * newProposal.deposit_percentage) / 100)}</span>
+                    </div>
+                  )}
+                </div>
+
+                <Button onClick={handleCreateProposal} className="w-full">
+                  Criar Orçamento
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-accent rounded-full animate-spin" 
-                 style={{ animationDelay: '150ms' }} />
-          </div>
-          <p className="text-lg font-medium text-muted-foreground animate-pulse">Carregando...</p>
-        </div>
-      ) : filteredProposals.length === 0 ? (
-        <Card className="border-0 shadow-lg">
-          <CardContent className="pt-12 pb-12 text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted mb-4">
-              <FileText className="w-10 h-10 text-muted-foreground" />
+      {/* Barra de Filtros */}
+      <Card className="border-0 shadow-lg">
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por título ou cliente..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-            <p className="text-lg font-medium text-muted-foreground">Nenhum orçamento encontrado</p>
-            <p className="text-sm text-muted-foreground mt-2">Crie seu primeiro orçamento para começar</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredProposals.map((proposal, index) => (
-            <Card 
-              key={proposal.id}
-              className="group relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer animate-fade-in"
-              style={{ animationDelay: `${index * 50}ms` }}
-              onClick={() => setViewProposal(proposal)}
-            >
-              {/* Gradient animado de fundo */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              
-              {/* Barra de status superior */}
-              <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${
-                proposal.status === "confirmed" ? "from-accent to-green-500" :
-                proposal.status === "canceled" ? "from-destructive to-red-600" :
-                proposal.status === "accepted" ? "from-blue-500 to-purple-500" :
-                "from-yellow-500 to-orange-500"
-              }`} />
-              
-              <CardHeader className="space-y-4 pt-6">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-xl bg-gradient-to-br from-primary to-accent shadow-md group-hover:scale-110 transition-transform">
-                        <FileText className="w-5 h-5 text-white" />
-                      </div>
-                      <h3 className="font-bold text-xl line-clamp-1 group-hover:text-primary transition-colors">
-                        {proposal.title}
-                      </h3>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <User className="w-4 h-4" />
-                      <span className="font-medium">{proposal.customers.name}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col items-end gap-2">
-                    {getStatusBadge(proposal.status)}
-                  </div>
+            <Select value={filterCustomer} onValueChange={setFilterCustomer}>
+              <SelectTrigger className="w-full md:w-[250px]">
+                <SelectValue placeholder="Todos os Clientes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Clientes</SelectItem>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabs por Status */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-7 h-auto p-1 gap-1">
+          <TabsTrigger value="all" className="flex flex-col gap-1 py-3">
+            <span className="text-sm font-semibold">Todos</span>
+            <Badge variant="outline" className="text-xs">{stats.all}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="pending" className="flex flex-col gap-1 py-3">
+            <span className="text-sm font-semibold">Pendente</span>
+            <Badge variant="outline" className="text-xs">{stats.pending}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="sent" className="flex flex-col gap-1 py-3">
+            <span className="text-sm font-semibold">Enviada</span>
+            <Badge variant="outline" className="text-xs">{stats.sent}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="accepted" className="flex flex-col gap-1 py-3">
+            <span className="text-sm font-semibold">Aceita</span>
+            <Badge variant="outline" className="text-xs">{stats.accepted}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="confirmed" className="flex flex-col gap-1 py-3">
+            <span className="text-sm font-semibold">Confirmada</span>
+            <Badge variant="outline" className="text-xs">{stats.confirmed}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="canceled" className="flex flex-col gap-1 py-3">
+            <span className="text-sm font-semibold">Cancelada</span>
+            <Badge variant="outline" className="text-xs">{stats.canceled}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="expired" className="flex flex-col gap-1 py-3">
+            <span className="text-sm font-semibold">Expirada</span>
+            <Badge variant="outline" className="text-xs">{stats.expired}</Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Conteúdo das Tabs */}
+        {["all", "pending", "sent", "accepted", "confirmed", "canceled", "expired"].map((tab) => (
+          <TabsContent key={tab} value={tab} className="space-y-6">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+                <div className="relative">
+                  <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                  <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-accent rounded-full animate-spin" 
+                       style={{ animationDelay: '150ms' }} />
                 </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                {/* Valor com destaque */}
-                <div className="relative p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 group-hover:from-primary/20 group-hover:to-accent/20 transition-colors">
-                  <p className="text-sm text-muted-foreground mb-1">Valor Total</p>
-                  <p className="text-3xl font-extrabold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                    {formatCurrency(proposal.final_amount)}
+                <p className="text-lg font-medium text-muted-foreground animate-pulse">Carregando...</p>
+              </div>
+            ) : filteredProposals.length === 0 ? (
+              <Card className="border-0 shadow-lg">
+                <CardContent className="pt-12 pb-12 text-center">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted mb-4">
+                    <FileText className="w-10 h-10 text-muted-foreground" />
+                  </div>
+                  <p className="text-lg font-medium text-muted-foreground">Nenhum orçamento encontrado</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {searchTerm || filterCustomer !== "all" 
+                      ? "Tente ajustar os filtros para encontrar o que procura" 
+                      : "Crie seu primeiro orçamento para começar"
+                    }
                   </p>
-                  {proposal.deposit_amount && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Entrada: {formatCurrency(proposal.deposit_amount)}
-                    </p>
-                  )}
-                </div>
-                
-                {/* Informações adicionais */}
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                    <span className="text-muted-foreground flex items-center gap-2">
-                      <CalendarIcon className="w-4 h-4" />
-                      Validade
-                    </span>
-                    <span className="font-medium">
-                      {format(new Date(proposal.valid_until), "dd/MM/yyyy")}
-                    </span>
-                  </div>
-                  
-                  {proposal.sent_at && (
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                      <span className="text-muted-foreground flex items-center gap-2">
-                        <Send className="w-4 h-4" />
-                        Enviada
-                      </span>
-                      <span className="font-medium">
-                        {format(new Date(proposal.sent_at), "dd/MM/yyyy")}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Botões de ação */}
-                <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                  {(proposal.status === "pending" || proposal.status === "sent") && (
-                    <>
-                      <Button 
-                        size="sm" 
-                        className="flex-1 gap-2 bg-gradient-to-r from-accent to-green-500 hover:shadow-lg transition-all"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setConfirmProposal(proposal);
-                        }}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {filteredProposals.map((proposal, index) => (
+                  <Card 
+                    key={proposal.id}
+                    className="group relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 animate-fade-in"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    {/* Gradient animado de fundo */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    
+                    {/* Barra de status superior */}
+                    <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${
+                      proposal.status === "confirmed" ? "from-accent to-green-500" :
+                      proposal.status === "canceled" ? "from-destructive to-red-600" :
+                      proposal.status === "accepted" ? "from-blue-500 to-purple-500" :
+                      "from-yellow-500 to-orange-500"
+                    }`} />
+                    
+                    <CardHeader className="space-y-4 pt-6">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="p-2 rounded-xl bg-gradient-to-br from-primary to-accent shadow-md group-hover:scale-110 transition-transform">
+                              <FileText className="w-5 h-5 text-white" />
+                            </div>
+                            <h3 className="font-bold text-xl line-clamp-1 group-hover:text-primary transition-colors">
+                              {proposal.title}
+                            </h3>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <User className="w-4 h-4" />
+                            <span className="font-medium">{proposal.customers.name}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-end gap-2">
+                          {getStatusBadge(proposal.status)}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-4">
+                      {/* Valor com destaque */}
+                      <div 
+                        className="relative p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 group-hover:from-primary/20 group-hover:to-accent/20 transition-colors cursor-pointer"
+                        onClick={() => setViewProposal(proposal)}
                       >
-                        <CheckCircle className="w-4 h-4" />
-                        Confirmar
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="flex-1 gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCancelProposal(proposal.id);
-                        }}
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Cancelar
-                      </Button>
-                    </>
-                  )}
-                  
-                  {(proposal.status === "accepted" || proposal.status === "confirmed") && !proposal.appointment_id && (
-                    <Button 
-                      size="sm" 
-                      className="w-full gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-lg transition-all"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setScheduleProposal(proposal);
-                      }}
-                    >
-                      <CalendarIcon className="w-4 h-4" />
-                      Agendar Atendimento
-                    </Button>
-                  )}
-                  
-                  {proposal.status === "confirmed" && proposal.appointment_id && (
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      className="w-full gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary transition-all"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate("/agendamentos");
-                      }}
-                    >
-                      <CalendarIcon className="w-4 h-4" />
-                      Ver Agendamento
-                    </Button>
-                  )}
-                  
-                  {proposal.status === "canceled" && (
-                    <div className="w-full text-center text-sm text-muted-foreground py-2">
-                      Orçamento cancelado
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-              
-              {/* Indicador de hover inferior */}
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
-            </Card>
-          ))}
-        </div>
-      )}
+                        <p className="text-sm text-muted-foreground mb-1">Valor Total</p>
+                        <p className="text-3xl font-extrabold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                          {formatCurrency(proposal.final_amount)}
+                        </p>
+                        {proposal.deposit_amount && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Entrada: {formatCurrency(proposal.deposit_amount)}
+                          </p>
+                        )}
+                      </div>
+                      
+                      {/* Informações adicionais */}
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                          <span className="text-muted-foreground flex items-center gap-2">
+                            <CalendarIcon className="w-4 h-4" />
+                            Validade
+                          </span>
+                          <span className="font-medium">
+                            {format(new Date(proposal.valid_until), "dd/MM/yyyy")}
+                          </span>
+                        </div>
+                        
+                        {proposal.sent_at && (
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                            <span className="text-muted-foreground flex items-center gap-2">
+                              <Send className="w-4 h-4" />
+                              Enviada
+                            </span>
+                            <span className="font-medium">
+                              {format(new Date(proposal.sent_at), "dd/MM/yyyy")}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Botões de ação principais */}
+                      <div className="flex gap-2 pt-2">
+                        {(proposal.status === "pending" || proposal.status === "sent") && (
+                          <>
+                            <Button 
+                              size="sm" 
+                              className="flex-1 gap-2 bg-gradient-to-r from-accent to-green-500 hover:shadow-lg transition-all"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmProposal(proposal);
+                              }}
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              Confirmar
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="flex-1 gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCancelProposal(proposal.id);
+                              }}
+                            >
+                              <XCircle className="w-4 h-4" />
+                              Cancelar
+                            </Button>
+                          </>
+                        )}
+                        
+                        {(proposal.status === "accepted" || proposal.status === "confirmed") && !proposal.appointment_id && (
+                          <Button 
+                            size="sm" 
+                            className="w-full gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-lg transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setScheduleProposal(proposal);
+                            }}
+                          >
+                            <CalendarIcon className="w-4 h-4" />
+                            Agendar Atendimento
+                          </Button>
+                        )}
+                        
+                        {proposal.status === "confirmed" && proposal.appointment_id && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="w-full gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate("/agendamentos");
+                            }}
+                          >
+                            <CalendarIcon className="w-4 h-4" />
+                            Ver Agendamento
+                          </Button>
+                        )}
+                        
+                        {proposal.status === "canceled" && (
+                          <div className="w-full text-center text-sm text-muted-foreground py-2">
+                            Orçamento cancelado
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Botões de ações secundárias */}
+                      <div className="flex gap-2 pt-2 border-t">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="flex-1 gap-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewProposal(proposal);
+                          }}
+                        >
+                          <Eye className="w-4 h-4" />
+                          Visualizar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="flex-1 gap-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditProposal(proposal);
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                          Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteProposalId(proposal.id);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                    
+                    {/* Indicador de hover inferior */}
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        ))}
+      </Tabs>
 
       <ProposalViewDialog
         proposal={viewProposal}
