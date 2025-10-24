@@ -7,13 +7,14 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 
 const Configuracoes = () => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [stampsRequired, setStampsRequired] = useState(5);
 
   // Buscar dados do usuário e configurações
   const { data: user } = useQuery({
@@ -37,6 +38,29 @@ const Configuracoes = () => {
     },
     enabled: !!user,
   });
+
+  // Buscar configurações do cartão fidelidade
+  const { data: loyaltySettings } = useQuery({
+    queryKey: ["loyalty-settings", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("loyalty_cards")
+        .select("stamps_required")
+        .eq("user_id", user.id)
+        .limit(1)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Atualizar estado quando os dados forem carregados
+  useEffect(() => {
+    if (loyaltySettings?.stamps_required) {
+      setStampsRequired(loyaltySettings.stamps_required);
+    }
+  }, [loyaltySettings]);
 
   // Mutation para fazer upload da imagem
   const uploadImageMutation = useMutation({
@@ -84,6 +108,30 @@ const Configuracoes = () => {
     },
   });
 
+  // Mutation para salvar configurações do cartão fidelidade
+  const saveSettingsMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("Usuário não autenticado");
+
+      // Atualizar todas as loyalty cards do usuário
+      const { error } = await supabase
+        .from("loyalty_cards")
+        .update({ stamps_required: stampsRequired })
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Configurações salvas com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["loyalty-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["loyalty-cards"] });
+    },
+    onError: (error) => {
+      console.error("Erro ao salvar:", error);
+      toast.error("Erro ao salvar configurações");
+    },
+  });
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -106,6 +154,10 @@ const Configuracoes = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleSaveSettings = () => {
+    saveSettingsMutation.mutate();
   };
 
   return (
@@ -302,7 +354,8 @@ const Configuracoes = () => {
             <Input 
               id="stamps-required" 
               type="number" 
-              defaultValue="5"
+              value={stampsRequired}
+              onChange={(e) => setStampsRequired(Number(e.target.value))}
               min="2"
               max="20"
             />
@@ -327,9 +380,13 @@ const Configuracoes = () => {
       </Card>
 
       <div className="flex justify-end">
-        <Button className="gap-2">
+        <Button 
+          className="gap-2"
+          onClick={handleSaveSettings}
+          disabled={saveSettingsMutation.isPending}
+        >
           <Save className="w-4 h-4" />
-          Salvar Configurações
+          {saveSettingsMutation.isPending ? "Salvando..." : "Salvar Configurações"}
         </Button>
       </div>
     </div>
