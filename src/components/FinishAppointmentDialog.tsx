@@ -198,10 +198,10 @@ export function FinishAppointmentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>Finalizar Atendimento</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-lg sm:text-xl">Finalizar Atendimento</DialogTitle>
+          <DialogDescription className="text-sm">
             Registre os itens do estoque utilizados e finalize o atendimento
           </DialogDescription>
         </DialogHeader>
@@ -212,11 +212,11 @@ export function FinishAppointmentDialog({
           </div>
 
           {/* Campo opcional de valor */}
-          <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
+          <div className="space-y-3 sm:space-y-4 border rounded-lg p-3 sm:p-4 bg-muted/30">
             <h4 className="text-sm font-semibold">Valor do Atendimento (Opcional)</h4>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Valor (R$)</Label>
+                <Label className="text-sm">Valor (R$)</Label>
                 <Input
                   type="number"
                   min="0"
@@ -224,12 +224,13 @@ export function FinishAppointmentDialog({
                   placeholder="0,00"
                   value={appointmentValue}
                   onChange={(e) => setAppointmentValue(e.target.value)}
+                  className="h-11"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Forma de Pagamento</Label>
+                <Label className="text-sm">Forma de Pagamento</Label>
                 <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -247,14 +248,14 @@ export function FinishAppointmentDialog({
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label>Itens Utilizados</Label>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <Label className="text-sm">Itens Utilizados</Label>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={addStockUsage}
-                className="gap-2"
+                className="gap-2 h-10 w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
                 Adicionar Item
@@ -315,20 +316,24 @@ export function FinishAppointmentDialog({
           </div>
         </div>
 
-        <div className="flex gap-3 justify-end">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end pt-2">
           <Button
             type="button"
             variant="outline"
             onClick={() => {
               onOpenChange(false);
               setStockUsages([]);
+              setAppointmentValue("");
+              setPaymentMethod("dinheiro");
             }}
+            className="h-11 w-full sm:w-auto"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleFinish}
             disabled={finishAppointment.isPending}
+            className="h-11 w-full sm:w-auto"
           >
             {finishAppointment.isPending ? "Finalizando..." : "Finalizar Atendimento"}
           </Button>

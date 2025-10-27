@@ -181,22 +181,22 @@ const Layout = ({ children }: LayoutProps) => {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
           <header className="sticky top-0 z-40 w-full border-b bg-background">
-            <div className="flex h-16 items-center gap-4 px-6">
-              <SidebarTrigger className="-ml-2" />
+            <div className="flex h-14 sm:h-16 items-center gap-2 sm:gap-4 px-3 sm:px-6">
+              <SidebarTrigger className="-ml-1 sm:-ml-2" />
               
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <img src={logo} alt="SmartAgenda" className="w-9 h-9" />
+              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                <img src={logo} alt="SmartAgenda" className="w-7 h-7 sm:w-9 sm:h-9" />
                 <div className="hidden sm:block">
-                  <h1 className="text-lg font-bold leading-none">SmartAgenda</h1>
+                  <h1 className="text-base sm:text-lg font-bold leading-none">SmartAgenda</h1>
                   <p className="text-xs text-muted-foreground">Gestão de Atendimentos</p>
                 </div>
               </div>
 
-              <div className="flex-1 max-w-md mx-4">
+              <div className="hidden md:flex flex-1 max-w-md mx-4">
                 <SearchBar />
               </div>
 
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="flex items-center gap-1 sm:gap-2 ml-auto">
                 <ThemeToggle />
                 
                 <DropdownMenu open={notificationsOpen} onOpenChange={setNotificationsOpen}>
@@ -328,7 +328,7 @@ const Layout = ({ children }: LayoutProps) => {
 
           {/* Main Content */}
           <main className="flex-1 overflow-auto">
-            <div className="p-6">
+            <div className="p-3 sm:p-4 md:p-6">
               {children}
             </div>
           </main>

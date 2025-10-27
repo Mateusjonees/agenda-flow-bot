@@ -94,10 +94,10 @@ export const ScheduleAppointmentDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>Agendar Atendimento</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-lg sm:text-xl">Agendar Atendimento</DialogTitle>
+          <DialogDescription className="text-sm">
             Agendar atendimento para o orçamento: {proposal.title}
           </DialogDescription>
         </DialogHeader>
@@ -109,46 +109,46 @@ export const ScheduleAppointmentDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="date">Data *</Label>
+            <Label htmlFor="date" className="text-sm">Data *</Label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 id="date"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="pl-10"
+                className="pl-10 h-11"
                 required
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="start_time">Início *</Label>
+              <Label htmlFor="start_time" className="text-sm">Início *</Label>
               <div className="relative">
-                <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   id="start_time"
                   type="time"
                   value={formData.start_time}
                   onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                  className="pl-10"
+                  className="pl-10 h-11"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="end_time">Término *</Label>
+              <Label htmlFor="end_time" className="text-sm">Término *</Label>
               <div className="relative">
-                <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   id="end_time"
                   type="time"
                   value={formData.end_time}
                   onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                  className="pl-10"
+                  className="pl-10 h-11"
                   required
                 />
               </div>
@@ -166,17 +166,17 @@ export const ScheduleAppointmentDialog = ({
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="flex-1"
+              className="flex-1 h-11"
               disabled={loading}
             >
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1" disabled={loading}>
+            <Button type="submit" className="flex-1 h-11" disabled={loading}>
               {loading ? "Agendando..." : "Agendar"}
             </Button>
           </div>
