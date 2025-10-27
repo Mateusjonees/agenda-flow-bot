@@ -711,11 +711,13 @@ const Propostas = () => {
                         {(proposal.status === "pending" || proposal.status === "sent") && (
                           <>
                             <Button 
+                              type="button"
                               size="sm" 
                               className="flex-1 gap-2 bg-gradient-to-r from-accent to-green-500 hover:shadow-lg transition-all"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
+                                console.log("Confirmar clicado", proposal.id);
                                 setConfirmProposal(proposal);
                               }}
                             >
@@ -723,13 +725,15 @@ const Propostas = () => {
                               Confirmar
                             </Button>
                             <Button 
+                              type="button"
                               size="sm" 
                               variant="outline" 
                               className="flex-1 gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all"
-                              onClick={async (e) => {
+                              onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
-                                await handleCancelProposal(proposal.id);
+                                console.log("Cancelar clicado", proposal.id);
+                                handleCancelProposal(proposal.id);
                               }}
                             >
                               <XCircle className="w-4 h-4" />
@@ -740,11 +744,13 @@ const Propostas = () => {
                         
                         {(proposal.status === "accepted" || proposal.status === "confirmed") && !proposal.appointment_id && (
                           <Button 
+                            type="button"
                             size="sm" 
                             className="w-full gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-lg transition-all"
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
+                              console.log("Agendar clicado", proposal.id);
                               setScheduleProposal(proposal);
                             }}
                           >
@@ -755,12 +761,14 @@ const Propostas = () => {
                         
                         {proposal.status === "confirmed" && proposal.appointment_id && (
                           <Button 
+                            type="button"
                             size="sm" 
                             variant="outline"
                             className="w-full gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary transition-all"
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
+                              console.log("Ver Agendamento clicado", proposal.id);
                               navigate("/agendamentos");
                             }}
                           >
@@ -779,12 +787,14 @@ const Propostas = () => {
                       {/* Botões de ações secundárias */}
                       <div className="flex gap-2 pt-2 border-t">
                         <Button
+                          type="button"
                           size="sm"
                           variant="ghost"
                           className="flex-1 gap-2"
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
+                            console.log("Visualizar clicado", proposal.id);
                             setViewProposal(proposal);
                           }}
                         >
@@ -792,12 +802,14 @@ const Propostas = () => {
                           Visualizar
                         </Button>
                         <Button
+                          type="button"
                           size="sm"
                           variant="ghost"
                           className="flex-1 gap-2"
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
+                            console.log("Editar clicado", proposal.id);
                             setEditProposal(proposal);
                           }}
                         >
@@ -805,12 +817,14 @@ const Propostas = () => {
                           Editar
                         </Button>
                         <Button
+                          type="button"
                           size="sm"
                           variant="ghost"
                           className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
+                            console.log("Excluir clicado", proposal.id);
                             setDeleteProposalId(proposal.id);
                           }}
                         >
