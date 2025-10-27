@@ -19,6 +19,7 @@ interface Customer {
   name: string;
   phone: string;
   email: string | null;
+  cpf: string | null;
   notes: string | null;
   created_at: string;
 }
@@ -67,11 +68,17 @@ const Clientes = () => {
       return;
     }
 
-    const filtered = customers.filter(customer =>
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone.includes(searchTerm) ||
-      (customer.email?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-    );
+    const filtered = customers.filter(customer => {
+      const searchLower = searchTerm.toLowerCase();
+      const cpfClean = searchTerm.replace(/\D/g, ''); // Remove pontuação para busca
+      
+      return (
+        customer.name.toLowerCase().includes(searchLower) ||
+        customer.phone.includes(searchTerm) ||
+        (customer.email?.toLowerCase() || "").includes(searchLower) ||
+        (customer.cpf?.replace(/\D/g, '') || "").includes(cpfClean)
+      );
+    });
 
     setFilteredCustomers(filtered);
   }, [customers, searchTerm]);
@@ -241,16 +248,16 @@ const Clientes = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Clientes</h1>
-          <p className="text-muted-foreground">Gerencie sua base de clientes, fidelidade e cupons</p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">Clientes</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Gerencie sua base de clientes, fidelidade e cupons</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button className="gap-2 w-full sm:w-auto flex-shrink-0">
               <Plus className="w-4 h-4" />
-              Novo Cliente
+              <span>Novo Cliente</span>
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -328,14 +335,24 @@ const Clientes = () => {
 
       {/* Barra de pesquisa */}
       <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por nome, telefone ou email..."
+          placeholder="Buscar por título ou cliente..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
+          className="pl-10 h-10 sm:h-11 text-sm sm:text-base"
         />
       </div>
+
+      {/* Filtro adicional - Select de todos os clientes */}
+      <Select value="all">
+        <SelectTrigger className="w-full h-10 sm:h-11 text-sm sm:text-base">
+          <SelectValue placeholder="Todos os Clientes" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todos os Clientes</SelectItem>
+        </SelectContent>
+      </Select>
 
       {loading ? (
         <Card>
@@ -355,7 +372,7 @@ const Clientes = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredCustomers.map((customer) => (
             <Card 
               key={customer.id} 
@@ -365,25 +382,25 @@ const Clientes = () => {
                 setDetailsOpen(true);
               }}
             >
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <User className="w-5 h-5 text-primary" />
-                  {customer.name}
+              <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+                  <span className="truncate">{customer.name}</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Phone className="w-4 h-4" />
-                  {customer.phone}
+              <CardContent className="space-y-1.5 sm:space-y-2 p-3 sm:p-4 pt-0">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                  <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">{customer.phone}</span>
                 </div>
                 {customer.email && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail className="w-4 h-4" />
-                    {customer.email}
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                    <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                    <span className="truncate">{customer.email}</span>
                   </div>
                 )}
                 {customer.notes && (
-                  <p className="text-sm text-muted-foreground line-clamp-2 mt-3">
+                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-2 sm:mt-3">
                     {customer.notes}
                   </p>
                 )}
@@ -395,34 +412,34 @@ const Clientes = () => {
 
       {/* Dialog de detalhes do cliente */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           {selectedCustomer && (
             <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <User className="w-6 h-6 text-primary" />
-                  {selectedCustomer.name}
+              <DialogHeader className="space-y-2">
+                <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <User className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
+                  <span className="truncate">{selectedCustomer.name}</span>
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-xs sm:text-sm">
                   Informações completas do cliente
                 </DialogDescription>
               </DialogHeader>
 
-              <Tabs defaultValue="info" className="mt-4">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="info">Informações</TabsTrigger>
-                  <TabsTrigger value="history">Histórico</TabsTrigger>
-                  <TabsTrigger value="loyalty">Fidelidade</TabsTrigger>
-                  <TabsTrigger value="coupons">Cupons</TabsTrigger>
+              <Tabs defaultValue="info" className="mt-3 sm:mt-4">
+                <TabsList className="grid w-full grid-cols-4 h-auto">
+                  <TabsTrigger value="info" className="text-xs sm:text-sm py-2">Informações</TabsTrigger>
+                  <TabsTrigger value="history" className="text-xs sm:text-sm py-2">Histórico</TabsTrigger>
+                  <TabsTrigger value="loyalty" className="text-xs sm:text-sm py-2">Fidelidade</TabsTrigger>
+                  <TabsTrigger value="coupons" className="text-xs sm:text-sm py-2">Cupons</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="info" className="space-y-4">
+                <TabsContent value="info" className="space-y-3 sm:space-y-4">
                   {/* Botões de ação rápida */}
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                 <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="flex-1 gap-2">
-                      <ListTodo className="w-4 h-4" />
+                    <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm">
+                      <ListTodo className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       Nova Tarefa
                     </Button>
                   </DialogTrigger>
@@ -497,8 +514,8 @@ const Clientes = () => {
 
                   <Dialog open={appointmentDialogOpen} onOpenChange={setAppointmentDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1 gap-2">
-                        <CalendarPlus className="w-4 h-4" />
+                      <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm">
+                        <CalendarPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         Novo Agendamento
                       </Button>
                     </DialogTrigger>
@@ -569,26 +586,26 @@ const Clientes = () => {
                   </Dialog>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {/* Informações básicas */}
                   <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Informações de Contato</CardTitle>
+                    <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
+                      <CardTitle className="text-sm sm:text-base">Informações de Contato</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-muted-foreground" />
-                        <span>{selectedCustomer.phone}</span>
+                    <CardContent className="space-y-2 p-3 sm:p-4 pt-0">
+                      <div className="flex items-center gap-2 text-xs sm:text-sm">
+                        <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                        <span className="break-all">{selectedCustomer.phone}</span>
                       </div>
                       {selectedCustomer.email && (
-                        <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-muted-foreground" />
-                          <span>{selectedCustomer.email}</span>
+                        <div className="flex items-center gap-2 text-xs sm:text-sm">
+                          <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                          <span className="break-all">{selectedCustomer.email}</span>
                         </div>
                       )}
                       {selectedCustomer.notes && (
                         <div className="pt-2 border-t">
-                          <p className="text-sm text-muted-foreground">{selectedCustomer.notes}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">{selectedCustomer.notes}</p>
                         </div>
                       )}
                     </CardContent>
