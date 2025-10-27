@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -55,7 +55,6 @@ interface Service {
 const Propostas = () => {
   const navigate = useNavigate();
   const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [filteredProposals, setFilteredProposals] = useState<Proposal[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -83,12 +82,8 @@ const Propostas = () => {
     valid_days: 7,
   });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    // Aplicar filtros
+  // Aplicar filtros usando useMemo para melhor performance e resposta imediata
+  const filteredProposals = useMemo(() => {
     let filtered = [...proposals];
 
     // Filtro por tab (status)
@@ -103,15 +98,30 @@ const Propostas = () => {
 
     // Filtro por busca (título ou nome do cliente)
     if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
+      const term = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(p => 
         p.title.toLowerCase().includes(term) || 
         p.customers.name.toLowerCase().includes(term)
       );
     }
 
-    setFilteredProposals(filtered);
+    return filtered;
   }, [proposals, activeTab, filterCustomer, searchTerm]);
+
+  // Estatísticas por status - calculado a partir das propostas filtradas e não filtradas
+  const stats = useMemo(() => ({
+    all: proposals.length,
+    pending: proposals.filter(p => p.status === "pending").length,
+    sent: proposals.filter(p => p.status === "sent").length,
+    accepted: proposals.filter(p => p.status === "accepted").length,
+    confirmed: proposals.filter(p => p.status === "confirmed").length,
+    canceled: proposals.filter(p => p.status === "canceled").length,
+    expired: proposals.filter(p => p.status === "expired").length,
+  }), [proposals]);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const fetchData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -317,17 +327,6 @@ const Propostas = () => {
         services: newProposal.services.filter((_, i) => i !== index),
       });
     }
-  };
-
-  // Estatísticas por status
-  const stats = {
-    all: proposals.length,
-    pending: proposals.filter(p => p.status === "pending").length,
-    sent: proposals.filter(p => p.status === "sent").length,
-    accepted: proposals.filter(p => p.status === "accepted").length,
-    confirmed: proposals.filter(p => p.status === "confirmed").length,
-    canceled: proposals.filter(p => p.status === "canceled").length,
-    expired: proposals.filter(p => p.status === "expired").length,
   };
 
   const getStatusBadge = (status: string) => {
