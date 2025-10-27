@@ -33,6 +33,7 @@ const Clientes = () => {
     name: "",
     phone: "",
     email: "",
+    cpf: "",
     notes: "",
   });
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -101,6 +102,19 @@ const Clientes = () => {
       return;
     }
 
+    // Validar formato do CPF se fornecido
+    if (newCustomer.cpf && newCustomer.cpf.trim()) {
+      const cpfClean = newCustomer.cpf.replace(/\D/g, '');
+      if (cpfClean.length !== 11) {
+        toast({
+          title: "CPF inválido",
+          description: "O CPF deve ter 11 dígitos.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -109,6 +123,7 @@ const Clientes = () => {
       name: newCustomer.name,
       phone: newCustomer.phone,
       email: newCustomer.email || null,
+      cpf: newCustomer.cpf || null,
       notes: newCustomer.notes || null,
     });
 
@@ -124,7 +139,7 @@ const Clientes = () => {
         description: "O cliente foi cadastrado com sucesso.",
       });
       setDialogOpen(false);
-      setNewCustomer({ name: "", phone: "", email: "", notes: "" });
+      setNewCustomer({ name: "", phone: "", email: "", cpf: "", notes: "" });
       fetchCustomers();
     }
   };
@@ -262,6 +277,25 @@ const Clientes = () => {
                   value={newCustomer.phone}
                   onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
                   placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div>
+                <Label htmlFor="cpf">CPF</Label>
+                <Input
+                  id="cpf"
+                  value={newCustomer.cpf}
+                  onChange={(e) => {
+                    // Formatar CPF automaticamente enquanto digita
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value.length <= 11) {
+                      value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                      value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                      value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                      setNewCustomer({ ...newCustomer, cpf: value });
+                    }
+                  }}
+                  placeholder="000.000.000-00"
+                  maxLength={14}
                 />
               </div>
               <div>

@@ -220,6 +220,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          cpf: string | null
           created_at: string
           email: string | null
           id: string
@@ -230,6 +231,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cpf?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -240,6 +242,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cpf?: string | null
           created_at?: string
           email?: string | null
           id?: string
