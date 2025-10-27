@@ -251,22 +251,26 @@ const Propostas = () => {
   };
 
   const handleCancelProposal = async (proposalId: string) => {
-    const { error } = await supabase
-      .from("proposals")
-      .update({ status: "canceled" })
-      .eq("id", proposalId);
+    try {
+      const { error } = await supabase
+        .from("proposals")
+        .update({ status: "canceled" })
+        .eq("id", proposalId);
 
-    if (error) {
+      if (error) throw error;
+      
+      toast({
+        title: "Orçamento cancelado!",
+        description: "O status foi atualizado com sucesso.",
+      });
+      await fetchData();
+    } catch (error) {
+      console.error("Erro ao cancelar orçamento:", error);
       toast({
         title: "Erro",
         description: "Não foi possível cancelar o orçamento.",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Orçamento cancelado!",
-      });
-      fetchData();
     }
   };
 
@@ -664,8 +668,7 @@ const Propostas = () => {
                     <CardContent className="space-y-4">
                       {/* Valor com destaque */}
                       <div 
-                        className="relative p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 group-hover:from-primary/20 group-hover:to-accent/20 transition-colors cursor-pointer"
-                        onClick={() => setViewProposal(proposal)}
+                        className="relative p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 group-hover:from-primary/20 group-hover:to-accent/20 transition-colors"
                       >
                         <p className="text-sm text-muted-foreground mb-1">Valor Total</p>
                         <p className="text-3xl font-extrabold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -712,6 +715,7 @@ const Propostas = () => {
                               className="flex-1 gap-2 bg-gradient-to-r from-accent to-green-500 hover:shadow-lg transition-all"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                e.preventDefault();
                                 setConfirmProposal(proposal);
                               }}
                             >
@@ -722,9 +726,10 @@ const Propostas = () => {
                               size="sm" 
                               variant="outline" 
                               className="flex-1 gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all"
-                              onClick={(e) => {
+                              onClick={async (e) => {
                                 e.stopPropagation();
-                                handleCancelProposal(proposal.id);
+                                e.preventDefault();
+                                await handleCancelProposal(proposal.id);
                               }}
                             >
                               <XCircle className="w-4 h-4" />
@@ -739,6 +744,7 @@ const Propostas = () => {
                             className="w-full gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-lg transition-all"
                             onClick={(e) => {
                               e.stopPropagation();
+                              e.preventDefault();
                               setScheduleProposal(proposal);
                             }}
                           >
@@ -754,6 +760,7 @@ const Propostas = () => {
                             className="w-full gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary transition-all"
                             onClick={(e) => {
                               e.stopPropagation();
+                              e.preventDefault();
                               navigate("/agendamentos");
                             }}
                           >
@@ -777,6 +784,7 @@ const Propostas = () => {
                           className="flex-1 gap-2"
                           onClick={(e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             setViewProposal(proposal);
                           }}
                         >
@@ -789,6 +797,7 @@ const Propostas = () => {
                           className="flex-1 gap-2"
                           onClick={(e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             setEditProposal(proposal);
                           }}
                         >
@@ -801,6 +810,7 @@ const Propostas = () => {
                           className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={(e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             setDeleteProposalId(proposal.id);
                           }}
                         >
