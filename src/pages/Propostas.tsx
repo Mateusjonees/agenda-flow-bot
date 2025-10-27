@@ -629,8 +629,8 @@ const Propostas = () => {
                     className="group relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 animate-fade-in"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    {/* Gradient animado de fundo */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              {/* Gradient animado de fundo */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                     
                     {/* Barra de status superior */}
                     <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${
@@ -706,7 +706,7 @@ const Propostas = () => {
                       </div>
                       
                       {/* Botões de ação principais */}
-                      <div className="flex gap-2 pt-2">
+                      <div className="flex gap-2 pt-2 relative z-10">
                         {(proposal.status === "pending" || proposal.status === "sent") && (
                           <>
                             <Button 
@@ -716,7 +716,6 @@ const Propostas = () => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
-                                console.log("Confirmar clicado", proposal.id);
                                 setConfirmProposal(proposal);
                               }}
                             >
@@ -731,7 +730,6 @@ const Propostas = () => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
-                                console.log("Cancelar clicado", proposal.id);
                                 handleCancelProposal(proposal.id);
                               }}
                             >
@@ -749,7 +747,6 @@ const Propostas = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
-                              console.log("Agendar clicado", proposal.id);
                               setScheduleProposal(proposal);
                             }}
                           >
@@ -767,7 +764,6 @@ const Propostas = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
-                              console.log("Ver Agendamento clicado", proposal.id);
                               navigate("/agendamentos");
                             }}
                           >
@@ -784,7 +780,7 @@ const Propostas = () => {
                       </div>
 
                       {/* Botões de ações secundárias */}
-                      <div className="flex gap-2 pt-2 border-t">
+                      <div className="flex gap-2 pt-2 border-t relative z-10">
                         <Button
                           type="button"
                           size="sm"
@@ -793,7 +789,6 @@ const Propostas = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
-                            console.log("Visualizar clicado", proposal.id);
                             setViewProposal(proposal);
                           }}
                         >
@@ -808,7 +803,6 @@ const Propostas = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
-                            console.log("Editar clicado", proposal.id);
                             setEditProposal(proposal);
                           }}
                         >
@@ -823,7 +817,6 @@ const Propostas = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
-                            console.log("Excluir clicado", proposal.id);
                             setDeleteProposalId(proposal.id);
                           }}
                         >
@@ -832,8 +825,8 @@ const Propostas = () => {
                       </div>
                     </CardContent>
                     
-                    {/* Indicador de hover inferior */}
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
+              {/* Indicador de hover inferior */}
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 pointer-events-none" />
                   </Card>
                 ))}
               </div>
