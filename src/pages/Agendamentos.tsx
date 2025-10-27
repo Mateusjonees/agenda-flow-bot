@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle, Pencil, Filter } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format, addDays, addWeeks, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -238,11 +239,16 @@ const Agendamentos = () => {
                 <div className="flex-1 min-h-[40px]">
                   {hourAppointments.length > 0 ? (
                      <div className="space-y-2">
-                        {hourAppointments.map((apt) => (
+                         {hourAppointments.map((apt) => (
                          <div key={apt.id} className="bg-primary/10 border-l-4 border-primary p-2 rounded">
                            <div className="flex items-start justify-between gap-2">
                              <div className="flex-1 min-w-0">
-                               <div className="font-semibold text-sm">{apt.title}</div>
+                               <div className="flex items-center gap-2">
+                                 <div className="font-semibold text-sm">{apt.title}</div>
+                                 <Badge variant={apt.status === "completed" ? "default" : "secondary"}>
+                                   {apt.status === "completed" ? "Concluído" : "Agendado"}
+                                 </Badge>
+                               </div>
                                <div className="text-xs text-muted-foreground">
                                  {apt.customers?.name} • {format(parseISO(apt.start_time), "HH:mm")} - {format(parseISO(apt.end_time), "HH:mm")}
                                </div>
@@ -338,7 +344,12 @@ const Agendamentos = () => {
                           <div key={apt.id} className="bg-primary/10 border-l-2 border-primary p-1 rounded mb-1 text-xs">
                             <div className="flex items-start justify-between gap-1">
                               <div className="flex-1 min-w-0">
-                                <div className="font-semibold truncate">{apt.title}</div>
+                                <div className="flex items-center gap-1 mb-0.5">
+                                  <div className="font-semibold truncate">{apt.title}</div>
+                                  <Badge variant={apt.status === "completed" ? "default" : "secondary"} className="text-[10px] px-1 py-0">
+                                    {apt.status === "completed" ? "Concluído" : "Agendado"}
+                                  </Badge>
+                                </div>
                                 <div className="text-muted-foreground truncate">{apt.customers?.name}</div>
                               </div>
                               <div className="flex gap-0.5 flex-shrink-0">
@@ -433,7 +444,12 @@ const Agendamentos = () => {
                      >
                        <div className="flex items-start justify-between gap-1">
                          <div className="flex-1 min-w-0">
-                           <div className="font-semibold truncate">{format(parseISO(apt.start_time), "HH:mm")}</div>
+                           <div className="flex items-center gap-1">
+                             <div className="font-semibold truncate">{format(parseISO(apt.start_time), "HH:mm")}</div>
+                             <Badge variant={apt.status === "completed" ? "default" : "secondary"} className="text-[10px] px-1 py-0">
+                               {apt.status === "completed" ? "✓" : "○"}
+                             </Badge>
+                           </div>
                            <div className="truncate">{apt.title}</div>
                          </div>
                          <div className="flex gap-0.5 flex-shrink-0">
