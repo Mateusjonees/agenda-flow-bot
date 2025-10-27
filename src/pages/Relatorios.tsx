@@ -51,6 +51,20 @@ interface FinancialSummary {
   profit: number;
   canceled_appointments: number;
   pending_payments: number;
+  income_transactions: Array<{
+    id: string;
+    amount: number;
+    description: string;
+    transaction_date: string;
+    payment_method: string;
+  }>;
+  expense_transactions: Array<{
+    id: string;
+    amount: number;
+    description: string;
+    transaction_date: string;
+    payment_method: string;
+  }>;
 }
 
 interface InventoryItem {
@@ -189,19 +203,21 @@ const Relatorios = () => {
       
       const { data: incomeData } = await supabase
         .from("financial_transactions")
-        .select("amount")
+        .select("id, amount, description, transaction_date, payment_method")
         .eq("user_id", user.id)
         .eq("type", "income")
         .eq("status", "completed")
-        .gte("transaction_date", thirtyDaysAgo.toISOString());
+        .gte("transaction_date", thirtyDaysAgo.toISOString())
+        .order("transaction_date", { ascending: false });
 
       const { data: expenseData } = await supabase
         .from("financial_transactions")
-        .select("amount")
+        .select("id, amount, description, transaction_date, payment_method")
         .eq("user_id", user.id)
         .eq("type", "expense")
         .eq("status", "completed")
-        .gte("transaction_date", thirtyDaysAgo.toISOString());
+        .gte("transaction_date", thirtyDaysAgo.toISOString())
+        .order("transaction_date", { ascending: false });
 
       const { data: canceledApts } = await supabase
         .from("appointments")
@@ -234,6 +250,8 @@ const Relatorios = () => {
         profit: totalRevenue - totalExpenses,
         canceled_appointments: canceledApts?.length || 0,
         pending_payments: pendingAmount,
+        income_transactions: incomeData || [],
+        expense_transactions: expenseData || [],
       });
 
       // Buscar dados do estoque
@@ -438,6 +456,105 @@ const Relatorios = () => {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Lista de Transações */}
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Entradas */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-accent">
+                      <TrendingUp className="w-5 h-5" />
+                      Entradas (30 dias)
+                    </CardTitle>
+                    <CardDescription>
+                      Total: {formatCurrency(financialSummary.total_revenue)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {financialSummary.income_transactions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Nenhuma entrada registrada
+                      </p>
+                    ) : (
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                        {financialSummary.income_transactions.map((transaction) => (
+                          <div
+                            key={transaction.id}
+                            className="flex items-start justify-between p-3 bg-accent/5 rounded-lg border"
+                          >
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">
+                                {transaction.description || "Sem descrição"}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="secondary" className="text-xs">
+                                  {transaction.payment_method || "N/A"}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {format(new Date(transaction.transaction_date), "dd/MM/yyyy", { locale: ptBR })}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-accent">
+                                {formatCurrency(Number(transaction.amount))}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Saídas */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-destructive">
+                      <TrendingDown className="w-5 h-5" />
+                      Saídas (30 dias)
+                    </CardTitle>
+                    <CardDescription>
+                      Total: {formatCurrency(financialSummary.total_expenses)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {financialSummary.expense_transactions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Nenhuma saída registrada
+                      </p>
+                    ) : (
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                        {financialSummary.expense_transactions.map((transaction) => (
+                          <div
+                            key={transaction.id}
+                            className="flex items-start justify-between p-3 bg-destructive/5 rounded-lg border"
+                          >
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">
+                                {transaction.description || "Sem descrição"}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="secondary" className="text-xs">
+                                  {transaction.payment_method || "N/A"}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {format(new Date(transaction.transaction_date), "dd/MM/yyyy", { locale: ptBR })}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-destructive">
+                                {formatCurrency(Number(transaction.amount))}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </>
           ) : null}
         </TabsContent>
