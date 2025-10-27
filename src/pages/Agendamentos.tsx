@@ -269,8 +269,8 @@ const Agendamentos = () => {
     
     return (
       <div className="border rounded-lg overflow-hidden">
-        <div className="bg-muted p-4 border-b">
-          <h3 className="font-semibold capitalize">{format(currentDate, "EEEE", { locale: ptBR })}</h3>
+        <div className="bg-muted p-3 sm:p-4 border-b">
+          <h3 className="font-semibold text-sm sm:text-base capitalize">{format(currentDate, "EEEE", { locale: ptBR })}</h3>
         </div>
         <div className="divide-y">
           {hours.map((hour) => {
@@ -285,55 +285,60 @@ const Agendamentos = () => {
             });
 
             return (
-              <div key={hour} className="flex items-center p-4 hover:bg-muted/50 transition-colors">
-                <div className="w-20 text-sm text-muted-foreground">
+              <div key={hour} className="flex items-start p-2 sm:p-4 hover:bg-muted/50 transition-colors min-h-[50px] sm:min-h-[60px]">
+                <div className="w-12 sm:w-20 text-xs sm:text-sm text-muted-foreground font-medium pt-0.5">
                   {String(hour).padStart(2, "0")}:00
                 </div>
-                <div className="flex-1 min-h-[40px]">
+                <div className="flex-1 min-w-0">
                   {hourAppointments.length > 0 || hourTasks.length > 0 ? (
                      <div className="space-y-2">
                          {hourAppointments.map((apt) => (
-                         <div key={apt.id} className="bg-primary/10 border-l-4 border-primary p-2 rounded">
-                           <div className="flex items-start justify-between gap-2">
-                             <div className="flex-1 min-w-0">
-                               <div className="flex items-center gap-2">
-                                 <div className="font-semibold text-sm">{apt.title}</div>
-                                 <Badge 
-                                   variant={apt.status === "completed" ? "default" : "secondary"}
-                                   className={apt.status === "completed" ? "bg-green-500 hover:bg-green-600" : ""}
-                                 >
-                                   {apt.status === "completed" ? "Concluído" : "Agendado"}
-                                 </Badge>
-                               </div>
-                               <div className="text-xs text-muted-foreground">
-                                 {apt.customers?.name} • {format(parseISO(apt.start_time), "HH:mm")} - {format(parseISO(apt.end_time), "HH:mm")}
+                         <div key={apt.id} className="bg-primary/10 border-l-4 border-primary p-2 sm:p-3 rounded-md group">
+                           <div className="flex flex-col gap-2">
+                             <div className="flex items-start justify-between gap-2">
+                               <div className="flex-1 min-w-0">
+                                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                                   <div className="font-semibold text-sm sm:text-base truncate">{apt.title}</div>
+                                   <Badge 
+                                     variant={apt.status === "completed" ? "default" : "secondary"}
+                                     className={`text-xs w-fit ${apt.status === "completed" ? "bg-green-500 hover:bg-green-600" : ""}`}
+                                   >
+                                     {apt.status === "completed" ? "Concluído" : "Agendado"}
+                                   </Badge>
+                                 </div>
+                                 <div className="text-xs text-muted-foreground">
+                                   <span className="font-medium">{apt.customers?.name}</span>
+                                   <span className="mx-1">•</span>
+                                   <span>{format(parseISO(apt.start_time), "HH:mm")} - {format(parseISO(apt.end_time), "HH:mm")}</span>
+                                 </div>
                                </div>
                              </div>
-                             <div className="flex gap-1 flex-shrink-0">
+                             
+                             <div className="flex gap-1.5 sm:gap-2">
                                <Button
                                  size="sm"
                                  variant="ghost"
-                                 className="h-7 gap-1"
+                                 className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm"
                                  onClick={() => {
                                    setEditAppointmentId(apt.id);
                                    setEditDialogOpen(true);
                                  }}
                                >
                                  <Pencil className="w-3 h-3" />
-                                 Editar
+                                 <span>Editar</span>
                                </Button>
                                {apt.status !== "completed" && (
                                  <Button
                                    size="sm"
                                    variant="default"
-                                   className="h-7 gap-1"
+                                   className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm"
                                    onClick={() => {
                                      setSelectedAppointment({ id: apt.id, title: apt.title });
                                      setFinishDialogOpen(true);
                                    }}
                                  >
                                    <CheckCircle className="w-3 h-3" />
-                                   Finalizar
+                                   <span>Finalizar</span>
                                  </Button>
                                )}
                              </div>
@@ -342,16 +347,16 @@ const Agendamentos = () => {
                          ))}
                          
                          {hourTasks.map((task) => (
-                          <div key={task.id} className="bg-orange-100 dark:bg-orange-950 border-l-4 border-orange-500 p-2 rounded">
+                          <div key={task.id} className="bg-orange-100 dark:bg-orange-950 border-l-4 border-orange-500 p-2 sm:p-3 rounded-md">
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <div className="font-semibold text-sm">{task.title}</div>
-                                  <Badge variant="outline" className="text-xs">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                  <div className="font-semibold text-sm sm:text-base truncate">{task.title}</div>
+                                  <Badge variant="outline" className="text-xs w-fit">
                                     Tarefa
                                   </Badge>
                                 </div>
-                                <div className="text-xs text-muted-foreground">
+                                <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
                                   {task.description || "Sem descrição"} • {format(parseISO(task.due_date), "HH:mm")}
                                 </div>
                               </div>
@@ -360,7 +365,7 @@ const Agendamentos = () => {
                          ))}
                       </div>
                    ) : (
-                     <div className="text-sm text-muted-foreground">Disponível</div>
+                     <div className="text-xs sm:text-sm text-muted-foreground/60 italic py-1">Disponível</div>
                    )}
                  </div>
                </div>
