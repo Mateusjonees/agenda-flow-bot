@@ -134,10 +134,10 @@ export const CustomerHistory = ({ customerId }: CustomerHistoryProps) => {
   const getStatusBadge = (type: string, status?: string) => {
     if (!status) return null;
 
-    const statusConfig: Record<string, { label: string; variant: any }> = {
+    const statusConfig: Record<string, { label: string; variant: any; className?: string }> = {
       // Agendamentos
       scheduled: { label: "Agendado", variant: "secondary" },
-      completed: { label: "Concluído", variant: "default" },
+      completed: { label: "Concluído", variant: "default", className: "bg-green-500 hover:bg-green-600" },
       cancelled: { label: "Cancelado", variant: "destructive" },
       // Propostas
       pending: { label: "Pendente", variant: "secondary" },
@@ -152,7 +152,7 @@ export const CustomerHistory = ({ customerId }: CustomerHistoryProps) => {
     };
 
     const config = statusConfig[status] || { label: status, variant: "outline" };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
   };
 
   const formatCurrency = (value: number) => {

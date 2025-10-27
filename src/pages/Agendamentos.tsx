@@ -245,7 +245,10 @@ const Agendamentos = () => {
                              <div className="flex-1 min-w-0">
                                <div className="flex items-center gap-2">
                                  <div className="font-semibold text-sm">{apt.title}</div>
-                                 <Badge variant={apt.status === "completed" ? "default" : "secondary"}>
+                                 <Badge 
+                                   variant={apt.status === "completed" ? "default" : "secondary"}
+                                   className={apt.status === "completed" ? "bg-green-500 hover:bg-green-600" : ""}
+                                 >
                                    {apt.status === "completed" ? "Concluído" : "Agendado"}
                                  </Badge>
                                </div>
@@ -266,18 +269,20 @@ const Agendamentos = () => {
                                  <Pencil className="w-3 h-3" />
                                  Editar
                                </Button>
-                               <Button
-                                 size="sm"
-                                 variant="default"
-                                 className="h-7 gap-1"
-                                 onClick={() => {
-                                   setSelectedAppointment({ id: apt.id, title: apt.title });
-                                   setFinishDialogOpen(true);
-                                 }}
-                               >
-                                 <CheckCircle className="w-3 h-3" />
-                                 Finalizar
-                               </Button>
+                               {apt.status !== "completed" && (
+                                 <Button
+                                   size="sm"
+                                   variant="default"
+                                   className="h-7 gap-1"
+                                   onClick={() => {
+                                     setSelectedAppointment({ id: apt.id, title: apt.title });
+                                     setFinishDialogOpen(true);
+                                   }}
+                                 >
+                                   <CheckCircle className="w-3 h-3" />
+                                   Finalizar
+                                 </Button>
+                               )}
                              </div>
                            </div>
                          </div>
@@ -346,7 +351,10 @@ const Agendamentos = () => {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1 mb-0.5">
                                   <div className="font-semibold truncate">{apt.title}</div>
-                                  <Badge variant={apt.status === "completed" ? "default" : "secondary"} className="text-[10px] px-1 py-0">
+                                  <Badge 
+                                    variant={apt.status === "completed" ? "default" : "secondary"} 
+                                    className={`text-[10px] px-1 py-0 ${apt.status === "completed" ? "bg-green-500 hover:bg-green-600" : ""}`}
+                                  >
                                     {apt.status === "completed" ? "Concluído" : "Agendado"}
                                   </Badge>
                                 </div>
@@ -365,18 +373,20 @@ const Agendamentos = () => {
                                 >
                                   <Pencil className="w-3 h-3" />
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0"
-                                  onClick={() => {
-                                    setSelectedAppointment({ id: apt.id, title: apt.title });
-                                    setFinishDialogOpen(true);
-                                  }}
-                                  title="Finalizar"
-                                >
-                                  <CheckCircle className="w-3 h-3" />
-                                </Button>
+                                {apt.status !== "completed" && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-5 w-5 p-0"
+                                    onClick={() => {
+                                      setSelectedAppointment({ id: apt.id, title: apt.title });
+                                      setFinishDialogOpen(true);
+                                    }}
+                                    title="Finalizar"
+                                  >
+                                    <CheckCircle className="w-3 h-3" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -446,40 +456,45 @@ const Agendamentos = () => {
                          <div className="flex-1 min-w-0">
                            <div className="flex items-center gap-1">
                              <div className="font-semibold truncate">{format(parseISO(apt.start_time), "HH:mm")}</div>
-                             <Badge variant={apt.status === "completed" ? "default" : "secondary"} className="text-[10px] px-1 py-0">
+                             <Badge 
+                               variant={apt.status === "completed" ? "default" : "secondary"} 
+                               className={`text-[10px] px-1 py-0 ${apt.status === "completed" ? "bg-green-500 hover:bg-green-600" : ""}`}
+                             >
                                {apt.status === "completed" ? "✓" : "○"}
                              </Badge>
                            </div>
                            <div className="truncate">{apt.title}</div>
                          </div>
-                         <div className="flex gap-0.5 flex-shrink-0">
-                           <Button
-                             size="sm"
-                             variant="ghost"
-                             className="h-4 w-4 p-0"
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               setEditAppointmentId(apt.id);
-                               setEditDialogOpen(true);
-                             }}
-                             title="Editar"
-                           >
-                             <Pencil className="w-2.5 h-2.5" />
-                           </Button>
-                           <Button
-                             size="sm"
-                             variant="ghost"
-                             className="h-4 w-4 p-0"
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               setSelectedAppointment({ id: apt.id, title: apt.title });
-                               setFinishDialogOpen(true);
-                             }}
-                             title="Finalizar"
-                           >
-                             <CheckCircle className="w-2.5 h-2.5" />
-                           </Button>
-                         </div>
+                          <div className="flex gap-0.5 flex-shrink-0">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-4 w-4 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditAppointmentId(apt.id);
+                                setEditDialogOpen(true);
+                              }}
+                              title="Editar"
+                            >
+                              <Pencil className="w-2.5 h-2.5" />
+                            </Button>
+                            {apt.status !== "completed" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-4 w-4 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedAppointment({ id: apt.id, title: apt.title });
+                                  setFinishDialogOpen(true);
+                                }}
+                                title="Finalizar"
+                              >
+                                <CheckCircle className="w-2.5 h-2.5" />
+                              </Button>
+                            )}
+                          </div>
                        </div>
                      </div>
                    ))}
