@@ -113,9 +113,12 @@ export function FinishAppointmentDialog({
       return { loyaltyCardBefore, loyaltyCardAfter };
     },
     onSuccess: (data) => {
+      // Invalidar todas as queries relacionadas para atualizar a UI
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
       queryClient.invalidateQueries({ queryKey: ["loyalty-cards"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-history"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
       
       // Verificar se o cartão foi completado
       const { loyaltyCardBefore, loyaltyCardAfter } = data;

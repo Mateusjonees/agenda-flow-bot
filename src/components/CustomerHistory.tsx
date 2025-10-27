@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, FileText, DollarSign, CheckCircle, ListTodo } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useQuery } from "@tanstack/react-query";
 
 interface CustomerHistoryProps {
   customerId: string;
@@ -23,14 +24,10 @@ interface HistoryEvent {
 }
 
 export const CustomerHistory = ({ customerId }: CustomerHistoryProps) => {
-  const [events, setEvents] = useState<HistoryEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchHistory();
-  }, [customerId]);
-
-  const fetchHistory = async () => {
+  // Usar useQuery para gerenciar o histórico com cache e atualização automática
+  const { data: events = [], isLoading: loading } = useQuery({
+    queryKey: ["customer-history", customerId],
+    queryFn: async () => {
     try {
       // Buscar agendamentos
       const { data: appointments } = await supabase
@@ -126,20 +123,20 @@ export const CustomerHistory = ({ customerId }: CustomerHistoryProps) => {
       // Ordenar por data (mais recente primeiro)
       allEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-      setEvents(allEvents);
+      return allEvents;
     } catch (error) {
       console.error("Erro ao buscar histórico:", error);
-    } finally {
-      setLoading(false);
+      return [];
     }
-  };
+    },
+  });
 
   const getStatusBadge = (type: string, status?: string) => {
     if (!status) return null;
 
     const statusConfig: Record<string, { label: string; variant: any }> = {
       // Agendamentos
-      scheduled: { label: "Agendado", variant: "default" },
+      scheduled: { label: "Agendado", variant: "secondary" },
       completed: { label: "Concluído", variant: "default" },
       cancelled: { label: "Cancelado", variant: "destructive" },
       // Propostas
