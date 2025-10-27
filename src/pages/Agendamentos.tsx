@@ -383,95 +383,116 @@ const Agendamentos = () => {
     const hours = Array.from({ length: 14 }, (_, i) => i + 8);
 
     return (
-      <div className="border rounded-lg overflow-hidden overflow-x-auto">
-        <div className="grid grid-cols-8 border-b bg-muted min-w-[800px]">
-          <div className="p-3"></div>
-          {days.map((day) => (
-            <div
-              key={day.toISOString()}
-              className={`p-3 text-center border-l ${
-                isSameDay(day, new Date()) ? "bg-primary/10" : ""
-              }`}
-            >
-              <div className="text-xs text-muted-foreground capitalize">
-                {format(day, "EEE", { locale: ptBR })}
+      <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <div className="grid grid-cols-8 border-b bg-muted min-w-[600px] sm:min-w-[700px] lg:min-w-[800px]">
+            <div className="p-2 sm:p-3"></div>
+            {days.map((day) => (
+              <div
+                key={day.toISOString()}
+                className={`p-2 sm:p-3 text-center border-l ${
+                  isSameDay(day, new Date()) ? "bg-primary/10" : ""
+                }`}
+              >
+                <div className="text-[10px] sm:text-xs text-muted-foreground capitalize">
+                  {format(day, "EEE", { locale: ptBR })}
+                </div>
+                <div className={`text-base sm:text-lg font-semibold ${
+                  isSameDay(day, new Date()) ? "text-primary" : ""
+                }`}>
+                  {format(day, "dd")}
+                </div>
               </div>
-              <div className={`text-lg font-semibold ${
-                isSameDay(day, new Date()) ? "text-primary" : ""
-              }`}>
-                {format(day, "dd")}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="divide-y min-w-[800px]">
-          {hours.map((hour) => (
-            <div key={hour} className="grid grid-cols-8">
-              <div className="p-3 text-sm text-muted-foreground border-r">
-                {String(hour).padStart(2, "0")}:00
-              </div>
-              {days.map((day) => {
-                const dayHourAppointments = appointments.filter(apt => {
-                  const aptDate = parseISO(apt.start_time);
-                  return isSameDay(aptDate, day) && aptDate.getHours() === hour;
-                });
+            ))}
+          </div>
+          <div className="divide-y min-w-[600px] sm:min-w-[700px] lg:min-w-[800px]">
+            {hours.map((hour) => (
+              <div key={hour} className="grid grid-cols-8">
+                <div className="p-2 sm:p-3 text-xs sm:text-sm text-muted-foreground border-r font-medium">
+                  {String(hour).padStart(2, "0")}:00
+                </div>
+                {days.map((day) => {
+                  const dayHourAppointments = appointments.filter(apt => {
+                    const aptDate = parseISO(apt.start_time);
+                    return isSameDay(aptDate, day) && aptDate.getHours() === hour;
+                  });
 
-                return (
-                     <div
-                       key={`${day.toISOString()}-${hour}`}
-                        className="p-2 border-l hover:bg-muted/50 transition-colors min-h-[60px]"
-                      >
-                        {dayHourAppointments.map((apt) => (
-                          <div key={apt.id} className="bg-primary/10 border-l-2 border-primary p-1 rounded mb-1 text-xs">
-                            <div className="flex items-start justify-between gap-1">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1 mb-0.5">
-                                  <div className="font-semibold truncate">{apt.title}</div>
+                  return (
+                       <div
+                         key={`${day.toISOString()}-${hour}`}
+                          className="p-1.5 sm:p-2 border-l hover:bg-muted/50 transition-colors min-h-[50px] sm:min-h-[60px]"
+                        >
+                          {dayHourAppointments.map((apt) => (
+                            <div 
+                              key={apt.id} 
+                              className="bg-primary/10 border-l-2 border-primary p-1 sm:p-1.5 rounded mb-1 text-xs group cursor-pointer hover:bg-primary/20 transition-colors"
+                              onClick={() => {
+                                if (window.innerWidth < 640) {
+                                  // Mobile: abrir dialog com opções
+                                  setSelectedAppointment({ id: apt.id, title: apt.title });
+                                  setEditAppointmentId(apt.id);
+                                  setEditDialogOpen(true);
+                                }
+                              }}
+                            >
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-1">
+                                  <div className="font-semibold truncate text-[11px] sm:text-xs leading-tight">
+                                    {apt.title}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1">
                                   <Badge 
                                     variant={apt.status === "completed" ? "default" : "secondary"} 
-                                    className={`text-[10px] px-1 py-0 ${apt.status === "completed" ? "bg-green-500 hover:bg-green-600" : ""}`}
+                                    className={`text-[9px] sm:text-[10px] px-1 py-0 h-3.5 ${apt.status === "completed" ? "bg-green-500 hover:bg-green-600" : ""}`}
                                   >
-                                    {apt.status === "completed" ? "Concluído" : "Agendado"}
+                                    {apt.status === "completed" ? "✓" : "○"}
                                   </Badge>
+                                  <div className="text-muted-foreground truncate text-[10px] sm:text-xs flex-1">
+                                    {apt.customers?.name}
+                                  </div>
                                 </div>
-                                <div className="text-muted-foreground truncate">{apt.customers?.name}</div>
-                              </div>
-                              <div className="flex gap-0.5 flex-shrink-0">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0"
-                                  onClick={() => {
-                                    setEditAppointmentId(apt.id);
-                                    setEditDialogOpen(true);
-                                  }}
-                                  title="Editar"
-                                >
-                                  <Pencil className="w-3 h-3" />
-                                </Button>
-                                {apt.status !== "completed" && (
+                                
+                                {/* Botões apenas no desktop */}
+                                <div className="hidden sm:flex gap-1 mt-1">
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-5 w-5 p-0"
-                                    onClick={() => {
-                                      setSelectedAppointment({ id: apt.id, title: apt.title });
-                                      setFinishDialogOpen(true);
+                                    className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditAppointmentId(apt.id);
+                                      setEditDialogOpen(true);
                                     }}
-                                    title="Finalizar"
+                                    title="Editar"
                                   >
-                                    <CheckCircle className="w-3 h-3" />
+                                    <Pencil className="w-2.5 h-2.5" />
                                   </Button>
-                                )}
+                                  {apt.status !== "completed" && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedAppointment({ id: apt.id, title: apt.title });
+                                        setFinishDialogOpen(true);
+                                      }}
+                                      title="Finalizar"
+                                    >
+                                      <CheckCircle className="w-2.5 h-2.5" />
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                );
-              })}
-            </div>
-          ))}
+                           ))}
+                        </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
