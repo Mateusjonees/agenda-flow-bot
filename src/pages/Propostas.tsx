@@ -355,28 +355,28 @@ const Propostas = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header Premium */}
-      <div className="relative rounded-3xl overflow-hidden">
+      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10" />
-        <div className="relative p-8 flex items-center justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 shadow-xl">
-                <FileText className="w-8 h-8 text-white" />
+        <div className="relative p-4 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-2 flex-1 w-full">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 shadow-lg sm:shadow-xl flex-shrink-0">
+                <FileText className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
               </div>
-              <div>
-                <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight">
                   Orçamentos
                 </h1>
-                <p className="text-muted-foreground mt-1">Crie e gerencie orçamentos profissionais</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 truncate">Crie e gerencie orçamentos profissionais</p>
               </div>
             </div>
           </div>
           
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-xl hover:scale-105 transition-all">
+              <Button className="gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-xl hover:scale-105 transition-all w-full sm:w-auto flex-shrink-0 text-sm sm:text-base">
                 <Plus className="w-4 h-4" />
-                Novo Orçamento
+                <span className="sm:inline">Novo Orçamento</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -563,34 +563,34 @@ const Propostas = () => {
 
       {/* Tabs por Status */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 h-auto p-1 gap-1">
-          <TabsTrigger value="all" className="flex flex-col gap-1 py-3">
-            <span className="text-sm font-semibold">Todos</span>
-            <Badge variant="outline" className="text-xs">{stats.all}</Badge>
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 h-auto p-1 gap-1 overflow-x-auto">
+          <TabsTrigger value="all" className="flex flex-col gap-1 py-2 sm:py-3 text-xs sm:text-sm">
+            <span className="font-semibold">Todos</span>
+            <Badge variant="outline" className="text-[10px] sm:text-xs">{stats.all}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="pending" className="flex flex-col gap-1 py-3">
-            <span className="text-sm font-semibold">Pendente</span>
-            <Badge variant="outline" className="text-xs">{stats.pending}</Badge>
+          <TabsTrigger value="pending" className="flex flex-col gap-1 py-2 sm:py-3 text-xs sm:text-sm">
+            <span className="font-semibold">Pendente</span>
+            <Badge variant="outline" className="text-[10px] sm:text-xs">{stats.pending}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="sent" className="flex flex-col gap-1 py-3">
-            <span className="text-sm font-semibold">Enviada</span>
-            <Badge variant="outline" className="text-xs">{stats.sent}</Badge>
+          <TabsTrigger value="sent" className="flex flex-col gap-1 py-2 sm:py-3 text-xs sm:text-sm">
+            <span className="font-semibold">Enviada</span>
+            <Badge variant="outline" className="text-[10px] sm:text-xs">{stats.sent}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="accepted" className="flex flex-col gap-1 py-3">
-            <span className="text-sm font-semibold">Aceita</span>
-            <Badge variant="outline" className="text-xs">{stats.accepted}</Badge>
+          <TabsTrigger value="accepted" className="flex flex-col gap-1 py-2 sm:py-3 text-xs sm:text-sm">
+            <span className="font-semibold">Aceita</span>
+            <Badge variant="outline" className="text-[10px] sm:text-xs">{stats.accepted}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="confirmed" className="flex flex-col gap-1 py-3">
-            <span className="text-sm font-semibold">Confirmada</span>
-            <Badge variant="outline" className="text-xs">{stats.confirmed}</Badge>
+          <TabsTrigger value="confirmed" className="flex flex-col gap-1 py-2 sm:py-3 text-xs sm:text-sm hidden sm:flex">
+            <span className="font-semibold">Confirmada</span>
+            <Badge variant="outline" className="text-[10px] sm:text-xs">{stats.confirmed}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="canceled" className="flex flex-col gap-1 py-3">
-            <span className="text-sm font-semibold">Cancelada</span>
-            <Badge variant="outline" className="text-xs">{stats.canceled}</Badge>
+          <TabsTrigger value="canceled" className="flex flex-col gap-1 py-2 sm:py-3 text-xs sm:text-sm hidden sm:flex">
+            <span className="font-semibold">Cancelada</span>
+            <Badge variant="outline" className="text-[10px] sm:text-xs">{stats.canceled}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="expired" className="flex flex-col gap-1 py-3">
-            <span className="text-sm font-semibold">Expirada</span>
-            <Badge variant="outline" className="text-xs">{stats.expired}</Badge>
+          <TabsTrigger value="expired" className="flex flex-col gap-1 py-2 sm:py-3 text-xs sm:text-sm hidden sm:flex">
+            <span className="font-semibold">Expirada</span>
+            <Badge variant="outline" className="text-[10px] sm:text-xs">{stats.expired}</Badge>
           </TabsTrigger>
         </TabsList>
 
@@ -622,7 +622,7 @@ const Propostas = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {filteredProposals.map((proposal, index) => (
                   <Card 
                     key={proposal.id}
@@ -633,58 +633,58 @@ const Propostas = () => {
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                     
                     {/* Barra de status superior */}
-                    <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${
+                    <div className={`absolute top-0 left-0 right-0 h-1.5 sm:h-2 bg-gradient-to-r ${
                       proposal.status === "confirmed" ? "from-accent to-green-500" :
                       proposal.status === "canceled" ? "from-destructive to-red-600" :
                       proposal.status === "accepted" ? "from-blue-500 to-purple-500" :
                       "from-yellow-500 to-orange-500"
                     }`} />
                     
-                    <CardHeader className="space-y-4 pt-6">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-2 rounded-xl bg-gradient-to-br from-primary to-accent shadow-md group-hover:scale-110 transition-transform">
-                              <FileText className="w-5 h-5 text-white" />
+                    <CardHeader className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 p-3 sm:p-6">
+                      <div className="flex items-start justify-between gap-2 sm:gap-3">
+                        <div className="flex-1 space-y-1.5 sm:space-y-2 min-w-0">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary to-accent shadow-md group-hover:scale-110 transition-transform flex-shrink-0">
+                              <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                             </div>
-                            <h3 className="font-bold text-xl line-clamp-1 group-hover:text-primary transition-colors">
+                            <h3 className="font-bold text-base sm:text-xl line-clamp-1 group-hover:text-primary transition-colors">
                               {proposal.title}
                             </h3>
                           </div>
                           
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <User className="w-4 h-4" />
-                            <span className="font-medium">{proposal.customers.name}</span>
+                          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+                            <User className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                            <span className="font-medium truncate">{proposal.customers.name}</span>
                           </div>
                         </div>
                         
-                        <div className="flex flex-col items-end gap-2">
+                        <div className="flex flex-col items-end gap-2 flex-shrink-0">
                           {getStatusBadge(proposal.status)}
                         </div>
                       </div>
                     </CardHeader>
                     
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
                       {/* Valor com destaque */}
                       <div 
-                        className="relative p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 group-hover:from-primary/20 group-hover:to-accent/20 transition-colors"
+                        className="relative p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 group-hover:from-primary/20 group-hover:to-accent/20 transition-colors"
                       >
-                        <p className="text-sm text-muted-foreground mb-1">Valor Total</p>
-                        <p className="text-3xl font-extrabold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-0.5 sm:mb-1">Valor Total</p>
+                        <p className="text-xl sm:text-3xl font-extrabold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                           {formatCurrency(proposal.final_amount)}
                         </p>
                         {proposal.deposit_amount && (
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
                             Entrada: {formatCurrency(proposal.deposit_amount)}
                           </p>
                         )}
                       </div>
                       
                       {/* Informações adicionais */}
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                          <span className="text-muted-foreground flex items-center gap-2">
-                            <CalendarIcon className="w-4 h-4" />
+                      <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                        <div className="flex items-center justify-between p-1.5 sm:p-2 rounded-lg bg-muted/50">
+                          <span className="text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                            <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                             Validade
                           </span>
                           <span className="font-medium">
@@ -693,9 +693,9 @@ const Propostas = () => {
                         </div>
                         
                         {proposal.sent_at && (
-                          <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                            <span className="text-muted-foreground flex items-center gap-2">
-                              <Send className="w-4 h-4" />
+                          <div className="flex items-center justify-between p-1.5 sm:p-2 rounded-lg bg-muted/50">
+                            <span className="text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                              <Send className="w-3 h-3 sm:w-4 sm:h-4" />
                               Enviada
                             </span>
                             <span className="font-medium">
@@ -706,35 +706,35 @@ const Propostas = () => {
                       </div>
                       
                       {/* Botões de ação principais */}
-                      <div className="flex gap-2 pt-2 relative z-20">
+                      <div className="flex gap-1.5 sm:gap-2 pt-1 sm:pt-2 relative z-20">
                         {(proposal.status === "pending" || proposal.status === "sent") && (
                           <>
                             <Button 
                               type="button"
                               size="sm" 
-                              className="flex-1 gap-2 bg-gradient-to-r from-accent to-green-500 hover:shadow-lg transition-all relative z-30 pointer-events-auto"
+                              className="flex-1 gap-1.5 sm:gap-2 bg-gradient-to-r from-accent to-green-500 hover:shadow-lg transition-all relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
                                 setConfirmProposal(proposal);
                               }}
                             >
-                              <CheckCircle className="w-4 h-4" />
-                              Confirmar
+                              <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              <span className="hidden xs:inline">Confirmar</span>
                             </Button>
                             <Button 
                               type="button"
                               size="sm" 
                               variant="outline" 
-                              className="flex-1 gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all relative z-30 pointer-events-auto"
+                              className="flex-1 gap-1.5 sm:gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
                                 handleCancelProposal(proposal.id);
                               }}
                             >
-                              <XCircle className="w-4 h-4" />
-                              Cancelar
+                              <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              <span className="hidden xs:inline">Cancelar</span>
                             </Button>
                           </>
                         )}
@@ -743,15 +743,15 @@ const Propostas = () => {
                           <Button 
                             type="button"
                             size="sm" 
-                            className="w-full gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-lg transition-all relative z-30 pointer-events-auto"
+                            className="w-full gap-1.5 sm:gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-lg transition-all relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9"
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
                               setScheduleProposal(proposal);
                             }}
                           >
-                            <CalendarIcon className="w-4 h-4" />
-                            Agendar Atendimento
+                            <CalendarIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            <span className="text-xs sm:text-sm">Agendar</span>
                           </Button>
                         )}
                         
@@ -760,67 +760,67 @@ const Propostas = () => {
                             type="button"
                             size="sm" 
                             variant="outline"
-                            className="w-full gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary transition-all relative z-30 pointer-events-auto"
+                            className="w-full gap-1.5 sm:gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary transition-all relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9"
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
                               navigate("/agendamentos");
                             }}
                           >
-                            <CalendarIcon className="w-4 h-4" />
-                            Ver Agendamento
+                            <CalendarIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            <span className="text-xs sm:text-sm">Ver Agendamento</span>
                           </Button>
                         )}
                         
                         {proposal.status === "canceled" && (
-                          <div className="w-full text-center text-sm text-muted-foreground py-2">
+                          <div className="w-full text-center text-xs sm:text-sm text-muted-foreground py-1.5 sm:py-2">
                             Orçamento cancelado
                           </div>
                         )}
                       </div>
 
                       {/* Botões de ações secundárias */}
-                      <div className="flex gap-2 pt-2 border-t relative z-20">
+                      <div className="flex gap-1.5 sm:gap-2 pt-1.5 sm:pt-2 border-t relative z-20">
                         <Button
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="flex-1 gap-2 relative z-30 pointer-events-auto"
+                          className="flex-1 gap-1.5 sm:gap-2 relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9"
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
                             setViewProposal(proposal);
                           }}
                         >
-                          <Eye className="w-4 h-4" />
-                          Visualizar
+                          <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          <span className="hidden xs:inline">Visualizar</span>
                         </Button>
                         <Button
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="flex-1 gap-2 relative z-30 pointer-events-auto"
+                          className="flex-1 gap-1.5 sm:gap-2 relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9"
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
                             setEditProposal(proposal);
                           }}
                         >
-                          <Edit className="w-4 h-4" />
-                          Editar
+                          <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          <span className="hidden xs:inline">Editar</span>
                         </Button>
                         <Button
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 relative z-30 pointer-events-auto"
+                          className="gap-1.5 sm:gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
                             setDeleteProposalId(proposal.id);
                           }}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </Button>
                       </div>
                     </CardContent>
