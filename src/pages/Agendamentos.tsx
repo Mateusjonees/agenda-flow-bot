@@ -485,14 +485,15 @@ const Agendamentos = () => {
     ];
 
     return (
-      <div className="border rounded-lg overflow-hidden">
-        <div className="grid grid-cols-7 border-b bg-muted">
-          {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
-            <div key={day} className="p-3 text-center text-sm font-semibold border-l first:border-l-0">
-              {day}
-            </div>
-          ))}
-        </div>
+      <div className="overflow-x-auto">
+        <div className="border rounded-lg min-w-[280px]">
+          <div className="grid grid-cols-7 border-b bg-muted">
+            {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
+              <div key={day} className="p-2 text-center text-xs sm:text-sm font-semibold border-l first:border-l-0">
+                {day}
+              </div>
+            ))}
+          </div>
         <div className="grid grid-cols-7">
           {allDays.map((day, idx) => {
             const isCurrentMonth = day >= start && day <= end;
@@ -503,97 +504,131 @@ const Agendamentos = () => {
               return isSameDay(aptDate, day);
             });
             
+            const hasAppointments = dayAppointments.length > 0;
+            const completedCount = dayAppointments.filter(a => a.status === "completed").length;
+            const pendingCount = dayAppointments.length - completedCount;
+            
             return (
               <div
                 key={idx}
-                className={`min-h-[100px] p-2 border-b border-l first:border-l-0 hover:bg-muted/50 transition-colors ${
+                className={`min-h-[80px] sm:min-h-[100px] p-1.5 sm:p-2 border-b border-l first:border-l-0 hover:bg-muted/50 transition-colors ${
                   !isCurrentMonth ? "bg-muted/30 text-muted-foreground" : ""
-                }`}
+                } ${hasAppointments ? "cursor-pointer" : ""}`}
+                onClick={() => {
+                  if (hasAppointments && window.innerWidth < 768) {
+                    setCurrentDate(day);
+                    setViewType("day");
+                  }
+                }}
               >
                 <div
-                  className={`text-sm font-semibold mb-1 ${
-                    isToday ? "bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center" : ""
+                  className={`text-xs sm:text-sm font-semibold mb-1 ${
+                    isToday ? "bg-primary text-primary-foreground w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs" : ""
                   }`}
                 >
                   {format(day, "d")}
                 </div>
-                 <div className="space-y-1">
-                   {dayAppointments.slice(0, 3).map((apt) => (
-                     <div 
-                       key={apt.id} 
-                       className="bg-primary/10 border-l-2 border-primary p-1 rounded text-xs"
-                     >
-                       <div className="flex items-start justify-between gap-1">
-                         <div className="flex-1 min-w-0">
-                           <div className="flex items-center gap-1">
-                             <div className="font-semibold truncate">{format(parseISO(apt.start_time), "HH:mm")}</div>
-                             <Badge 
-                               variant={apt.status === "completed" ? "default" : "secondary"} 
-                               className={`text-[10px] px-1 py-0 ${apt.status === "completed" ? "bg-green-500 hover:bg-green-600" : ""}`}
-                             >
-                               {apt.status === "completed" ? "✓" : "○"}
-                             </Badge>
-                           </div>
-                           <div className="truncate">{apt.title}</div>
-                         </div>
-                          <div className="flex gap-0.5 flex-shrink-0">
+                
+                {/* Mobile: Indicadores simples */}
+                <div className="md:hidden">
+                  {hasAppointments && (
+                    <div className="flex flex-wrap gap-1">
+                      {completedCount > 0 && (
+                        <div className="flex items-center gap-0.5 text-[10px]">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          <span className="text-green-700 dark:text-green-400">{completedCount}</span>
+                        </div>
+                      )}
+                      {pendingCount > 0 && (
+                        <div className="flex items-center gap-0.5 text-[10px]">
+                          <div className="w-2 h-2 rounded-full bg-primary"></div>
+                          <span className="text-primary">{pendingCount}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Desktop: Lista detalhada */}
+                <div className="hidden md:block space-y-1">
+                  {dayAppointments.slice(0, 3).map((apt) => (
+                    <div 
+                      key={apt.id} 
+                      className="bg-primary/10 border-l-2 border-primary p-1 rounded text-xs hover:bg-primary/20 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-start justify-between gap-1">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1">
+                            <div className="font-semibold truncate">{format(parseISO(apt.start_time), "HH:mm")}</div>
+                            <Badge 
+                              variant={apt.status === "completed" ? "default" : "secondary"} 
+                              className={`text-[10px] px-1 py-0 ${apt.status === "completed" ? "bg-green-500 hover:bg-green-600" : ""}`}
+                            >
+                              {apt.status === "completed" ? "✓" : "○"}
+                            </Badge>
+                          </div>
+                          <div className="truncate">{apt.title}</div>
+                        </div>
+                        <div className="flex gap-0.5 flex-shrink-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 w-5 p-0 hover:bg-primary/20"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditAppointmentId(apt.id);
+                              setEditDialogOpen(true);
+                            }}
+                            title="Editar"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          {apt.status !== "completed" && (
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-4 w-4 p-0"
+                              className="h-5 w-5 p-0 hover:bg-green-500/20"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setEditAppointmentId(apt.id);
-                                setEditDialogOpen(true);
+                                setSelectedAppointment({ id: apt.id, title: apt.title });
+                                setFinishDialogOpen(true);
                               }}
-                              title="Editar"
+                              title="Finalizar"
                             >
-                              <Pencil className="w-2.5 h-2.5" />
+                              <CheckCircle className="w-3 h-3" />
                             </Button>
-                            {apt.status !== "completed" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-4 w-4 p-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedAppointment({ id: apt.id, title: apt.title });
-                                  setFinishDialogOpen(true);
-                                }}
-                                title="Finalizar"
-                              >
-                                <CheckCircle className="w-2.5 h-2.5" />
-                              </Button>
-                            )}
-                          </div>
-                       </div>
-                     </div>
-                   ))}
-                   {dayAppointments.length > 3 && (
-                     <div className="text-xs text-muted-foreground">+{dayAppointments.length - 3} mais</div>
-                   )}
-                 </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {dayAppointments.length > 3 && (
+                    <div className="text-xs text-muted-foreground pl-1">+{dayAppointments.length - 3} mais</div>
+                  )}
+                </div>
               </div>
             );
           })}
+        </div>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Atendimentos</h1>
-          <p className="text-muted-foreground">Gerencie todos os seus atendimentos</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">Atendimentos</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Gerencie todos os seus atendimentos</p>
         </div>
         <div className="flex gap-2">
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2 h-10">
                 <Filter className="w-4 h-4" />
-                Filtros
+                <span className="hidden sm:inline">Filtros</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80">
@@ -631,9 +666,10 @@ const Agendamentos = () => {
           </Popover>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button className="gap-2 h-10">
               <Plus className="w-4 h-4" />
-              Novo Agendamento
+              <span className="hidden sm:inline">Novo Agendamento</span>
+              <span className="sm:hidden">Novo</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
@@ -736,23 +772,23 @@ const Agendamentos = () => {
       </div>
 
       <Card>
-        <CardHeader className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <CardTitle>Calendário</CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              <CardTitle className="text-xl sm:text-2xl">Calendário</CardTitle>
               <Tabs value={viewType} onValueChange={(v) => setViewType(v as "day" | "week" | "month")}>
-                <TabsList className="h-9">
-                  <TabsTrigger value="day" className="text-xs">Dia</TabsTrigger>
-                  <TabsTrigger value="week" className="text-xs">Semana</TabsTrigger>
-                  <TabsTrigger value="month" className="text-xs">Mês</TabsTrigger>
+                <TabsList className="h-9 grid grid-cols-3 w-full sm:w-auto">
+                  <TabsTrigger value="day" className="text-xs sm:text-sm">Dia</TabsTrigger>
+                  <TabsTrigger value="week" className="text-xs sm:text-sm">Semana</TabsTrigger>
+                  <TabsTrigger value="month" className="text-xs sm:text-sm">Mês</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
             
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleToday} className="gap-2 h-9">
-                <CalendarIcon className="w-4 h-4" />
-                Hoje
+            <div className="flex items-center gap-2 justify-between sm:justify-start">
+              <Button variant="outline" size="sm" onClick={handleToday} className="gap-1 sm:gap-2 h-9 px-2 sm:px-3">
+                <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-xs sm:text-sm">Hoje</span>
               </Button>
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="icon" onClick={handlePrevious} className="h-9 w-9">
@@ -765,8 +801,8 @@ const Agendamentos = () => {
             </div>
           </div>
           
-          <div className="flex items-center justify-center">
-            <h3 className="text-2xl font-bold capitalize">{getDateRangeText()}</h3>
+          <div className="flex items-center justify-center pt-2">
+            <h3 className="text-lg sm:text-xl md:text-2xl font-bold capitalize text-center">{getDateRangeText()}</h3>
           </div>
         </CardHeader>
         <CardContent>
