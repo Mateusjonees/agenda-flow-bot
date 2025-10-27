@@ -35,6 +35,8 @@ export function FinishAppointmentDialog({
   appointmentTitle,
 }: FinishAppointmentDialogProps) {
   const [stockUsages, setStockUsages] = useState<StockUsage[]>([]);
+  const [appointmentValue, setAppointmentValue] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<string>("dinheiro");
   const queryClient = useQueryClient();
 
   // Buscar itens do estoque
@@ -74,16 +76,41 @@ export function FinishAppointmentDialog({
         .eq("customer_id", appointment.customer_id)
         .single();
 
-      // 1. Atualizar status do agendamento
+      // 1. Atualizar status do agendamento (com valor opcional)
+      const updateData: any = { 
+        status: "completed",
+        payment_status: "paid"
+      };
+
+      if (appointmentValue && parseFloat(appointmentValue) > 0) {
+        updateData.price = parseFloat(appointmentValue);
+        updateData.payment_method = paymentMethod;
+      }
+
       const { error: updateError } = await supabase
         .from("appointments")
-        .update({ 
-          status: "completed",
-          payment_status: "paid"
-        })
+        .update(updateData)
         .eq("id", appointmentId);
 
       if (updateError) throw updateError;
+
+      // 1.5 Criar transação financeira se houver valor
+      if (appointmentValue && parseFloat(appointmentValue) > 0) {
+        const { error: transactionError } = await supabase
+          .from("financial_transactions")
+          .insert({
+            user_id: user.id,
+            type: "income",
+            amount: parseFloat(appointmentValue),
+            description: `Atendimento: ${appointmentTitle}`,
+            payment_method: paymentMethod,
+            status: "completed",
+            transaction_date: new Date().toISOString(),
+            appointment_id: appointmentId
+          });
+
+        if (transactionError) throw transactionError;
+      }
 
       // Aguardar um pouco para o trigger executar
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -119,6 +146,8 @@ export function FinishAppointmentDialog({
       queryClient.invalidateQueries({ queryKey: ["loyalty-cards"] });
       queryClient.invalidateQueries({ queryKey: ["customer-history"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
       
       // Verificar se o cartão foi completado
       const { loyaltyCardBefore, loyaltyCardAfter } = data;
@@ -140,6 +169,8 @@ export function FinishAppointmentDialog({
       
       onOpenChange(false);
       setStockUsages([]);
+      setAppointmentValue("");
+      setPaymentMethod("dinheiro");
     },
     onError: (error) => {
       toast.error("Erro ao finalizar atendimento");
@@ -178,6 +209,41 @@ export function FinishAppointmentDialog({
         <div className="space-y-4 py-4">
           <div className="bg-muted p-3 rounded-lg">
             <p className="text-sm font-medium">{appointmentTitle}</p>
+          </div>
+
+          {/* Campo opcional de valor */}
+          <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
+            <h4 className="text-sm font-semibold">Valor do Atendimento (Opcional)</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Valor (R$)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={appointmentValue}
+                  onChange={(e) => setAppointmentValue(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Forma de Pagamento</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="pix">PIX</SelectItem>
+                    <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                    <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Preencha para registrar o valor no relatório e criar transação financeira automaticamente
+            </p>
           </div>
 
           <div className="space-y-4">
