@@ -192,7 +192,7 @@ const Tarefas = () => {
               Nova Tarefa
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Criar Nova Tarefa</DialogTitle>
               <DialogDescription>

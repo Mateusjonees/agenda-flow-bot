@@ -35,6 +35,18 @@ type Appointment = {
   customers?: Customer;
 };
 
+type Task = {
+  id: string;
+  title: string;
+  description: string | null;
+  type: string;
+  priority: string;
+  status: string;
+  due_date: string;
+  related_entity_type: string | null;
+  related_entity_id: string | null;
+};
+
 const Agendamentos = () => {
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState("");
@@ -101,6 +113,37 @@ const Agendamentos = () => {
 
       if (error) throw error;
       return data as Appointment[];
+    },
+  });
+
+  // Buscar tarefas
+  const { data: allTasks = [] } = useQuery({
+    queryKey: ["tasks-calendar", currentDate, viewType],
+    queryFn: async () => {
+      let startDate: Date;
+      let endDate: Date;
+
+      if (viewType === "day") {
+        startDate = startOfDay(currentDate);
+        endDate = endOfDay(currentDate);
+      } else if (viewType === "week") {
+        startDate = startOfWeek(currentDate, { weekStartsOn: 0 });
+        endDate = endOfWeek(currentDate, { weekStartsOn: 0 });
+      } else {
+        startDate = startOfMonth(currentDate);
+        endDate = endOfMonth(currentDate);
+      }
+
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .gte("due_date", startDate.toISOString())
+        .lte("due_date", endDate.toISOString())
+        .in("status", ["pending", "in_progress"])
+        .order("due_date");
+
+      if (error) throw error;
+      return data as Task[];
     },
   });
 
@@ -219,6 +262,11 @@ const Agendamentos = () => {
       return isSameDay(aptDate, currentDate);
     });
     
+    const dayTasks = allTasks.filter(task => {
+      const taskDate = parseISO(task.due_date);
+      return isSameDay(taskDate, currentDate);
+    });
+    
     return (
       <div className="border rounded-lg overflow-hidden">
         <div className="bg-muted p-4 border-b">
@@ -230,6 +278,11 @@ const Agendamentos = () => {
               const aptHour = parseISO(apt.start_time).getHours();
               return aptHour === hour;
             });
+            
+            const hourTasks = dayTasks.filter(task => {
+              const taskHour = parseISO(task.due_date).getHours();
+              return taskHour === hour;
+            });
 
             return (
               <div key={hour} className="flex items-center p-4 hover:bg-muted/50 transition-colors">
@@ -237,7 +290,7 @@ const Agendamentos = () => {
                   {String(hour).padStart(2, "0")}:00
                 </div>
                 <div className="flex-1 min-h-[40px]">
-                  {hourAppointments.length > 0 ? (
+                  {hourAppointments.length > 0 || hourTasks.length > 0 ? (
                      <div className="space-y-2">
                          {hourAppointments.map((apt) => (
                          <div key={apt.id} className="bg-primary/10 border-l-4 border-primary p-2 rounded">
@@ -285,20 +338,38 @@ const Agendamentos = () => {
                                )}
                              </div>
                            </div>
-                         </div>
-                        ))}
-                     </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">Disponível</div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
+                          </div>
+                         ))}
+                         
+                         {hourTasks.map((task) => (
+                          <div key={task.id} className="bg-orange-100 dark:bg-orange-950 border-l-4 border-orange-500 p-2 rounded">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <div className="font-semibold text-sm">{task.title}</div>
+                                  <Badge variant="outline" className="text-xs">
+                                    Tarefa
+                                  </Badge>
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {task.description || "Sem descrição"} • {format(parseISO(task.due_date), "HH:mm")}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                         ))}
+                      </div>
+                   ) : (
+                     <div className="text-sm text-muted-foreground">Disponível</div>
+                   )}
+                 </div>
+               </div>
+             );
+           })}
+         </div>
+       </div>
+     );
+   };
 
   const renderWeekView = () => {
     const start = startOfWeek(currentDate, { weekStartsOn: 0 });

@@ -626,7 +626,7 @@ const Propostas = () => {
                 {filteredProposals.map((proposal, index) => (
                   <Card 
                     key={proposal.id}
-                    className="group relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 animate-fade-in"
+                    className="group relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 animate-fade-in pointer-events-auto"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
               {/* Gradient animado de fundo */}
@@ -706,13 +706,13 @@ const Propostas = () => {
                       </div>
                       
                       {/* Botões de ação principais */}
-                      <div className="flex gap-2 pt-2 relative z-10">
+                      <div className="flex gap-2 pt-2 relative z-20">
                         {(proposal.status === "pending" || proposal.status === "sent") && (
                           <>
                             <Button 
                               type="button"
                               size="sm" 
-                              className="flex-1 gap-2 bg-gradient-to-r from-accent to-green-500 hover:shadow-lg transition-all"
+                              className="flex-1 gap-2 bg-gradient-to-r from-accent to-green-500 hover:shadow-lg transition-all relative z-30 pointer-events-auto"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
@@ -726,7 +726,7 @@ const Propostas = () => {
                               type="button"
                               size="sm" 
                               variant="outline" 
-                              className="flex-1 gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all"
+                              className="flex-1 gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all relative z-30 pointer-events-auto"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
@@ -743,7 +743,7 @@ const Propostas = () => {
                           <Button 
                             type="button"
                             size="sm" 
-                            className="w-full gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-lg transition-all"
+                            className="w-full gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-lg transition-all relative z-30 pointer-events-auto"
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
@@ -760,7 +760,7 @@ const Propostas = () => {
                             type="button"
                             size="sm" 
                             variant="outline"
-                            className="w-full gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary transition-all"
+                            className="w-full gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary transition-all relative z-30 pointer-events-auto"
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
@@ -780,12 +780,12 @@ const Propostas = () => {
                       </div>
 
                       {/* Botões de ações secundárias */}
-                      <div className="flex gap-2 pt-2 border-t relative z-10">
+                      <div className="flex gap-2 pt-2 border-t relative z-20">
                         <Button
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="flex-1 gap-2"
+                          className="flex-1 gap-2 relative z-30 pointer-events-auto"
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
@@ -799,7 +799,7 @@ const Propostas = () => {
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="flex-1 gap-2"
+                          className="flex-1 gap-2 relative z-30 pointer-events-auto"
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
@@ -813,7 +813,7 @@ const Propostas = () => {
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 relative z-30 pointer-events-auto"
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
