@@ -86,7 +86,8 @@ export function NotificationBell() {
         tasks: unseenTasks,
       };
     },
-    enabled: open,
+    refetchInterval: 30000, // Refetch a cada 30 segundos
+    refetchOnWindowFocus: true,
   });
 
   // Mutation para marcar todas como vistas
@@ -109,13 +110,16 @@ export function NotificationBell() {
       ];
 
       if (viewsToInsert.length > 0) {
-        await supabase.from("notification_views").upsert(viewsToInsert, {
-          onConflict: "user_id,notification_type,notification_id",
-        });
+        const { error } = await supabase.from("notification_views").insert(viewsToInsert);
+        
+        if (error && !error.message.includes("duplicate")) {
+          throw error;
+        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.refetchQueries({ queryKey: ["notifications"] });
     },
   });
 
