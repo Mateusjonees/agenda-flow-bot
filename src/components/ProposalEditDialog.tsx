@@ -39,6 +39,7 @@ export const ProposalEditDialog = ({
     discount_percentage: 0,
     deposit_percentage: 50,
     valid_days: 7,
+    status: "pending",
   });
 
   useEffect(() => {
@@ -55,6 +56,7 @@ export const ProposalEditDialog = ({
         discount_percentage: proposal.discount_percentage || 0,
         deposit_percentage: proposal.deposit_percentage || 50,
         valid_days: diffDays > 0 ? diffDays : 7,
+        status: proposal.status || "pending",
       });
     }
   }, [proposal]);
@@ -93,6 +95,7 @@ export const ProposalEditDialog = ({
         deposit_percentage: formData.deposit_percentage,
         deposit_amount: depositAmount,
         valid_until: validUntil.toISOString(),
+        status: formData.status,
       })
       .eq("id", proposal.id);
 
@@ -184,6 +187,24 @@ export const ProposalEditDialog = ({
               placeholder="Detalhes adicionais do orçamento..."
               rows={3}
             />
+          </div>
+
+          <div>
+            <Label>Status do Orçamento</Label>
+            <Select
+              value={formData.status}
+              onValueChange={(value) => setFormData({ ...formData, status: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="sent">Enviado</SelectItem>
+                <SelectItem value="accepted">Aceito</SelectItem>
+                <SelectItem value="rejected">Rejeitado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
