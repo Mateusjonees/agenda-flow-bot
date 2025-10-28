@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -38,6 +38,43 @@ export function FinishAppointmentDialog({
   const [appointmentValue, setAppointmentValue] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("dinheiro");
   const queryClient = useQueryClient();
+
+  // Buscar dados do appointment e proposta quando abrir o diálogo
+  useEffect(() => {
+    if (open && appointmentId) {
+      const fetchAppointmentData = async () => {
+        // Buscar appointment com proposal_id
+        const { data: appointment } = await supabase
+          .from("appointments")
+          .select("proposal_id, price")
+          .eq("id", appointmentId)
+          .single();
+
+        if (appointment?.proposal_id) {
+          // Buscar valor da proposta
+          const { data: proposal } = await supabase
+            .from("proposals")
+            .select("final_amount")
+            .eq("id", appointment.proposal_id)
+            .single();
+
+          if (proposal?.final_amount) {
+            setAppointmentValue(proposal.final_amount.toString());
+          }
+        } else if (appointment?.price) {
+          // Se já tiver preço cadastrado no appointment, usar esse
+          setAppointmentValue(appointment.price.toString());
+        }
+      };
+
+      fetchAppointmentData();
+    } else if (!open) {
+      // Limpar quando fechar
+      setAppointmentValue("");
+      setPaymentMethod("dinheiro");
+      setStockUsages([]);
+    }
+  }, [open, appointmentId]);
 
   // Buscar itens do estoque
   const { data: inventoryItems = [] } = useQuery({
