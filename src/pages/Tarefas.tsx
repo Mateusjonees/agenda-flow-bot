@@ -26,6 +26,8 @@ const Tarefas = () => {
   const [typeStats, setTypeStats] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedPriority, setSelectedPriority] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
   const [formData, setFormData] = useState({
@@ -310,17 +312,51 @@ const Tarefas = () => {
         </Dialog>
       </div>
 
-      {/* Campo de Pesquisa */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Pesquisar tarefas..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+      {/* Campo de Pesquisa e Filtros */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="relative md:col-span-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Pesquisar tarefas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filtrar por Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Status</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="in_progress">Em Progresso</SelectItem>
+                  <SelectItem value="completed">Concluída</SelectItem>
+                  <SelectItem value="cancelled">Cancelada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filtrar por Prioridade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Prioridades</SelectItem>
+                  <SelectItem value="low">Baixa</SelectItem>
+                  <SelectItem value="medium">Média</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                  <SelectItem value="urgent">Urgente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
@@ -396,7 +432,7 @@ const Tarefas = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TaskList showAll={false} maxItems={50} searchQuery={searchQuery} selectedType={selectedType} />
+              <TaskList showAll={false} maxItems={50} searchQuery={searchQuery} selectedType={selectedType} selectedPriority={selectedPriority} selectedStatus={selectedStatus} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -413,7 +449,7 @@ const Tarefas = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TaskList showAll={true} maxItems={100} searchQuery={searchQuery} selectedType={selectedType} />
+              <TaskList showAll={true} maxItems={100} searchQuery={searchQuery} selectedType={selectedType} selectedPriority={selectedPriority} selectedStatus={selectedStatus} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -430,7 +466,7 @@ const Tarefas = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TaskList showCompleted={true} maxItems={100} searchQuery={searchQuery} selectedType={selectedType} />
+              <TaskList showCompleted={true} maxItems={100} searchQuery={searchQuery} selectedType={selectedType} selectedPriority={selectedPriority} selectedStatus={selectedStatus} />
             </CardContent>
           </Card>
         </TabsContent>

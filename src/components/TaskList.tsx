@@ -41,6 +41,8 @@ interface TaskListProps {
   maxItems?: number;
   searchQuery?: string;
   selectedType?: string | null;
+  selectedPriority?: string;
+  selectedStatus?: string;
 }
 
 export const TaskList = ({ 
@@ -48,7 +50,9 @@ export const TaskList = ({
   showCompleted = false, 
   maxItems = 10,
   searchQuery = "",
-  selectedType = null
+  selectedType = null,
+  selectedPriority = "all",
+  selectedStatus = "all"
 }: TaskListProps) => {
   const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -56,7 +60,7 @@ export const TaskList = ({
 
   useEffect(() => {
     fetchTasks();
-  }, [showAll, showCompleted, searchQuery, selectedType]);
+  }, [showAll, showCompleted, searchQuery, selectedType, selectedPriority, selectedStatus]);
 
   const fetchTasks = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -72,20 +76,40 @@ export const TaskList = ({
       query = query.eq("type", selectedType);
     }
 
+    // Filtrar por prioridade
+    if (selectedPriority && selectedPriority !== "all") {
+      query = query.eq("priority", selectedPriority);
+    }
+
+    // Filtrar por status (se não for o filtro padrão de completed/pending)
+    if (selectedStatus && selectedStatus !== "all") {
+      query = query.eq("status", selectedStatus);
+    } else {
+      // Aplicar filtro padrão baseado em showCompleted
+      if (showCompleted) {
+        query = query.in("status", ["completed", "cancelled"]).order("completed_at", { ascending: false });
+      } else {
+        query = query.in("status", ["pending", "in_progress"]).order("due_date", { ascending: true });
+        
+        if (!showAll) {
+          const today = new Date();
+          today.setHours(23, 59, 59, 999);
+          query = query.lte("due_date", today.toISOString());
+        }
+      }
+    }
+
     // Filtrar por busca
     if (searchQuery && searchQuery.length >= 2) {
       query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
     }
 
-    if (showCompleted) {
-      query = query.in("status", ["completed", "cancelled"]).order("completed_at", { ascending: false });
-    } else {
-      query = query.in("status", ["pending", "in_progress"]).order("due_date", { ascending: true });
-      
-      if (!showAll) {
-        const today = new Date();
-        today.setHours(23, 59, 59, 999);
-        query = query.lte("due_date", today.toISOString());
+    // Se já aplicamos filtro de status customizado, aplicar ordenação
+    if (selectedStatus && selectedStatus !== "all") {
+      if (selectedStatus === "completed" || selectedStatus === "cancelled") {
+        query = query.order("completed_at", { ascending: false });
+      } else {
+        query = query.order("due_date", { ascending: true });
       }
     }
 
