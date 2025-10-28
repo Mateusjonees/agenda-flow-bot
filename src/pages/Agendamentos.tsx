@@ -339,34 +339,46 @@ const Agendamentos = () => {
                                </div>
                              </div>
                              
-                             <div className="flex gap-1.5 sm:gap-2">
-                               <Button
-                                 size="sm"
-                                 variant="ghost"
-                                 className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm"
-                                 onClick={() => {
-                                   setEditAppointmentId(apt.id);
-                                   setEditDialogOpen(true);
-                                 }}
-                               >
-                                 <Pencil className="w-3 h-3" />
-                                 <span>Editar</span>
-                               </Button>
-                               {apt.status !== "completed" && (
-                                 <Button
-                                   size="sm"
-                                   variant="default"
-                                   className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm"
-                                   onClick={() => {
-                                     setSelectedAppointment({ id: apt.id, title: apt.title });
-                                     setFinishDialogOpen(true);
-                                   }}
-                                 >
-                                   <CheckCircle className="w-3 h-3" />
-                                   <span>Finalizar</span>
-                                 </Button>
-                               )}
-                             </div>
+                              <div className="flex gap-1.5 sm:gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm"
+                                  onClick={() => {
+                                    setEditAppointmentId(apt.id);
+                                    setEditDialogOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                  <span>Editar</span>
+                                </Button>
+                                {apt.status !== "completed" && (
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm"
+                                    onClick={() => {
+                                      setSelectedAppointment({ id: apt.id, title: apt.title });
+                                      setFinishDialogOpen(true);
+                                    }}
+                                  >
+                                    <CheckCircle className="w-3 h-3" />
+                                    <span>Finalizar</span>
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => {
+                                    setDeleteAppointmentId(apt.id);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>Excluir</span>
+                                </Button>
+                              </div>
                            </div>
                           </div>
                          ))}
