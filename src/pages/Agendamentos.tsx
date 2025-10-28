@@ -68,6 +68,7 @@ const Agendamentos = () => {
   // Filtros
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterCustomer, setFilterCustomer] = useState<string>("all");
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState<string>("all");
   const [filterOpen, setFilterOpen] = useState(false);
   
   const queryClient = useQueryClient();
@@ -176,6 +177,7 @@ const Agendamentos = () => {
   const appointments = allAppointments.filter(apt => {
     if (filterStatus !== "all" && apt.status !== filterStatus) return false;
     if (filterCustomer !== "all" && apt.customer_id !== filterCustomer) return false;
+    if (filterPaymentStatus !== "all" && (apt as any).payment_status !== filterPaymentStatus) return false;
     return true;
   });
 
@@ -722,8 +724,25 @@ const Agendamentos = () => {
             </PopoverTrigger>
             <PopoverContent className="w-80">
               <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Filtros</Label>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        setFilterStatus("all");
+                        setFilterCustomer("all");
+                        setFilterPaymentStatus("all");
+                      }}
+                    >
+                      Limpar
+                    </Button>
+                  </div>
+                </div>
                 <div>
-                  <Label>Status</Label>
+                  <Label className="text-xs text-muted-foreground">Status do Atendimento</Label>
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
                     <SelectTrigger>
                       <SelectValue />
@@ -737,7 +756,21 @@ const Agendamentos = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label>Cliente</Label>
+                  <Label className="text-xs text-muted-foreground">Status do Pagamento</Label>
+                  <Select value={filterPaymentStatus} onValueChange={setFilterPaymentStatus}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="pending">Pendente</SelectItem>
+                      <SelectItem value="paid">Pago</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Cliente</Label>
                   <Select value={filterCustomer} onValueChange={setFilterCustomer}>
                     <SelectTrigger>
                       <SelectValue />
