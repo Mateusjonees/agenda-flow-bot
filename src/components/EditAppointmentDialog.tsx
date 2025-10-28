@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
+import { Trash2 } from "lucide-react";
 
 interface EditAppointmentDialogProps {
   open: boolean;
@@ -38,6 +40,7 @@ export function EditAppointmentDialog({ open, onOpenChange, appointmentId }: Edi
   const [time, setTime] = useState("");
   const [duration, setDuration] = useState("60");
   const [notes, setNotes] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -118,6 +121,28 @@ export function EditAppointmentDialog({ open, onOpenChange, appointmentId }: Edi
     },
     onError: (error) => {
       toast.error("Erro ao atualizar atendimento");
+      console.error(error);
+    },
+  });
+
+  // Mutation para excluir agendamento
+  const deleteAppointment = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("appointments")
+        .delete()
+        .eq("id", appointmentId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      toast.success("Agendamento excluído com sucesso!");
+      setDeleteDialogOpen(false);
+      onOpenChange(false);
+    },
+    onError: (error) => {
+      toast.error("Erro ao excluir agendamento");
       console.error(error);
     },
   });
@@ -221,16 +246,47 @@ export function EditAppointmentDialog({ open, onOpenChange, appointmentId }: Edi
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
+          <div className="flex justify-between gap-2 pt-4">
+            <Button 
+              type="button" 
+              variant="destructive" 
+              onClick={() => setDeleteDialogOpen(true)}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Excluir
             </Button>
-            <Button type="submit" disabled={updateAppointment.isPending}>
-              {updateAppointment.isPending ? "Salvando..." : "Salvar"}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={updateAppointment.isPending}>
+                {updateAppointment.isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir agendamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O agendamento será permanentemente excluído do sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteAppointment.mutate()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

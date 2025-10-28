@@ -483,7 +483,7 @@ const Agendamentos = () => {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="h-5 w-5 p-0 opacity-70 hover:opacity-100 transition-opacity"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setEditAppointmentId(apt.id);
@@ -497,7 +497,7 @@ const Agendamentos = () => {
                                     <Button
                                       size="sm"
                                       variant="ghost"
-                                      className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      className="h-5 w-5 p-0 opacity-70 hover:opacity-100 transition-opacity"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedAppointment({ id: apt.id, title: apt.title });
@@ -511,7 +511,7 @@ const Agendamentos = () => {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                                    className="h-5 w-5 p-0 opacity-70 hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setDeleteAppointmentId(apt.id);
