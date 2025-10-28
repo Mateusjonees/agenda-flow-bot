@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Trash2, Filter, CheckCircle, XCircle, Calendar as CalendarIcon, User, DollarSign, Sparkles, Search } from "lucide-react";
+import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Trash2, Filter, CheckCircle, XCircle, Calendar as CalendarIcon, User, DollarSign, Sparkles, Search, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,8 @@ import { ProposalViewDialog } from "@/components/ProposalViewDialog";
 import { ProposalEditDialog } from "@/components/ProposalEditDialog";
 import { ProposalConfirmDialog } from "@/components/ProposalConfirmDialog";
 import { ScheduleAppointmentDialog } from "@/components/ScheduleAppointmentDialog";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 interface Proposal {
   id: string;
@@ -71,6 +73,7 @@ const Propostas = () => {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCustomer, setFilterCustomer] = useState<string>("all");
+  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
 
   const [newProposal, setNewProposal] = useState({
     customer_id: "",
@@ -389,21 +392,49 @@ const Propostas = () => {
               <div className="space-y-4">
                 <div>
                   <Label>Cliente *</Label>
-                  <Select
-                    value={newProposal.customer_id}
-                    onValueChange={(value) => setNewProposal({ ...newProposal, customer_id: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um cliente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={customerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={customerSearchOpen}
+                        className="w-full justify-between"
+                      >
+                        {newProposal.customer_id
+                          ? customers.find((customer) => customer.id === newProposal.customer_id)?.name
+                          : "Selecione um cliente..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Buscar cliente..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                          <CommandGroup>
+                            {customers.map((customer) => (
+                              <CommandItem
+                                key={customer.id}
+                                value={customer.name}
+                                onSelect={() => {
+                                  setNewProposal({ ...newProposal, customer_id: customer.id });
+                                  setCustomerSearchOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    newProposal.customer_id === customer.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {customer.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div>
