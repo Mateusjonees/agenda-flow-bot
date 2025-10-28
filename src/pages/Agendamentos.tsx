@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle, Pencil, Filter } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle, Pencil, Filter, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format, addDays, addWeeks, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
@@ -61,6 +62,8 @@ const Agendamentos = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<{ id: string; title: string } | null>(null);
   const [editAppointmentId, setEditAppointmentId] = useState<string>("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAppointmentId, setDeleteAppointmentId] = useState<string>("");
   
   // Filtros
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -80,6 +83,28 @@ const Agendamentos = () => {
       
       if (error) throw error;
       return data as Customer[];
+    },
+  });
+
+  // Mutation para excluir agendamento
+  const deleteAppointmentMutation = useMutation({
+    mutationFn: async (appointmentId: string) => {
+      const { error } = await supabase
+        .from("appointments")
+        .delete()
+        .eq("id", appointmentId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      toast.success("Agendamento excluído com sucesso!");
+      setDeleteDialogOpen(false);
+      setDeleteAppointmentId("");
+    },
+    onError: (error) => {
+      console.error("Erro ao excluir agendamento:", error);
+      toast.error("Erro ao excluir agendamento");
     },
   });
 
@@ -483,6 +508,19 @@ const Agendamentos = () => {
                                       <CheckCircle className="w-2.5 h-2.5" />
                                     </Button>
                                   )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeleteAppointmentId(apt.id);
+                                      setDeleteDialogOpen(true);
+                                    }}
+                                    title="Excluir"
+                                  >
+                                    <Trash2 className="w-2.5 h-2.5" />
+                                  </Button>
                                 </div>
                               </div>
                             </div>
@@ -625,6 +663,19 @@ const Agendamentos = () => {
                               <CheckCircle className="w-3 h-3" />
                             </Button>
                           )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 w-5 p-0 hover:bg-destructive/20 text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteAppointmentId(apt.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -862,6 +913,26 @@ const Agendamentos = () => {
           appointmentId={editAppointmentId}
         />
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir agendamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O agendamento será permanentemente excluído do sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteAppointmentMutation.mutate(deleteAppointmentId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
