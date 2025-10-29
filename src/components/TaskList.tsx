@@ -81,11 +81,22 @@ export const TaskList = ({
       query = query.eq("priority", selectedPriority);
     }
 
-    // Filtrar por status (se não for o filtro padrão de completed/pending)
+    // Filtrar por status
     if (selectedStatus && selectedStatus !== "all") {
+      // Filtro específico de status selecionado
       query = query.eq("status", selectedStatus);
+      
+      // Ordenar baseado no status
+      if (selectedStatus === "completed" || selectedStatus === "cancelled") {
+        query = query.order("completed_at", { ascending: false });
+      } else {
+        query = query.order("due_date", { ascending: true });
+      }
+    } else if (selectedStatus === "all") {
+      // Quando "Todos os Status" está selecionado, mostrar realmente TODOS
+      query = query.order("due_date", { ascending: false });
     } else {
-      // Aplicar filtro padrão baseado em showCompleted
+      // Filtro padrão quando não há selectedStatus (caso do dashboard)
       if (showCompleted) {
         query = query.in("status", ["completed", "cancelled"]).order("completed_at", { ascending: false });
       } else {
@@ -102,15 +113,6 @@ export const TaskList = ({
     // Filtrar por busca
     if (searchQuery && searchQuery.length >= 2) {
       query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
-    }
-
-    // Se já aplicamos filtro de status customizado, aplicar ordenação
-    if (selectedStatus && selectedStatus !== "all") {
-      if (selectedStatus === "completed" || selectedStatus === "cancelled") {
-        query = query.order("completed_at", { ascending: false });
-      } else {
-        query = query.order("due_date", { ascending: true });
-      }
     }
 
     if (maxItems) {
