@@ -156,25 +156,25 @@ const Dashboard = () => {
       title: "Atendimentos Hoje",
       value: stats.todayAppointments,
       icon: Calendar,
-      gradient: "from-primary to-primary-hover",
+      gradient: "from-primary to-secondary",
     },
     {
       title: "Atendimentos Semana",
       value: stats.weekAppointments,
       icon: TrendingUp,
-      gradient: "from-primary to-primary-hover",
+      gradient: "from-secondary to-accent",
     },
     {
       title: "Total de Clientes",
       value: stats.totalCustomers,
       icon: Users,
-      gradient: "from-accent to-green-500",
+      gradient: "from-accent to-primary",
     },
     {
       title: "Concluídos Hoje",
       value: stats.completedToday,
       icon: CheckCircle2,
-      gradient: "from-accent to-green-500",
+      gradient: "from-primary via-secondary to-accent",
     },
   ];
 
@@ -182,25 +182,25 @@ const Dashboard = () => {
     {
       title: "Novo Agendamento",
       icon: Calendar,
-      color: "from-primary to-primary-hover",
+      color: "from-primary to-secondary",
       action: () => navigate("/agendamentos"),
     },
     {
       title: "Novo Cliente",
       icon: Users,
-      color: "from-accent to-green-500",
+      color: "from-accent to-primary",
       action: () => navigate("/clientes"),
     },
     {
       title: "Movimentação Financeira",
       icon: DollarSign,
-      color: "from-blue-500 to-blue-600",
+      color: "from-secondary to-accent",
       action: () => navigate("/financeiro"),
     },
     {
       title: "Registrar Estoque",
       icon: Package,
-      color: "from-purple-500 to-purple-600",
+      color: "from-primary via-accent to-secondary",
       action: () => navigate("/estoque"),
     },
   ];
@@ -223,14 +223,14 @@ const Dashboard = () => {
     <div className="space-y-8 animate-fade-in">
       {/* Header Premium com gradiente */}
       <div className="relative rounded-3xl overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-purple-500/10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10" />
         <div className="relative p-8">
           <div className="flex items-center gap-4 mb-3">
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-primary to-accent shadow-xl">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-primary via-secondary to-accent shadow-xl">
               <Sparkles className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-5xl font-extrabold bg-gradient-to-r from-primary via-accent to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-5xl font-extrabold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                 Painel
               </h1>
               <p className="text-muted-foreground mt-2 flex items-center gap-2">
@@ -260,7 +260,7 @@ const Dashboard = () => {
         <Card className="border-0 shadow-xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-accent to-green-500">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-secondary to-accent">
                 <Package className="w-5 h-5 text-white" />
               </div>
               <CardTitle className="text-2xl font-bold">Serviços Populares</CardTitle>
@@ -346,7 +346,7 @@ const Dashboard = () => {
         <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-accent to-primary">
                 <Clock className="h-5 w-5 text-white" />
               </div>
               <CardTitle className="text-2xl font-bold">Atendimentos de Hoje</CardTitle>
@@ -405,7 +405,7 @@ const Dashboard = () => {
         <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500 to-red-500">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-secondary">
                 <ListTodo className="h-5 w-5 text-white" />
               </div>
               <CardTitle className="text-2xl font-bold">Tarefas Pendentes</CardTitle>
