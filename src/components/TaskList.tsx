@@ -33,6 +33,14 @@ interface Task {
   related_entity_id: string;
   completed_at?: string;
   updated_at: string;
+  metadata?: {
+    customer_id?: string;
+    [key: string]: any;
+  };
+}
+
+interface TaskWithCustomer extends Task {
+  customer_name?: string;
 }
 
 interface TaskListProps {
@@ -55,7 +63,7 @@ export const TaskList = ({
   selectedStatus = "all"
 }: TaskListProps) => {
   const { toast } = useToast();
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<TaskWithCustomer[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -127,9 +135,40 @@ export const TaskList = ({
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      setTasks(data || []);
+      setLoading(false);
+      return;
     }
+
+    // Buscar nomes dos clientes para tarefas que têm customer_id
+    const tasksWithCustomers: TaskWithCustomer[] = (data || []).map(task => ({
+      ...task,
+      metadata: task.metadata as any,
+    }));
+    const customerIds = tasksWithCustomers
+      .map(task => {
+        const metadata = task.metadata as { customer_id?: string };
+        return metadata?.customer_id;
+      })
+      .filter((id): id is string => !!id);
+
+    if (customerIds.length > 0) {
+      const { data: customers } = await supabase
+        .from("customers")
+        .select("id, name")
+        .in("id", customerIds);
+
+      if (customers) {
+        const customerMap = new Map(customers.map(c => [c.id, c.name]));
+        tasksWithCustomers.forEach(task => {
+          const metadata = task.metadata as { customer_id?: string };
+          if (metadata?.customer_id) {
+            task.customer_name = customerMap.get(metadata.customer_id);
+          }
+        });
+      }
+    }
+
+    setTasks(tasksWithCustomers);
     setLoading(false);
   };
 
@@ -282,7 +321,14 @@ export const TaskList = ({
               )}
               <div className="flex-1 space-y-2">
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="font-medium flex-1">{task.title}</h4>
+                  <div className="flex-1">
+                    <h4 className="font-medium">{task.title}</h4>
+                    {task.customer_name && (
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        Cliente: {task.customer_name}
+                      </p>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     {!showCompleted && (
                       <>
