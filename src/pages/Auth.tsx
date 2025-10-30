@@ -4,10 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Rocket } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 const Auth = () => {
@@ -16,6 +15,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -102,154 +102,155 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Lado esquerdo - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-primary/90 to-primary/80 items-center justify-center p-12">
-        <div className="text-center">
-          <img src={logo} alt="SmartAgenda" className="w-40 h-40 mx-auto mb-8" />
-          <h1 className="text-4xl font-bold text-white mb-4">SmartAgenda</h1>
-          <p className="text-xl text-white/90 max-w-md">Gestão inteligente e completa para o seu negócio</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-muted/30 via-muted/20 to-background relative overflow-hidden">
+      {/* Decorative rockets */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <Rocket className="absolute top-20 right-[15%] w-32 h-32 text-muted/20 rotate-45" />
+        <Rocket className="absolute bottom-32 left-[10%] w-24 h-24 text-muted/15 -rotate-12" />
+        <Rocket className="absolute top-1/2 right-[5%] w-20 h-20 text-muted/10 rotate-90" />
       </div>
 
-      {/* Lado direito - Formulário */}
-      <div className="flex-1 flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md">
-          {/* Logo mobile */}
-          <div className="lg:hidden text-center mb-8">
-            <img src={logo} alt="SmartAgenda" className="w-20 h-20 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-foreground mb-2">SmartAgenda</h1>
-          </div>
-
-          <Card className="bg-[hsl(var(--auth-card))] border-none shadow-2xl">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-white text-xl">Acesse sua conta</CardTitle>
-              <CardDescription className="text-gray-400 text-sm">Entre ou crie uma nova conta para continuar</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="signin" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-[hsl(var(--auth-card))] border border-gray-800 p-1">
-                  <TabsTrigger 
-                    value="signin"
-                    className="data-[state=active]:bg-[hsl(var(--auth-card))] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-700 text-gray-400"
-                  >
-                    Entrar
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="signup"
-                    className="data-[state=active]:bg-[hsl(var(--auth-card))] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-700 text-gray-400"
-                  >
-                    Criar Conta
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="signin">
-                  <form onSubmit={handleSignIn} className="space-y-4 mt-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="signin-email" className="text-white text-sm">E-mail</Label>
-                      <Input
-                        id="signin-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={loading}
-                        required
-                        className="bg-black/50 border-gray-800 text-white placeholder:text-gray-500 focus-visible:ring-gray-700"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signin-password" className="text-white text-sm">Senha</Label>
-                      <Input
-                        id="signin-password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={loading}
-                        required
-                        className="bg-black/50 border-gray-800 text-white placeholder:text-gray-500 focus-visible:ring-gray-700"
-                      />
-                    </div>
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-primary hover:bg-primary/90 text-white mt-6" 
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Entrando...
-                        </>
-                      ) : (
-                        "Entrar"
-                      )}
-                    </Button>
-                  </form>
-                </TabsContent>
-                
-                <TabsContent value="signup">
-                  <form onSubmit={handleSignUp} className="space-y-4 mt-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-name" className="text-white text-sm">Nome</Label>
-                      <Input
-                        id="signup-name"
-                        type="text"
-                        placeholder="Seu nome"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        disabled={loading}
-                        required
-                        className="bg-black/50 border-gray-800 text-white placeholder:text-gray-500 focus-visible:ring-gray-700"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email" className="text-white text-sm">E-mail</Label>
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={loading}
-                        required
-                        className="bg-black/50 border-gray-800 text-white placeholder:text-gray-500 focus-visible:ring-gray-700"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password" className="text-white text-sm">Senha</Label>
-                      <Input
-                        id="signup-password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={loading}
-                        required
-                        minLength={6}
-                        className="bg-black/50 border-gray-800 text-white placeholder:text-gray-500 focus-visible:ring-gray-700"
-                      />
-                    </div>
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-primary hover:bg-primary/90 text-white mt-6" 
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Criando...
-                        </>
-                      ) : (
-                        "Criar Conta"
-                      )}
-                    </Button>
-                  </form>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 relative z-10">
+        {/* Logo and branding */}
+        <div className="text-center mb-8">
+          <img src={logo} alt="Foguete Gestão" className="w-32 h-32 mx-auto mb-4" />
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">Foguete</h1>
+          <p className="text-xl md:text-2xl text-muted-foreground">Gestão Empresarial</p>
         </div>
+
+        {/* Auth card */}
+        <Card className="w-full max-w-md bg-card border shadow-xl">
+          <CardContent className="pt-8 pb-8 px-8">
+            {!isSignUp ? (
+              <form onSubmit={handleSignIn} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu.email@empresa.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                    required
+                    className="h-12"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-foreground font-medium">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="•••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                    className="h-12"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 text-base font-semibold shadow-lg" 
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Entrando...
+                    </>
+                  ) : (
+                    "Entrar"
+                  )}
+                </Button>
+                
+                <div className="flex items-center justify-between text-sm pt-2">
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground underline"
+                    onClick={() => toast.info("Entre em contato com o administrador para redefinir sua senha")}
+                  >
+                    Esqueceu a senha?
+                  </button>
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground underline"
+                    onClick={() => setIsSignUp(true)}
+                  >
+                    Criar conta
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleSignUp} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name" className="text-foreground font-medium">Nome</Label>
+                  <Input
+                    id="signup-name"
+                    type="text"
+                    placeholder="Seu nome completo"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={loading}
+                    required
+                    className="h-12"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email" className="text-foreground font-medium">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="seu.email@empresa.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                    required
+                    className="h-12"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password" className="text-foreground font-medium">Senha</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="Mínimo 6 caracteres"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                    minLength={6}
+                    className="h-12"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 text-base font-semibold shadow-lg" 
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Criando conta...
+                    </>
+                  ) : (
+                    "Criar Conta"
+                  )}
+                </Button>
+                
+                <div className="text-center text-sm pt-2">
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground underline"
+                    onClick={() => setIsSignUp(false)}
+                  >
+                    Já tem uma conta? Entrar
+                  </button>
+                </div>
+              </form>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
