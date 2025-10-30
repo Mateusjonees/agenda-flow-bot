@@ -185,11 +185,7 @@ const Layout = ({ children }: LayoutProps) => {
               <SidebarTrigger className="-ml-1 sm:-ml-2" />
               
               <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                <img src={logo} alt="Foguete" className="w-7 h-7 sm:w-9 sm:h-9" />
-                <div className="hidden sm:block">
-                  <h1 className="text-base sm:text-lg font-bold leading-none">Foguete</h1>
-                  <p className="text-xs text-muted-foreground">Gestão Empresarial</p>
-                </div>
+                <img src={logo} alt="Foguete Gestão Empresarial" className="h-8 sm:h-10 w-auto" />
               </div>
 
               <div className="hidden md:flex flex-1 max-w-md mx-4">

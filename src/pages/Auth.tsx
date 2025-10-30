@@ -113,9 +113,7 @@ const Auth = () => {
       <div className="min-h-screen flex flex-col items-center justify-center p-4 relative z-10">
         {/* Logo and branding */}
         <div className="text-center mb-8">
-          <img src={logo} alt="Foguete Gestão" className="w-32 h-32 mx-auto mb-4" />
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">Foguete</h1>
-          <p className="text-xl md:text-2xl text-muted-foreground">Gestão Empresarial</p>
+          <img src={logo} alt="Foguete Gestão Empresarial" className="h-24 md:h-28 w-auto mx-auto" />
         </div>
 
         {/* Auth card */}
