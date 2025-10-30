@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { 
   CheckCircle2, 
   Circle, 
@@ -65,6 +66,8 @@ export const TaskList = ({
   const { toast } = useToast();
   const [tasks, setTasks] = useState<TaskWithCustomer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchTasks();
@@ -300,8 +303,16 @@ export const TaskList = ({
   }
 
   return (
-    <div className="space-y-3">
-      {tasks.map((task) => (
+    <>
+      <EditTaskDialog
+        task={editingTask}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onTaskUpdated={fetchTasks}
+      />
+      
+      <div className="space-y-3">
+        {tasks.map((task) => (
         <Card 
           key={task.id} 
           className={`${
@@ -337,7 +348,8 @@ export const TaskList = ({
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => {
-                            // TODO: Implementar edição
+                            setEditingTask(task);
+                            setEditDialogOpen(true);
                           }}
                         >
                           <Edit className="h-4 w-4" />
@@ -393,7 +405,8 @@ export const TaskList = ({
             </div>
           </CardContent>
         </Card>
-      ))}
-    </div>
+        ))}
+      </div>
+    </>
   );
 };
