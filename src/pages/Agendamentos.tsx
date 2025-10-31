@@ -813,17 +813,17 @@ const Agendamentos = () => {
                       variant="outline"
                       role="combobox"
                       aria-expanded={customerSearchOpen}
-                      className="w-full justify-between"
+                      className="w-full justify-between h-11"
                     >
                       {customerId
                         ? customers.find((customer) => customer.id === customerId)?.name
-                        : "Selecione um cliente..."}
+                        : "🔍 Buscar cliente por nome..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Buscar cliente..." />
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command shouldFilter>
+                      <CommandInput placeholder="Digite para buscar cliente..." className="h-11" />
                       <CommandList>
                         <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                         <CommandGroup>
@@ -831,6 +831,7 @@ const Agendamentos = () => {
                             <CommandItem
                               key={customer.id}
                               value={customer.name}
+                              keywords={[customer.name.toLowerCase()]}
                               onSelect={() => {
                                 setCustomerId(customer.id);
                                 setCustomerSearchOpen(false);
@@ -889,17 +890,17 @@ const Agendamentos = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="duration">Duração (minutos) *</Label>
-                <Select value={duration} onValueChange={setDuration}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="30">30 minutos</SelectItem>
-                    <SelectItem value="60">1 hora</SelectItem>
-                    <SelectItem value="90">1h 30min</SelectItem>
-                    <SelectItem value="120">2 horas</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="duration"
+                  type="number"
+                  min="15"
+                  max="480"
+                  step="15"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  placeholder="Ex: 60"
+                  required
+                />
               </div>
 
               <div className="space-y-2">
