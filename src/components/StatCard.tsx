@@ -16,25 +16,25 @@ interface StatCardProps {
 
 export const StatCard = ({ title, value, icon: Icon, gradient, trend }: StatCardProps) => (
   <GradientCard gradient={gradient}>
-    <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
-      <CardTitle className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+      <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {title}
       </CardTitle>
       <div className={cn(
-        "p-3 rounded-2xl bg-gradient-to-br shadow-lg group-hover:scale-110 transition-transform",
+        "p-2 rounded-xl bg-gradient-to-br shadow-lg group-hover:scale-110 transition-transform",
         gradient
       )}>
-        <Icon className="w-5 h-5 text-white" />
+        <Icon className="w-4 h-4 text-white" />
       </div>
     </CardHeader>
-    <CardContent className="space-y-2">
-      <div className="text-4xl font-extrabold">{value}</div>
+    <CardContent className="space-y-1 pb-4">
+      <div className="text-2xl font-bold">{value}</div>
       {trend && (
         <div className={cn(
-          "flex items-center gap-1 text-sm font-medium",
+          "flex items-center gap-1 text-xs font-medium",
           trend.positive ? "text-accent" : "text-destructive"
         )}>
-          {trend.positive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+          {trend.positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
           <span>{Math.abs(trend.value)}%</span>
         </div>
       )}

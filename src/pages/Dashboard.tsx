@@ -222,20 +222,20 @@ const Dashboard = () => {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header Premium com gradiente */}
-      <div className="relative rounded-3xl overflow-hidden">
+      <div className="relative rounded-2xl overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10" />
-        <div className="relative p-8">
-          <div className="flex items-center gap-4 mb-3">
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-primary via-secondary to-accent shadow-xl">
-              <Sparkles className="w-8 h-8 text-white" />
+        <div className="relative p-4 sm:p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-primary via-secondary to-accent shadow-lg">
+              <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-5xl font-extrabold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                 Painel
               </h1>
-              <p className="text-muted-foreground mt-2 flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                {format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                <Clock className="w-3 h-3" />
+                {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
               </p>
             </div>
           </div>
@@ -243,7 +243,7 @@ const Dashboard = () => {
       </div>
 
       {/* Cards de Estatísticas Premium */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat) => (
           <StatCard
             key={stat.title}
@@ -258,15 +258,15 @@ const Dashboard = () => {
       {/* Gráficos de Tendência */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-0 shadow-xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-secondary to-accent">
-                <Package className="w-5 h-5 text-white" />
+          <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20 pb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-secondary to-accent">
+                <Package className="w-4 h-4 text-white" />
               </div>
-              <CardTitle className="text-2xl font-bold">Serviços Populares</CardTitle>
+              <CardTitle className="text-lg font-bold">Serviços Populares</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="pt-6">
+          <CardContent className="pt-4">
             {serviceData.length === 0 ? (
               <div className="text-center py-12">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
@@ -307,30 +307,30 @@ const Dashboard = () => {
 
       {/* Ações Rápidas Premium */}
       <Card className="border-0 shadow-xl overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-1 bg-gradient-to-b from-primary to-accent rounded-full" />
-            <CardTitle className="text-2xl font-bold">Ações Rápidas</CardTitle>
+        <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-1 bg-gradient-to-b from-primary to-accent rounded-full" />
+            <CardTitle className="text-xl font-bold">Ações Rápidas</CardTitle>
           </div>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="pt-4">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             {quickActions.map((action) => {
               const Icon = action.icon;
               return (
                 <Button
                   key={action.title}
                   variant="outline"
-                  className="group relative h-auto p-6 flex flex-col items-start gap-4 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-primary/50 overflow-hidden"
+                  className="group relative h-auto p-4 flex flex-col items-start gap-3 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-2 hover:border-primary/50 overflow-hidden"
                   onClick={action.action}
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${action.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
                   
-                  <div className="relative z-10 w-full space-y-3">
-                    <div className={`p-4 rounded-2xl bg-gradient-to-br ${action.color} w-fit shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                      <Icon className="w-7 h-7 text-white" />
+                  <div className="relative z-10 w-full space-y-2">
+                    <div className={`p-3 rounded-xl bg-gradient-to-br ${action.color} w-fit shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="w-5 h-5 text-white" />
                     </div>
-                    <span className="text-sm font-semibold text-left">{action.title}</span>
+                    <span className="text-xs font-semibold text-left">{action.title}</span>
                   </div>
                   
                   <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-accent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
@@ -343,13 +343,13 @@ const Dashboard = () => {
 
       {/* Agendamentos de Hoje Premium */}
       <Card className="border-0 shadow-xl overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20">
+        <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20 pb-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-accent to-primary">
-                <Clock className="h-5 w-5 text-white" />
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-accent to-primary">
+                <Clock className="h-4 w-4 text-white" />
               </div>
-              <CardTitle className="text-2xl font-bold">Atendimentos de Hoje</CardTitle>
+              <CardTitle className="text-lg font-bold">Atendimentos de Hoje</CardTitle>
             </div>
             <Button 
               size="sm" 
@@ -361,7 +361,7 @@ const Dashboard = () => {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="pt-4">
           {todayAppointments.length === 0 ? (
             <div className="text-center py-12">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
@@ -402,13 +402,13 @@ const Dashboard = () => {
 
       {/* Tarefas Premium */}
       <Card className="border-0 shadow-xl overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20">
+        <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20 pb-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-secondary">
-                <ListTodo className="h-5 w-5 text-white" />
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-secondary">
+                <ListTodo className="h-4 w-4 text-white" />
               </div>
-              <CardTitle className="text-2xl font-bold">Tarefas Pendentes</CardTitle>
+              <CardTitle className="text-lg font-bold">Tarefas Pendentes</CardTitle>
             </div>
             <Button 
               size="sm" 
@@ -420,7 +420,7 @@ const Dashboard = () => {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="pt-4">
           <TaskList maxItems={5} />
         </CardContent>
       </Card>
