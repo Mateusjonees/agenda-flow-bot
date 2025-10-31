@@ -10,6 +10,7 @@ import {
   Repeat,
   ListTodo,
   Package,
+  MessageCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -58,6 +59,21 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 );
               })}
+              
+              {/* WhatsApp Support */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Suporte WhatsApp">
+                  <a 
+                    href="https://wa.me/5511999999999?text=Olá,%20preciso%20de%20suporte" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    <span>Suporte WhatsApp</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
