@@ -221,18 +221,17 @@ export function EditAppointmentDialog({ open, onOpenChange, appointmentId }: Edi
 
           <div className="space-y-2">
             <Label htmlFor="duration">Duração (minutos) *</Label>
-            <Select value={duration} onValueChange={setDuration} required>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="30">30 minutos</SelectItem>
-                <SelectItem value="60">1 hora</SelectItem>
-                <SelectItem value="90">1h 30min</SelectItem>
-                <SelectItem value="120">2 horas</SelectItem>
-                <SelectItem value="180">3 horas</SelectItem>
-              </SelectContent>
-            </Select>
+            <Input
+              id="duration"
+              type="number"
+              min="15"
+              max="480"
+              step="15"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              placeholder="Ex: 60"
+              required
+            />
           </div>
 
           <div className="space-y-2">
