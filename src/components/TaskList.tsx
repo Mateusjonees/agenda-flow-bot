@@ -325,7 +325,7 @@ export const TaskList = ({
             <div className="flex items-start gap-3">
               {!showCompleted && (
                 <Checkbox
-                  checked={false}
+                  checked={task.status === "completed"}
                   onCheckedChange={() => handleCompleteTask(task.id)}
                   className="mt-1"
                 />
