@@ -16,6 +16,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -101,6 +102,31 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      toast.error("Preencha o e-mail");
+      return;
+    }
+
+    setLoading(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/`,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("E-mail de recuperação enviado! Verifique sua caixa de entrada.");
+      setIsForgotPassword(false);
+      setEmail("");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-muted/30 via-muted/20 to-background relative overflow-hidden">
       {/* Decorative rockets */}
@@ -119,7 +145,56 @@ const Auth = () => {
         {/* Auth card */}
         <Card className="w-full max-w-md bg-card border shadow-xl">
           <CardContent className="pt-8 pb-8 px-8">
-            {!isSignUp ? (
+            {isForgotPassword ? (
+              <form onSubmit={handleForgotPassword} className="space-y-6">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-bold text-foreground">Recuperar Senha</h2>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Digite seu e-mail para receber um link de recuperação
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="forgot-email" className="text-foreground font-medium">Email</Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="seu.email@empresa.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                    required
+                    className="h-12"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 text-base font-semibold shadow-lg" 
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    "Enviar Link de Recuperação"
+                  )}
+                </Button>
+                
+                <div className="text-center text-sm pt-2">
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground underline"
+                    onClick={() => {
+                      setIsForgotPassword(false);
+                      setEmail("");
+                    }}
+                  >
+                    Voltar ao login
+                  </button>
+                </div>
+              </form>
+            ) : !isSignUp ? (
               <form onSubmit={handleSignIn} className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
@@ -166,7 +241,11 @@ const Auth = () => {
                   <button
                     type="button"
                     className="text-muted-foreground hover:text-foreground underline"
-                    onClick={() => toast.info("Entre em contato com o administrador para redefinir sua senha")}
+                    onClick={() => {
+                      setIsForgotPassword(true);
+                      setEmail("");
+                      setPassword("");
+                    }}
                   >
                     Esqueceu a senha?
                   </button>
