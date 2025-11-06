@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Zap, Star, CreditCard } from "lucide-react";
+import { Check, Zap, Star, CreditCard, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 declare global {
@@ -210,8 +210,20 @@ const Pricing = () => {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+        {/* Back Button */}
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/")}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+        </div>
+
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <Badge className="mb-4 bg-warning text-warning-foreground">
             Trial
           </Badge>
@@ -220,9 +232,9 @@ const Pricing = () => {
 
         {/* Payment Method Tabs */}
         <Tabs defaultValue="pix" className="mb-8" onValueChange={(value) => setPaymentMethod(value as "pix" | "card")}>
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-            <TabsTrigger value="pix">PIX</TabsTrigger>
-            <TabsTrigger value="card">Cartão de Crédito</TabsTrigger>
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 h-12">
+            <TabsTrigger value="pix" className="text-base font-medium">PIX</TabsTrigger>
+            <TabsTrigger value="card" className="text-base font-medium">Cartão de Crédito</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -307,10 +319,6 @@ const Pricing = () => {
           })}
         </div>
 
-        {/* Footer Note */}
-        <div className="text-center mt-12 text-sm text-muted-foreground">
-          <p>Todos os planos incluem suporte técnico e atualizações gratuitas</p>
-        </div>
       </div>
     </div>
   );
