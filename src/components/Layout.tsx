@@ -286,26 +286,11 @@ const Layout = ({ children }: LayoutProps) => {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 overflow-auto pb-16">
+          <main className="flex-1 overflow-auto">
             <div className="p-3 sm:p-4 md:p-6">
               {children}
             </div>
           </main>
-
-          {/* Footer */}
-          <footer className="sticky bottom-0 z-40 w-full border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="flex h-14 items-center justify-center px-4">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all"
-                onClick={() => window.open("https://wa.me/5500000000000?text=Olá,%20preciso%20de%20suporte%20com%20o%20sistema%20Foguete%20Gestão", "_blank")}
-              >
-                <MessageCircle className="h-4 w-4 text-primary" />
-                <span className="text-sm">Suporte via WhatsApp</span>
-              </Button>
-            </div>
-          </footer>
         </div>
       </div>
     </SidebarProvider>
