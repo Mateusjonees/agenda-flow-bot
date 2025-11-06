@@ -60,20 +60,8 @@ const Layout = ({ children }: LayoutProps) => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Buscar foto de perfil
-  const { data: profileImage } = useQuery({
-    queryKey: ["profile-image", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
-        .from("business_settings")
-        .select("profile_image_url")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      return data?.profile_image_url;
-    },
-    enabled: !!user,
-  });
+  // Foto de perfil (tabela não existe ainda)
+  const profileImage = null;
 
   // Buscar notificações não vistas
   const { data: notifications } = useQuery({
@@ -105,56 +93,21 @@ const Layout = ({ children }: LayoutProps) => {
         .order("due_date", { ascending: true })
         .limit(10);
 
-      // Buscar notificações já vistas
-      const { data: viewedData } = await supabase
-        .from("notification_views")
-        .select("notification_type, notification_id")
-        .eq("user_id", user.id);
-
-      const viewedSet = new Set(
-        viewedData?.map((v) => `${v.notification_type}-${v.notification_id}`) || []
-      );
-
-      // Filtrar apenas não vistas
-      const unseenAppointments = (appointmentsData || []).filter(
-        (apt) => !viewedSet.has(`appointment-${apt.id}`)
-      );
-      const unseenTasks = (tasksData || []).filter(
-        (task) => !viewedSet.has(`task-${task.id}`)
-      );
-
+      // Retornar todas as notificações (sem filtro de visualizadas)
       return {
-        appointments: unseenAppointments,
-        tasks: unseenTasks,
+        appointments: appointmentsData || [],
+        tasks: tasksData || [],
       };
     },
     enabled: !!user,
     refetchInterval: 60000, // Recarregar a cada minuto
   });
 
-  // Mutation para marcar todas como vistas
+  // Mutation para marcar todas como vistas (desabilitado - tabela não existe)
   const markAllAsViewed = useMutation({
     mutationFn: async () => {
-      if (!user || !notifications) return;
-
-      const viewsToInsert = [
-        ...notifications.appointments.map((apt: any) => ({
-          user_id: user.id,
-          notification_type: "appointment",
-          notification_id: apt.id,
-        })),
-        ...notifications.tasks.map((task: any) => ({
-          user_id: user.id,
-          notification_type: "task",
-          notification_id: task.id,
-        })),
-      ];
-
-      if (viewsToInsert.length > 0) {
-        await supabase.from("notification_views").upsert(viewsToInsert, {
-          onConflict: "user_id,notification_type,notification_id",
-        });
-      }
+      // Tabela notification_views não existe ainda
+      return;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });

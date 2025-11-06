@@ -63,59 +63,21 @@ export function NotificationBell() {
         .order("due_date", { ascending: true })
         .limit(10);
 
-      // Buscar notificações já vistas
-      const { data: viewedData } = await supabase
-        .from("notification_views")
-        .select("notification_type, notification_id")
-        .eq("user_id", user.id);
-
-      const viewedSet = new Set(
-        viewedData?.map((v) => `${v.notification_type}-${v.notification_id}`) || []
-      );
-
-      // Filtrar apenas não vistas
-      const unseenAppointments = (appointmentsData || []).filter(
-        (apt) => !viewedSet.has(`appointment-${apt.id}`)
-      );
-      const unseenTasks = (tasksData || []).filter(
-        (task) => !viewedSet.has(`task-${task.id}`)
-      );
-
+      // Retornar todas as notificações (sem filtro de visualizadas)
       return {
-        appointments: unseenAppointments,
-        tasks: unseenTasks,
+        appointments: appointmentsData || [],
+        tasks: tasksData || [],
       };
     },
     refetchInterval: 30000, // Refetch a cada 30 segundos
     refetchOnWindowFocus: true,
   });
 
-  // Mutation para marcar todas como vistas
+  // Mutation para marcar todas como vistas (desabilitado - tabela não existe)
   const markAllAsViewed = useMutation({
     mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !notifications) return;
-
-      const viewsToInsert = [
-        ...notifications.appointments.map((apt) => ({
-          user_id: user.id,
-          notification_type: "appointment",
-          notification_id: apt.id,
-        })),
-        ...notifications.tasks.map((task) => ({
-          user_id: user.id,
-          notification_type: "task",
-          notification_id: task.id,
-        })),
-      ];
-
-      if (viewsToInsert.length > 0) {
-        const { error } = await supabase.from("notification_views").insert(viewsToInsert);
-        
-        if (error && !error.message.includes("duplicate")) {
-          throw error;
-        }
-      }
+      // Tabela notification_views não existe ainda
+      return;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
