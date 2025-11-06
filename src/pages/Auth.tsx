@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Rocket } from "lucide-react";
+import { Loader2, Rocket, Mail } from "lucide-react";
+import { FaGoogle, FaFacebook } from "react-icons/fa";
 import logo from "@/assets/logo.png";
 
 const Auth = () => {
@@ -127,6 +128,23 @@ const Auth = () => {
     }
   };
 
+  const handleSocialLogin = async (provider: 'google' | 'facebook') => {
+    setLoading(true);
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/`,
+      },
+    });
+
+    setLoading(false);
+
+    if (error) {
+      toast.error(`Erro ao entrar com ${provider === 'google' ? 'Google' : 'Facebook'}: ${error.message}`);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-muted/30 via-muted/20 to-background relative overflow-hidden">
       {/* Decorative rockets */}
@@ -236,6 +254,38 @@ const Auth = () => {
                     "Entrar"
                   )}
                 </Button>
+
+                <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-muted"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Ou continuar com</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialLogin('google')}
+                    disabled={loading}
+                    className="h-12 font-medium"
+                  >
+                    <FaGoogle className="mr-2 h-4 w-4" />
+                    Google
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialLogin('facebook')}
+                    disabled={loading}
+                    className="h-12 font-medium"
+                  >
+                    <FaFacebook className="mr-2 h-4 w-4" />
+                    Facebook
+                  </Button>
+                </div>
                 
                 <div className="flex items-center justify-between text-sm pt-2">
                   <button
@@ -314,6 +364,38 @@ const Auth = () => {
                     "Criar Conta"
                   )}
                 </Button>
+
+                <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-muted"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Ou continuar com</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialLogin('google')}
+                    disabled={loading}
+                    className="h-12 font-medium"
+                  >
+                    <FaGoogle className="mr-2 h-4 w-4" />
+                    Google
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialLogin('facebook')}
+                    disabled={loading}
+                    className="h-12 font-medium"
+                  >
+                    <FaFacebook className="mr-2 h-4 w-4" />
+                    Facebook
+                  </Button>
+                </div>
                 
                 <div className="text-center text-sm pt-2">
                   <button
