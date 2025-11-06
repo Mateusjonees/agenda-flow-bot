@@ -184,7 +184,7 @@ const Pricing = () => {
           throw new Error("Mercado Pago não carregado");
         }
 
-        const mp = new window.MercadoPago(import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY);
+        const mp = new window.MercadoPago("APP_USR-22b53603-7027-4469-be81-579171d4d3af");
         
         // Create preference via edge function
         const { data: preferenceData, error: prefError } = await supabase.functions.invoke("create-mp-preference", {
