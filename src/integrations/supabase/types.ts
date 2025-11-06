@@ -83,15 +83,57 @@ export type Database = {
           },
         ]
       }
+      business_settings: {
+        Row: {
+          address: string | null
+          business_name: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          profile_image_url: string | null
+          theme_color: string | null
+          updated_at: string | null
+          user_id: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          profile_image_url?: string | null
+          theme_color?: string | null
+          updated_at?: string | null
+          user_id: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          profile_image_url?: string | null
+          theme_color?: string | null
+          updated_at?: string | null
+          user_id?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
       coupons: {
         Row: {
           code: string
           created_at: string | null
           customer_id: string | null
+          discount_amount: number | null
+          discount_percentage: number | null
           discount_type: string | null
           discount_value: number
           expires_at: string | null
           id: string
+          is_active: boolean | null
           status: string | null
           used_at: string | null
           user_id: string | null
@@ -100,10 +142,13 @@ export type Database = {
           code: string
           created_at?: string | null
           customer_id?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
           discount_type?: string | null
           discount_value: number
           expires_at?: string | null
           id?: string
+          is_active?: boolean | null
           status?: string | null
           used_at?: string | null
           user_id?: string | null
@@ -112,10 +157,13 @@ export type Database = {
           code?: string
           created_at?: string | null
           customer_id?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
           discount_type?: string | null
           discount_value?: number
           expires_at?: string | null
           id?: string
+          is_active?: boolean | null
           status?: string | null
           used_at?: string | null
           user_id?: string | null
@@ -133,6 +181,7 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
+          cpf: string | null
           created_at: string | null
           email: string | null
           id: string
@@ -144,6 +193,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          cpf?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -155,6 +205,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          cpf?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -251,11 +302,13 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string | null
+          current_stock: number | null
           description: string | null
           id: string
           min_quantity: number | null
           name: string
           quantity: number | null
+          unit: string | null
           unit_price: number | null
           updated_at: string | null
           user_id: string | null
@@ -263,11 +316,13 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string | null
+          current_stock?: number | null
           description?: string | null
           id?: string
           min_quantity?: number | null
           name: string
           quantity?: number | null
+          unit?: string | null
           unit_price?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -275,11 +330,13 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string | null
+          current_stock?: number | null
           description?: string | null
           id?: string
           min_quantity?: number | null
           name?: string
           quantity?: number | null
+          unit?: string | null
           unit_price?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -289,28 +346,43 @@ export type Database = {
       loyalty_cards: {
         Row: {
           created_at: string | null
+          current_stamps: number | null
           customer_id: string | null
           id: string
+          last_visit_at: string | null
           points: number | null
+          rewards_redeemed: number | null
+          stamps_required: number | null
           total_points: number | null
+          total_visits: number | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
+          current_stamps?: number | null
           customer_id?: string | null
           id?: string
+          last_visit_at?: string | null
           points?: number | null
+          rewards_redeemed?: number | null
+          stamps_required?: number | null
           total_points?: number | null
+          total_visits?: number | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
+          current_stamps?: number | null
           customer_id?: string | null
           id?: string
+          last_visit_at?: string | null
           points?: number | null
+          rewards_redeemed?: number | null
+          stamps_required?: number | null
           total_points?: number | null
+          total_visits?: number | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -323,6 +395,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notification_views: {
+        Row: {
+          id: string
+          notification_id: string
+          notification_type: string
+          user_id: string
+          viewed_at: string | null
+        }
+        Insert: {
+          id?: string
+          notification_id: string
+          notification_type: string
+          user_id: string
+          viewed_at?: string | null
+        }
+        Update: {
+          id?: string
+          notification_id?: string
+          notification_type?: string
+          user_id?: string
+          viewed_at?: string | null
+        }
+        Relationships: []
       }
       pix_charges: {
         Row: {
@@ -421,6 +517,7 @@ export type Database = {
       }
       proposals: {
         Row: {
+          appointment_id: string | null
           created_at: string | null
           customer_id: string | null
           description: string | null
@@ -436,6 +533,7 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
+          appointment_id?: string | null
           created_at?: string | null
           customer_id?: string | null
           description?: string | null
@@ -451,6 +549,7 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
+          appointment_id?: string | null
           created_at?: string | null
           customer_id?: string | null
           description?: string | null
@@ -467,7 +566,59 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "proposals_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "proposals_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          appointment_id: string | null
+          comment: string | null
+          created_at: string | null
+          customer_id: string
+          id: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
@@ -582,7 +733,10 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          metadata: Json | null
           priority: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
           status: string | null
           title: string
           type: string | null
@@ -596,7 +750,10 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          metadata?: Json | null
           priority?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
           status?: string | null
           title: string
           type?: string | null
@@ -610,7 +767,10 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          metadata?: Json | null
           priority?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
           status?: string | null
           title?: string
           type?: string | null
