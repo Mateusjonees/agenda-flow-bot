@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Zap, Star, CreditCard, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PixPaymentDialog } from "@/components/PixPaymentDialog";
 
 declare global {
   interface Window {
@@ -35,6 +36,13 @@ const Pricing = () => {
   const [loading, setLoading] = useState(false);
   const [mpLoaded, setMpLoaded] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
+  const [pixDialogOpen, setPixDialogOpen] = useState(false);
+  const [pixData, setPixData] = useState<{
+    qrCode: string;
+    qrCodeBase64?: string;
+    ticketUrl?: string;
+    amount: number;
+  } | null>(null);
 
   const plans: PricingPlan[] = [
     {
@@ -141,7 +149,7 @@ const Pricing = () => {
 
       if (paymentMethod === "pix") {
         // Create PIX charge via edge function
-        const { data: pixData, error: pixError } = await supabase.functions.invoke("generate-pix", {
+        const { data: pixResponse, error: pixError } = await supabase.functions.invoke("generate-pix", {
           body: {
             amount: plan.price,
             customerName: profile?.full_name || session.user.email || "Cliente",
@@ -157,13 +165,18 @@ const Pricing = () => {
 
         if (pixError) throw pixError;
 
+        setPixData({
+          qrCode: pixResponse.qrCode,
+          qrCodeBase64: pixResponse.qrCodeBase64,
+          ticketUrl: pixResponse.ticketUrl,
+          amount: plan.price
+        });
+        setPixDialogOpen(true);
+
         toast({
           title: "QR Code PIX gerado!",
-          description: "Use o QR Code para completar o pagamento",
+          description: "Escaneie o QR Code ou copie o código para pagar",
         });
-
-        // Redirect to payment page or show QR code
-        // You can create a payment confirmation page here
         
       } else {
         // Process credit card payment with Mercado Pago
@@ -326,6 +339,18 @@ const Pricing = () => {
             );
           })}
         </div>
+
+        {/* PIX Payment Dialog */}
+        {pixData && (
+          <PixPaymentDialog
+            open={pixDialogOpen}
+            onOpenChange={setPixDialogOpen}
+            qrCode={pixData.qrCode}
+            qrCodeBase64={pixData.qrCodeBase64}
+            ticketUrl={pixData.ticketUrl}
+            amount={pixData.amount}
+          />
+        )}
 
       </div>
     </div>

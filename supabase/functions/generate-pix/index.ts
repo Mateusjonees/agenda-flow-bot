@@ -12,6 +12,7 @@ interface PixChargeRequest {
   customerName: string;
   customerPhone?: string;
   description?: string;
+  metadata?: Record<string, any>;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -33,34 +34,48 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Unauthorized");
     }
 
-    const { appointmentId, amount, customerName, customerPhone, description }: PixChargeRequest = 
+    const { appointmentId, amount, customerName, customerPhone, description, metadata }: PixChargeRequest = 
       await req.json();
 
-    // TODO: Integrate with your payment provider (Asaas, Mercado Pago, etc)
-    // For now, we'll create a mock Pix charge
-    
-    // Example integration with Asaas (you need to implement this):
-    // const asaasApiKey = Deno.env.get("ASAAS_API_KEY");
-    // const asaasResponse = await fetch("https://api.asaas.com/v3/payments", {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //     "access_token": asaasApiKey
-    //   },
-    //   body: JSON.stringify({
-    //     customer: customerId,
-    //     billingType: "PIX",
-    //     value: amount,
-    //     dueDate: new Date().toISOString().split('T')[0],
-    //     description: description || "Pagamento de serviço"
-    //   })
-    // });
-    // const asaasData = await asaasResponse.json();
+    const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
+    if (!accessToken) {
+      throw new Error("MERCADO_PAGO_ACCESS_TOKEN not configured");
+    }
 
-    // Mock data for demonstration
-    const txid = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
-    const mockQrCode = "00020126580014br.gov.bcb.pix0136" + txid + "5204000053039865802BR5913" + 
-                       customerName.slice(0, 25) + "6009SAO PAULO62070503***6304";
+    // Create payment with Mercado Pago
+    const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+        "X-Idempotency-Key": `${user.id}-${Date.now()}`
+      },
+      body: JSON.stringify({
+        transaction_amount: amount,
+        description: description || "Assinatura Foguete Gestão",
+        payment_method_id: "pix",
+        payer: {
+          email: user.email,
+          first_name: customerName.split(" ")[0],
+          last_name: customerName.split(" ").slice(1).join(" ") || customerName.split(" ")[0]
+        },
+        metadata: metadata || {}
+      })
+    });
+
+    if (!mpResponse.ok) {
+      const errorData = await mpResponse.text();
+      console.error("Mercado Pago API error:", mpResponse.status, errorData);
+      throw new Error(`Mercado Pago API error: ${mpResponse.status}`);
+    }
+
+    const mpData = await mpResponse.json();
+    console.log("Mercado Pago payment created:", mpData.id);
+
+    const txid = mpData.id.toString();
+    const qrCode = mpData.point_of_interaction?.transaction_data?.qr_code || "";
+    const qrCodeBase64 = mpData.point_of_interaction?.transaction_data?.qr_code_base64 || "";
+    const ticketUrl = mpData.point_of_interaction?.transaction_data?.ticket_url || "";
     
     // Create Pix charge in database
     const { data: pixCharge, error: pixError } = await supabaseClient
@@ -72,11 +87,15 @@ const handler = async (req: Request): Promise<Response> => {
         amount: amount,
         customer_name: customerName,
         customer_phone: customerPhone || null,
-        qr_code: mockQrCode,
-        status: "pending",
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+        qr_code: qrCode,
+        qr_code_base64: qrCodeBase64,
+        status: mpData.status || "pending",
+        expires_at: mpData.date_of_expiration || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         metadata: {
-          description: description || "Pagamento de serviço"
+          description: description || "Pagamento de serviço",
+          mp_payment_id: mpData.id,
+          ticket_url: ticketUrl,
+          ...metadata
         }
       })
       .select()
@@ -107,6 +126,10 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({
         success: true,
         charge: pixCharge,
+        qrCode: qrCode,
+        qrCodeBase64: qrCodeBase64,
+        ticketUrl: ticketUrl,
+        paymentId: mpData.id,
         message: "Cobrança Pix gerada com sucesso!"
       }),
       {
