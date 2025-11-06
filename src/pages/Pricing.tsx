@@ -50,7 +50,9 @@ const Pricing = () => {
         "Acesso completo ao sistema",
         "Agendamentos ilimitados",
         "Propostas e CRM",
-        "Gestão financeira"
+        "Gestão financeira",
+        "Controle de estoque",
+        "Suporte por email"
       ]
     },
     {
@@ -67,7 +69,10 @@ const Pricing = () => {
       icon: Star,
       features: [
         "Tudo do plano mensal",
-        "1 mês grátis"
+        "1 mês grátis",
+        "Economia de R$ 97",
+        "Suporte prioritário",
+        "Atualizações antecipadas"
       ]
     },
     {
@@ -84,7 +89,10 @@ const Pricing = () => {
       features: [
         "Tudo do plano mensal",
         "2 meses grátis",
-        "Economia de R$ 194"
+        "Economia de R$ 194",
+        "Suporte prioritário VIP",
+        "Consultoria mensal",
+        "Acesso beta features"
       ]
     }
   ];
