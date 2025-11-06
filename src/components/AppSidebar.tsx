@@ -20,7 +20,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarHeader,
 } from "@/components/ui/sidebar";
+import logo from "@/assets/logo.png";
 
 const navItems = [
   { path: "/", label: "Painel", icon: LayoutDashboard },
@@ -40,6 +42,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r">
+      <SidebarHeader className="border-b p-4">
+        <div className="flex items-center justify-center">
+          <img src={logo} alt="Foguete Gestão Empresarial" className="h-10 w-auto" />
+        </div>
+      </SidebarHeader>
+      
       <SidebarContent className="pt-4">
         <SidebarGroup>
           <SidebarGroupContent>
