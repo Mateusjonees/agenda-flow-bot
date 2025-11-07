@@ -859,7 +859,6 @@ const Agendamentos = () => {
             </form>
           </DialogContent>
         </Dialog>
-        </div>
       </div>
 
       {/* Filtros */}
