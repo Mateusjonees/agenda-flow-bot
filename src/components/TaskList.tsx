@@ -176,32 +176,34 @@ export const TaskList = ({
   };
 
   const handleCompleteTask = async (taskId: string) => {
-    // Atualizar imediatamente na UI
-    setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
+    console.log("🔵 Iniciando conclusão da tarefa:", taskId);
     
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("tasks")
       .update({ 
         status: "completed",
         completed_at: new Date().toISOString()
       })
-      .eq("id", taskId);
+      .eq("id", taskId)
+      .select();
+
+    console.log("📊 Resultado da atualização:", { data, error });
 
     if (error) {
+      console.error("❌ Erro ao completar tarefa:", error);
       toast({
         title: "Erro ao completar tarefa",
         description: error.message,
         variant: "destructive",
       });
-      // Reverter em caso de erro
-      fetchTasks();
     } else {
+      console.log("✅ Tarefa concluída com sucesso!");
       toast({
         title: "Tarefa concluída!",
         description: "A tarefa foi marcada como concluída com sucesso.",
       });
       // Recarregar para garantir sincronização
-      setTimeout(() => fetchTasks(), 500);
+      fetchTasks();
     }
   };
 
