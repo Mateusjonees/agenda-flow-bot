@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Package, AlertTriangle, TrendingDown, TrendingUp, History } from "lucide-react";
+import { Plus, Package, AlertTriangle, TrendingDown, TrendingUp, History, DollarSign } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface InventoryItem {
@@ -218,6 +218,7 @@ const Estoque = () => {
     if (movement.type === "in" && movement.totalCost && parseFloat(movement.totalCost) > 0) {
       console.log("✅ Criando despesa no financeiro...");
       const selectedItemData = items.find(i => i.id === selectedItem);
+      
       const { data: transactionData, error: transactionError } = await supabase
         .from("financial_transactions")
         .insert({
@@ -231,26 +232,36 @@ const Estoque = () => {
         })
         .select();
 
-      console.log("📊 Resultado da criação da despesa:", { transactionData, transactionError });
+      console.log("📊 Resultado da criação da despesa:", { 
+        success: !transactionError,
+        transactionId: transactionData?.[0]?.id,
+        error: transactionError 
+      });
 
       if (transactionError) {
         console.error("❌ Erro ao criar transação financeira:", transactionError);
         toast({
-          title: "Aviso",
-          description: "Estoque atualizado, mas não foi possível registrar a despesa no financeiro.",
+          title: "Estoque atualizado",
+          description: "Mas não foi possível registrar a despesa no financeiro. Verifique suas permissões.",
           variant: "destructive",
         });
       } else {
-        console.log("✅ Despesa criada com sucesso!");
+        console.log("✅ Despesa criada com sucesso! ID:", transactionData?.[0]?.id);
         toast({
-          title: "Estoque e financeiro atualizados!",
-          description: "A movimentação foi registrada e a despesa foi adicionada ao financeiro.",
+          title: "✅ Estoque e financeiro atualizados!",
+          description: `Entrada registrada e despesa de ${formatCurrency(parseFloat(movement.totalCost))} adicionada ao financeiro.`,
         });
       }
     } else {
-      console.log("ℹ️ Não criando despesa - condições não atendidas");
+      const reason = !movement.totalCost || parseFloat(movement.totalCost) === 0 
+        ? "Custo não informado" 
+        : "Tipo de movimentação não é entrada";
+      console.log("ℹ️ Não criando despesa -", reason);
       toast({
         title: "Estoque atualizado!",
+        description: movement.type === "in" 
+          ? "💡 Dica: Informe o custo total para registrar automaticamente no financeiro."
+          : undefined,
       });
     }
 
@@ -346,19 +357,36 @@ const Estoque = () => {
                   />
                 </div>
                 {movement.type === "in" && (
-                  <div>
-                    <Label htmlFor="totalCost">Custo Total da Compra (R$)</Label>
-                    <Input
-                      id="totalCost"
-                      type="number"
-                      step="0.01"
-                      value={movement.totalCost}
-                      onChange={(e) => setMovement({ ...movement, totalCost: e.target.value })}
-                      placeholder="0,00"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Opcional. Se preenchido, será registrado como despesa no financeiro
-                    </p>
+                  <div className="space-y-2">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-start gap-2">
+                        <DollarSign className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-sm text-blue-900 dark:text-blue-100">
+                            💡 Registrar despesa no financeiro
+                          </p>
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            Informe o custo total da compra para que seja automaticamente registrado como despesa
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="totalCost" className="flex items-center gap-2">
+                        Custo Total da Compra (R$)
+                        <span className="text-xs text-muted-foreground">(Recomendado)</span>
+                      </Label>
+                      <Input
+                        id="totalCost"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={movement.totalCost}
+                        onChange={(e) => setMovement({ ...movement, totalCost: e.target.value })}
+                        placeholder="Ex: 150,00"
+                        className="mt-1"
+                      />
+                    </div>
                   </div>
                 )}
                 <div>
