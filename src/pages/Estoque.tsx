@@ -205,9 +205,16 @@ const Estoque = () => {
     }
 
     // Se for entrada de estoque E tiver custo informado, criar despesa no financeiro
+    console.log("🔍 Verificando criação de despesa:", {
+      type: movement.type,
+      totalCost: movement.totalCost,
+      parsedCost: parseFloat(movement.totalCost || "0")
+    });
+    
     if (movement.type === "in" && movement.totalCost && parseFloat(movement.totalCost) > 0) {
+      console.log("✅ Criando despesa no financeiro...");
       const selectedItemData = items.find(i => i.id === selectedItem);
-      const { error: transactionError } = await supabase
+      const { data: transactionData, error: transactionError } = await supabase
         .from("financial_transactions")
         .insert({
           user_id: user.id,
@@ -217,22 +224,27 @@ const Estoque = () => {
           payment_method: "cash",
           status: "completed",
           transaction_date: new Date().toISOString(),
-        });
+        })
+        .select();
+
+      console.log("📊 Resultado da criação da despesa:", { transactionData, transactionError });
 
       if (transactionError) {
-        console.error("Erro ao criar transação financeira:", transactionError);
+        console.error("❌ Erro ao criar transação financeira:", transactionError);
         toast({
           title: "Aviso",
           description: "Estoque atualizado, mas não foi possível registrar a despesa no financeiro.",
           variant: "destructive",
         });
       } else {
+        console.log("✅ Despesa criada com sucesso!");
         toast({
           title: "Estoque e financeiro atualizados!",
           description: "A movimentação foi registrada e a despesa foi adicionada ao financeiro.",
         });
       }
     } else {
+      console.log("ℹ️ Não criando despesa - condições não atendidas");
       toast({
         title: "Estoque atualizado!",
       });
