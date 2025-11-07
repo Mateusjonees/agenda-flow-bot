@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { FileText, Download, Trash2, Upload, Plus } from "lucide-react";
+import { FileText, Download, Trash2, Upload, Plus, Eye, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -30,6 +30,9 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewingDocument, setViewingDocument] = useState<CustomerDocument | null>(null);
+  const [documentUrl, setDocumentUrl] = useState<string>("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -130,6 +133,27 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
     }
   };
 
+  const handleView = async (doc: CustomerDocument) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from("customer-documents")
+        .download(doc.file_path);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      setDocumentUrl(url);
+      setViewingDocument(doc);
+      setViewDialogOpen(true);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao visualizar documento",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDownload = async (doc: CustomerDocument) => {
     try {
       const { data, error } = await supabase.storage
@@ -197,12 +221,86 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
+  const isImageFile = (fileName: string) => {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    return imageExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
+  };
+
+  const isPdfFile = (fileName: string) => {
+    return fileName.toLowerCase().endsWith('.pdf');
+  };
+
   return (
-    <Card>
-      <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm sm:text-base">Documentos Anexados</CardTitle>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+    <>
+      {/* Dialog de Visualização */}
+      <Dialog open={viewDialogOpen} onOpenChange={(open) => {
+        setViewDialogOpen(open);
+        if (!open) {
+          URL.revokeObjectURL(documentUrl);
+          setDocumentUrl("");
+          setViewingDocument(null);
+        }
+      }}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span className="truncate">{viewingDocument?.file_name}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setViewDialogOpen(false)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </DialogTitle>
+            {viewingDocument?.description && (
+              <DialogDescription>{viewingDocument.description}</DialogDescription>
+            )}
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden bg-muted/30 rounded-lg">
+            {viewingDocument && documentUrl && (
+              <>
+                {isImageFile(viewingDocument.file_name) && (
+                  <img
+                    src={documentUrl}
+                    alt={viewingDocument.file_name}
+                    className="w-full h-full object-contain"
+                  />
+                )}
+                {isPdfFile(viewingDocument.file_name) && (
+                  <iframe
+                    src={documentUrl}
+                    className="w-full h-full"
+                    title={viewingDocument.file_name}
+                  />
+                )}
+                {!isImageFile(viewingDocument.file_name) && !isPdfFile(viewingDocument.file_name) && (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <FileText className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground mb-4">
+                        Visualização não disponível para este tipo de arquivo
+                      </p>
+                      <Button onClick={() => viewingDocument && handleDownload(viewingDocument)}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Baixar Documento
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Card Principal */}
+      <Card>
+        <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm sm:text-base">Documentos Anexados</CardTitle>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" className="gap-2">
                 <Plus className="w-3.5 h-3.5" />
@@ -304,8 +402,18 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
                   <Button
                     size="sm"
                     variant="ghost"
+                    onClick={() => handleView(doc)}
+                    className="h-8 w-8 p-0"
+                    title="Visualizar"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={() => handleDownload(doc)}
                     className="h-8 w-8 p-0"
+                    title="Baixar"
                   >
                     <Download className="w-3.5 h-3.5" />
                   </Button>
@@ -314,6 +422,7 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
                     variant="ghost"
                     onClick={() => handleDelete(doc)}
                     className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                    title="Excluir"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
@@ -324,5 +433,6 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
         )}
       </CardContent>
     </Card>
+    </>
   );
 };
