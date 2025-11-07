@@ -626,6 +626,56 @@ export type Database = {
           },
         ]
       }
+      stock_movements: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_id: string | null
+          new_stock: number
+          previous_stock: number
+          quantity: number
+          reason: string | null
+          reference_id: string | null
+          reference_type: string | null
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          new_stock: number
+          previous_stock: number
+          quantity: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          new_stock?: number
+          previous_stock?: number
+          quantity?: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           billing_frequency: string | null
@@ -792,7 +842,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_inventory_stock: {
+        Args: {
+          p_item_id: string
+          p_quantity: number
+          p_reason?: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_type: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
