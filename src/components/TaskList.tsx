@@ -52,6 +52,8 @@ interface TaskListProps {
   selectedType?: string | null;
   selectedPriority?: string;
   selectedStatus?: string;
+  startDate?: Date;
+  endDate?: Date;
 }
 
 export const TaskList = ({ 
@@ -61,7 +63,9 @@ export const TaskList = ({
   searchQuery = "",
   selectedType = null,
   selectedPriority = "all",
-  selectedStatus = "all"
+  selectedStatus = "all",
+  startDate,
+  endDate
 }: TaskListProps) => {
   const { toast } = useToast();
   const [tasks, setTasks] = useState<TaskWithCustomer[]>([]);
@@ -71,7 +75,7 @@ export const TaskList = ({
 
   useEffect(() => {
     fetchTasks();
-  }, [showAll, showCompleted, searchQuery, selectedType, selectedPriority, selectedStatus]);
+  }, [showAll, showCompleted, searchQuery, selectedType, selectedPriority, selectedStatus, startDate, endDate]);
 
   const fetchTasks = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -119,6 +123,20 @@ export const TaskList = ({
           query = query.lte("due_date", today.toISOString());
         }
       }
+    }
+
+    // Filtrar por data inicial
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      query = query.gte("due_date", start.toISOString());
+    }
+
+    // Filtrar por data final
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      query = query.lte("due_date", end.toISOString());
     }
 
     // Filtrar por busca

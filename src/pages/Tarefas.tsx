@@ -9,11 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { TaskList } from "@/components/TaskList";
-import { ListTodo, CheckCircle2, Clock, XCircle, Plus, Search } from "lucide-react";
+import { ListTodo, CheckCircle2, Clock, XCircle, Plus, Search, CalendarIcon, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const Tarefas = () => {
   const navigate = useNavigate();
@@ -28,6 +31,8 @@ const Tarefas = () => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedPriority, setSelectedPriority] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
   const [open, setOpen] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
   const [formData, setFormData] = useState({
@@ -322,27 +327,86 @@ const Tarefas = () => {
         </Dialog>
       </div>
 
-      {/* Campo de Pesquisa e Filtros */}
+      {/* Filtros */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative md:col-span-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Pesquisar tarefas..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5 text-muted-foreground" />
+            <CardTitle className="text-lg">Filtros</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="start-date" className="text-sm font-medium">
+                Data Inicial
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="start-date"
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal h-10",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "dd/MM/yyyy") : "Selecione"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-            <div>
+
+            <div className="space-y-2">
+              <Label htmlFor="end-date" className="text-sm font-medium">
+                Data Final
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="end-date"
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal h-10",
+                      !endDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "dd/MM/yyyy") : "Selecione"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status-filter" className="text-sm font-medium">
+                Status
+              </Label>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Filtrar por Status" />
+                <SelectTrigger id="status-filter" className="h-10">
+                  <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os Status</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="in_progress">Em Progresso</SelectItem>
                   <SelectItem value="completed">Concluída</SelectItem>
@@ -350,19 +414,36 @@ const Tarefas = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+
+            <div className="space-y-2">
+              <Label htmlFor="priority-filter" className="text-sm font-medium">
+                Prioridade
+              </Label>
               <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Filtrar por Prioridade" />
+                <SelectTrigger id="priority-filter" className="h-10">
+                  <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas as Prioridades</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   <SelectItem value="low">Baixa</SelectItem>
                   <SelectItem value="medium">Média</SelectItem>
                   <SelectItem value="high">Alta</SelectItem>
                   <SelectItem value="urgent">Urgente</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Pesquisar tarefas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-10"
+              />
             </div>
           </div>
         </CardContent>
@@ -462,13 +543,15 @@ const Tarefas = () => {
             </CardHeader>
             <CardContent>
               <TaskList 
-                key={`today-${selectedType}-${selectedStatus}-${selectedPriority}`}
+                key={`today-${selectedType}-${selectedStatus}-${selectedPriority}-${startDate?.toISOString()}-${endDate?.toISOString()}`}
                 showAll={false} 
                 maxItems={50} 
                 searchQuery={searchQuery} 
                 selectedType={selectedType} 
                 selectedPriority={selectedPriority} 
-                selectedStatus={selectedStatus} 
+                selectedStatus={selectedStatus}
+                startDate={startDate}
+                endDate={endDate}
               />
             </CardContent>
           </Card>
@@ -487,13 +570,15 @@ const Tarefas = () => {
             </CardHeader>
             <CardContent>
               <TaskList 
-                key={`all-${selectedType}-${selectedStatus}-${selectedPriority}`}
+                key={`all-${selectedType}-${selectedStatus}-${selectedPriority}-${startDate?.toISOString()}-${endDate?.toISOString()}`}
                 showAll={true} 
                 maxItems={100} 
                 searchQuery={searchQuery} 
                 selectedType={selectedType} 
                 selectedPriority={selectedPriority} 
-                selectedStatus={selectedStatus} 
+                selectedStatus={selectedStatus}
+                startDate={startDate}
+                endDate={endDate}
               />
             </CardContent>
           </Card>
@@ -512,13 +597,15 @@ const Tarefas = () => {
             </CardHeader>
             <CardContent>
               <TaskList 
-                key={`history-${selectedType}-${selectedStatus}-${selectedPriority}`}
+                key={`history-${selectedType}-${selectedStatus}-${selectedPriority}-${startDate?.toISOString()}-${endDate?.toISOString()}`}
                 showCompleted={true} 
                 maxItems={100} 
                 searchQuery={searchQuery} 
                 selectedType={selectedType} 
                 selectedPriority={selectedPriority} 
-                selectedStatus={selectedStatus} 
+                selectedStatus={selectedStatus}
+                startDate={startDate}
+                endDate={endDate}
               />
             </CardContent>
           </Card>
