@@ -97,6 +97,14 @@ const Tarefas = () => {
     setTypeStats(typeCounts);
   };
 
+  // Atualizar estatísticas quando mudar de aba
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchStats();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   const fetchCustomers = async () => {
     const { data } = await supabase
       .from("customers")
@@ -432,7 +440,15 @@ const Tarefas = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TaskList showAll={false} maxItems={50} searchQuery={searchQuery} selectedType={selectedType} selectedPriority={selectedPriority} selectedStatus={selectedStatus} />
+              <TaskList 
+                key={`today-${selectedType}-${selectedStatus}-${selectedPriority}`}
+                showAll={false} 
+                maxItems={50} 
+                searchQuery={searchQuery} 
+                selectedType={selectedType} 
+                selectedPriority={selectedPriority} 
+                selectedStatus={selectedStatus} 
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -449,7 +465,15 @@ const Tarefas = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TaskList showAll={true} maxItems={100} searchQuery={searchQuery} selectedType={selectedType} selectedPriority={selectedPriority} selectedStatus={selectedStatus} />
+              <TaskList 
+                key={`all-${selectedType}-${selectedStatus}-${selectedPriority}`}
+                showAll={true} 
+                maxItems={100} 
+                searchQuery={searchQuery} 
+                selectedType={selectedType} 
+                selectedPriority={selectedPriority} 
+                selectedStatus={selectedStatus} 
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -466,7 +490,15 @@ const Tarefas = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TaskList showCompleted={true} maxItems={100} searchQuery={searchQuery} selectedType={selectedType} selectedPriority={selectedPriority} selectedStatus={selectedStatus} />
+              <TaskList 
+                key={`history-${selectedType}-${selectedStatus}-${selectedPriority}`}
+                showCompleted={true} 
+                maxItems={100} 
+                searchQuery={searchQuery} 
+                selectedType={selectedType} 
+                selectedPriority={selectedPriority} 
+                selectedStatus={selectedStatus} 
+              />
             </CardContent>
           </Card>
         </TabsContent>

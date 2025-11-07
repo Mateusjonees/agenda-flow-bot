@@ -176,6 +176,9 @@ export const TaskList = ({
   };
 
   const handleCompleteTask = async (taskId: string) => {
+    // Atualizar imediatamente na UI
+    setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
+    
     const { error } = await supabase
       .from("tasks")
       .update({ 
@@ -190,11 +193,15 @@ export const TaskList = ({
         description: error.message,
         variant: "destructive",
       });
+      // Reverter em caso de erro
+      fetchTasks();
     } else {
       toast({
         title: "Tarefa concluída!",
+        description: "A tarefa foi marcada como concluída com sucesso.",
       });
-      fetchTasks();
+      // Recarregar para garantir sincronização
+      setTimeout(() => fetchTasks(), 500);
     }
   };
 
