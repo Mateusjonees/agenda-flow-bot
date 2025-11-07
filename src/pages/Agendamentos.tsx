@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle, Pencil, Filter, Trash2, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle, Pencil, Filter, Trash2, Check, ChevronsUpDown, List, CalendarDays } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format, addDays, addWeeks, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FinishAppointmentDialog } from "@/components/FinishAppointmentDialog";
 import { EditAppointmentDialog } from "@/components/EditAppointmentDialog";
+import { CalendarView } from "@/components/CalendarView";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +59,7 @@ const Agendamentos = () => {
   const [time, setTime] = useState("");
   const [duration, setDuration] = useState("60");
   const [notes, setNotes] = useState("");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [viewType, setViewType] = useState<"day" | "week" | "month">("week");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [finishDialogOpen, setFinishDialogOpen] = useState(false);

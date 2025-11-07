@@ -26,6 +26,7 @@ export type Database = {
           payment_status: string | null
           price: number | null
           proposal_id: string | null
+          service_id: string | null
           start_time: string
           status: string | null
           title: string
@@ -43,6 +44,7 @@ export type Database = {
           payment_status?: string | null
           price?: number | null
           proposal_id?: string | null
+          service_id?: string | null
           start_time: string
           status?: string | null
           title: string
@@ -60,6 +62,7 @@ export type Database = {
           payment_status?: string | null
           price?: number | null
           proposal_id?: string | null
+          service_id?: string | null
           start_time?: string
           status?: string | null
           title?: string
@@ -81,7 +84,44 @@ export type Database = {
             referencedRelation: "proposals"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "appointments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      business_hours: {
+        Row: {
+          created_at: string | null
+          day_of_week: number
+          end_time: string
+          id: string
+          is_active: boolean | null
+          start_time: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_active?: boolean | null
+          start_time: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean | null
+          start_time?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       business_settings: {
         Row: {
@@ -637,6 +677,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      services: {
+        Row: {
+          category: string | null
+          color: string | null
+          created_at: string | null
+          description: string | null
+          duration: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       stock_movements: {
         Row: {

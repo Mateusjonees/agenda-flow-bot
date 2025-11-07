@@ -18,6 +18,7 @@ import Propostas from "./pages/Propostas";
 import Assinaturas from "./pages/Assinaturas";
 import Tarefas from "./pages/Tarefas";
 import Estoque from "./pages/Estoque";
+import Servicos from "./pages/Servicos";
 import Pricing from "./pages/Pricing";
 import Maintenance from "./pages/Maintenance";
 import NotFound from "./pages/NotFound";
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/manutencao" element={<Maintenance />} />
               <Route path="/agendamentos" element={<Layout><Agendamentos /></Layout>} />
               <Route path="/clientes" element={<Layout><Clientes /></Layout>} />
+              <Route path="/servicos" element={<Layout><Servicos /></Layout>} />
               <Route path="/financeiro" element={<Layout><Financeiro /></Layout>} />
               <Route path="/relatorios" element={<Layout><Relatorios /></Layout>} />
               <Route path="/propostas" element={<Layout><Propostas /></Layout>} />
