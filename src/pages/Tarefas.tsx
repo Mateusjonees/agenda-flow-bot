@@ -338,7 +338,7 @@ const Tarefas = () => {
             </div>
             <div>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10">
                   <SelectValue placeholder="Filtrar por Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -352,7 +352,7 @@ const Tarefas = () => {
             </div>
             <div>
               <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10">
                   <SelectValue placeholder="Filtrar por Prioridade" />
                 </SelectTrigger>
                 <SelectContent>
