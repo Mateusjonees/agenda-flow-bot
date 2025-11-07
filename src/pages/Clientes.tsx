@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LoyaltyCard } from "@/components/LoyaltyCard";
 import { CustomerCoupons } from "@/components/CustomerCoupons";
 import { CustomerHistory } from "@/components/CustomerHistory";
+import { CustomerDocuments } from "@/components/CustomerDocuments";
 
 interface Customer {
   id: string;
@@ -610,6 +611,9 @@ const Clientes = () => {
                       )}
                     </CardContent>
                   </Card>
+
+                  {/* Documentos anexados */}
+                  <CustomerDocuments customerId={selectedCustomer.id} />
                 </div>
                 </TabsContent>
 
