@@ -24,7 +24,10 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   Filter,
-  CalendarIcon
+  CalendarIcon,
+  Download,
+  FileSpreadsheet,
+  FileText
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
@@ -375,6 +378,108 @@ const Relatorios = () => {
     return `Últimos ${labels[dateFilter as keyof typeof labels]}`;
   };
 
+  const exportToExcel = () => {
+    if (!financialSummary) return;
+
+    const { startDate, endDate } = getDateRange();
+    
+    // Criar dados do CSV
+    let csvContent = "data:text/csv;charset=utf-8,";
+    
+    // Cabeçalho
+    csvContent += `Relatório Financeiro - ${format(startDate, "dd/MM/yyyy")} até ${format(endDate, "dd/MM/yyyy")}\n\n`;
+    
+    // Resumo
+    csvContent += "RESUMO FINANCEIRO\n";
+    csvContent += `Receita Total,${formatCurrency(financialSummary.total_revenue)}\n`;
+    csvContent += `Despesas Totais,${formatCurrency(financialSummary.total_expenses)}\n`;
+    csvContent += `Lucro,${formatCurrency(financialSummary.profit)}\n`;
+    csvContent += `Cancelamentos,${financialSummary.canceled_appointments}\n`;
+    csvContent += `Pagamentos Pendentes,${formatCurrency(financialSummary.pending_payments)}\n\n`;
+    
+    // Receitas
+    csvContent += "RECEITAS\n";
+    csvContent += "Data,Descrição,Valor,Método de Pagamento\n";
+    financialSummary.income_transactions.forEach(t => {
+      csvContent += `${format(new Date(t.transaction_date), "dd/MM/yyyy")},${t.description},${formatCurrency(t.amount)},${t.payment_method}\n`;
+    });
+    
+    csvContent += "\n";
+    
+    // Despesas
+    csvContent += "DESPESAS\n";
+    csvContent += "Data,Descrição,Valor,Método de Pagamento\n";
+    financialSummary.expense_transactions.forEach(t => {
+      csvContent += `${format(new Date(t.transaction_date), "dd/MM/yyyy")},${t.description},${formatCurrency(t.amount)},${t.payment_method}\n`;
+    });
+
+    // Download
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `relatorio_financeiro_${format(new Date(), "yyyy-MM-dd")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Exportado com sucesso!",
+      description: "O relatório foi exportado para Excel.",
+    });
+  };
+
+  const exportToPDF = async () => {
+    if (!financialSummary) return;
+
+    const { startDate, endDate } = getDateRange();
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-report-pdf", {
+        body: {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          summary: {
+            total_revenue: financialSummary.total_revenue,
+            total_expenses: financialSummary.total_expenses,
+            profit: financialSummary.profit,
+            canceled_appointments: financialSummary.canceled_appointments,
+            pending_payments: financialSummary.pending_payments,
+          },
+          income_transactions: financialSummary.income_transactions,
+          expense_transactions: financialSummary.expense_transactions,
+          inactive_customers: inactiveCustomers.slice(0, 10),
+        },
+      });
+
+      if (error) throw error;
+
+      // O edge function retorna HTML base64, vamos abrir em nova janela para impressão
+      const htmlContent = atob(data.pdf);
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        
+        // Aguardar carregar e então imprimir
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
+      }
+
+      toast({
+        title: "PDF pronto para impressão!",
+        description: "O relatório foi aberto em uma nova janela. Use Ctrl+P ou Cmd+P para salvar como PDF.",
+      });
+    } catch (error: any) {
+      console.error("Erro ao gerar PDF:", error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: error.message || "Não foi possível gerar o PDF.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -383,8 +488,31 @@ const Relatorios = () => {
           <p className="text-muted-foreground">Insights e ações para o crescimento do seu negócio</p>
         </div>
         
-        {/* Filtros */}
+        {/* Filtros e Exportação */}
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          {/* Botões de Exportação */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToExcel}
+            disabled={!financialSummary}
+            className="gap-2"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span className="hidden sm:inline">Excel</span>
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToPDF}
+            disabled={!financialSummary}
+            className="gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            <span className="hidden sm:inline">PDF</span>
+          </Button>
+          
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="gap-2">
