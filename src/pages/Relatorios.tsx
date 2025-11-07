@@ -72,9 +72,8 @@ interface InventoryItem {
   name: string;
   category: string;
   current_stock: number;
-  minimum_stock: number;
-  cost_price: number;
-  sale_price: number;
+  min_quantity: number;
+  unit_price: number;
 }
 
 interface InventoryChartData {
@@ -257,7 +256,7 @@ const Relatorios = () => {
       // Buscar dados do estoque
       const { data: inventory } = await supabase
         .from("inventory_items")
-        .select("id, name, category, current_stock, minimum_stock, cost_price, sale_price")
+        .select("id, name, category, current_stock, min_quantity, unit_price")
         .eq("user_id", user.id)
         .order("current_stock", { ascending: false });
 
@@ -622,7 +621,7 @@ const Relatorios = () => {
                                 const current = categoryMap.get(category) || { value: 0, cost: 0 };
                                 categoryMap.set(category, {
                                   value: current.value + item.current_stock,
-                                  cost: current.cost + (item.current_stock * (item.cost_price || 0))
+                                  cost: current.cost + (item.current_stock * (item.unit_price || 0))
                                 });
                               });
                               return Array.from(categoryMap.entries()).map(([name, data]) => ({
@@ -647,7 +646,7 @@ const Relatorios = () => {
                                 const current = categoryMap.get(category) || { value: 0, cost: 0 };
                                 categoryMap.set(category, {
                                   value: current.value + item.current_stock,
-                                  cost: current.cost + (item.current_stock * (item.cost_price || 0))
+                                  cost: current.cost + (item.current_stock * (item.unit_price || 0))
                                 });
                               });
                               return Array.from(categoryMap.entries()).map((_, index) => (
@@ -674,7 +673,7 @@ const Relatorios = () => {
                               const current = categoryMap.get(category) || { value: 0, cost: 0 };
                               categoryMap.set(category, {
                                 value: current.value + item.current_stock,
-                                cost: current.cost + (item.current_stock * (item.cost_price || 0))
+                                cost: current.cost + (item.current_stock * (item.unit_price || 0))
                               });
                             });
                             return Array.from(categoryMap.entries()).map(([name, data]) => ({
@@ -727,7 +726,7 @@ const Relatorios = () => {
                         <div className="text-2xl font-bold">
                           {formatCurrency(
                             inventoryData.reduce((sum, item) => 
-                              sum + (item.current_stock * (item.cost_price || 0)), 0
+                              sum + (item.current_stock * (item.unit_price || 0)), 0
                             )
                           )}
                         </div>
@@ -736,7 +735,7 @@ const Relatorios = () => {
                   </div>
 
                   {/* Alertas de estoque baixo */}
-                  {inventoryData.some(item => item.current_stock <= item.minimum_stock) && (
+                  {inventoryData.some(item => item.current_stock <= item.min_quantity) && (
                     <Card className="border-destructive/50 bg-destructive/5">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-destructive">
@@ -747,7 +746,7 @@ const Relatorios = () => {
                       <CardContent>
                         <div className="space-y-2">
                           {inventoryData
-                            .filter(item => item.current_stock <= item.minimum_stock)
+                            .filter(item => item.current_stock <= item.min_quantity)
                             .map(item => (
                               <div key={item.id} className="flex items-center justify-between p-3 bg-background rounded-lg">
                                 <div>
@@ -757,7 +756,7 @@ const Relatorios = () => {
                                   </p>
                                 </div>
                                 <Badge variant="destructive">
-                                  {item.current_stock} / {item.minimum_stock}
+                                  {item.current_stock} / {item.min_quantity}
                                 </Badge>
                               </div>
                             ))

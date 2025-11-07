@@ -18,15 +18,11 @@ interface InventoryItem {
   id: string;
   name: string;
   description: string;
-  sku: string;
   category: string;
   unit: string;
   current_stock: number;
-  minimum_stock: number;
-  cost_price: number;
-  sale_price: number;
-  is_kit: boolean;
-  kit_items: any;
+  min_quantity: number;
+  unit_price: number;
 }
 
 interface StockMovement {
@@ -53,14 +49,11 @@ const Estoque = () => {
   const [newItem, setNewItem] = useState({
     name: "",
     description: "",
-    sku: "",
     category: "",
-    unit: "unit",
+    unit: "un",
     current_stock: "0",
-    minimum_stock: "0",
-    cost_price: "",
-    sale_price: "",
-    is_kit: false,
+    min_quantity: "0",
+    unit_price: "",
   });
 
   const [movement, setMovement] = useState({
@@ -149,14 +142,11 @@ const Estoque = () => {
       user_id: user.id,
       name: newItem.name,
       description: newItem.description,
-      sku: newItem.sku,
       category: newItem.category,
       unit: newItem.unit,
       current_stock: parseFloat(newItem.current_stock) || 0,
-      minimum_stock: parseFloat(newItem.minimum_stock) || 0,
-      cost_price: newItem.cost_price ? parseFloat(newItem.cost_price) : null,
-      sale_price: newItem.sale_price ? parseFloat(newItem.sale_price) : null,
-      is_kit: newItem.is_kit,
+      min_quantity: parseFloat(newItem.min_quantity) || 0,
+      unit_price: newItem.unit_price ? parseFloat(newItem.unit_price) : 0,
     }]);
 
     if (error) {
@@ -173,14 +163,11 @@ const Estoque = () => {
       setNewItem({
         name: "",
         description: "",
-        sku: "",
         category: "",
-        unit: "unit",
+        unit: "un",
         current_stock: "0",
-        minimum_stock: "0",
-        cost_price: "",
-        sale_price: "",
-        is_kit: false,
+        min_quantity: "0",
+        unit_price: "",
       });
       fetchItems();
     }
@@ -230,13 +217,13 @@ const Estoque = () => {
   };
 
   const isLowStock = (item: InventoryItem) => {
-    return item.current_stock <= item.minimum_stock && item.minimum_stock > 0;
+    return item.current_stock <= item.min_quantity && item.min_quantity > 0;
   };
 
   const stats = {
     total: items.length,
     lowStock: items.filter(isLowStock).length,
-    totalValue: items.reduce((sum, item) => sum + (item.current_stock * (item.cost_price || 0)), 0),
+    totalValue: items.reduce((sum, item) => sum + (item.current_stock * (item.unit_price || 0)), 0),
   };
 
   if (loading) {
@@ -346,11 +333,11 @@ const Estoque = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="sku">SKU/Código</Label>
+                    <Label htmlFor="category">Categoria</Label>
                     <Input
-                      id="sku"
-                      value={newItem.sku}
-                      onChange={(e) => setNewItem({ ...newItem, sku: e.target.value })}
+                      id="category"
+                      value={newItem.category}
+                      onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
                     />
                   </div>
                 </div>
@@ -364,27 +351,29 @@ const Estoque = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="category">Categoria</Label>
-                    <Input
-                      id="category"
-                      value={newItem.category}
-                      onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                    />
-                  </div>
-                  <div>
                     <Label htmlFor="unit">Unidade</Label>
                     <Select value={newItem.unit} onValueChange={(value) => setNewItem({ ...newItem, unit: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="unit">Unidade</SelectItem>
+                        <SelectItem value="un">Unidade</SelectItem>
                         <SelectItem value="kg">Quilograma (kg)</SelectItem>
-                        <SelectItem value="liter">Litro (L)</SelectItem>
-                        <SelectItem value="meter">Metro (m)</SelectItem>
-                        <SelectItem value="box">Caixa</SelectItem>
+                        <SelectItem value="l">Litro (L)</SelectItem>
+                        <SelectItem value="m">Metro (m)</SelectItem>
+                        <SelectItem value="cx">Caixa</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="unit_price">Preço Unitário (R$)</Label>
+                    <Input
+                      id="unit_price"
+                      type="number"
+                      step="0.01"
+                      value={newItem.unit_price}
+                      onChange={(e) => setNewItem({ ...newItem, unit_price: e.target.value })}
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -399,47 +388,15 @@ const Estoque = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="minimum_stock">Estoque Mínimo</Label>
+                    <Label htmlFor="min_quantity">Estoque Mínimo</Label>
                     <Input
-                      id="minimum_stock"
+                      id="min_quantity"
                       type="number"
                       step="0.01"
-                      value={newItem.minimum_stock}
-                      onChange={(e) => setNewItem({ ...newItem, minimum_stock: e.target.value })}
+                      value={newItem.min_quantity}
+                      onChange={(e) => setNewItem({ ...newItem, min_quantity: e.target.value })}
                     />
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="cost_price">Preço de Custo</Label>
-                    <Input
-                      id="cost_price"
-                      type="number"
-                      step="0.01"
-                      value={newItem.cost_price}
-                      onChange={(e) => setNewItem({ ...newItem, cost_price: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="sale_price">Preço de Venda</Label>
-                    <Input
-                      id="sale_price"
-                      type="number"
-                      step="0.01"
-                      value={newItem.sale_price}
-                      onChange={(e) => setNewItem({ ...newItem, sale_price: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="is_kit"
-                    checked={newItem.is_kit}
-                    onCheckedChange={(checked) => setNewItem({ ...newItem, is_kit: checked as boolean })}
-                  />
-                  <Label htmlFor="is_kit" className="cursor-pointer">
-                    Este item é um kit
-                  </Label>
                 </div>
                 <Button onClick={handleCreateItem} className="w-full">
                   Criar Item
@@ -504,7 +461,6 @@ const Estoque = () => {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">{item.name}</CardTitle>
-                      {item.is_kit && <Badge>Kit</Badge>}
                     </div>
                     {item.category && (
                       <CardDescription>{item.category}</CardDescription>
@@ -518,22 +474,16 @@ const Estoque = () => {
                           {item.current_stock} {item.unit}
                         </span>
                       </div>
-                      {item.minimum_stock > 0 && (
+                      {item.min_quantity > 0 && (
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Mínimo:</span>
-                          <span>{item.minimum_stock} {item.unit}</span>
+                          <span>{item.min_quantity} {item.unit}</span>
                         </div>
                       )}
-                      {item.cost_price && (
+                      {item.unit_price && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Custo:</span>
-                          <span>{formatCurrency(item.cost_price)}</span>
-                        </div>
-                      )}
-                      {item.sale_price && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Venda:</span>
-                          <span>{formatCurrency(item.sale_price)}</span>
+                          <span className="text-muted-foreground">Preço Unit.:</span>
+                          <span>{formatCurrency(item.unit_price)}</span>
                         </div>
                       )}
                       {isLowStock(item) && (

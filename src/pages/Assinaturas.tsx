@@ -20,7 +20,7 @@ interface SubscriptionPlan {
   description: string;
   price: number;
   billing_frequency: string;
-  included_services: any;
+  services: any;
   is_active: boolean;
 }
 
@@ -146,7 +146,7 @@ const Assinaturas = () => {
       description: newPlan.description,
       price: parseFloat(newPlan.price),
       billing_frequency: newPlan.billing_frequency,
-      included_services: newPlan.included_services,
+      services: newPlan.included_services,
     }]);
 
     if (error) {
@@ -233,6 +233,9 @@ const Assinaturas = () => {
           .single();
 
         if (customer) {
+          const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+          const txid = `SUB${Date.now()}${Math.random().toString(36).substring(7)}`;
+          
           await supabase.from("pix_charges").insert({
             user_id: user.id,
             customer_id: renewSubscription.customer_id,
@@ -240,7 +243,9 @@ const Assinaturas = () => {
             customer_phone: customer.phone,
             amount: renewSubscription.subscription_plans.price,
             status: "pending",
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            expires_at: expiresAt.toISOString(),
+            txid: txid,
+            qr_code: "pending",
             metadata: {
               subscription_id: renewSubscription.id,
               type: "subscription_renewal",
