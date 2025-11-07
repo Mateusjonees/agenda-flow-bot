@@ -4,18 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FileText, Upload, Download, Trash2, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { FileText, Download, Trash2, Upload, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
-interface Document {
+interface CustomerDocument {
   id: string;
   file_name: string;
   file_path: string;
@@ -30,7 +24,7 @@ interface CustomerDocumentsProps {
 }
 
 export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<CustomerDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -43,6 +37,7 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
   }, [customerId]);
 
   const fetchDocuments = async () => {
+    setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -59,14 +54,14 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
     setLoading(false);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (file) {
-      // Limitar tamanho a 10MB
+      // Validar tamanho (máximo 10MB)
       if (file.size > 10 * 1024 * 1024) {
         toast({
           title: "Arquivo muito grande",
-          description: "O arquivo deve ter no máximo 10MB",
+          description: "O arquivo deve ter no máximo 10MB.",
           variant: "destructive",
         });
         return;
@@ -78,38 +73,36 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
   const handleUpload = async () => {
     if (!selectedFile) {
       toast({
-        title: "Selecione um arquivo",
-        description: "Por favor, selecione um arquivo para enviar",
+        title: "Nenhum arquivo selecionado",
+        description: "Por favor, selecione um arquivo para fazer upload.",
         variant: "destructive",
       });
       return;
     }
 
     setUploading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
       // Upload do arquivo para o storage
-      const fileExt = selectedFile.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `${user.id}/${customerId}/${fileName}`;
-
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${user.id}/${customerId}/${Date.now()}.${fileExt}`;
+      
       const { error: uploadError } = await supabase.storage
         .from("customer-documents")
-        .upload(filePath, selectedFile);
+        .upload(fileName, selectedFile);
 
       if (uploadError) throw uploadError;
 
-      // Salvar registro no banco
+      // Salvar informações no banco
       const { error: dbError } = await supabase
         .from("customer_documents")
         .insert({
           user_id: user.id,
           customer_id: customerId,
           file_name: selectedFile.name,
-          file_path: filePath,
+          file_path: fileName,
           file_type: selectedFile.type,
           file_size: selectedFile.size,
           description: description || null,
@@ -119,7 +112,7 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
 
       toast({
         title: "Documento enviado!",
-        description: "O documento foi anexado com sucesso",
+        description: "O documento foi adicionado com sucesso.",
       });
 
       setDialogOpen(false);
@@ -128,8 +121,8 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
       fetchDocuments();
     } catch (error: any) {
       toast({
-        title: "Erro ao enviar",
-        description: error.message || "Não foi possível enviar o documento",
+        title: "Erro ao enviar documento",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -137,7 +130,7 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
     }
   };
 
-  const handleDownload = async (doc: Document) => {
+  const handleDownload = async (doc: CustomerDocument) => {
     try {
       const { data, error } = await supabase.storage
         .from("customer-documents")
@@ -147,29 +140,24 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
 
       // Criar URL e fazer download
       const url = URL.createObjectURL(data);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = doc.file_name;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
-      toast({
-        title: "Download iniciado",
-        description: "O arquivo está sendo baixado",
-      });
     } catch (error: any) {
       toast({
-        title: "Erro ao baixar",
-        description: error.message || "Não foi possível baixar o documento",
+        title: "Erro ao baixar documento",
+        description: error.message,
         variant: "destructive",
       });
     }
   };
 
-  const handleDelete = async (doc: Document) => {
-    if (!confirm(`Deseja realmente excluir "${doc.file_name}"?`)) return;
+  const handleDelete = async (doc: CustomerDocument) => {
+    if (!confirm("Tem certeza que deseja excluir este documento?")) return;
 
     try {
       // Deletar do storage
@@ -189,38 +177,25 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
 
       toast({
         title: "Documento excluído",
-        description: "O documento foi removido com sucesso",
+        description: "O documento foi removido com sucesso.",
       });
 
       fetchDocuments();
     } catch (error: any) {
       toast({
-        title: "Erro ao excluir",
-        description: error.message || "Não foi possível excluir o documento",
+        title: "Erro ao excluir documento",
+        description: error.message,
         variant: "destructive",
       });
     }
   };
 
   const formatFileSize = (bytes: number | null) => {
-    if (!bytes) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+    if (!bytes) return "N/A";
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-muted-foreground text-center">
-            Carregando documentos...
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card>
@@ -236,38 +211,57 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Anexar Documento</DialogTitle>
+                <DialogTitle>Adicionar Documento</DialogTitle>
                 <DialogDescription>
-                  Envie contratos, documentos e outros arquivos relacionados ao cliente
+                  Anexe contratos, documentos ou outros arquivos relevantes
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="file-upload">Arquivo (máx. 10MB)</Label>
-                  <Input
-                    id="file-upload"
-                    type="file"
-                    onChange={handleFileSelect}
-                    accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-                  />
-                  {selectedFile && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                    </p>
-                  )}
+                  <Label htmlFor="file-upload">Arquivo *</Label>
+                  <div className="mt-2">
+                    <Input
+                      id="file-upload"
+                      type="file"
+                      onChange={handleFileSelect}
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    />
+                    {selectedFile && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Máximo 10MB. Formatos: PDF, DOC, DOCX, JPG, PNG
+                  </p>
                 </div>
                 <div>
-                  <Label htmlFor="description">Descrição (opcional)</Label>
-                  <Input
+                  <Label htmlFor="description">Descrição</Label>
+                  <Textarea
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Ex: Contrato de prestação de serviços"
+                    placeholder="Descreva o documento..."
+                    rows={3}
                   />
                 </div>
-                <Button onClick={handleUpload} disabled={uploading} className="w-full">
-                  <Upload className="w-4 h-4 mr-2" />
-                  {uploading ? "Enviando..." : "Enviar Documento"}
+                <Button 
+                  onClick={handleUpload} 
+                  disabled={!selectedFile || uploading}
+                  className="w-full"
+                >
+                  {uploading ? (
+                    <>
+                      <Upload className="w-4 h-4 mr-2 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Enviar Documento
+                    </>
+                  )}
                 </Button>
               </div>
             </DialogContent>
@@ -275,20 +269,24 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
         </div>
       </CardHeader>
       <CardContent className="p-3 sm:p-4 pt-0">
-        {documents.length === 0 ? (
+        {loading ? (
           <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">
-            Nenhum documento anexado
+            Carregando documentos...
+          </p>
+        ) : documents.length === 0 ? (
+          <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">
+            Nenhum documento anexado ainda.
           </p>
         ) : (
           <div className="space-y-2">
             {documents.map((doc) => (
               <div
                 key={doc.id}
-                className="flex items-center justify-between gap-2 p-2 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                className="flex items-center justify-between p-2 sm:p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
               >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium truncate">
                       {doc.file_name}
                     </p>
@@ -298,7 +296,7 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      {formatFileSize(doc.file_size)}
+                      {formatFileSize(doc.file_size)} • {new Date(doc.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
