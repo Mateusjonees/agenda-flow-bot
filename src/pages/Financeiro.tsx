@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, TrendingUp, TrendingDown, DollarSign, PieChart, Download, Filter } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -46,6 +47,11 @@ const Financeiro = () => {
   const [paymentMethodTotals, setPaymentMethodTotals] = useState<PaymentMethodTotal[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [newCategory, setNewCategory] = useState({
+    name: "",
+    type: "expense",
+  });
   const [filters, setFilters] = useState({
     startDate: format(startOfMonth(new Date()), "yyyy-MM-dd"),
     endDate: format(endOfMonth(new Date()), "yyyy-MM-dd"),
@@ -189,8 +195,97 @@ ${paymentMethodTotals.map((m) => `${getPaymentMethodLabel(m.method)}: ${formatCu
     }).format(value);
   };
 
+  const handleCreateCategory = async () => {
+    if (!newCategory.name.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite um nome para a categoria",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("financial_categories")
+      .insert({
+        user_id: user.id,
+        name: newCategory.name.trim(),
+        type: newCategory.type,
+      });
+
+    if (error) {
+      toast({
+        title: "Erro ao criar categoria",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Categoria criada!",
+        description: "A categoria foi adicionada com sucesso.",
+      });
+      setCategoryDialogOpen(false);
+      setNewCategory({ name: "", type: "expense" });
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <FinancialTransactionDialog 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen}
+        onSuccess={() => fetchFinancialData()}
+      />
+      
+      {/* Dialog de Nova Categoria */}
+      <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Categoria</DialogTitle>
+            <DialogDescription>
+              Crie uma nova categoria para organizar suas transações
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="category-name">Nome da Categoria *</Label>
+              <Input
+                id="category-name"
+                value={newCategory.name}
+                onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                placeholder="Ex: Aluguel, Salários, Vendas..."
+              />
+            </div>
+            <div>
+              <Label htmlFor="category-type">Tipo *</Label>
+              <Select
+                value={newCategory.type}
+                onValueChange={(value) => setNewCategory({ ...newCategory, type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="income">Receita</SelectItem>
+                  <SelectItem value="expense">Despesa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCategoryDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleCreateCategory}>
+                Criar Categoria
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold text-foreground mb-2">Financeiro</h1>
@@ -392,7 +487,7 @@ ${paymentMethodTotals.map((m) => `${getPaymentMethodLabel(m.method)}: ${formatCu
                     Organize suas transações por categoria
                   </CardDescription>
                 </div>
-                <Button className="gap-2">
+                <Button className="gap-2" onClick={() => setCategoryDialogOpen(true)}>
                   <Plus className="w-4 h-4" />
                   Nova Categoria
                 </Button>

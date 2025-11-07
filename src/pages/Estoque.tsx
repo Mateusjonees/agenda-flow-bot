@@ -60,6 +60,7 @@ const Estoque = () => {
     type: "in",
     quantity: "",
     reason: "",
+    totalCost: "",
   });
 
   useEffect(() => {
@@ -183,6 +184,9 @@ const Estoque = () => {
       return;
     }
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { error } = await supabase.rpc("update_inventory_stock", {
       p_item_id: selectedItem,
       p_quantity: parseFloat(movement.quantity),
@@ -197,16 +201,48 @@ const Estoque = () => {
         description: error.message,
         variant: "destructive",
       });
+      return;
+    }
+
+    // Se for entrada de estoque E tiver custo informado, criar despesa no financeiro
+    if (movement.type === "in" && movement.totalCost && parseFloat(movement.totalCost) > 0) {
+      const selectedItemData = items.find(i => i.id === selectedItem);
+      const { error: transactionError } = await supabase
+        .from("financial_transactions")
+        .insert({
+          user_id: user.id,
+          type: "expense",
+          amount: parseFloat(movement.totalCost),
+          description: `Compra de estoque: ${selectedItemData?.name} (${movement.quantity} ${selectedItemData?.unit})`,
+          payment_method: "cash",
+          status: "completed",
+          transaction_date: new Date().toISOString(),
+        });
+
+      if (transactionError) {
+        console.error("Erro ao criar transação financeira:", transactionError);
+        toast({
+          title: "Aviso",
+          description: "Estoque atualizado, mas não foi possível registrar a despesa no financeiro.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Estoque e financeiro atualizados!",
+          description: "A movimentação foi registrada e a despesa foi adicionada ao financeiro.",
+        });
+      }
     } else {
       toast({
         title: "Estoque atualizado!",
       });
-      setIsMovementDialogOpen(false);
-      setMovement({ type: "in", quantity: "", reason: "" });
-      setSelectedItem("");
-      fetchItems();
-      fetchMovements();
     }
+
+    setIsMovementDialogOpen(false);
+    setMovement({ type: "in", quantity: "", reason: "", totalCost: "" });
+    setSelectedItem("");
+    fetchItems();
+    fetchMovements();
   };
 
   const formatCurrency = (value: number) => {
@@ -293,6 +329,22 @@ const Estoque = () => {
                     onChange={(e) => setMovement({ ...movement, quantity: e.target.value })}
                   />
                 </div>
+                {movement.type === "in" && (
+                  <div>
+                    <Label htmlFor="totalCost">Custo Total da Compra (R$)</Label>
+                    <Input
+                      id="totalCost"
+                      type="number"
+                      step="0.01"
+                      value={movement.totalCost}
+                      onChange={(e) => setMovement({ ...movement, totalCost: e.target.value })}
+                      placeholder="0,00"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Opcional. Se preenchido, será registrado como despesa no financeiro
+                    </p>
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="reason">Motivo</Label>
                   <Textarea
