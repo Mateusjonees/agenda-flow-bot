@@ -301,6 +301,7 @@ export type Database = {
       inventory_items: {
         Row: {
           category: string | null
+          cost_price: number | null
           created_at: string | null
           current_stock: number | null
           description: string | null
@@ -315,6 +316,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          cost_price?: number | null
           created_at?: string | null
           current_stock?: number | null
           description?: string | null
@@ -329,6 +331,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          cost_price?: number | null
           created_at?: string | null
           current_stock?: number | null
           description?: string | null

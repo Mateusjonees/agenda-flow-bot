@@ -23,6 +23,7 @@ interface InventoryItem {
   current_stock: number;
   min_quantity: number;
   unit_price: number;
+  cost_price: number;
 }
 
 interface StockMovement {
@@ -53,6 +54,7 @@ const Estoque = () => {
     unit: "un",
     current_stock: "0",
     min_quantity: "0",
+    cost_price: "",
     unit_price: "",
   });
 
@@ -147,6 +149,7 @@ const Estoque = () => {
       unit: newItem.unit,
       current_stock: parseFloat(newItem.current_stock) || 0,
       min_quantity: parseFloat(newItem.min_quantity) || 0,
+      cost_price: newItem.cost_price ? parseFloat(newItem.cost_price) : 0,
       unit_price: newItem.unit_price ? parseFloat(newItem.unit_price) : 0,
     }]);
 
@@ -168,6 +171,7 @@ const Estoque = () => {
         unit: "un",
         current_stock: "0",
         min_quantity: "0",
+        cost_price: "",
         unit_price: "",
       });
       fetchItems();
@@ -430,14 +434,35 @@ const Estoque = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="unit_price">Preço Unitário (R$)</Label>
+                    <Label htmlFor="cost_price">Custo de Compra (R$)</Label>
+                    <Input
+                      id="cost_price"
+                      type="number"
+                      step="0.01"
+                      placeholder="Quanto custou para comprar"
+                      value={newItem.cost_price}
+                      onChange={(e) => setNewItem({ ...newItem, cost_price: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="unit_price">Preço de Venda (R$)</Label>
                     <Input
                       id="unit_price"
                       type="number"
                       step="0.01"
+                      placeholder="Preço que vai sair por unidade"
                       value={newItem.unit_price}
                       onChange={(e) => setNewItem({ ...newItem, unit_price: e.target.value })}
                     />
+                  </div>
+                  <div className="flex items-end">
+                    {newItem.cost_price && newItem.unit_price && (
+                      <div className="text-sm text-muted-foreground">
+                        Margem: {(((parseFloat(newItem.unit_price) - parseFloat(newItem.cost_price)) / parseFloat(newItem.cost_price)) * 100).toFixed(1)}%
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -544,10 +569,24 @@ const Estoque = () => {
                           <span>{item.min_quantity} {item.unit}</span>
                         </div>
                       )}
-                      {item.unit_price && (
+                      {item.cost_price > 0 && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Preço Unit.:</span>
-                          <span>{formatCurrency(item.unit_price)}</span>
+                          <span className="text-muted-foreground">Custo:</span>
+                          <span className="text-orange-600">{formatCurrency(item.cost_price)}</span>
+                        </div>
+                      )}
+                      {item.unit_price > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Venda:</span>
+                          <span className="text-green-600 font-medium">{formatCurrency(item.unit_price)}</span>
+                        </div>
+                      )}
+                      {item.cost_price > 0 && item.unit_price > 0 && (
+                        <div className="flex justify-between text-sm border-t pt-2">
+                          <span className="text-muted-foreground font-medium">Margem:</span>
+                          <span className="font-bold text-primary">
+                            {(((item.unit_price - item.cost_price) / item.cost_price) * 100).toFixed(1)}%
+                          </span>
                         </div>
                       )}
                       {isLowStock(item) && (
