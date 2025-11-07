@@ -124,33 +124,77 @@ const Tarefas = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
-    const { error } = await supabase
-      .from("tasks")
-      .insert({
-        user_id: session.user.id,
-        title: formData.title,
-        description: formData.description,
-        due_date: new Date(formData.due_date).toISOString(),
-        priority: formData.priority,
-        status: formData.status,
-        type: formData.type,
-        related_entity_type: formData.related_entity_id ? "customer" : null,
-        related_entity_id: formData.related_entity_id || null,
-      });
-
-    if (error) {
+    // Validação básica
+    if (!formData.title.trim()) {
       toast({
-        title: "Erro ao criar tarefa",
-        description: error.message,
+        title: "Erro de validação",
+        description: "O título é obrigatório",
         variant: "destructive",
       });
-    } else {
+      return;
+    }
+
+    if (!formData.due_date) {
       toast({
-        title: "Tarefa criada!",
+        title: "Erro de validação",
+        description: "A data de vencimento é obrigatória",
+        variant: "destructive",
       });
+      return;
+    }
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({
+        title: "Erro de autenticação",
+        description: "Você precisa estar logado para criar tarefas",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const dueDate = new Date(formData.due_date);
+      
+      // Verificar se a data é válida
+      if (isNaN(dueDate.getTime())) {
+        toast({
+          title: "Erro de validação",
+          description: "Data de vencimento inválida",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from("tasks")
+        .insert({
+          user_id: session.user.id,
+          title: formData.title.trim(),
+          description: formData.description?.trim() || null,
+          due_date: dueDate.toISOString(),
+          priority: formData.priority,
+          status: formData.status,
+          type: formData.type,
+          related_entity_type: formData.related_entity_id ? "customer" : null,
+          related_entity_id: formData.related_entity_id || null,
+        });
+
+      if (error) {
+        console.error("Erro ao criar tarefa:", error);
+        toast({
+          title: "Erro ao criar tarefa",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: "Tarefa criada com sucesso",
+      });
+      
       setOpen(false);
       setFormData({
         title: "",
@@ -162,6 +206,13 @@ const Tarefas = () => {
         type: "manual",
       });
       fetchStats();
+    } catch (error) {
+      console.error("Erro inesperado ao criar tarefa:", error);
+      toast({
+        title: "Erro inesperado",
+        description: "Ocorreu um erro ao criar a tarefa. Tente novamente.",
+        variant: "destructive",
+      });
     }
   };
 
