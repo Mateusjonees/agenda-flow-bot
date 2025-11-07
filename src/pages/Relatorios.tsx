@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   TrendingUp, 
   TrendingDown, 
@@ -19,7 +22,9 @@ import {
   Loader2,
   Package,
   BarChart3,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Filter,
+  CalendarIcon
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
@@ -91,17 +96,44 @@ const Relatorios = () => {
   const [chartType, setChartType] = useState<"pie" | "bar">("pie");
   const [loading, setLoading] = useState(true);
   const [reactivating, setReactivating] = useState<string | null>(null);
+  const [dateFilter, setDateFilter] = useState<"7" | "30" | "90" | "custom">("30");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all");
   const { toast } = useToast();
 
   useEffect(() => {
     fetchReports();
-  }, []);
+  }, [dateFilter, customStartDate, customEndDate, paymentMethodFilter]);
+
+  const getDateRange = () => {
+    const now = new Date();
+    let startDate: Date;
+    let endDate = endOfDay(now);
+
+    if (dateFilter === "custom") {
+      if (!customStartDate || !customEndDate) {
+        return { startDate: subDays(now, 30), endDate };
+      }
+      startDate = startOfDay(new Date(customStartDate));
+      endDate = endOfDay(new Date(customEndDate));
+    } else {
+      const days = parseInt(dateFilter);
+      startDate = subDays(now, days);
+    }
+
+    return { startDate, endDate };
+  };
 
   const fetchReports = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    setLoading(true);
+
     try {
+      const { startDate: filterStartDate, endDate: filterEndDate } = getDateRange();
+      
       // Buscar clientes inativos
       const sixtyDaysAgo = subDays(new Date(), 60);
       
@@ -197,40 +229,51 @@ const Relatorios = () => {
         );
       }
 
-      // Resumo financeiro (últimos 30 dias)
-      const thirtyDaysAgo = subDays(new Date(), 30);
-      
-      const { data: incomeData } = await supabase
+      // Resumo financeiro (com filtros aplicados)
+      let incomeQuery = supabase
         .from("financial_transactions")
         .select("id, amount, description, transaction_date, payment_method")
         .eq("user_id", user.id)
         .eq("type", "income")
         .eq("status", "completed")
-        .gte("transaction_date", thirtyDaysAgo.toISOString())
+        .gte("transaction_date", filterStartDate.toISOString())
+        .lte("transaction_date", filterEndDate.toISOString())
         .order("transaction_date", { ascending: false });
 
-      const { data: expenseData } = await supabase
+      let expenseQuery = supabase
         .from("financial_transactions")
         .select("id, amount, description, transaction_date, payment_method")
         .eq("user_id", user.id)
         .eq("type", "expense")
         .eq("status", "completed")
-        .gte("transaction_date", thirtyDaysAgo.toISOString())
+        .gte("transaction_date", filterStartDate.toISOString())
+        .lte("transaction_date", filterEndDate.toISOString())
         .order("transaction_date", { ascending: false });
+
+      // Aplicar filtro de método de pagamento se não for "all"
+      if (paymentMethodFilter !== "all") {
+        incomeQuery = incomeQuery.eq("payment_method", paymentMethodFilter);
+        expenseQuery = expenseQuery.eq("payment_method", paymentMethodFilter);
+      }
+
+      const { data: incomeData } = await incomeQuery;
+      const { data: expenseData } = await expenseQuery;
 
       const { data: canceledApts } = await supabase
         .from("appointments")
         .select("id")
         .eq("user_id", user.id)
         .eq("status", "canceled")
-        .gte("created_at", thirtyDaysAgo.toISOString());
+        .gte("created_at", filterStartDate.toISOString())
+        .lte("created_at", filterEndDate.toISOString());
 
       const { data: pendingPayments } = await supabase
         .from("financial_transactions")
         .select("amount")
         .eq("user_id", user.id)
         .eq("status", "pending")
-        .gte("transaction_date", thirtyDaysAgo.toISOString());
+        .gte("transaction_date", filterStartDate.toISOString())
+        .lte("transaction_date", filterEndDate.toISOString());
 
       const totalRevenue = incomeData?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
       const totalExpenses = expenseData?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
@@ -324,11 +367,88 @@ const Relatorios = () => {
     );
   }
 
+  const getFilterLabel = () => {
+    if (dateFilter === "custom" && customStartDate && customEndDate) {
+      return `${format(new Date(customStartDate), "dd/MM/yyyy")} - ${format(new Date(customEndDate), "dd/MM/yyyy")}`;
+    }
+    const labels = { "7": "7 dias", "30": "30 dias", "90": "90 dias" };
+    return `Últimos ${labels[dateFilter as keyof typeof labels]}`;
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-4xl font-bold text-foreground mb-2">Relatórios Inteligentes</h1>
-        <p className="text-muted-foreground">Insights e ações para o crescimento do seu negócio</p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-foreground mb-2">Relatórios Inteligentes</h1>
+          <p className="text-muted-foreground">Insights e ações para o crescimento do seu negócio</p>
+        </div>
+        
+        {/* Filtros */}
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                {getFilterLabel()}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+              <div className="space-y-4">
+                <div>
+                  <Label>Período</Label>
+                  <Select value={dateFilter} onValueChange={(value: any) => setDateFilter(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7">Últimos 7 dias</SelectItem>
+                      <SelectItem value="30">Últimos 30 dias</SelectItem>
+                      <SelectItem value="90">Últimos 90 dias</SelectItem>
+                      <SelectItem value="custom">Período personalizado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {dateFilter === "custom" && (
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="start-date">Data Inicial</Label>
+                      <Input
+                        id="start-date"
+                        type="date"
+                        value={customStartDate}
+                        onChange={(e) => setCustomStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="end-date">Data Final</Label>
+                      <Input
+                        id="end-date"
+                        type="date"
+                        value={customEndDate}
+                        onChange={(e) => setCustomEndDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Método de pagamento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os métodos</SelectItem>
+              <SelectItem value="money">Dinheiro</SelectItem>
+              <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+              <SelectItem value="debit_card">Cartão de Débito</SelectItem>
+              <SelectItem value="pix">PIX</SelectItem>
+              <SelectItem value="bank_transfer">Transferência</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Tabs defaultValue="financial" className="space-y-4">
@@ -346,7 +466,7 @@ const Relatorios = () => {
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Receita (30 dias)</CardTitle>
+                    <CardTitle className="text-sm font-medium">Receita</CardTitle>
                     <TrendingUp className="w-4 h-4 text-accent" />
                   </CardHeader>
                   <CardContent>
@@ -358,7 +478,7 @@ const Relatorios = () => {
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Despesas (30 dias)</CardTitle>
+                    <CardTitle className="text-sm font-medium">Despesas</CardTitle>
                     <TrendingDown className="w-4 h-4 text-destructive" />
                   </CardHeader>
                   <CardContent>
