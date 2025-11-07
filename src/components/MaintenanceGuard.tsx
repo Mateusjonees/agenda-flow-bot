@@ -7,16 +7,11 @@ interface MaintenanceGuardProps {
   children: ReactNode;
 }
 
-interface MaintenanceSettings {
-  is_maintenance_mode: boolean;
-  maintenance_message: string | null;
-  maintenance_estimated_return: string | null;
-}
-
 export const MaintenanceGuard = ({ children }: MaintenanceGuardProps) => {
   const [loading, setLoading] = useState(true);
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
-  const [maintenanceSettings, setMaintenanceSettings] = useState<MaintenanceSettings | null>(null);
+  const [message, setMessage] = useState<string>("");
+  const [estimatedReturn, setEstimatedReturn] = useState<string>("");
 
   useEffect(() => {
     checkMaintenanceMode();
@@ -47,8 +42,7 @@ export const MaintenanceGuard = ({ children }: MaintenanceGuardProps) => {
       // Buscar configurações de manutenção de qualquer usuário (modo global)
       const { data, error } = await supabase
         .from("business_settings")
-        .select("is_maintenance_mode, maintenance_message, maintenance_estimated_return")
-        .eq("is_maintenance_mode", true)
+        .select("*")
         .limit(1)
         .maybeSingle();
 
@@ -56,9 +50,10 @@ export const MaintenanceGuard = ({ children }: MaintenanceGuardProps) => {
         console.error("Erro ao verificar modo manutenção:", error);
       }
 
-      if (data) {
+      if (data && (data as any).is_maintenance_mode) {
         setIsMaintenanceMode(true);
-        setMaintenanceSettings(data);
+        setMessage((data as any).maintenance_message || "");
+        setEstimatedReturn((data as any).maintenance_estimated_return || "");
       } else {
         setIsMaintenanceMode(false);
       }
@@ -73,11 +68,11 @@ export const MaintenanceGuard = ({ children }: MaintenanceGuardProps) => {
     return <LoadingState showLogo message="Verificando status do sistema..." />;
   }
 
-  if (isMaintenanceMode && maintenanceSettings) {
+  if (isMaintenanceMode) {
     return (
       <Maintenance
-        message={maintenanceSettings.maintenance_message || undefined}
-        estimatedReturn={maintenanceSettings.maintenance_estimated_return || undefined}
+        message={message || undefined}
+        estimatedReturn={estimatedReturn || undefined}
         showNotificationSignup={true}
       />
     );

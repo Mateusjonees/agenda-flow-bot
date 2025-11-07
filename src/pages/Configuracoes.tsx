@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Save, Star, Gift, Link as LinkIcon, Upload, Camera } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,6 +17,9 @@ const Configuracoes = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [stampsRequired, setStampsRequired] = useState(5);
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+  const [maintenanceMessage, setMaintenanceMessage] = useState("");
+  const [maintenanceReturn, setMaintenanceReturn] = useState("");
 
   // Buscar dados do usuário e configurações
   const { data: user } = useQuery({
@@ -60,7 +65,12 @@ const Configuracoes = () => {
     if (loyaltySettings?.stamps_required) {
       setStampsRequired(loyaltySettings.stamps_required);
     }
-  }, [loyaltySettings]);
+    if (settings) {
+      setIsMaintenanceMode((settings as any).is_maintenance_mode || false);
+      setMaintenanceMessage((settings as any).maintenance_message || "");
+      setMaintenanceReturn((settings as any).maintenance_estimated_return || "");
+    }
+  }, [loyaltySettings, settings]);
 
   // Mutation para fazer upload da imagem
   const uploadImageMutation = useMutation({
@@ -114,17 +124,30 @@ const Configuracoes = () => {
       if (!user) throw new Error("Usuário não autenticado");
 
       // Atualizar todas as loyalty cards do usuário
-      const { error } = await supabase
+      const { error: loyaltyError } = await supabase
         .from("loyalty_cards")
         .update({ stamps_required: stampsRequired })
         .eq("user_id", user.id);
 
-      if (error) throw error;
+      if (loyaltyError) throw loyaltyError;
+
+      // Atualizar configurações de manutenção
+      const { error: settingsError } = await supabase
+        .from("business_settings")
+        .update({
+          is_maintenance_mode: isMaintenanceMode,
+          maintenance_message: maintenanceMessage || null,
+          maintenance_estimated_return: maintenanceReturn || null,
+        })
+        .eq("user_id", user.id);
+
+      if (settingsError) throw settingsError;
     },
     onSuccess: () => {
       toast.success("Configurações salvas com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["loyalty-settings"] });
       queryClient.invalidateQueries({ queryKey: ["loyalty-cards"] });
+      queryClient.invalidateQueries({ queryKey: ["business-settings"] });
     },
     onError: (error) => {
       console.error("Erro ao salvar:", error);
@@ -376,6 +399,67 @@ const Configuracoes = () => {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-orange-200 dark:border-orange-800">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CardTitle>🔧 Modo de Manutenção</CardTitle>
+            <Badge variant={isMaintenanceMode ? "destructive" : "outline"}>
+              {isMaintenanceMode ? "Ativo" : "Inativo"}
+            </Badge>
+          </div>
+          <CardDescription>
+            Ative o modo de manutenção para exibir uma página de aviso aos usuários
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+            <div className="flex-1">
+              <Label htmlFor="maintenance-mode" className="cursor-pointer">
+                <strong>Ativar Modo de Manutenção</strong>
+              </Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Quando ativo, todos os usuários verão uma tela de manutenção com sua logo
+              </p>
+            </div>
+            <Switch
+              id="maintenance-mode"
+              checked={isMaintenanceMode}
+              onCheckedChange={setIsMaintenanceMode}
+            />
+          </div>
+
+          {isMaintenanceMode && (
+            <div className="space-y-4 pt-4 border-t">
+              <div className="space-y-2">
+                <Label htmlFor="maintenance-message">Mensagem Personalizada</Label>
+                <Input
+                  id="maintenance-message"
+                  value={maintenanceMessage}
+                  onChange={(e) => setMaintenanceMessage(e.target.value)}
+                  placeholder="Estamos realizando manutenção programada no sistema"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Mensagem que será exibida na página de manutenção
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="maintenance-return">Retorno Previsto (opcional)</Label>
+                <Input
+                  id="maintenance-return"
+                  type="datetime-local"
+                  value={maintenanceReturn}
+                  onChange={(e) => setMaintenanceReturn(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Data e hora prevista para retorno. Será exibido um contador regressivo.
+                </p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

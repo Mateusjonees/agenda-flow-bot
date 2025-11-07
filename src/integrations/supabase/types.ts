@@ -90,6 +90,9 @@ export type Database = {
           created_at: string | null
           email: string | null
           id: string
+          is_maintenance_mode: boolean | null
+          maintenance_estimated_return: string | null
+          maintenance_message: string | null
           profile_image_url: string | null
           theme_color: string | null
           updated_at: string | null
@@ -102,6 +105,9 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          is_maintenance_mode?: boolean | null
+          maintenance_estimated_return?: string | null
+          maintenance_message?: string | null
           profile_image_url?: string | null
           theme_color?: string | null
           updated_at?: string | null
@@ -114,6 +120,9 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          is_maintenance_mode?: boolean | null
+          maintenance_estimated_return?: string | null
+          maintenance_message?: string | null
           profile_image_url?: string | null
           theme_color?: string | null
           updated_at?: string | null
