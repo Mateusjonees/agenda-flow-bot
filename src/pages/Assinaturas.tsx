@@ -13,9 +13,11 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Users, TrendingUp, CreditCard, FileText, DollarSign, Calendar,
-  RefreshCw, XCircle, Pause, Play, CheckCircle, PackageCheck, FileDown, FileCheck, Mail, Loader2
+  RefreshCw, XCircle, Pause, Play, CheckCircle, PackageCheck, FileDown, FileCheck, Mail, Loader2, AlertTriangle
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface SubscriptionPlan {
   id: string;
@@ -66,6 +68,11 @@ const Assinaturas = () => {
     totalRevenue: 0,
     activeSubscriptions: 0,
   });
+  const [userSubscription, setUserSubscription] = useState<any>(null);
+  const [loadingUserSubscription, setLoadingUserSubscription] = useState(true);
+  const [cancelUserSubscription, setCancelUserSubscription] = useState(false);
+  const [reactivateUserSubscription, setReactivateUserSubscription] = useState(false);
+  const [processingUserAction, setProcessingUserAction] = useState(false);
   
   const [newPlan, setNewPlan] = useState({
     name: "",
@@ -78,6 +85,7 @@ const Assinaturas = () => {
 
   useEffect(() => {
     checkAuth();
+    fetchUserSubscription();
     fetchPlans();
     fetchSubscriptions();
     fetchCustomers();
@@ -89,6 +97,24 @@ const Assinaturas = () => {
     if (!session) {
       navigate("/auth");
     }
+  };
+
+  const fetchUserSubscription = async () => {
+    setLoadingUserSubscription(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("subscriptions")
+      .select("*")
+      .eq("user_id", user.id)
+      .is("customer_id", null)
+      .maybeSingle();
+
+    if (!error && data) {
+      setUserSubscription(data);
+    }
+    setLoadingUserSubscription(false);
   };
 
   const fetchPlans = async () => {
@@ -426,6 +452,64 @@ const Assinaturas = () => {
     return labels[frequency] || frequency;
   };
 
+  const handleCancelUserSubscription = async () => {
+    if (!userSubscription) return;
+    setProcessingUserAction(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-subscription", {
+        body: { subscriptionId: userSubscription.id },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Assinatura cancelada",
+        description: "Sua assinatura foi cancelada com sucesso.",
+      });
+
+      setCancelUserSubscription(false);
+      await fetchUserSubscription();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao cancelar assinatura",
+        description: error.message || "Não foi possível cancelar a assinatura.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingUserAction(false);
+    }
+  };
+
+  const handleReactivateUserSubscription = async () => {
+    if (!userSubscription) return;
+    setProcessingUserAction(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("reactivate-subscription", {
+        body: { subscriptionId: userSubscription.id },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Assinatura reativada",
+        description: "Sua assinatura foi reativada com sucesso.",
+      });
+
+      setReactivateUserSubscription(false);
+      await fetchUserSubscription();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao reativar assinatura",
+        description: error.message || "Não foi possível reativar a assinatura.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingUserAction(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-8">Carregando...</div>;
   }
@@ -581,6 +665,90 @@ const Assinaturas = () => {
           </Dialog>
         </div>
       </div>
+
+      {/* Minha Assinatura */}
+      {userSubscription && !loadingUserSubscription && (
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Minha Assinatura</CardTitle>
+                  <CardDescription>Gerenciar meu plano da plataforma</CardDescription>
+                </div>
+              </div>
+              {userSubscription.status === "active" ? (
+                <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Ativo
+                </Badge>
+              ) : (
+                <Badge variant="destructive">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Cancelado
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">Plano:</span>
+                  <span className="font-semibold">
+                    {userSubscription.status === "trial" ? "Trial (7 dias grátis)" : "Premium"}
+                  </span>
+                </div>
+                {userSubscription.status === "active" && userSubscription.next_billing_date && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Próxima cobrança:</span>
+                    <span className="font-medium">
+                      {format(new Date(userSubscription.next_billing_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-2">
+                {userSubscription.status === "active" ? (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setCancelUserSubscription(true)}
+                    disabled={processingUserAction}
+                  >
+                    {processingUserAction ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <XCircle className="h-4 w-4 mr-2" />
+                    )}
+                    Cancelar Assinatura
+                  </Button>
+                ) : (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => setReactivateUserSubscription(true)}
+                    disabled={processingUserAction}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {processingUserAction ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Reativar Assinatura
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Métricas */}
       <div className="grid gap-6 md:grid-cols-4">
@@ -853,6 +1021,63 @@ const Assinaturas = () => {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handlePauseSubscription}>
               Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de Cancelar Minha Assinatura */}
+      <AlertDialog open={cancelUserSubscription} onOpenChange={setCancelUserSubscription}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar Minha Assinatura</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja cancelar sua assinatura? Você perderá acesso aos recursos premium da plataforma.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processingUserAction}>Voltar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleCancelUserSubscription}
+              disabled={processingUserAction}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {processingUserAction ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Cancelando...
+                </>
+              ) : (
+                "Confirmar Cancelamento"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de Reativar Minha Assinatura */}
+      <AlertDialog open={reactivateUserSubscription} onOpenChange={setReactivateUserSubscription}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reativar Minha Assinatura</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja reativar sua assinatura? Você voltará a ter acesso a todos os recursos premium da plataforma.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processingUserAction}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleReactivateUserSubscription}
+              disabled={processingUserAction}
+            >
+              {processingUserAction ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Reativando...
+                </>
+              ) : (
+                "Confirmar Reativação"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
