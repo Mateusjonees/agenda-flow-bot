@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Trash2, Filter, CheckCircle, XCircle, Calendar as CalendarIcon, User, DollarSign, Sparkles, Search, ChevronsUpDown, HelpCircle, Package, Percent, Calendar, UserCheck, Download, Mail } from "lucide-react";
+import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Trash2, Filter, CheckCircle, XCircle, Calendar as CalendarIcon, User, DollarSign, Sparkles, Search, ChevronsUpDown, HelpCircle, Package, Percent, Calendar, UserCheck, Download, Mail, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -322,6 +322,91 @@ ${businessName}
       toast({
         title: "Erro",
         description: error.message || "Não foi possível abrir o cliente de email.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSendWhatsApp = async (proposalId: string) => {
+    try {
+      // Buscar dados da proposta
+      const { data: proposal, error } = await supabase
+        .from("proposals")
+        .select(`
+          *,
+          customers (
+            name,
+            email,
+            phone
+          )
+        `)
+        .eq("id", proposalId)
+        .single();
+
+      if (error || !proposal) {
+        throw new Error("Proposta não encontrada");
+      }
+
+      const proposalData = proposal as any;
+
+      if (!proposalData.customers?.phone) {
+        toast({
+          title: "Telefone não encontrado",
+          description: "O cliente não possui telefone cadastrado.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Buscar nome do negócio
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: businessData } = await supabase
+        .from("business_settings")
+        .select("business_name")
+        .eq("user_id", userData.user?.id)
+        .single();
+
+      const businessName = businessData?.business_name || "Sua Empresa";
+
+      // Gerar link para visualizar proposta online
+      const proposalUrl = `${window.location.origin}/view-proposal?id=${proposalId}`;
+
+      // Limpar telefone (remover caracteres especiais)
+      const cleanPhone = proposalData.customers.phone.replace(/\D/g, '');
+
+      // Montar mensagem do WhatsApp
+      const whatsappMessage = `
+Olá ${proposalData.customers.name}! 👋
+
+Segue o orçamento solicitado:
+
+📋 *${proposalData.title}*
+💰 Valor: *${formatCurrency(proposalData.final_amount)}*
+${proposalData.deposit_amount ? `💳 Sinal: *${formatCurrency(proposalData.deposit_amount)}*\n` : ''}
+⏰ Válido até: ${format(new Date(proposalData.valid_until), "dd/MM/yyyy")}
+
+Para visualizar os detalhes completos, acesse:
+🔗 ${proposalUrl}
+
+Qualquer dúvida, estou à disposição! 😊
+
+_${businessName}_
+      `.trim();
+
+      // Abrir WhatsApp
+      const whatsappLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+      window.open(whatsappLink, '_blank');
+
+      toast({
+        title: "WhatsApp aberto",
+        description: "Revise e envie a mensagem com o orçamento.",
+      });
+      
+    } catch (error: any) {
+      console.error("Erro ao preparar WhatsApp:", error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível abrir o WhatsApp.",
         variant: "destructive",
       });
     }
@@ -1172,6 +1257,34 @@ ${businessName}
                           type="button"
                           size="sm"
                           variant="ghost"
+                          className="flex-1 gap-1.5 sm:gap-2 hover:bg-green-500/10 hover:text-green-600 relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleSendWhatsApp(proposal.id);
+                          }}
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          <span className="hidden xs:inline">WhatsApp</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="flex-1 gap-1.5 sm:gap-2 relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleSendProposal(proposal.id);
+                          }}
+                        >
+                          <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          <span className="hidden xs:inline">Email</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
                           className="flex-1 gap-1.5 sm:gap-2 relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1218,6 +1331,7 @@ ${businessName}
         }}
         onDownloadPdf={handleDownloadProposal}
         onResendEmail={handleSendProposal}
+        onResendWhatsApp={handleSendWhatsApp}
       />
 
       <ScheduleAppointmentDialog

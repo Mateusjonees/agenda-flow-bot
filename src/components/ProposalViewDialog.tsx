@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Download, Mail, Loader2 } from "lucide-react";
+import { Calendar, Download, Mail, Loader2, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
@@ -13,10 +13,11 @@ interface ProposalViewDialogProps {
   onScheduleAppointment?: (proposal: any) => void;
   onDownloadPdf?: (proposalId: string) => Promise<void>;
   onResendEmail?: (proposalId: string) => Promise<void>;
+  onResendWhatsApp?: (proposalId: string) => Promise<void>;
 }
 
-export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleAppointment, onDownloadPdf, onResendEmail }: ProposalViewDialogProps) => {
-  const [loading, setLoading] = useState<'download' | 'email' | null>(null);
+export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleAppointment, onDownloadPdf, onResendEmail, onResendWhatsApp }: ProposalViewDialogProps) => {
+  const [loading, setLoading] = useState<'download' | 'email' | 'whatsapp' | null>(null);
   
   if (!proposal) return null;
   
@@ -38,6 +39,16 @@ export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleApp
     setLoading('email');
     try {
       await onResendEmail(proposal.id);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleResendWhatsApp = async () => {
+    if (!onResendWhatsApp) return;
+    setLoading('whatsapp');
+    try {
+      await onResendWhatsApp(proposal.id);
     } finally {
       setLoading(null);
     }
@@ -151,7 +162,7 @@ export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleApp
 
           {/* Botões de ação */}
           <div className="pt-4 border-t space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <Button 
                 onClick={handleDownloadPdf}
                 variant="outline"
@@ -163,8 +174,26 @@ export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleApp
                 ) : (
                   <Download className="w-4 h-4" />
                 )}
-                Baixar PDF
+                <span className="hidden sm:inline">Baixar PDF</span>
+                <span className="sm:hidden">PDF</span>
               </Button>
+              
+              {canResend && onResendWhatsApp && (
+                <Button 
+                  onClick={handleResendWhatsApp}
+                  variant="outline"
+                  className="gap-2 hover:bg-green-500/10 hover:text-green-600 hover:border-green-600"
+                  disabled={loading === 'whatsapp'}
+                >
+                  {loading === 'whatsapp' ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <MessageCircle className="w-4 h-4" />
+                  )}
+                  <span className="hidden sm:inline">WhatsApp</span>
+                  <span className="sm:hidden">Whats</span>
+                </Button>
+              )}
               
               {canResend && onResendEmail && (
                 <Button 
@@ -178,7 +207,8 @@ export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleApp
                   ) : (
                     <Mail className="w-4 h-4" />
                   )}
-                  Reenviar Email
+                  <span className="hidden sm:inline">Email</span>
+                  <span className="sm:hidden">Email</span>
                 </Button>
               )}
             </div>
