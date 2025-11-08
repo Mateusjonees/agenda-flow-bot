@@ -20,6 +20,7 @@ export const DraggableAppointment = ({
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id,
     data: {
+      id,
       type,
       currentStartTime,
       currentEndTime,

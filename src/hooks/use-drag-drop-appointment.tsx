@@ -23,6 +23,8 @@ export const useDragDropAppointment = () => {
 
   const handleDragStart = (event: any) => {
     const { active } = event;
+    console.log('Drag start - active:', active);
+    console.log('Drag start - active.data.current:', active.data.current);
     setActiveId(active.id);
     setActiveType(active.data.current?.type || null);
   };
@@ -30,7 +32,11 @@ export const useDragDropAppointment = () => {
   const handleDragEnd = async (event: any) => {
     const { active, over } = event;
 
+    console.log('Drag end - active:', active);
+    console.log('Drag end - over:', over);
+
     if (!over) {
+      console.log('No drop target');
       setActiveId(null);
       setActiveType(null);
       return;
@@ -39,7 +45,19 @@ export const useDragDropAppointment = () => {
     const dragData: DragData = active.data.current;
     const dropData: DropData = over.data.current;
 
+    console.log('Drag data:', dragData);
+    console.log('Drop data:', dropData);
+
     if (!dragData || !dropData) {
+      console.log('Missing drag or drop data');
+      setActiveId(null);
+      setActiveType(null);
+      return;
+    }
+
+    if (!dragData.id) {
+      console.error('Missing ID in drag data:', dragData);
+      toast.error("Erro: ID do item não encontrado");
       setActiveId(null);
       setActiveType(null);
       return;
@@ -48,6 +66,9 @@ export const useDragDropAppointment = () => {
     // Calculate new date/time
     const newDate = new Date(dropData.date);
     newDate.setHours(dropData.hour, 0, 0, 0);
+
+    console.log('New date calculated:', newDate);
+    console.log('Current date:', new Date());
 
     // Validate: cannot move to past
     if (isBefore(startOfDay(newDate), startOfDay(new Date()))) {
@@ -63,6 +84,13 @@ export const useDragDropAppointment = () => {
       const duration = dragData.currentEndTime.getTime() - dragData.currentStartTime.getTime();
       newEndTime = new Date(newDate.getTime() + duration);
     }
+
+    console.log('Attempting to update:', {
+      id: dragData.id,
+      type: dragData.type,
+      newStartTime: newDate.toISOString(),
+      newEndTime: newEndTime?.toISOString(),
+    });
 
     try {
       // Update in database
@@ -90,9 +118,10 @@ export const useDragDropAppointment = () => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-calendar'] });
 
       // Show success message
-      const itemName = dragData.type === 'appointment' ? 'Atendimento' : 'Tarefa';
+      const itemName = dragData.type === 'appointment' ? 'Atendamento' : 'Tarefa';
       toast.success(`${itemName} movido para ${format(newDate, "dd/MM/yyyy 'às' HH:mm")}`);
     } catch (error) {
       console.error('Error moving item:', error);
