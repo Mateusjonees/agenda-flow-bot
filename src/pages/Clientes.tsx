@@ -737,7 +737,7 @@ const Clientes = () => {
                             rows={3}
                           />
                         </div>
-                        <Button onClick={handleAddAppointment} className="w-full">
+                        <Button onClick={handleAddAppointment} className="w-full" disabled={isReadOnly}>
                           Criar Agendamento
                         </Button>
                       </div>
@@ -859,7 +859,7 @@ const Clientes = () => {
                 rows={3}
               />
             </div>
-            <Button onClick={handleEditCustomer} className="w-full">
+            <Button onClick={handleEditCustomer} className="w-full" disabled={isReadOnly}>
               Salvar Alterações
             </Button>
           </div>

@@ -25,6 +25,7 @@ import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSens
 import { useDragDropAppointment } from "@/hooks/use-drag-drop-appointment";
 import { DraggableAppointment } from "@/components/DraggableAppointment";
 import { DroppableTimeSlot } from "@/components/DroppableTimeSlot";
+import { useReadOnly, ReadOnlyWrapper } from "@/components/SubscriptionGuard";
 
 type Customer = {
   id: string;
@@ -56,6 +57,7 @@ type Task = {
 };
 
 const Agendamentos = () => {
+  const { isReadOnly } = useReadOnly();
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState("");
   const [service, setService] = useState("");
@@ -380,46 +382,49 @@ const Agendamentos = () => {
                                 </div>
                               </div>
                               
-                               <div className="flex gap-1.5 sm:gap-2">
-                                 <Button
-                                   size="sm"
-                                   variant="ghost"
-                                   className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm"
-                                   onClick={() => {
-                                     setEditAppointmentId(apt.id);
-                                     setEditDialogOpen(true);
-                                   }}
-                                 >
-                                   <Pencil className="w-3 h-3" />
-                                   <span>Editar</span>
-                                 </Button>
-                                 {apt.status !== "completed" && (
-                                   <Button
-                                     size="sm"
-                                     variant="default"
-                                     className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm"
-                                     onClick={() => {
-                                       setSelectedAppointment({ id: apt.id, title: apt.title });
-                                       setFinishDialogOpen(true);
-                                     }}
-                                   >
-                                     <CheckCircle className="w-3 h-3" />
-                                     <span>Finalizar</span>
-                                   </Button>
-                                 )}
-                                 <Button
-                                   size="sm"
-                                   variant="ghost"
-                                   className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm text-destructive hover:text-destructive hover:bg-destructive/10"
-                                   onClick={() => {
-                                     setDeleteAppointmentId(apt.id);
-                                     setDeleteDialogOpen(true);
-                                   }}
-                                 >
-                                   <Trash2 className="w-3 h-3" />
-                                   <span>Excluir</span>
-                                 </Button>
-                               </div>
+                                <div className="flex gap-1.5 sm:gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm"
+                                    onClick={() => {
+                                      setEditAppointmentId(apt.id);
+                                      setEditDialogOpen(true);
+                                    }}
+                                    disabled={isReadOnly}
+                                  >
+                                    <Pencil className="w-3 h-3" />
+                                    <span>Editar</span>
+                                  </Button>
+                                  {apt.status !== "completed" && (
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm"
+                                      onClick={() => {
+                                        setSelectedAppointment({ id: apt.id, title: apt.title });
+                                        setFinishDialogOpen(true);
+                                      }}
+                                      disabled={isReadOnly}
+                                    >
+                                      <CheckCircle className="w-3 h-3" />
+                                      <span>Finalizar</span>
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => {
+                                      setDeleteAppointmentId(apt.id);
+                                      setDeleteDialogOpen(true);
+                                    }}
+                                    disabled={isReadOnly}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                    <span>Excluir</span>
+                                  </Button>
+                                </div>
                             </div>
                            </div>
                          </DraggableAppointment>
@@ -864,7 +869,7 @@ const Agendamentos = () => {
           </Popover>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-            <Button className="gap-2 h-10">
+            <Button className="gap-2 h-10" disabled={isReadOnly}>
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Novo Agendamento</span>
               <span className="sm:hidden">Novo</span>
@@ -991,7 +996,7 @@ const Agendamentos = () => {
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={createAppointment.isPending}>
+                <Button type="submit" disabled={createAppointment.isPending || isReadOnly}>
                   {createAppointment.isPending ? "Criando..." : "Criar Agendamento"}
                 </Button>
               </div>
