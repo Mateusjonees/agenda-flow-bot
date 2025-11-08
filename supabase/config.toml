@@ -137,3 +137,6 @@ verify_jwt = false
 
 [functions.generate-service-document]
 verify_jwt = false
+
+[functions.cancel-subscription]
+verify_jwt = true
