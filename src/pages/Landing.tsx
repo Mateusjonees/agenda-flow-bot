@@ -184,7 +184,7 @@ const Landing = () => {
   const faqs = [
     {
       question: "Como funciona o período de teste?",
-      answer: "Você tem 14 dias grátis para testar todas as funcionalidades sem compromisso. Não precisa cadastrar cartão de crédito."
+      answer: "Você tem 7 dias grátis para testar todas as funcionalidades sem compromisso. Não precisa cadastrar cartão de crédito."
     },
     {
       question: "Posso cancelar a qualquer momento?",
@@ -267,7 +267,7 @@ const Landing = () => {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <Button onClick={handleGetStarted} className="hidden md:flex gap-2">
-              {isAuthenticated ? "Ir para Dashboard" : "Começar Grátis"}
+              {isAuthenticated ? "Ir para Dashboard" : "Começar Teste Grátis"}
               <ArrowRight className="w-4 h-4" />
             </Button>
             
@@ -304,7 +304,7 @@ const Landing = () => {
               </button>
               <div className="pt-2 border-t">
                 <Button onClick={handleGetStarted} className="w-full gap-2">
-                  {isAuthenticated ? "Ir para Dashboard" : "Começar Grátis"}
+                  {isAuthenticated ? "Ir para Dashboard" : "Começar Teste Grátis"}
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -343,32 +343,31 @@ const Landing = () => {
               onClick={handleGetStarted}
               className="h-14 px-8 text-base gap-2 shadow-lg hover:shadow-xl transition-all"
             >
-              {isAuthenticated ? "Acessar Dashboard" : "Começar Grátis por 14 Dias"}
+              {isAuthenticated ? "Acessar Dashboard" : "Começar Teste Grátis"}
               <Rocket className="w-5 h-5" />
             </Button>
             <Button 
               size="lg" 
               variant="outline"
-              onClick={() => scrollToSection('features')}
+              onClick={() => scrollToSection('pricing')}
               className="h-14 px-8 text-base gap-2"
             >
-              Ver Demonstração
-              <ChevronDown className="w-5 h-5" />
+              Ver Planos e Preços
             </Button>
           </div>
 
-          <div className="flex items-center justify-center gap-6 pt-8 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-center gap-6 pt-8 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary" />
               Sem cartão de crédito
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary" />
-              Configuração em 5 minutos
+              7 dias grátis
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary" />
-              Suporte em português
+              Cancele quando quiser
             </div>
           </div>
         </div>
@@ -572,7 +571,7 @@ const Landing = () => {
           </div>
 
           <p className="text-center text-sm text-muted-foreground mt-8">
-            Todos os planos incluem 14 dias de teste grátis. Sem compromisso, cancele quando quiser.
+            Todos os planos incluem 7 dias de teste grátis. Sem compromisso, cancele quando quiser.
           </p>
         </div>
       </section>
@@ -649,7 +648,7 @@ const Landing = () => {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground mt-6">
-              ✓ Sem cartão de crédito &nbsp;•&nbsp; ✓ 14 dias grátis &nbsp;•&nbsp; ✓ Cancele quando quiser
+              ✓ Sem cartão de crédito &nbsp;•&nbsp; ✓ 7 dias grátis &nbsp;•&nbsp; ✓ Cancele quando quiser
             </p>
           </CardContent>
         </Card>
