@@ -31,6 +31,7 @@ interface Task {
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
+  const [hasViewedPopover, setHasViewedPopover] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -151,11 +152,27 @@ export function NotificationBell() {
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
+    if (newOpen) {
+      // Quando abrir o popover, marcar que o usuário visualizou (remove o badge)
+      setHasViewedPopover(true);
+    }
+  };
+
+  const handleClearAll = () => {
+    markAllAsViewed.mutate();
+    setHasViewedPopover(false);
   };
 
   const totalNotifications = notifications
     ? notifications.appointments.length + notifications.tasks.length
     : 0;
+
+  // Resetar o estado quando novas notificações chegarem
+  useEffect(() => {
+    if (totalNotifications > 0 && !open) {
+      setHasViewedPopover(false);
+    }
+  }, [totalNotifications, open]);
 
   const appointments = notifications?.appointments || [];
   const tasks = notifications?.tasks || [];
@@ -169,7 +186,7 @@ export function NotificationBell() {
           className="relative"
         >
           <Bell className="w-4 h-4" />
-          {totalNotifications > 0 && (
+          {totalNotifications > 0 && !hasViewedPopover && (
             <Badge
               variant="destructive"
               className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
@@ -189,11 +206,11 @@ export function NotificationBell() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => markAllAsViewed.mutate()}
+                  onClick={handleClearAll}
                   className="h-7 gap-1 text-xs"
                 >
                   <Check className="w-3 h-3" />
-                  Marcar todas
+                  Limpar
                 </Button>
               </>
             )}
