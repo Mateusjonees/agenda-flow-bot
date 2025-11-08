@@ -75,6 +75,27 @@ export const TaskList = ({
 
   useEffect(() => {
     fetchTasks();
+
+    // Configurar realtime para atualizar automaticamente quando tarefas mudarem
+    const channel = supabase
+      .channel('tasks-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks'
+        },
+        () => {
+          console.log('🔄 Tarefa atualizada, recarregando lista...');
+          fetchTasks();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [showAll, showCompleted, searchQuery, selectedType, selectedPriority, selectedStatus, startDate, endDate]);
 
   const fetchTasks = async () => {
@@ -218,7 +239,7 @@ export const TaskList = ({
       console.log("✅ Tarefa concluída com sucesso!");
       toast({
         title: "Tarefa concluída!",
-        description: "A tarefa foi marcada como concluída com sucesso.",
+        description: "Verifique a aba 'Histórico' para ver tarefas concluídas.",
       });
       // Recarregar para garantir sincronização
       fetchTasks();
