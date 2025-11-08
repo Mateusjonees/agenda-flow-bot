@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { 
   CheckCircle2, 
   Circle, 
@@ -72,6 +73,8 @@ export const TaskList = ({
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [taskToComplete, setTaskToComplete] = useState<string | null>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchTasks();
@@ -216,8 +219,15 @@ export const TaskList = ({
     setLoading(false);
   };
 
-  const handleCompleteTask = async (taskId: string) => {
-    console.log("🔵 Iniciando conclusão da tarefa:", taskId);
+  const handleCheckboxChange = (taskId: string) => {
+    setTaskToComplete(taskId);
+    setConfirmDialogOpen(true);
+  };
+
+  const handleCompleteTask = async () => {
+    if (!taskToComplete) return;
+    
+    console.log("🔵 Iniciando conclusão da tarefa:", taskToComplete);
     
     const { data, error } = await supabase
       .from("tasks")
@@ -225,7 +235,7 @@ export const TaskList = ({
         status: "completed",
         completed_at: new Date().toISOString()
       })
-      .eq("id", taskId)
+      .eq("id", taskToComplete)
       .select();
 
     console.log("📊 Resultado da atualização:", { data, error });
@@ -246,6 +256,9 @@ export const TaskList = ({
       // Recarregar para garantir sincronização
       fetchTasks();
     }
+    
+    setConfirmDialogOpen(false);
+    setTaskToComplete(null);
   };
 
   const handleDeleteTask = async (taskId: string) => {
@@ -355,6 +368,23 @@ export const TaskList = ({
         onTaskUpdated={fetchTasks}
       />
       
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Concluir tarefa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja marcar esta tarefa como concluída? Ela será movida para o histórico.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setTaskToComplete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCompleteTask} className="bg-green-600 hover:bg-green-700">
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
       <div className="space-y-3">
         {tasks.map((task) => (
         <Card 
@@ -362,7 +392,9 @@ export const TaskList = ({
           className={`${
             !showCompleted && isOverdue(task.due_date) 
               ? "border-2 border-destructive bg-destructive/5" 
-              : ""
+              : taskToComplete === task.id
+                ? "border-2 border-green-500 bg-green-50 dark:bg-green-950/20"
+                : ""
           } transition-all hover:shadow-md`}
         >
           <CardContent className="p-4">
@@ -370,8 +402,8 @@ export const TaskList = ({
               {!showCompleted && (
                 <Checkbox
                   checked={task.status === "completed"}
-                  onCheckedChange={() => handleCompleteTask(task.id)}
-                  className="mt-1"
+                  onCheckedChange={() => handleCheckboxChange(task.id)}
+                  className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                 />
               )}
               <div className="flex-1 space-y-2">
