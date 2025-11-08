@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SearchBar } from "@/components/SearchBar";
+import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -288,6 +289,11 @@ const Layout = ({ children }: LayoutProps) => {
           {/* Main Content */}
           <main className="flex-1 overflow-auto">
             <div className="p-3 sm:p-4 md:p-6">
+              {/* Breadcrumb */}
+              <div className="mb-4">
+                <PageBreadcrumb />
+              </div>
+              
               {children}
             </div>
           </main>
