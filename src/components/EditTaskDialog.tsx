@@ -58,17 +58,24 @@ export const EditTaskDialog = ({ task, open, onOpenChange, onTaskUpdated }: Edit
 
     setLoading(true);
 
+    const updateData: any = {
+      title,
+      description,
+      type,
+      priority,
+      status,
+      due_date: dueDate.toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Se o status mudou para completed, adicionar completed_at
+    if (status === "completed" && task.status !== "completed") {
+      updateData.completed_at = new Date().toISOString();
+    }
+
     const { error } = await supabase
       .from("tasks")
-      .update({
-        title,
-        description,
-        type,
-        priority,
-        status,
-        due_date: dueDate.toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq("id", task.id);
 
     if (error) {
@@ -80,6 +87,7 @@ export const EditTaskDialog = ({ task, open, onOpenChange, onTaskUpdated }: Edit
     } else {
       toast({
         title: "Tarefa atualizada!",
+        description: status === "completed" ? "Tarefa movida para o histórico." : "",
       });
       onTaskUpdated();
       onOpenChange(false);
@@ -127,13 +135,10 @@ export const EditTaskDialog = ({ task, open, onOpenChange, onTaskUpdated }: Edit
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="manual">Manual</SelectItem>
-                    <SelectItem value="post_sale">Pós-venda</SelectItem>
-                    <SelectItem value="followup">Follow-up</SelectItem>
-                    <SelectItem value="payment">Pagamento</SelectItem>
+                    <SelectItem value="general">Geral</SelectItem>
+                    <SelectItem value="follow_up">Follow-up</SelectItem>
                     <SelectItem value="reactivation">Reativação</SelectItem>
-                    <SelectItem value="restock">Reposição</SelectItem>
-                    <SelectItem value="preparation">Preparação</SelectItem>
+                    <SelectItem value="proposal_follow_up">Follow-up de Proposta</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

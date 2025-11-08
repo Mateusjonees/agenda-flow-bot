@@ -132,10 +132,12 @@ export const TaskList = ({
       // Quando "Todos os Status" está selecionado, mostrar realmente TODOS
       query = query.order("due_date", { ascending: false });
     } else {
-      // Filtro padrão quando não há selectedStatus (caso do dashboard)
+      // Filtro padrão quando não há selectedStatus (caso do dashboard e abas normais)
       if (showCompleted) {
+        // Aba de histórico: apenas completed e cancelled
         query = query.in("status", ["completed", "cancelled"]).order("completed_at", { ascending: false });
       } else {
+        // Abas "Hoje" e "Todas": apenas pending e in_progress
         query = query.in("status", ["pending", "in_progress"]).order("due_date", { ascending: true });
         
         if (!showAll) {
@@ -301,26 +303,20 @@ export const TaskList = ({
 
   const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      manual: "Manual",
-      post_sale: "Pós-venda",
-      followup: "Follow-up",
-      payment: "Pagamento",
+      general: "Geral",
+      follow_up: "Follow-up",
       reactivation: "Reativação",
-      restock: "Reposição",
-      preparation: "Preparação",
+      proposal_follow_up: "Follow-up de Proposta",
     };
     return labels[type] || type;
   };
 
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      manual: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800",
-      post_sale: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800",
-      followup: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300 border-green-200 dark:border-green-800",
-      payment: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800",
+      general: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+      follow_up: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300 border-green-200 dark:border-green-800",
       reactivation: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300 border-orange-200 dark:border-orange-800",
-      restock: "bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300 border-pink-200 dark:border-pink-800",
-      preparation: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
+      proposal_follow_up: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800",
     };
     return colors[type] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700";
   };
