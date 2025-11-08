@@ -106,8 +106,7 @@ export function NotificationBell() {
           notification_id: notificationId,
           notification_type: notificationType,
         }, {
-          onConflict: 'user_id,notification_type,notification_id',
-          ignoreDuplicates: true
+          onConflict: 'user_id,notification_type,notification_id'
         });
       
       if (error) {
@@ -143,8 +142,7 @@ export function NotificationBell() {
         const { error } = await supabase
           .from("notification_views")
           .upsert(allNotifications, {
-            onConflict: 'user_id,notification_type,notification_id',
-            ignoreDuplicates: true
+            onConflict: 'user_id,notification_type,notification_id'
           });
         
         if (error) {

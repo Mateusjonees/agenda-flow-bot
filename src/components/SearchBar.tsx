@@ -23,12 +23,13 @@ export function SearchBar() {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setOpen((open) => !open);
+        e.stopPropagation();
+        setOpen(true);
       }
     };
 
-    document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
+    document.addEventListener("keydown", down, true);
+    return () => document.removeEventListener("keydown", down, true);
   }, []);
 
   const { data: results, isLoading } = useQuery({
