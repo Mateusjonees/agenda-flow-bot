@@ -68,10 +68,13 @@ export const ScheduleAppointmentDialog = ({
 
       if (appointmentError) throw appointmentError;
 
-      // Atualizar proposta com appointment_id
+      // Atualizar proposta com appointment_id e status
       const { error: updateError } = await supabase
         .from("proposals")
-        .update({ appointment_id: appointment.id })
+        .update({ 
+          appointment_id: appointment.id,
+          status: "confirmed"
+        })
         .eq("id", proposal.id);
 
       if (updateError) throw updateError;
@@ -82,9 +85,9 @@ export const ScheduleAppointmentDialog = ({
       
       // Navegar para a página de agendamentos
       navigate("/agendamentos");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao agendar:", error);
-      toast.error("Erro ao agendar atendimento");
+      toast.error(error.message || "Erro ao agendar atendimento. Tente novamente.");
     } finally {
       setLoading(false);
     }

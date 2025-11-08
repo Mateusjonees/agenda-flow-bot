@@ -78,7 +78,6 @@ export const ProposalConfirmDialog = ({
         .update({
           status: "confirmed",
           appointment_id: appointment.id,
-          accepted_at: new Date().toISOString(),
         })
         .eq("id", proposal.id);
 
@@ -91,11 +90,11 @@ export const ProposalConfirmDialog = ({
 
       onSuccess();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao confirmar orçamento:", error);
       toast({
-        title: "Erro",
-        description: "Não foi possível confirmar o orçamento.",
+        title: "Erro ao confirmar orçamento",
+        description: error.message || "Não foi possível confirmar o orçamento. Tente novamente.",
         variant: "destructive",
       });
     } finally {
