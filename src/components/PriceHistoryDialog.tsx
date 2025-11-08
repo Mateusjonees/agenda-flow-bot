@@ -18,7 +18,7 @@ export const PriceHistoryDialog = ({ open, onOpenChange, serviceId, serviceName 
     queryKey: ["price-history", serviceId],
     queryFn: async () => {
       const { data } = await supabase
-        .from("service_price_history")
+        .from("service_price_history" as any)
         .select("*")
         .eq("service_id", serviceId)
         .order("changed_at", { ascending: false });
@@ -50,7 +50,7 @@ export const PriceHistoryDialog = ({ open, onOpenChange, serviceId, serviceName 
 
         <div className="space-y-3 max-h-96 overflow-y-auto">
           {history && history.length > 0 ? (
-            history.map((entry, index) => {
+            history.map((entry: any, index: number) => {
               const priceDiff = index < history.length - 1 
                 ? entry.new_price - history[index + 1].new_price 
                 : 0;

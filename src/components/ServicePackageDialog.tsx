@@ -71,7 +71,7 @@ export const ServicePackageDialog = ({ open, onOpenChange, onSuccess }: ServiceP
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase.from("service_packages").insert({
+    const { error } = await supabase.from("service_packages" as any).insert({
       user_id: user.id,
       name: formData.name,
       description: formData.description,

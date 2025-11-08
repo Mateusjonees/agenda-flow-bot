@@ -840,6 +840,77 @@ export type Database = {
           },
         ]
       }
+      service_packages: {
+        Row: {
+          created_at: string
+          description: string | null
+          discount_percentage: number
+          final_price: number
+          id: string
+          is_active: boolean
+          name: string
+          service_ids: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          discount_percentage?: number
+          final_price: number
+          id?: string
+          is_active?: boolean
+          name: string
+          service_ids: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          discount_percentage?: number
+          final_price?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          service_ids?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      service_price_history: {
+        Row: {
+          changed_at: string
+          id: string
+          new_price: number
+          old_price: number | null
+          service_id: string
+        }
+        Insert: {
+          changed_at?: string
+          id?: string
+          new_price: number
+          old_price?: number | null
+          service_id: string
+        }
+        Update: {
+          changed_at?: string
+          id?: string
+          new_price?: number
+          old_price?: number | null
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_price_history_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           category: string | null

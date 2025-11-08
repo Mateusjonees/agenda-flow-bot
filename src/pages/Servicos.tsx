@@ -115,7 +115,7 @@ const Servicos = () => {
       // Check if price changed
       const newPrice = parseFloat(formData.price) || 0;
       if (editingService.price !== newPrice) {
-        await supabase.from("service_price_history").insert({
+        await supabase.from("service_price_history" as any).insert({
           service_id: editingService.id,
           old_price: editingService.price,
           new_price: newPrice,
@@ -156,7 +156,7 @@ const Servicos = () => {
       } else {
         // Record initial price
         if (newService) {
-          await supabase.from("service_price_history").insert({
+          await supabase.from("service_price_history" as any).insert({
             service_id: newService.id,
             old_price: null,
             new_price: parseFloat(formData.price) || 0,
