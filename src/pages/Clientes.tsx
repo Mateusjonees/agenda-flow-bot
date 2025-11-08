@@ -16,6 +16,7 @@ import { CustomerSubscriptions } from "@/components/CustomerSubscriptions";
 import { CustomerCoupons } from "@/components/CustomerCoupons";
 import { CustomerHistory } from "@/components/CustomerHistory";
 import { CustomerDocuments } from "@/components/CustomerDocuments";
+import { useReadOnly, ReadOnlyWrapper } from "@/components/SubscriptionGuard";
 
 interface Customer {
   id: string;
@@ -72,6 +73,7 @@ const Clientes = () => {
     notes: "",
   });
   const { toast } = useToast();
+  const { isReadOnly } = useReadOnly();
 
   useEffect(() => {
     fetchCustomers();
@@ -381,7 +383,7 @@ const Clientes = () => {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 w-full sm:w-auto flex-shrink-0">
+            <Button className="gap-2 w-full sm:w-auto flex-shrink-0" disabled={isReadOnly}>
               <Plus className="w-4 h-4" />
               <span>Novo Cliente</span>
             </Button>
@@ -451,7 +453,7 @@ const Clientes = () => {
                   rows={3}
                 />
               </div>
-              <Button onClick={handleAddCustomer} className="w-full">
+              <Button onClick={handleAddCustomer} className="w-full" disabled={isReadOnly}>
                 Adicionar Cliente
               </Button>
             </div>
@@ -576,6 +578,7 @@ const Clientes = () => {
                         });
                         setEditDialogOpen(true);
                       }}
+                      disabled={isReadOnly}
                     >
                       <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       Editar Cliente
@@ -587,13 +590,14 @@ const Clientes = () => {
                         setCustomerToDelete(selectedCustomer);
                         setDeleteDialogOpen(true);
                       }}
+                      disabled={isReadOnly}
                     >
                       <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       Excluir Cliente
                     </Button>
                 <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm">
+                    <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm" disabled={isReadOnly}>
                       <ListTodo className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       Nova Tarefa
                     </Button>
@@ -660,7 +664,7 @@ const Clientes = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      <Button onClick={handleAddTask} className="w-full">
+                      <Button onClick={handleAddTask} className="w-full" disabled={isReadOnly}>
                         Criar Tarefa
                       </Button>
                       </div>
@@ -669,7 +673,7 @@ const Clientes = () => {
 
                   <Dialog open={appointmentDialogOpen} onOpenChange={setAppointmentDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm">
+                      <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm" disabled={isReadOnly}>
                         <CalendarPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         Novo Agendamento
                       </Button>
