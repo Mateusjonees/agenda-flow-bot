@@ -20,6 +20,8 @@ const Configuracoes = () => {
   
   // Estados para alteração de senha e dados
   const [currentPassword, setCurrentPassword] = useState("");
+  const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState("");
+  const [currentPasswordForPhone, setCurrentPasswordForPhone] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -173,6 +175,10 @@ const Configuracoes = () => {
   // Mutation para alterar senha
   const changePasswordMutation = useMutation({
     mutationFn: async () => {
+      if (!currentPassword) {
+        throw new Error("Digite sua senha atual para confirmar");
+      }
+
       if (newPassword !== confirmPassword) {
         throw new Error("As senhas não coincidem");
       }
@@ -181,6 +187,19 @@ const Configuracoes = () => {
         throw new Error("A senha deve ter no mínimo 6 caracteres");
       }
 
+      // Validar senha atual
+      if (!user?.email) throw new Error("Email não encontrado");
+      
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        throw new Error("Senha atual incorreta");
+      }
+
+      // Alterar senha
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -201,10 +220,27 @@ const Configuracoes = () => {
   // Mutation para alterar email
   const changeEmailMutation = useMutation({
     mutationFn: async () => {
+      if (!currentPasswordForEmail) {
+        throw new Error("Digite sua senha atual para confirmar");
+      }
+
       if (!newEmail || !newEmail.includes("@")) {
         throw new Error("Email inválido");
       }
 
+      // Validar senha atual
+      if (!user?.email) throw new Error("Email não encontrado");
+      
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPasswordForEmail,
+      });
+
+      if (signInError) {
+        throw new Error("Senha atual incorreta");
+      }
+
+      // Alterar email
       const { error } = await supabase.auth.updateUser({
         email: newEmail
       });
@@ -214,6 +250,7 @@ const Configuracoes = () => {
     onSuccess: () => {
       toast.success("Email alterado! Verifique sua caixa de entrada para confirmar.");
       setNewEmail("");
+      setCurrentPasswordForEmail("");
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erro ao alterar email");
@@ -223,10 +260,27 @@ const Configuracoes = () => {
   // Mutation para alterar telefone
   const changePhoneMutation = useMutation({
     mutationFn: async () => {
+      if (!currentPasswordForPhone) {
+        throw new Error("Digite sua senha atual para confirmar");
+      }
+
       if (!newPhone) {
         throw new Error("Telefone inválido");
       }
 
+      // Validar senha atual
+      if (!user?.email) throw new Error("Email não encontrado");
+      
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPasswordForPhone,
+      });
+
+      if (signInError) {
+        throw new Error("Senha atual incorreta");
+      }
+
+      // Alterar telefone
       const { error } = await supabase.auth.updateUser({
         phone: newPhone
       });
@@ -236,6 +290,7 @@ const Configuracoes = () => {
     onSuccess: () => {
       toast.success("Telefone alterado com sucesso!");
       setNewPhone("");
+      setCurrentPasswordForPhone("");
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erro ao alterar telefone");
@@ -478,11 +533,22 @@ const Configuracoes = () => {
               <Mail className="w-4 h-4 text-muted-foreground" />
               <Label className="font-semibold">Alterar Email</Label>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="current-email" className="text-xs text-muted-foreground">
                 Email atual: {user?.email || "Não definido"}
               </Label>
-              <div className="flex gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="password-for-email">Senha Atual *</Label>
+                <Input
+                  id="password-for-email"
+                  type="password"
+                  placeholder="Digite sua senha atual"
+                  value={currentPasswordForEmail}
+                  onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-email">Novo Email</Label>
                 <Input
                   id="new-email"
                   type="email"
@@ -490,14 +556,15 @@ const Configuracoes = () => {
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                 />
-                <Button
-                  onClick={() => changeEmailMutation.mutate()}
-                  disabled={!newEmail || changeEmailMutation.isPending}
-                  variant="secondary"
-                >
-                  {changeEmailMutation.isPending ? "Alterando..." : "Alterar"}
-                </Button>
               </div>
+              <Button
+                onClick={() => changeEmailMutation.mutate()}
+                disabled={!newEmail || !currentPasswordForEmail || changeEmailMutation.isPending}
+                variant="secondary"
+                className="w-full"
+              >
+                {changeEmailMutation.isPending ? "Alterando..." : "Alterar Email"}
+              </Button>
               <p className="text-xs text-muted-foreground">
                 Você receberá um email de confirmação no novo endereço
               </p>
@@ -510,11 +577,22 @@ const Configuracoes = () => {
               <Phone className="w-4 h-4 text-muted-foreground" />
               <Label className="font-semibold">Alterar Telefone</Label>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="current-phone" className="text-xs text-muted-foreground">
                 Telefone atual: {user?.phone || "Não definido"}
               </Label>
-              <div className="flex gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="password-for-phone">Senha Atual *</Label>
+                <Input
+                  id="password-for-phone"
+                  type="password"
+                  placeholder="Digite sua senha atual"
+                  value={currentPasswordForPhone}
+                  onChange={(e) => setCurrentPasswordForPhone(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-phone">Novo Telefone</Label>
                 <Input
                   id="new-phone"
                   type="tel"
@@ -522,14 +600,15 @@ const Configuracoes = () => {
                   value={newPhone}
                   onChange={(e) => setNewPhone(e.target.value)}
                 />
-                <Button
-                  onClick={() => changePhoneMutation.mutate()}
-                  disabled={!newPhone || changePhoneMutation.isPending}
-                  variant="secondary"
-                >
-                  {changePhoneMutation.isPending ? "Alterando..." : "Alterar"}
-                </Button>
               </div>
+              <Button
+                onClick={() => changePhoneMutation.mutate()}
+                disabled={!newPhone || !currentPasswordForPhone || changePhoneMutation.isPending}
+                variant="secondary"
+                className="w-full"
+              >
+                {changePhoneMutation.isPending ? "Alterando..." : "Alterar Telefone"}
+              </Button>
             </div>
           </div>
 
@@ -540,6 +619,16 @@ const Configuracoes = () => {
               <Label className="font-semibold">Alterar Senha</Label>
             </div>
             <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="current-password">Senha Atual *</Label>
+                <Input
+                  id="current-password"
+                  type="password"
+                  placeholder="Digite sua senha atual"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="new-password">Nova Senha</Label>
                 <Input
@@ -562,7 +651,7 @@ const Configuracoes = () => {
               </div>
               <Button
                 onClick={() => changePasswordMutation.mutate()}
-                disabled={!newPassword || !confirmPassword || changePasswordMutation.isPending}
+                disabled={!currentPassword || !newPassword || !confirmPassword || changePasswordMutation.isPending}
                 variant="secondary"
                 className="w-full"
               >
