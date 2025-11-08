@@ -11,6 +11,7 @@ import {
   ListTodo,
   Package,
   MessageCircle,
+  FolderOpen,
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,6 +33,7 @@ const navItems = [
   { path: "/servicos", label: "Serviços", icon: Package },
   { path: "/propostas", label: "Orçamentos", icon: FileText },
   { path: "/assinaturas", label: "Assinaturas", icon: Repeat },
+  { path: "/documentos", label: "Documentos", icon: FolderOpen },
   { path: "/estoque", label: "Estoque", icon: Package },
   { path: "/financeiro", label: "Financeiro", icon: DollarSign },
   { path: "/relatorios", label: "Relatórios", icon: BarChart3 },

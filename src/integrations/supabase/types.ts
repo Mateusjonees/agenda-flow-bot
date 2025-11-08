@@ -383,6 +383,48 @@ export type Database = {
         }
         Relationships: []
       }
+      document_history: {
+        Row: {
+          created_at: string
+          document_type: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          recipient_email: string | null
+          recipient_name: string
+          related_id: string
+          related_type: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_type: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email?: string | null
+          recipient_name: string
+          related_id: string
+          related_type: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          document_type?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email?: string | null
+          recipient_name?: string
+          related_id?: string
+          related_type?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial_categories: {
         Row: {
           created_at: string | null

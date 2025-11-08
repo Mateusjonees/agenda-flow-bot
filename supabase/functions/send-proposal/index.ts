@@ -214,6 +214,19 @@ Estamos à disposição para qualquer dúvida! 😊
       })
       .eq("id", proposalId);
 
+    // Registrar no histórico
+    if (proposal.customers?.email) {
+      await supabase.from("document_history").insert({
+        user_id: user.id,
+        document_type: "proposal_email",
+        related_type: "proposal",
+        related_id: proposalId,
+        recipient_email: proposal.customers.email,
+        recipient_name: proposal.customers.name,
+        status: "sent",
+      });
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

@@ -489,6 +489,17 @@ serve(async (req: Request) => {
     const emailData = await emailResponse.json();
     console.log("Email enviado com sucesso:", emailData);
 
+    // Registrar no histórico
+    await supabase.from("document_history").insert({
+      user_id: user.id,
+      document_type: documentType,
+      related_type: "subscription",
+      related_id: subscriptionId,
+      recipient_email: customer.email,
+      recipient_name: customer.name,
+      status: "sent",
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
