@@ -35,6 +35,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -217,17 +218,99 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b bg-card/95 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={logo} alt="Foguete" className="h-10 w-auto" />
             <span className="text-xl font-bold text-foreground">Foguete</span>
           </div>
-          <Button onClick={handleGetStarted} className="gap-2">
-            {isAuthenticated ? "Ir para Dashboard" : "Acessar Sistema"}
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+          
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-6">
+            <button 
+              onClick={() => scrollToSection('home')} 
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative group"
+            >
+              Início
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+            </button>
+            <button 
+              onClick={() => scrollToSection('features')} 
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative group"
+            >
+              Recursos
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+            </button>
+            <button 
+              onClick={() => scrollToSection('testimonials')} 
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative group"
+            >
+              Depoimentos
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+            </button>
+            <button 
+              onClick={() => scrollToSection('pricing')} 
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative group"
+            >
+              Preços
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+            </button>
+            <button 
+              onClick={() => scrollToSection('faq')} 
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative group"
+            >
+              FAQ
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+            </button>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Button onClick={handleGetStarted} className="hidden md:flex gap-2">
+              {isAuthenticated ? "Ir para Dashboard" : "Começar Grátis"}
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+            
+            {/* Mobile menu button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+          </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t bg-card">
+            <nav className="container mx-auto px-4 py-4 flex flex-col gap-4">
+              <button onClick={() => scrollToSection('home')} className="text-left text-sm font-medium text-muted-foreground hover:text-primary transition-colors py-2">
+                Início
+              </button>
+              <button onClick={() => scrollToSection('features')} className="text-left text-sm font-medium text-muted-foreground hover:text-primary transition-colors py-2">
+                Recursos
+              </button>
+              <button onClick={() => scrollToSection('testimonials')} className="text-left text-sm font-medium text-muted-foreground hover:text-primary transition-colors py-2">
+                Depoimentos
+              </button>
+              <button onClick={() => scrollToSection('pricing')} className="text-left text-sm font-medium text-muted-foreground hover:text-primary transition-colors py-2">
+                Preços
+              </button>
+              <button onClick={() => scrollToSection('faq')} className="text-left text-sm font-medium text-muted-foreground hover:text-primary transition-colors py-2">
+                FAQ
+              </button>
+              <div className="pt-2 border-t">
+                <Button onClick={handleGetStarted} className="w-full gap-2">
+                  {isAuthenticated ? "Ir para Dashboard" : "Começar Grátis"}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
