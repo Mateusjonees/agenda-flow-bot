@@ -78,6 +78,10 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Mercado Pago access token not configured");
     }
 
+    // Criar data de início com buffer de 5 minutos no futuro
+    const startDate = new Date();
+    startDate.setMinutes(startDate.getMinutes() + 5);
+
     const preferenceData = {
       reason: selectedPlan.title,
       auto_recurring: {
@@ -85,7 +89,7 @@ const handler = async (req: Request): Promise<Response> => {
         frequency_type: selectedPlan.frequency_type,
         transaction_amount: selectedPlan.price,
         currency_id: "BRL",
-        start_date: new Date().toISOString(),
+        start_date: startDate.toISOString(),
       },
       back_url: `${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovableproject.com") || ""}/configuracoes`,
       payer_email: user.email,
