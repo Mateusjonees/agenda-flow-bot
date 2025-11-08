@@ -269,20 +269,17 @@ const Configuracoes = () => {
     },
   });
 
-  // Mutation para cancelar assinatura
+  // Mutation para cancelar assinatura do plano
   const cancelSubscriptionMutation = useMutation({
     mutationFn: async () => {
       if (!user || !subscription) throw new Error("Assinatura não encontrada");
 
-      const { error } = await supabase
-        .from("subscriptions")
-        .update({
-          status: "cancelled",
-          next_billing_date: null,
-        })
-        .eq("id", subscription.id);
+      const { data, error } = await supabase.functions.invoke("cancel-subscription", {
+        body: { subscriptionId: subscription.id },
+      });
 
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       toast.success("Assinatura cancelada com sucesso");
