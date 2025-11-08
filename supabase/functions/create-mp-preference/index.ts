@@ -28,25 +28,76 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startedAt = Date.now();
+
   try {
-    const supabaseClient = createClient(
+    // JWT Diagnostics
+    const authHeader = req.headers.get("Authorization") || "";
+    const hasBearer = authHeader.toLowerCase().startsWith("bearer ");
+    
+    let jwt = "", jwtAud = "n/a", jwtSub = "n/a", jwtExp = 0;
+    
+    if (hasBearer) {
+      try {
+        jwt = authHeader.slice(7);
+        const payload = JSON.parse(atob(jwt.split(".")[1] || ""));
+        jwtAud = payload?.aud || "n/a";
+        jwtSub = (payload?.sub || "n/a").slice(0, 8);
+        jwtExp = payload?.exp || 0;
+      } catch (e) {
+        console.error("❌ Erro ao decodificar JWT:", e);
+      }
+    }
+
+    // Auth Client (ANON_KEY + JWT header)
+    const authClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Verify authentication
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
+    // Admin Client with SERVICE_ROLE_KEY fallback
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    let adminClient;
+
+    if (serviceRoleKey) {
+      adminClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        serviceRoleKey
+      );
+      console.log("✅ Usando SERVICE_ROLE_KEY");
+    } else {
+      console.warn("⚠️ SERVICE_ROLE_KEY não disponível, usando authClient com RLS");
+      adminClient = authClient;
     }
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
+    // Verify authentication (PASS JWT!)
+    const { data: { user }, error: userErr } = await authClient.auth.getUser(jwt);
 
-    if (authError || !user) {
-      throw new Error("Unauthorized");
+    if (userErr || !user) {
+      const now = Math.floor(Date.now() / 1000);
+      const reason = !hasBearer
+        ? "MissingAuthorizationHeader"
+        : (jwtExp && now > jwtExp)
+          ? "TokenExpired"
+          : (userErr?.message || "AuthGetUserFailed");
+      
+      console.error("❌ Falha autenticação:", { reason, jwtAud, jwtSub, jwtExp, now });
+      
+      return new Response(JSON.stringify({
+        error: "Usuário não autenticado",
+        reason,
+        jwt: { aud: jwtAud, sub: jwtSub, exp: jwtExp, now },
+        service: "create-mp-preference",
+        timestamp: new Date().toISOString(),
+        executionTime: Date.now() - startedAt
+      }), { 
+        status: 401, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
     }
+
+    console.log("✅ Usuário autenticado:", user.id);
 
     const body: PreferenceRequest = await req.json();
     console.log("Creating Mercado Pago preference:", body);
@@ -92,9 +143,36 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (!mpResponse.ok) {
-      const errorData = await mpResponse.text();
-      console.error("Mercado Pago API error:", errorData);
-      throw new Error(`Mercado Pago API error: ${mpResponse.status}`);
+      const errorText = await mpResponse.text();
+      console.error("❌ Erro Mercado Pago:", mpResponse.status, errorText);
+      
+      let errorMessage = "Erro ao criar preferência no Mercado Pago";
+      let statusCode = 502;
+      
+      if (mpResponse.status === 400) {
+        errorMessage = "Dados de pagamento inválidos. Verifique as informações.";
+        statusCode = 422;
+      } else if (mpResponse.status === 401) {
+        errorMessage = "Erro de autenticação com Mercado Pago. Token inválido.";
+        statusCode = 502;
+      } else if (mpResponse.status === 429) {
+        errorMessage = "Muitas tentativas. Aguarde alguns minutos.";
+        statusCode = 429;
+      } else if (mpResponse.status >= 500) {
+        errorMessage = "Mercado Pago temporariamente indisponível.";
+        statusCode = 502;
+      }
+      
+      return new Response(JSON.stringify({
+        error: errorMessage,
+        details: errorText,
+        mpStatus: mpResponse.status,
+        service: "create-mp-preference",
+        timestamp: new Date().toISOString()
+      }), {
+        status: statusCode,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
     }
 
     const preference = await mpResponse.json();
@@ -112,15 +190,28 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error creating Mercado Pago preference:", error);
+    console.error("❌ Erro completo:", error);
+    
+    let errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+    let statusCode = 400;
+    
+    if (errorMessage.includes("não autenticado") || errorMessage.includes("Unauthorized")) {
+      statusCode = 401;
+    } else if (errorMessage.includes("Mercado Pago") || errorMessage.includes("API")) {
+      statusCode = 502;
+    } else if (errorMessage.includes("inválido") || errorMessage.includes("invalid")) {
+      statusCode = 422;
+    }
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Error creating preference",
-        success: false 
+        error: errorMessage,
+        timestamp: new Date().toISOString(),
+        service: "create-mp-preference"
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      { 
+        status: statusCode, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
   }

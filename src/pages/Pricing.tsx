@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Check, Zap, Star, CreditCard, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PixPaymentDialog } from "@/components/PixPaymentDialog";
+import { parseFunctionsError } from "@/lib/parseFunctionsError";
 
 declare global {
   interface Window {
@@ -158,12 +159,20 @@ const Pricing = () => {
             metadata: {
               planId: plan.id,
               billingFrequency: plan.billingFrequency,
-              months: plan.months
+              months: plan.months,
+              userId: session.user.id
             }
+          },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: (supabase as any).rest?.headers?.apikey || import.meta.env.VITE_SUPABASE_ANON_KEY || ""
           }
         });
 
-        if (pixError) throw pixError;
+        if (pixError) {
+          const { status, message } = await parseFunctionsError(pixError);
+          throw new Error(status ? `(${status}) ${message}` : message);
+        }
 
         setPixData({
           qrCode: pixResponse.qrCode,
@@ -203,10 +212,17 @@ const Pricing = () => {
               months: plan.months,
               userId: session.user.id
             }
+          },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: (supabase as any).rest?.headers?.apikey || import.meta.env.VITE_SUPABASE_ANON_KEY || ""
           }
         });
 
-        if (prefError) throw prefError;
+        if (prefError) {
+          const { status, message } = await parseFunctionsError(prefError);
+          throw new Error(status ? `(${status}) ${message}` : message);
+        }
 
         // Redirect to Mercado Pago checkout
         mp.checkout({
