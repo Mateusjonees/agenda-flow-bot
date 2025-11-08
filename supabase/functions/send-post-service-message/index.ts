@@ -169,69 +169,78 @@ Esperamos vê-lo(a) em breve! 😊
         }
 
         // Enviar também por email se disponível
-        if (appointment.customers?.email) {
-          const resendApiKey = Deno.env.get("RESEND_API_KEY");
-          
-          if (resendApiKey) {
-            try {
-              const emailResponse = await fetch("https://api.resend.com/emails", {
-                method: "POST",
-                headers: {
-                  "Authorization": `Bearer ${resendApiKey}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  from: `${businessName} <onboarding@resend.dev>`,
-                  to: [appointment.customers.email],
-                  subject: `Como foi sua experiência no ${businessName}?`,
-                  html: `
-                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                      <h2>Olá ${customer.name}! 👋</h2>
-                      <p>Obrigado por escolher o <strong>${businessName}</strong>!</p>
-                      <p>Como foi sua experiência conosco? Sua opinião é muito importante! ⭐</p>
-                      
-                      <div style="background: #f5f5f5; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                        <p style="margin: 0;"><strong>Deixe sua avaliação:</strong></p>
-                        <p style="font-size: 32px; margin: 10px 0;">⭐⭐⭐⭐⭐</p>
-                      </div>
-
-                      <div style="margin: 20px 0;">
-                        <a href="[LINK_GOOGLE_REVIEW]" style="display: inline-block; background: #4285f4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin-right: 10px;">Avaliar no Google</a>
-                        <a href="[LINK_INSTAGRAM]" style="display: inline-block; background: #e4405f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Avaliar no Instagram</a>
-                      </div>
-
-                      ${coupon ? `
-                      <div style="background: #10b981; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                        <h3 style="margin: 0 0 10px 0;">🎉 Cupom de Retorno!</h3>
-                        <p style="font-size: 24px; font-weight: bold; margin: 10px 0;">${couponCode}</p>
-                        <p style="margin: 0;">10% de desconto na próxima visita!</p>
-                        <p style="margin: 5px 0; font-size: 14px;">Válido até ${new Date(expiresAt).toLocaleDateString("pt-BR")}</p>
-                      </div>
-                      ` : ""}
-
-                      ${loyaltyCard ? `
-                      <div style="background: #667eea; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                        <h3 style="margin: 0 0 10px 0;">🎁 Cartão Fidelidade</h3>
-                        <p style="font-size: 32px; margin: 10px 0;">${loyaltyCard.current_stamps}/${loyaltyCard.stamps_required}</p>
-                        <p style="margin: 0;">${loyaltyCard.current_stamps === loyaltyCard.stamps_required - 1 ? "Próxima visita GRÁTIS! 🎉" : `Faltam ${loyaltyCard.stamps_required - loyaltyCard.current_stamps} carimbos para ganhar uma visita grátis!`}</p>
-                      </div>
-                      ` : ""}
-
-                      <p>Esperamos vê-lo(a) em breve! 😊</p>
+        const resendApiKey = Deno.env.get("RESEND_API_KEY");
+        
+        console.log(`📧 Appointment ${appointment.id} - Cliente: ${customer.name}`);
+        console.log(`RESEND_API_KEY: ${resendApiKey ? "✅" : "❌"}, Email: ${appointment.customers?.email || "❌"}`);
+        
+        if (!resendApiKey) {
+          console.warn("⚠️ RESEND_API_KEY não configurado");
+        } else if (appointment.customers?.email) {
+          try {
+            console.log(`📤 Enviando email pós-serviço para: ${appointment.customers.email}`);
+            
+            const emailResponse = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${resendApiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                from: `${businessName} <onboarding@resend.dev>`,
+                to: [appointment.customers.email],
+                subject: `Como foi sua experiência no ${businessName}?`,
+                html: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2>Olá ${customer.name}! 👋</h2>
+                    <p>Obrigado por escolher o <strong>${businessName}</strong>!</p>
+                    <p>Como foi sua experiência conosco? Sua opinião é muito importante! ⭐</p>
+                    
+                    <div style="background: #f5f5f5; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                      <p style="margin: 0;"><strong>Deixe sua avaliação:</strong></p>
+                      <p style="font-size: 32px; margin: 10px 0;">⭐⭐⭐⭐⭐</p>
                     </div>
-                  `,
-                }),
-              });
 
-              if (!emailResponse.ok) {
-                console.error("Error sending email:", await emailResponse.text());
-              } else {
-                console.log(`Email sent to ${appointment.customers.email}`);
-              }
-            } catch (emailError) {
-              console.error("Error sending email:", emailError);
+                    <div style="margin: 20px 0;">
+                      <a href="[LINK_GOOGLE_REVIEW]" style="display: inline-block; background: #4285f4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin-right: 10px;">Avaliar no Google</a>
+                      <a href="[LINK_INSTAGRAM]" style="display: inline-block; background: #e4405f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Avaliar no Instagram</a>
+                    </div>
+
+                    ${coupon ? `
+                    <div style="background: #10b981; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                      <h3 style="margin: 0 0 10px 0;">🎉 Cupom de Retorno!</h3>
+                      <p style="font-size: 24px; font-weight: bold; margin: 10px 0;">${couponCode}</p>
+                      <p style="margin: 0;">10% de desconto na próxima visita!</p>
+                      <p style="margin: 5px 0; font-size: 14px;">Válido até ${new Date(expiresAt).toLocaleDateString("pt-BR")}</p>
+                    </div>
+                    ` : ""}
+
+                    ${loyaltyCard ? `
+                    <div style="background: #667eea; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                      <h3 style="margin: 0 0 10px 0;">🎁 Cartão Fidelidade</h3>
+                      <p style="font-size: 32px; margin: 10px 0;">${loyaltyCard.current_stamps}/${loyaltyCard.stamps_required}</p>
+                      <p style="margin: 0;">${loyaltyCard.current_stamps === loyaltyCard.stamps_required - 1 ? "Próxima visita GRÁTIS! 🎉" : `Faltam ${loyaltyCard.stamps_required - loyaltyCard.current_stamps} carimbos para ganhar uma visita grátis!`}</p>
+                    </div>
+                    ` : ""}
+
+                    <p>Esperamos vê-lo(a) em breve! 😊</p>
+                  </div>
+                `,
+              }),
+            });
+
+            if (!emailResponse.ok) {
+              const errorText = await emailResponse.text();
+              console.error("❌ Erro ao enviar email:", emailResponse.status, errorText);
+            } else {
+              const emailData = await emailResponse.json();
+              console.log(`✅ Email enviado com sucesso para ${appointment.customers.email}:`, emailData);
             }
+          } catch (emailError: any) {
+            console.error("❌ Erro ao enviar email:", emailError.message);
           }
+        } else {
+          console.warn(`⚠️ Cliente sem email cadastrado`);
         }
 
         results.push({

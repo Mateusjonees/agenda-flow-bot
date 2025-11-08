@@ -192,23 +192,46 @@ serve(async (req: Request) => {
 
     // Enviar por email
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    if (resendApiKey && proposal.customers?.email) {
-      const emailResponse = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: `${businessInfo.business_name} <onboarding@resend.dev>`,
-          to: [proposal.customers.email],
-          subject: `Proposta: ${proposal.title}`,
-          html: htmlContent,
-        }),
-      });
+    
+    console.log("📧 Verificando envio de email...");
+    console.log(`RESEND_API_KEY configurado: ${resendApiKey ? "✅ SIM" : "❌ NÃO"}`);
+    console.log(`Cliente tem email: ${proposal.customers?.email ? `✅ SIM (${proposal.customers.email})` : "❌ NÃO"}`);
+    
+    if (!resendApiKey) {
+      console.warn("⚠️ RESEND_API_KEY não configurado - email não será enviado");
+      console.warn("Configure o secret RESEND_API_KEY para enviar emails");
+    } else if (!proposal.customers?.email) {
+      console.warn(`⚠️ Cliente ${proposal.customers?.name || "sem nome"} não tem email cadastrado`);
+    } else {
+      try {
+        console.log(`📤 Enviando email para: ${proposal.customers.email}`);
+        
+        const emailResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: `${businessInfo.business_name} <onboarding@resend.dev>`,
+            to: [proposal.customers.email],
+            subject: `Proposta: ${proposal.title}`,
+            html: htmlContent,
+          }),
+        });
 
-      if (!emailResponse.ok) {
-        console.error("Erro ao enviar email:", await emailResponse.text());
+        if (!emailResponse.ok) {
+          const errorText = await emailResponse.text();
+          console.error("❌ Erro ao enviar email:", emailResponse.status, errorText);
+          throw new Error(`Resend API error: ${errorText}`);
+        }
+
+        const emailData = await emailResponse.json();
+        console.log("✅ Email enviado com sucesso!", emailData);
+        
+      } catch (emailError: any) {
+        console.error("❌ Erro ao enviar email:", emailError.message);
+        // Não bloqueia o fluxo, apenas loga o erro
       }
     }
 
