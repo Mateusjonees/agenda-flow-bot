@@ -61,13 +61,11 @@ const Propostas = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [sending, setSending] = useState<string | null>(null);
   const [viewProposal, setViewProposal] = useState<Proposal | null>(null);
   const [editProposal, setEditProposal] = useState<Proposal | null>(null);
   const [confirmProposal, setConfirmProposal] = useState<Proposal | null>(null);
   const [scheduleProposal, setScheduleProposal] = useState<Proposal | null>(null);
   const [deleteProposalId, setDeleteProposalId] = useState<string | null>(null);
-  const [lastEmailSent, setLastEmailSent] = useState<{ [key: string]: number }>({});
   const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -246,43 +244,86 @@ const Propostas = () => {
   };
 
   const handleSendProposal = async (proposalId: string) => {
-    const now = Date.now();
-    const lastSent = lastEmailSent[proposalId] || 0;
-    const tenMinutesInMs = 10 * 60 * 1000;
-    
-    if (now - lastSent < tenMinutesInMs) {
-      const remainingMinutes = Math.ceil((tenMinutesInMs - (now - lastSent)) / 60000);
-      toast({
-        title: "Aguarde",
-        description: `Você pode enviar novamente em ${remainingMinutes} minuto(s).`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSending(proposalId);
     try {
-      const { error } = await supabase.functions.invoke("send-proposal", {
-        body: { proposalId },
-      });
+      // Buscar dados da proposta
+      const { data: proposal, error } = await supabase
+        .from("proposals")
+        .select(`
+          *,
+          customers (
+            name,
+            email,
+            phone
+          )
+        `)
+        .eq("id", proposalId)
+        .single();
 
-      if (error) throw error;
+      if (error || !proposal) {
+        throw new Error("Proposta não encontrada");
+      }
 
-      setLastEmailSent({ ...lastEmailSent, [proposalId]: now });
+      const proposalData = proposal as any; // Cast temporário para acessar todos os campos
+
+      if (!proposalData.customers?.email) {
+        toast({
+          title: "Email não encontrado",
+          description: "O cliente não possui email cadastrado.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Buscar nome do negócio
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: businessData } = await supabase
+        .from("business_settings")
+        .select("business_name")
+        .eq("user_id", userData.user?.id)
+        .single();
+
+      const businessName = businessData?.business_name || "Sua Empresa";
+
+      // Gerar link para visualizar proposta online
+      const proposalUrl = `${window.location.origin}/view-proposal?id=${proposalId}`;
+
+      // Montar corpo do email
+      const emailBody = `
+Olá ${proposalData.customers.name},
+
+Segue orçamento para sua análise:
+
+📋 ${proposalData.title}
+💰 Valor: ${formatCurrency(proposalData.final_amount)}
+${proposalData.deposit_amount ? `💳 Sinal: ${formatCurrency(proposalData.deposit_amount)}\n` : ''}
+⏰ Válido até: ${format(new Date(proposalData.valid_until), "dd/MM/yyyy")}
+
+Para visualizar os detalhes completos:
+🔗 ${proposalUrl}
+
+Caso tenha dúvidas, estou à disposição!
+
+Atenciosamente,
+${businessName}
+      `.trim();
+
+      // Abrir cliente de email com dados preenchidos
+      const mailtoLink = `mailto:${proposalData.customers.email}?subject=${encodeURIComponent(`Orçamento: ${proposalData.title}`)}&body=${encodeURIComponent(emailBody)}`;
+      
+      window.open(mailtoLink, '_blank');
+
       toast({
-        title: "Orçamento enviado!",
-        description: "O orçamento foi enviado para o cliente.",
+        title: "Cliente de email aberto",
+        description: "Revise e envie o orçamento pelo seu email.",
       });
-      fetchData();
-    } catch (error) {
-      console.error("Erro ao enviar orçamento:", error);
+      
+    } catch (error: any) {
+      console.error("Erro ao preparar email:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível enviar o orçamento.",
+        description: error.message || "Não foi possível abrir o cliente de email.",
         variant: "destructive",
       });
-    } finally {
-      setSending(null);
     }
   };
 
