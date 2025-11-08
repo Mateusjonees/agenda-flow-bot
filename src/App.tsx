@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MaintenanceGuard } from "./components/MaintenanceGuard";
+import { OnboardingTutorial } from "./components/OnboardingTutorial";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
@@ -32,6 +33,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <OnboardingTutorial />
         <BrowserRouter>
           <MaintenanceGuard>
             <Routes>
