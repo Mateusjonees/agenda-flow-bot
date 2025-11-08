@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Trash2, Filter, CheckCircle, XCircle, Calendar as CalendarIcon, User, DollarSign, Sparkles, Search, ChevronsUpDown } from "lucide-react";
+import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Trash2, Filter, CheckCircle, XCircle, Calendar as CalendarIcon, User, DollarSign, Sparkles, Search, ChevronsUpDown, HelpCircle, Package, Percent, Calendar, UserCheck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,7 @@ import { ProposalConfirmDialog } from "@/components/ProposalConfirmDialog";
 import { ScheduleAppointmentDialog } from "@/components/ScheduleAppointmentDialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Proposal {
   id: string;
@@ -384,179 +385,393 @@ const Propostas = () => {
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Criar Novo Orçamento</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  Criar Novo Orçamento
+                </DialogTitle>
                 <DialogDescription>
-                  Preencha os detalhes do orçamento para o cliente
+                  Preencha cuidadosamente todos os campos marcados com (*) para criar um orçamento profissional
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Cliente *</Label>
-                  <Popover open={customerSearchOpen} onOpenChange={setCustomerSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={customerSearchOpen}
-                        className="w-full justify-between"
-                      >
-                        {newProposal.customer_id
-                          ? customers.find((customer) => customer.id === newProposal.customer_id)?.name
-                          : "Selecione um cliente..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Buscar cliente..." />
-                        <CommandList>
-                          <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                          <CommandGroup>
-                            {customers.map((customer) => (
-                              <CommandItem
-                                key={customer.id}
-                                value={customer.name}
-                                onSelect={() => {
-                                  setNewProposal({ ...newProposal, customer_id: customer.id });
-                                  setCustomerSearchOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    newProposal.customer_id === customer.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {customer.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div>
-                  <Label>Título do Orçamento *</Label>
-                  <Input
-                    value={newProposal.title}
-                    onChange={(e) => setNewProposal({ ...newProposal, title: e.target.value })}
-                    placeholder="Ex: Reforma de Banheiro"
-                  />
-                </div>
-
-                <div>
-                  <Label>Descrição</Label>
-                  <Textarea
-                    value={newProposal.description}
-                    onChange={(e) => setNewProposal({ ...newProposal, description: e.target.value })}
-                    placeholder="Detalhes adicionais do orçamento..."
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Serviços *</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={addService}>
-                      <Plus className="w-4 h-4 mr-1" />
-                      Adicionar
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {newProposal.services.map((service, idx) => (
-                      <div key={idx} className="flex gap-2 items-end">
-                        <div className="flex-1">
-                          <Input
-                            placeholder="Descrição do serviço"
-                            value={service.description}
-                            onChange={(e) => updateService(idx, "description", e.target.value)}
-                          />
-                        </div>
-                        <div className="w-24">
-                          <Input
-                            type="number"
-                            placeholder="Qtd"
-                            min="1"
-                            value={service.quantity}
-                            onChange={(e) => updateService(idx, "quantity", parseInt(e.target.value) || 1)}
-                          />
-                        </div>
-                        <div className="w-32">
-                          <Input
-                            type="number"
-                            placeholder="Preço unit."
-                            min="0"
-                            step="0.01"
-                            value={service.unit_price}
-                            onChange={(e) => updateService(idx, "unit_price", parseFloat(e.target.value) || 0)}
-                          />
-                        </div>
-                        {newProposal.services.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeService(idx)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label>Desconto (%)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={newProposal.discount_percentage}
-                      onChange={(e) => setNewProposal({ ...newProposal, discount_percentage: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Sinal (%)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={newProposal.deposit_percentage}
-                      onChange={(e) => setNewProposal({ ...newProposal, deposit_percentage: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Validade (dias)</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={newProposal.valid_days}
-                      onChange={(e) => setNewProposal({ ...newProposal, valid_days: parseInt(e.target.value) || 7 })}
-                    />
-                  </div>
-                </div>
-
-                <div className="p-4 bg-muted rounded-lg">
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Valor Total:</span>
-                    <span className="text-primary">{formatCurrency(calculateTotal())}</span>
-                  </div>
-                  {newProposal.deposit_percentage > 0 && (
-                    <div className="flex justify-between text-sm text-muted-foreground mt-1">
-                      <span>Sinal ({newProposal.deposit_percentage}%):</span>
-                      <span>{formatCurrency((calculateTotal() * newProposal.deposit_percentage) / 100)}</span>
+              
+              <TooltipProvider>
+                <div className="space-y-6">
+                  {/* Seção 1: Cliente */}
+                  <div className="space-y-3 p-4 bg-accent/5 rounded-lg border border-border/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <UserCheck className="w-4 h-4 text-primary" />
+                      <h3 className="font-semibold text-sm">1. Informações do Cliente</h3>
                     </div>
-                  )}
-                </div>
+                    
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label className="font-medium">Cliente *</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Selecione o cliente que receberá este orçamento. O cliente precisa estar cadastrado no sistema.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Popover open={customerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={customerSearchOpen}
+                            className="w-full justify-between h-11"
+                          >
+                            {newProposal.customer_id
+                              ? customers.find((customer) => customer.id === newProposal.customer_id)?.name
+                              : "Clique para selecionar o cliente..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Digite o nome do cliente..." />
+                            <CommandList>
+                              <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                {customers.map((customer) => (
+                                  <CommandItem
+                                    key={customer.id}
+                                    value={customer.name}
+                                    onSelect={() => {
+                                      setNewProposal({ ...newProposal, customer_id: customer.id });
+                                      setCustomerSearchOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        newProposal.customer_id === customer.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {customer.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        Este será o destinatário do orçamento
+                      </p>
+                    </div>
+                  </div>
 
-                <Button onClick={handleCreateProposal} className="w-full">
-                  Criar Orçamento
-                </Button>
-              </div>
+                  {/* Seção 2: Detalhes do Orçamento */}
+                  <div className="space-y-3 p-4 bg-accent/5 rounded-lg border border-border/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="w-4 h-4 text-primary" />
+                      <h3 className="font-semibold text-sm">2. Detalhes do Orçamento</h3>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label className="font-medium">Título do Orçamento *</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Um nome curto e descritivo para identificar facilmente este orçamento.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        value={newProposal.title}
+                        onChange={(e) => setNewProposal({ ...newProposal, title: e.target.value })}
+                        placeholder="Ex: Instalação de Ar Condicionado, Manutenção Elétrica..."
+                        className="h-11"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        Use um título claro que descreva o trabalho a ser realizado
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label className="font-medium">Descrição (Opcional)</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Informações complementares sobre o serviço, condições, observações importantes, etc.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Textarea
+                        value={newProposal.description}
+                        onChange={(e) => setNewProposal({ ...newProposal, description: e.target.value })}
+                        placeholder="Ex: Instalação completa incluindo suporte e configuração. Garantia de 1 ano. Material de primeira linha..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        Adicione detalhes adicionais, condições de pagamento, garantias, etc.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Seção 3: Serviços */}
+                  <div className="space-y-3 p-4 bg-accent/5 rounded-lg border border-border/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-primary" />
+                        <h3 className="font-semibold text-sm">3. Serviços / Itens *</h3>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Liste todos os serviços ou produtos que farão parte deste orçamento. Você pode adicionar múltiplos itens.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Button type="button" variant="outline" size="sm" onClick={addService} className="gap-1.5">
+                        <Plus className="w-3.5 h-3.5" />
+                        Adicionar Item
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      {newProposal.services.map((service, idx) => (
+                        <div key={idx} className="space-y-2 p-3 bg-background rounded-md border">
+                          <div className="flex gap-2 items-start">
+                            <div className="flex-1">
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Descrição do Serviço/Produto</Label>
+                              <Input
+                                placeholder="Ex: Instalação de ar split 12000 BTUs, Mão de obra..."
+                                value={service.description}
+                                onChange={(e) => updateService(idx, "description", e.target.value)}
+                                className="h-10"
+                              />
+                            </div>
+                            {newProposal.services.length > 1 && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeService(idx)}
+                                    className="mt-5 hover:bg-destructive/10 hover:text-destructive"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Remover este item</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Quantidade</Label>
+                              <Input
+                                type="number"
+                                placeholder="Ex: 1, 2, 5..."
+                                min="1"
+                                value={service.quantity}
+                                onChange={(e) => updateService(idx, "quantity", parseInt(e.target.value) || 1)}
+                                className="h-10"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Preço Unitário (R$)</Label>
+                              <Input
+                                type="number"
+                                placeholder="Ex: 150.00"
+                                min="0"
+                                step="0.01"
+                                value={service.unit_price}
+                                onChange={(e) => updateService(idx, "unit_price", parseFloat(e.target.value) || 0)}
+                                className="h-10"
+                              />
+                            </div>
+                          </div>
+                          {service.quantity > 0 && service.unit_price > 0 && (
+                            <div className="text-xs text-muted-foreground pt-1 border-t">
+                              Subtotal deste item: <span className="font-semibold text-foreground">{formatCurrency(service.quantity * service.unit_price)}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      O valor total será calculado automaticamente (quantidade × preço unitário)
+                    </p>
+                  </div>
+
+                  {/* Seção 4: Condições */}
+                  <div className="space-y-3 p-4 bg-accent/5 rounded-lg border border-border/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign className="w-4 h-4 text-primary" />
+                      <h3 className="font-semibold text-sm">4. Condições Comerciais</h3>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Label className="font-medium text-sm">Desconto (%)</Label>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>Desconto percentual sobre o valor total dos serviços. Ex: 10% de desconto</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <div className="relative">
+                          <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={newProposal.discount_percentage}
+                            onChange={(e) => setNewProposal({ ...newProposal, discount_percentage: parseInt(e.target.value) || 0 })}
+                            className="pl-9 h-11"
+                            placeholder="0"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                          Opcional (0-100%)
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Label className="font-medium text-sm">Entrada/Sinal (%)</Label>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>Percentual do valor total que será pago como entrada/sinal. Ex: 50% de entrada</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={newProposal.deposit_percentage}
+                            onChange={(e) => setNewProposal({ ...newProposal, deposit_percentage: parseInt(e.target.value) || 0 })}
+                            className="pl-9 h-11"
+                            placeholder="50"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                          Padrão: 50%
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Label className="font-medium text-sm">Validade (dias)</Label>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>Por quantos dias este orçamento será válido? Após esse período, expirará automaticamente.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            type="number"
+                            min="1"
+                            value={newProposal.valid_days}
+                            onChange={(e) => setNewProposal({ ...newProposal, valid_days: parseInt(e.target.value) || 7 })}
+                            className="pl-9 h-11"
+                            placeholder="7"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                          Padrão: 7 dias
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Seção 5: Resumo */}
+                  <div className="p-5 bg-gradient-to-br from-primary/5 to-accent/5 rounded-lg border-2 border-primary/20">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                      <h3 className="font-semibold text-base">Resumo do Orçamento</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Valor dos Serviços:</span>
+                        <span className="font-medium">
+                          {formatCurrency(newProposal.services.reduce((sum, s) => sum + s.quantity * s.unit_price, 0))}
+                        </span>
+                      </div>
+                      
+                      {newProposal.discount_percentage > 0 && (
+                        <div className="flex justify-between items-center text-sm text-orange-600">
+                          <span>Desconto ({newProposal.discount_percentage}%):</span>
+                          <span className="font-medium">
+                            - {formatCurrency((newProposal.services.reduce((sum, s) => sum + s.quantity * s.unit_price, 0) * newProposal.discount_percentage) / 100)}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="h-px bg-border" />
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-bold">Valor Total:</span>
+                        <span className="text-2xl font-bold text-primary">{formatCurrency(calculateTotal())}</span>
+                      </div>
+                      
+                      {newProposal.deposit_percentage > 0 && (
+                        <>
+                          <div className="h-px bg-border" />
+                          <div className="flex justify-between items-center text-sm bg-accent/30 -mx-3 px-3 py-2 rounded">
+                            <span className="font-medium">Entrada/Sinal ({newProposal.deposit_percentage}%):</span>
+                            <span className="font-bold text-primary">
+                              {formatCurrency((calculateTotal() * newProposal.deposit_percentage) / 100)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Saldo Restante:</span>
+                            <span className="font-medium">
+                              {formatCurrency(calculateTotal() - (calculateTotal() * newProposal.deposit_percentage) / 100)}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                      
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2">
+                        <CalendarIcon className="w-3.5 h-3.5" />
+                        <span>Válido por {newProposal.valid_days} {newProposal.valid_days === 1 ? 'dia' : 'dias'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={handleCreateProposal} 
+                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:shadow-xl hover:scale-[1.02] transition-all"
+                    disabled={!newProposal.customer_id || !newProposal.title || newProposal.services.some(s => !s.description || s.quantity <= 0 || s.unit_price <= 0)}
+                  >
+                    <FileText className="w-5 h-5 mr-2" />
+                    Criar Orçamento
+                  </Button>
+                </div>
+              </TooltipProvider>
             </DialogContent>
           </Dialog>
         </div>
