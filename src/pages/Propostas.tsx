@@ -245,6 +245,12 @@ const Propostas = () => {
 
   const handleSendProposal = async (proposalId: string) => {
     try {
+      // Primeiro, baixar o PDF automaticamente
+      await handleDownloadProposal(proposalId);
+      
+      // Aguardar um momento para o download iniciar
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       // Buscar dados da proposta
       const { data: proposal, error } = await supabase
         .from("proposals")
@@ -313,8 +319,8 @@ ${businessName}
       window.open(mailtoLink, '_blank');
 
       toast({
-        title: "Cliente de email aberto",
-        description: "Revise e envie o orçamento pelo seu email.",
+        title: "PDF baixado e email aberto! 📧",
+        description: "Anexe o PDF baixado e envie o email.",
       });
       
     } catch (error: any) {
@@ -329,6 +335,12 @@ ${businessName}
 
   const handleSendWhatsApp = async (proposalId: string) => {
     try {
+      // Primeiro, baixar o PDF automaticamente
+      await handleDownloadProposal(proposalId);
+      
+      // Aguardar um momento para o download iniciar
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       // Buscar dados da proposta
       const { data: proposal, error } = await supabase
         .from("proposals")
@@ -398,8 +410,8 @@ _${businessName}_
       window.open(whatsappLink, '_blank');
 
       toast({
-        title: "WhatsApp aberto",
-        description: "Revise e envie a mensagem com o orçamento.",
+        title: "PDF baixado e WhatsApp aberto! 💚",
+        description: "Anexe o PDF baixado e envie a mensagem.",
       });
       
     } catch (error: any) {
