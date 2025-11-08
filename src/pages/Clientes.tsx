@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Phone, Mail, User, CalendarPlus, ListTodo, Search, Filter } from "lucide-react";
+import { Plus, Phone, Mail, User, CalendarPlus, ListTodo, Search, Filter, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LoyaltyCard } from "@/components/LoyaltyCard";
 import { CustomerCoupons } from "@/components/CustomerCoupons";
@@ -42,6 +42,15 @@ const Clientes = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editCustomer, setEditCustomer] = useState({
+    id: "",
+    name: "",
+    phone: "",
+    email: "",
+    cpf: "",
+    notes: "",
+  });
   const [taskForm, setTaskForm] = useState({
     title: "",
     description: "",
@@ -247,6 +256,67 @@ const Clientes = () => {
     }
   };
 
+  const handleEditCustomer = async () => {
+    if (!editCustomer.name || !editCustomer.phone) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Nome e telefone são obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar formato do CPF se fornecido
+    if (editCustomer.cpf && editCustomer.cpf.trim()) {
+      const cpfClean = editCustomer.cpf.replace(/\D/g, '');
+      if (cpfClean.length !== 11) {
+        toast({
+          title: "CPF inválido",
+          description: "O CPF deve ter 11 dígitos.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const { error } = await supabase
+      .from("customers")
+      .update({
+        name: editCustomer.name,
+        phone: editCustomer.phone,
+        email: editCustomer.email || null,
+        cpf: editCustomer.cpf || null,
+        notes: editCustomer.notes || null,
+      })
+      .eq("id", editCustomer.id);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o cliente.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Cliente atualizado!",
+        description: "As informações foram atualizadas com sucesso.",
+      });
+      setEditDialogOpen(false);
+      fetchCustomers();
+      // Atualizar selectedCustomer se for o mesmo
+      if (selectedCustomer && selectedCustomer.id === editCustomer.id) {
+        setSelectedCustomer({
+          ...selectedCustomer,
+          name: editCustomer.name,
+          phone: editCustomer.phone,
+          email: editCustomer.email || null,
+          cpf: editCustomer.cpf || null,
+          notes: editCustomer.notes || null,
+        });
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
@@ -437,6 +507,24 @@ const Clientes = () => {
                 <TabsContent value="info" className="space-y-3 sm:space-y-4">
                   {/* Botões de ação rápida */}
                   <div className="flex flex-col sm:flex-row gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm"
+                      onClick={() => {
+                        setEditCustomer({
+                          id: selectedCustomer.id,
+                          name: selectedCustomer.name,
+                          phone: selectedCustomer.phone,
+                          email: selectedCustomer.email || "",
+                          cpf: selectedCustomer.cpf || "",
+                          notes: selectedCustomer.notes || "",
+                        });
+                        setEditDialogOpen(true);
+                      }}
+                    >
+                      <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      Editar Cliente
+                    </Button>
                 <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm">
@@ -631,6 +719,80 @@ const Clientes = () => {
               </Tabs>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de edição de cliente */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Cliente</DialogTitle>
+            <DialogDescription>
+              Atualize as informações do cliente
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-name">Nome *</Label>
+              <Input
+                id="edit-name"
+                value={editCustomer.name}
+                onChange={(e) => setEditCustomer({ ...editCustomer, name: e.target.value })}
+                placeholder="Nome completo"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-phone">Telefone *</Label>
+              <Input
+                id="edit-phone"
+                value={editCustomer.phone}
+                onChange={(e) => setEditCustomer({ ...editCustomer, phone: e.target.value })}
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-cpf">CPF</Label>
+              <Input
+                id="edit-cpf"
+                value={editCustomer.cpf}
+                onChange={(e) => {
+                  // Formatar CPF automaticamente enquanto digita
+                  let value = e.target.value.replace(/\D/g, '');
+                  if (value.length <= 11) {
+                    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                    value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                    setEditCustomer({ ...editCustomer, cpf: value });
+                  }
+                }}
+                placeholder="000.000.000-00"
+                maxLength={14}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-email">E-mail</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editCustomer.email}
+                onChange={(e) => setEditCustomer({ ...editCustomer, email: e.target.value })}
+                placeholder="email@exemplo.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-notes">Observações</Label>
+              <Textarea
+                id="edit-notes"
+                value={editCustomer.notes}
+                onChange={(e) => setEditCustomer({ ...editCustomer, notes: e.target.value })}
+                placeholder="Notas sobre o cliente..."
+                rows={3}
+              />
+            </div>
+            <Button onClick={handleEditCustomer} className="w-full">
+              Salvar Alterações
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
