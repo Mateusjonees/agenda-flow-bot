@@ -18,6 +18,13 @@ const Configuracoes = () => {
   const [uploading, setUploading] = useState(false);
   const [stampsRequired, setStampsRequired] = useState(5);
   
+  // Estados para informações do negócio
+  const [businessName, setBusinessName] = useState("");
+  const [businessType, setBusinessType] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  
   // Estados para alteração de senha
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -69,6 +76,16 @@ const Configuracoes = () => {
     }
   }, [loyaltySettings]);
 
+  // Atualizar estados com dados das configurações
+  useEffect(() => {
+    if (settings) {
+      setBusinessName(settings.business_name || "");
+      setPhone(settings.whatsapp_number || "");
+      setEmail(settings.email || "");
+      setAddress(settings.address || "");
+    }
+  }, [settings]);
+
   // Mutation para fazer upload da imagem
   const uploadImageMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -119,6 +136,22 @@ const Configuracoes = () => {
   const saveSettingsMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Usuário não autenticado");
+
+      // Atualizar business_settings
+      const { error: settingsError } = await supabase
+        .from("business_settings")
+        .upsert({
+          user_id: user.id,
+          business_name: businessName,
+          whatsapp_number: phone,
+          email: email,
+          address: address,
+          profile_image_url: settings?.profile_image_url,
+        }, {
+          onConflict: "user_id"
+        });
+
+      if (settingsError) throw settingsError;
 
       // Atualizar todas as loyalty cards do usuário
       const { error: loyaltyError } = await supabase
@@ -271,24 +304,50 @@ const Configuracoes = () => {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="business-name">Nome do Negócio</Label>
-              <Input id="business-name" placeholder="Meu Salão" />
+              <Input 
+                id="business-name" 
+                placeholder="Meu Salão" 
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="business-type">Tipo de Negócio</Label>
-              <Input id="business-type" placeholder="Salão de Beleza" />
+              <Input 
+                id="business-type" 
+                placeholder="Salão de Beleza"
+                value={businessType}
+                onChange={(e) => setBusinessType(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Telefone</Label>
-              <Input id="phone" placeholder="(11) 99999-9999" />
+              <Input 
+                id="phone" 
+                placeholder="(11) 99999-9999"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
-              <Input id="email" type="email" placeholder="contato@meusalao.com" />
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="contato@meusalao.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="address">Endereço</Label>
-            <Input id="address" placeholder="Rua Example, 123 - Bairro, Cidade - UF" />
+            <Input 
+              id="address" 
+              placeholder="Rua Example, 123 - Bairro, Cidade - UF"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
           </div>
         </CardContent>
       </Card>
