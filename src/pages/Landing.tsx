@@ -266,10 +266,32 @@ const Landing = () => {
 
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <Button onClick={handleGetStarted} className="hidden md:flex gap-2">
-              {isAuthenticated ? "Ir para Dashboard" : "Começar Teste Grátis"}
-              <ArrowRight className="w-4 h-4" />
-            </Button>
+            {!isAuthenticated ? (
+              <>
+                <Button 
+                  onClick={() => navigate("/auth")} 
+                  variant="ghost"
+                  className="hidden md:flex"
+                >
+                  Entrar
+                </Button>
+                <Button 
+                  onClick={() => navigate("/auth")} 
+                  className="hidden md:flex gap-2 bg-[#E31E24] hover:bg-[#C41A1F] text-white"
+                >
+                  Começe Grátis
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </>
+            ) : (
+              <Button 
+                onClick={() => navigate("/dashboard")} 
+                className="hidden md:flex gap-2"
+              >
+                Ir para Dashboard
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            )}
             
             {/* Mobile menu button */}
             <Button
@@ -302,11 +324,33 @@ const Landing = () => {
               <button onClick={() => scrollToSection('faq')} className="text-left text-sm font-medium text-muted-foreground hover:text-primary transition-colors py-2">
                 FAQ
               </button>
-              <div className="pt-2 border-t">
-                <Button onClick={handleGetStarted} className="w-full gap-2">
-                  {isAuthenticated ? "Ir para Dashboard" : "Começar Teste Grátis"}
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
+              <div className="pt-2 border-t space-y-2">
+                {!isAuthenticated ? (
+                  <>
+                    <Button 
+                      onClick={() => navigate("/auth")} 
+                      className="w-full gap-2 bg-[#E31E24] hover:bg-[#C41A1F] text-white"
+                    >
+                      Começe Grátis
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      onClick={() => navigate("/auth")} 
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Entrar
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    onClick={() => navigate("/dashboard")} 
+                    className="w-full gap-2"
+                  >
+                    Ir para Dashboard
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </nav>
           </div>
