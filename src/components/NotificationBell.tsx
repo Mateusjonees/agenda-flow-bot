@@ -32,6 +32,7 @@ interface Task {
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [hasViewedPopover, setHasViewedPopover] = useState(false);
+  const [previousCount, setPreviousCount] = useState(0);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -167,12 +168,13 @@ export function NotificationBell() {
     ? notifications.appointments.length + notifications.tasks.length
     : 0;
 
-  // Resetar o estado quando novas notificações chegarem
+  // Resetar o estado apenas quando NOVAS notificações chegarem
   useEffect(() => {
-    if (totalNotifications > 0 && !open) {
+    if (totalNotifications > previousCount) {
       setHasViewedPopover(false);
     }
-  }, [totalNotifications, open]);
+    setPreviousCount(totalNotifications);
+  }, [totalNotifications]);
 
   const appointments = notifications?.appointments || [];
   const tasks = notifications?.tasks || [];
