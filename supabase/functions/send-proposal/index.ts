@@ -13,11 +13,18 @@ const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
+interface ProposalItem {
+  description: string;
+  quantity: number;
+  unit_price: number;
+}
+
 const generateProposalHTML = (proposal: any, businessName: string): string => {
-  const services = proposal.services as any[];
-  const servicesHTML = services
+  // Garantir que items existe e é um array
+  const items = Array.isArray(proposal.items) ? proposal.items : [];
+  const servicesHTML = items
     .map(
-      (s) => `
+      (s: ProposalItem) => `
       <tr style="border-bottom: 1px solid #e5e7eb;">
         <td style="padding: 12px 8px;">${s.description}</td>
         <td style="padding: 12px 8px; text-align: center;">${s.quantity}</td>
