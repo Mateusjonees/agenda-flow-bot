@@ -1105,7 +1105,15 @@ _${businessName}_
                           
                           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
                             <User className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                            <span className="font-medium truncate">{proposal.customers.name}</span>
+                            <span 
+                              className="font-medium truncate cursor-pointer hover:text-primary transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/clientes?customer=${proposal.customer_id}&tab=info`);
+                              }}
+                            >
+                              {proposal.customers.name}
+                            </span>
                           </div>
                         </div>
                         

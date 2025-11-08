@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,10 +28,12 @@ interface Customer {
 }
 
 const Clientes = () => {
+  const [searchParams] = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedTab, setSelectedTab] = useState<string>("info");
   const [searchTerm, setSearchTerm] = useState("");
   const [newCustomer, setNewCustomer] = useState({
     name: "",
@@ -72,7 +75,30 @@ const Clientes = () => {
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+    
+    // Verificar se há parâmetros de URL para abrir cliente específico
+    const customerId = searchParams.get('customer');
+    const tab = searchParams.get('tab');
+    
+    if (customerId && tab) {
+      // Buscar o cliente específico e abrir o dialog
+      const fetchSpecificCustomer = async () => {
+        const { data } = await supabase
+          .from("customers")
+          .select("*")
+          .eq("id", customerId)
+          .single();
+        
+        if (data) {
+          setSelectedCustomer(data);
+          setSelectedTab(tab);
+          setDetailsOpen(true);
+        }
+      };
+      
+      fetchSpecificCustomer();
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     // Aplicar filtros de busca
@@ -525,7 +551,7 @@ const Clientes = () => {
                 </DialogDescription>
               </DialogHeader>
 
-              <Tabs defaultValue="info" className="mt-3 sm:mt-4">
+              <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mt-3 sm:mt-4">
                 <TabsList className="grid w-full grid-cols-4 h-auto">
                   <TabsTrigger value="info" className="text-xs sm:text-sm py-2">Informações</TabsTrigger>
                   <TabsTrigger value="history" className="text-xs sm:text-sm py-2">Histórico</TabsTrigger>

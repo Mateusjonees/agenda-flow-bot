@@ -649,7 +649,12 @@ const Assinaturas = () => {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle>{subscription.customers?.name}</CardTitle>
+                        <CardTitle 
+                          className="cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => navigate(`/clientes?customer=${subscription.customer_id}&tab=loyalty`)}
+                        >
+                          {subscription.customers?.name}
+                        </CardTitle>
                         <CardDescription>
                           {subscription.subscription_plans?.name}
                         </CardDescription>
