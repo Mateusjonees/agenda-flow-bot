@@ -4,13 +4,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Save, Star, Gift, Link as LinkIcon, Upload, Camera, Lock } from "lucide-react";
+import { Save, Star, Gift, Link as LinkIcon, Upload, Camera, Lock, CreditCard, AlertTriangle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const Configuracoes = () => {
   const queryClient = useQueryClient();
@@ -65,6 +68,23 @@ const Configuracoes = () => {
         .eq("user_id", user.id)
         .limit(1)
         .single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Buscar assinatura do usuário
+  const { data: subscription } = useQuery({
+    queryKey: ["user-subscription", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("*, subscription_plans(*)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       return data;
     },
     enabled: !!user,
@@ -246,6 +266,30 @@ const Configuracoes = () => {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erro ao alterar senha");
+    },
+  });
+
+  // Mutation para cancelar assinatura
+  const cancelSubscriptionMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || !subscription) throw new Error("Assinatura não encontrada");
+
+      const { error } = await supabase
+        .from("subscriptions")
+        .update({
+          status: "cancelled",
+          next_billing_date: null,
+        })
+        .eq("id", subscription.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Assinatura cancelada com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["user-subscription"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erro ao cancelar assinatura");
     },
   });
 
@@ -508,6 +552,98 @@ const Configuracoes = () => {
       </Card>
 
       <Separator />
+
+      {subscription && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-primary" />
+              Minha Assinatura
+            </CardTitle>
+            <CardDescription>Gerencie sua assinatura e plano</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-lg">
+                    {subscription.subscription_plans?.name || "Plano Atual"}
+                  </p>
+                  <Badge variant={
+                    subscription.status === "active" ? "default" :
+                    subscription.status === "trial" ? "secondary" :
+                    subscription.status === "cancelled" ? "destructive" :
+                    "outline"
+                  }>
+                    {subscription.status === "active" ? "Ativo" :
+                     subscription.status === "trial" ? "Trial" :
+                     subscription.status === "cancelled" ? "Cancelado" :
+                     subscription.status === "suspended" ? "Suspenso" :
+                     subscription.status}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {subscription.status === "trial" 
+                    ? "Período de teste gratuito" 
+                    : subscription.subscription_plans?.description || ""}
+                </p>
+                {subscription.next_billing_date && subscription.status !== "cancelled" && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Próximo pagamento: {format(new Date(subscription.next_billing_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  </p>
+                )}
+                {subscription.status === "cancelled" && (
+                  <p className="text-xs text-destructive mt-2">
+                    Assinatura cancelada
+                  </p>
+                )}
+              </div>
+              {subscription.subscription_plans?.price && subscription.status !== "cancelled" && (
+                <div className="text-right">
+                  <p className="text-2xl font-bold">
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(subscription.subscription_plans.price)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    /{subscription.subscription_plans.billing_frequency === "monthly" ? "mês" : "ano"}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {subscription.status !== "cancelled" && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Cancelar Assinatura
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Tem certeza que deseja cancelar?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Ao cancelar sua assinatura, você perderá acesso a todos os recursos premium.
+                      Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => cancelSubscriptionMutation.mutate()}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Confirmar Cancelamento
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
