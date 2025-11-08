@@ -249,9 +249,19 @@ const Documentos = () => {
   const handleViewAppointmentDocument = async (appointmentId: string, documentType: "contract" | "receipt") => {
     setSending(`appointment-view-${documentType}-${appointmentId}`);
     try {
+      const { data, error } = await supabase.functions.invoke("generate-service-document", {
+        body: { appointmentId, documentType },
+      });
+
+      if (error) throw error;
+
+      const blob = new Blob([data], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+
       toast({
-        title: "Em desenvolvimento",
-        description: `A visualização de ${documentType === "contract" ? "contrato" : "comprovante"} de serviço será implementada em breve.`,
+        title: "Documento gerado!",
+        description: `${documentType === "contract" ? "Contrato" : "Comprovante"} de serviço aberto em nova aba.`,
       });
     } catch (error: any) {
       console.error("Erro:", error);
