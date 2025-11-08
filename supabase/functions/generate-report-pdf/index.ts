@@ -62,8 +62,10 @@ serve(async (req) => {
       }
     );
 
-    // Verificar autenticação
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    // Extrair o JWT do header para validação
+    const jwt = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(jwt);
+    
     if (userError || !user) {
       console.error('Authentication error:', userError);
       throw new Error('Unauthorized');
@@ -74,7 +76,7 @@ serve(async (req) => {
     const reportData: ReportData = await req.json();
     console.log('Report data received, date range:', reportData.startDate, 'to', reportData.endDate);
 
-    // Buscar configurações do negócio
+    // Buscar configurações do negócio (RLS policies garantem que só busca do próprio usuário)
     const { data: businessSettings, error: bizError } = await supabaseClient
       .from('business_settings')
       .select('business_name, address, email, whatsapp_number')
