@@ -3,13 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Users, CheckCircle2, TrendingUp, ListTodo, Plus, Clock, DollarSign, Package, Sparkles } from "lucide-react";
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, parseISO, subDays } from "date-fns";
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, parseISO, subDays, eachDayOfInterval, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { TaskList } from "@/components/TaskList";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart, Cell } from "recharts";
 import { StatCard } from "@/components/StatCard";
+import { FinancialCharts } from "@/components/FinancialCharts";
 
 interface Stats {
   todayAppointments: number;
@@ -94,6 +95,84 @@ const Dashboard = () => {
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 5); // Top 5 serviços
+    },
+  });
+
+  // Buscar dados financeiros para gráficos
+  const { data: financialData } = useQuery({
+    queryKey: ["financial-charts"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { revenue: [], categories: [], cashFlow: [] };
+
+      const startDate = startOfMonth(new Date());
+      const endDate = endOfMonth(new Date());
+
+      // Buscar transações do mês
+      const { data: transactions } = await supabase
+        .from("financial_transactions")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .gte("transaction_date", startDate.toISOString())
+        .lte("transaction_date", endDate.toISOString())
+        .order("transaction_date");
+
+      if (!transactions) return { revenue: [], categories: [], cashFlow: [] };
+
+      // Agrupar por dia para gráfico de faturamento
+      const dailyRevenue = eachDayOfInterval({ start: startDate, end: endDate })
+        .map(day => {
+          const dayTransactions = transactions.filter(t => 
+            t.type === "income" && 
+            format(new Date(t.transaction_date), "yyyy-MM-dd") === format(day, "yyyy-MM-dd")
+          );
+          return {
+            date: format(day, "dd/MM"),
+            value: dayTransactions.reduce((sum, t) => sum + Number(t.amount), 0)
+          };
+        });
+
+      // Agrupar despesas por categoria
+      const categoryExpenses = transactions
+        .filter(t => t.type === "expense")
+        .reduce((acc: Record<string, number>, t) => {
+          const category = t.description || "Outros";
+          acc[category] = (acc[category] || 0) + Number(t.amount);
+          return acc;
+        }, {});
+
+      const categoryData = Object.entries(categoryExpenses)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 6);
+
+      // Dados de fluxo de caixa (últimos 7 dias)
+      const last7Days = eachDayOfInterval({ 
+        start: subDays(new Date(), 6), 
+        end: new Date() 
+      });
+
+      const cashFlowData = last7Days.map(day => {
+        const dayTransactions = transactions.filter(t => 
+          format(new Date(t.transaction_date), "yyyy-MM-dd") === format(day, "yyyy-MM-dd")
+        );
+        return {
+          date: format(day, "dd/MM"),
+          income: dayTransactions
+            .filter(t => t.type === "income")
+            .reduce((sum, t) => sum + Number(t.amount), 0),
+          expense: dayTransactions
+            .filter(t => t.type === "expense")
+            .reduce((sum, t) => sum + Number(t.amount), 0)
+        };
+      });
+
+      return { 
+        revenue: dailyRevenue, 
+        categories: categoryData, 
+        cashFlow: cashFlowData 
+      };
     },
   });
 
@@ -256,7 +335,16 @@ const Dashboard = () => {
       </div>
 
       {/* Gráficos de Tendência */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      {financialData && (
+        <FinancialCharts
+          revenueData={financialData.revenue}
+          categoryData={financialData.categories}
+          cashFlowData={financialData.cashFlow}
+        />
+      )}
+
+      {/* Serviços Populares */}
+      <div className="grid gap-6">
         <Card className="border-0 shadow-xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20 pb-3">
             <div className="flex items-center gap-2">

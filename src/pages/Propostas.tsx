@@ -175,40 +175,51 @@ const Propostas = () => {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    // Validar se todos os serviços têm descrição, quantidade e preço
+    const invalidServices = newProposal.services.filter(
+      s => !s.description.trim() || s.quantity <= 0 || s.unit_price <= 0
+    );
 
-    const totalAmount = calculateTotal();
-    const depositAmount = (totalAmount * newProposal.deposit_percentage) / 100;
-    const validUntil = new Date();
-    validUntil.setDate(validUntil.getDate() + newProposal.valid_days);
-
-    const { error } = await supabase.from("proposals").insert([{
-      user_id: user.id,
-      customer_id: newProposal.customer_id,
-      title: newProposal.title,
-      description: newProposal.description || null,
-      services: newProposal.services as any,
-      total_amount: totalAmount,
-      discount_percentage: newProposal.discount_percentage,
-      final_amount: totalAmount,
-      deposit_percentage: newProposal.deposit_percentage,
-      deposit_amount: depositAmount,
-      valid_until: validUntil.toISOString(),
-      status: "pending",
-    }]);
-
-    if (error) {
+    if (invalidServices.length > 0) {
       toast({
-        title: "Erro",
-        description: "Não foi possível criar o orçamento.",
+        title: "Serviços incompletos",
+        description: "Todos os serviços precisam ter descrição, quantidade e preço válidos.",
         variant: "destructive",
       });
-    } else {
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const totalAmount = calculateTotal();
+      const depositAmount = (totalAmount * newProposal.deposit_percentage) / 100;
+      const validUntil = new Date();
+      validUntil.setDate(validUntil.getDate() + newProposal.valid_days);
+
+      const { error } = await supabase.from("proposals").insert([{
+        user_id: user.id,
+        customer_id: newProposal.customer_id,
+        title: newProposal.title,
+        description: newProposal.description || null,
+        items: newProposal.services as any,
+        total_amount: totalAmount,
+        discount: (totalAmount * newProposal.discount_percentage) / 100,
+        final_amount: totalAmount,
+        valid_until: validUntil.toISOString(),
+        status: "pending",
+      }]);
+
+      if (error) throw error;
+
       toast({
-        title: "Orçamento criado!",
-        description: "O orçamento foi criado com sucesso.",
+        title: "Orçamento criado com sucesso!",
+        description: "Você pode enviá-lo ao cliente agora.",
       });
+      
       setDialogOpen(false);
       setNewProposal({
         customer_id: "",
@@ -219,7 +230,17 @@ const Propostas = () => {
         deposit_percentage: 50,
         valid_days: 7,
       });
-      fetchData();
+      
+      await fetchData();
+    } catch (error: any) {
+      console.error("Erro ao criar orçamento:", error);
+      toast({
+        title: "Erro ao criar orçamento",
+        description: error.message || "Não foi possível criar o orçamento. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -765,10 +786,19 @@ const Propostas = () => {
                   <Button 
                     onClick={handleCreateProposal} 
                     className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:shadow-xl hover:scale-[1.02] transition-all"
-                    disabled={!newProposal.customer_id || !newProposal.title || newProposal.services.some(s => !s.description || s.quantity <= 0 || s.unit_price <= 0)}
+                    disabled={loading || !newProposal.customer_id || !newProposal.title || newProposal.services.some(s => !s.description || s.quantity <= 0 || s.unit_price <= 0)}
                   >
-                    <FileText className="w-5 h-5 mr-2" />
-                    Criar Orçamento
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Criando...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-5 h-5 mr-2" />
+                        Criar Orçamento
+                      </>
+                    )}
                   </Button>
                 </div>
               </TooltipProvider>

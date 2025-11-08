@@ -66,6 +66,7 @@ export const ProposalConfirmDialog = ({
           status: "scheduled",
           notes: notes || "",
           proposal_id: proposal.id,
+          price: proposal.final_amount || 0,
         })
         .select()
         .single();
@@ -90,6 +91,12 @@ export const ProposalConfirmDialog = ({
 
       onSuccess();
       onOpenChange(false);
+      
+      // Resetar campos
+      setDate(undefined);
+      setTime("");
+      setDuration("60");
+      setNotes("");
     } catch (error: any) {
       console.error("Erro ao confirmar orçamento:", error);
       toast({
