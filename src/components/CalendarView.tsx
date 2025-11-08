@@ -21,6 +21,10 @@ import {
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScheduleAppointmentDialog } from "./ScheduleAppointmentDialog";
+import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { useDragDropAppointment } from "@/hooks/use-drag-drop-appointment";
+import { DraggableAppointment } from "@/components/DraggableAppointment";
+import { DroppableTimeSlot } from "@/components/DroppableTimeSlot";
 
 interface Appointment {
   id: string;
@@ -44,6 +48,23 @@ export const CalendarView = () => {
   const [dayAppointments, setDayAppointments] = useState<Appointment[]>([]);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ date: Date; time: string } | null>(null);
+
+  // Drag and Drop configuration
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5,
+      },
+    })
+  );
+  
+  const { activeId, activeType, handleDragStart, handleDragEnd, handleDragCancel } = useDragDropAppointment();
 
   useEffect(() => {
     fetchMonthAppointments();
@@ -114,85 +135,103 @@ export const CalendarView = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl">
-              {format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleToday}>
-                Hoje
-              </Button>
-              <Button variant="outline" size="icon" onClick={handlePreviousMonth}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="icon" onClick={handleNextMonth}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-7 gap-2">
-            {/* Header dos dias da semana */}
-            {weekDays.map((day) => (
-              <div
-                key={day}
-                className="text-center text-sm font-semibold text-muted-foreground py-2"
-              >
-                {day}
+    <DndContext 
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-2xl">
+                {format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleToday}>
+                  Hoje
+                </Button>
+                <Button variant="outline" size="icon" onClick={handlePreviousMonth}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleNextMonth}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
-            ))}
-            
-            {/* Dias do mês */}
-            {calendarDays.map((day, idx) => {
-              const dayAppointments = getAppointmentsForDay(day);
-              const isCurrentMonth = isSameMonth(day, currentDate);
-              const isToday = isSameDay(day, new Date());
-              const isSelected = selectedDate && isSameDay(day, selectedDate);
-
-              return (
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-7 gap-2">
+              {/* Header dos dias da semana */}
+              {weekDays.map((day) => (
                 <div
-                  key={idx}
-                  onClick={() => handleDayClick(day)}
-                  className={`
-                    min-h-24 p-2 border rounded-lg cursor-pointer transition-all
-                    ${!isCurrentMonth ? "bg-muted/30 text-muted-foreground" : "bg-background"}
-                    ${isToday ? "border-primary border-2" : "border-border"}
-                    ${isSelected ? "ring-2 ring-primary" : ""}
-                    hover:bg-accent/50
-                  `}
+                  key={day}
+                  className="text-center text-sm font-semibold text-muted-foreground py-2"
                 >
-                  <div className={`text-sm font-medium mb-1 ${isToday ? "text-primary" : ""}`}>
-                    {format(day, "d")}
-                  </div>
-                  <div className="space-y-1">
-                    {dayAppointments.slice(0, 2).map((apt) => (
-                      <div
-                        key={apt.id}
-                        className="text-xs p-1 rounded truncate"
-                        style={{
-                          backgroundColor: apt.services?.color + "20" || "#3B82F620",
-                          borderLeft: `3px solid ${apt.services?.color || "#3B82F6"}`,
-                        }}
-                      >
-                        {format(parseISO(apt.start_time), "HH:mm")} - {apt.customers?.name || apt.title}
-                      </div>
-                    ))}
-                    {dayAppointments.length > 2 && (
-                      <div className="text-xs text-muted-foreground">
-                        +{dayAppointments.length - 2} mais
-                      </div>
-                    )}
-                  </div>
+                  {day}
                 </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+              
+              {/* Dias do mês */}
+              {calendarDays.map((day, idx) => {
+                const dayAppointments = getAppointmentsForDay(day);
+                const isCurrentMonth = isSameMonth(day, currentDate);
+                const isToday = isSameDay(day, new Date());
+                const isSelected = selectedDate && isSameDay(day, selectedDate);
+
+                return (
+                  <DroppableTimeSlot
+                    key={idx}
+                    id={`calendar-${format(day, 'yyyy-MM-dd')}-9`}
+                    date={day}
+                    hour={9}
+                    className={`
+                      min-h-24 p-2 border rounded-lg cursor-pointer transition-all
+                      ${!isCurrentMonth ? "bg-muted/30 text-muted-foreground" : "bg-background"}
+                      ${isToday ? "border-primary border-2" : "border-border"}
+                      ${isSelected ? "ring-2 ring-primary" : ""}
+                      hover:bg-accent/50
+                    `}
+                  >
+                    <div onClick={() => handleDayClick(day)}>
+                      <div className={`text-sm font-medium mb-1 ${isToday ? "text-primary" : ""}`}>
+                        {format(day, "d")}
+                      </div>
+                      <div className="space-y-1">
+                        {dayAppointments.slice(0, 2).map((apt) => (
+                          <DraggableAppointment
+                            key={apt.id}
+                            id={apt.id}
+                            type="appointment"
+                            currentStartTime={parseISO(apt.start_time)}
+                            currentEndTime={parseISO(apt.end_time)}
+                          >
+                            <div
+                              className="text-xs p-1 rounded truncate"
+                              style={{
+                                backgroundColor: apt.services?.color + "20" || "#3B82F620",
+                                borderLeft: `3px solid ${apt.services?.color || "#3B82F6"}`,
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {format(parseISO(apt.start_time), "HH:mm")} - {apt.customers?.name || apt.title}
+                            </div>
+                          </DraggableAppointment>
+                        ))}
+                        {dayAppointments.length > 2 && (
+                          <div className="text-xs text-muted-foreground">
+                            +{dayAppointments.length - 2} mais
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </DroppableTimeSlot>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
       {/* Dialog de detalhes do dia */}
       <Dialog open={!!selectedDate} onOpenChange={() => setSelectedDate(null)}>
@@ -279,6 +318,19 @@ export const CalendarView = () => {
           setSelectedSlot(null);
         }}
       />
+      
+      <DragOverlay>
+        {activeId && activeType === 'appointment' ? (
+          <div className="bg-primary/30 border-l-4 border-primary p-2 rounded-md opacity-80 shadow-lg">
+            <div className="font-semibold text-sm">Movendo atendamento...</div>
+          </div>
+        ) : activeId && activeType === 'task' ? (
+          <div className="bg-orange-200 dark:bg-orange-900 border-l-4 border-orange-500 p-2 rounded-md opacity-80 shadow-lg">
+            <div className="font-semibold text-sm">Movendo tarefa...</div>
+          </div>
+        ) : null}
+      </DragOverlay>
     </div>
+  </DndContext>
   );
 };
