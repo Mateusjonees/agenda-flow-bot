@@ -43,6 +43,15 @@ interface Subscription {
   subscription_plans: { name: string; price: number };
 }
 
+interface Appointment {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  start_time: string;
+  customers: { name: string; email: string };
+}
+
 const Documentos = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -50,6 +59,7 @@ const Documentos = () => {
   const [documents, setDocuments] = useState<DocumentHistory[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -74,7 +84,7 @@ const Documentos = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [docsRes, proposalsRes, subsRes] = await Promise.all([
+    const [docsRes, proposalsRes, subsRes, apptsRes] = await Promise.all([
       supabase
         .from("document_history")
         .select("*")
@@ -99,11 +109,25 @@ const Documentos = () => {
         `)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("appointments")
+        .select(`
+          id,
+          title,
+          description,
+          price,
+          start_time,
+          customers (name, email)
+        `)
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .order("start_time", { ascending: false }),
     ]);
 
     if (docsRes.data) setDocuments(docsRes.data as any);
     if (proposalsRes.data) setProposals(proposalsRes.data as any);
     if (subsRes.data) setSubscriptions(subsRes.data as any);
+    if (apptsRes.data) setAppointments(apptsRes.data as any);
     
     setLoading(false);
   };
@@ -136,6 +160,7 @@ const Documentos = () => {
     failed: documents.filter(d => d.status === "failed").length,
     proposals: documents.filter(d => d.related_type === "proposal").length,
     subscriptions: documents.filter(d => d.related_type === "subscription").length,
+    appointments: documents.filter(d => d.related_type === "appointment").length,
   }), [documents]);
 
   const handleSendProposalPdf = async (proposalId: string) => {
@@ -221,6 +246,25 @@ const Documentos = () => {
     }
   };
 
+  const handleViewAppointmentDocument = async (appointmentId: string, documentType: "contract" | "receipt") => {
+    setSending(`appointment-view-${documentType}-${appointmentId}`);
+    try {
+      toast({
+        title: "Em desenvolvimento",
+        description: `A visualização de ${documentType === "contract" ? "contrato" : "comprovante"} de serviço será implementada em breve.`,
+      });
+    } catch (error: any) {
+      console.error("Erro:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível visualizar o documento.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(null);
+    }
+  };
+
   const handleViewSubscriptionDocument = async (subscriptionId: string, documentType: "contract" | "receipt") => {
     setSending(`subscription-view-${documentType}-${subscriptionId}`);
     try {
@@ -296,6 +340,8 @@ const Documentos = () => {
       proposal_email: "Email Orçamento",
       contract: "Contrato",
       receipt: "Comprovante",
+      service_contract: "Contrato Serviço",
+      service_receipt: "Comprovante Serviço",
     };
     return labels[type] || type;
   };
@@ -364,7 +410,7 @@ const Documentos = () => {
       </div>
 
       {/* Estatísticas */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total</CardTitle>
@@ -419,14 +465,26 @@ const Documentos = () => {
             <p className="text-xs text-muted-foreground">Documentos</p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Serviços</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.appointments}</div>
+            <p className="text-xs text-muted-foreground">Documentos</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="history">Histórico</TabsTrigger>
           <TabsTrigger value="send-proposal">Enviar Orçamento</TabsTrigger>
-          <TabsTrigger value="send-subscription">Enviar Contrato/Comprovante</TabsTrigger>
+          <TabsTrigger value="send-subscription">Assinaturas</TabsTrigger>
+          <TabsTrigger value="send-service">Serviços</TabsTrigger>
         </TabsList>
 
         {/* Histórico */}
@@ -451,8 +509,10 @@ const Documentos = () => {
                     <SelectItem value="all">Todos os Tipos</SelectItem>
                     <SelectItem value="proposal_pdf">PDF Orçamento</SelectItem>
                     <SelectItem value="proposal_email">Email Orçamento</SelectItem>
-                    <SelectItem value="contract">Contrato</SelectItem>
-                    <SelectItem value="receipt">Comprovante</SelectItem>
+                    <SelectItem value="contract">Contrato Assinatura</SelectItem>
+                    <SelectItem value="receipt">Comprovante Assinatura</SelectItem>
+                    <SelectItem value="service_contract">Contrato Serviço</SelectItem>
+                    <SelectItem value="service_receipt">Comprovante Serviço</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -689,6 +749,94 @@ const Documentos = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Enviar Serviços */}
+        <TabsContent value="send-service" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Enviar Documentos de Serviços</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {appointments.length === 0 ? (
+                <div className="text-center py-12">
+                  <CheckCircle className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium text-muted-foreground mb-4">
+                    Nenhum serviço completado disponível
+                  </p>
+                  <Button onClick={() => navigate("/agendamentos")}>
+                    Ver Agendamentos
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {appointments.map((appointment) => (
+                    <Card key={appointment.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <h3 className="font-semibold mb-1">{appointment.title}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              <User className="w-3 h-3 inline mr-1" />
+                              {appointment.customers?.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              <Calendar className="w-3 h-3 inline mr-1" />
+                              {format(new Date(appointment.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                            <p className="text-lg font-bold text-primary mt-2">
+                              {formatCurrency(appointment.price)}
+                            </p>
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setPreviewData({ type: 'appointment', data: appointment });
+                                setPreviewOpen(true);
+                              }}
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              Preview
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewAppointmentDocument(appointment.id, "contract")}
+                              disabled={sending === `appointment-view-contract-${appointment.id}`}
+                              title="Visualizar Contrato de Serviço"
+                            >
+                              {sending === `appointment-view-contract-${appointment.id}` ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              ) : (
+                                <FileCheck className="w-4 h-4 mr-2" />
+                              )}
+                              Contrato
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewAppointmentDocument(appointment.id, "receipt")}
+                              disabled={sending === `appointment-view-receipt-${appointment.id}`}
+                              title="Visualizar Comprovante de Serviço"
+                            >
+                              {sending === `appointment-view-receipt-${appointment.id}` ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              ) : (
+                                <Receipt className="w-4 h-4 mr-2" />
+                              )}
+                              Comprovante
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Dialog de Preview */}
@@ -748,6 +896,41 @@ const Documentos = () => {
                   <div className="bg-muted/50 p-4 rounded-lg">
                     <p className="text-sm text-muted-foreground">
                       Você pode enviar o contrato ou comprovante desta assinatura para o cliente.
+                    </p>
+                  </div>
+                </>
+              )}
+              {previewData.type === 'appointment' && (
+                <>
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold">{previewData.data.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Cliente: {previewData.data.customers?.name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Email: {previewData.data.customers?.email}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Data: {format(new Date(previewData.data.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold mb-2">Valor do Serviço:</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {formatCurrency(previewData.data.price)}
+                    </p>
+                    {previewData.data.description && (
+                      <div className="mt-4">
+                        <p className="font-semibold mb-2">Descrição:</p>
+                        <p className="text-sm text-muted-foreground">
+                          {previewData.data.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      Você pode gerar o contrato ou comprovante deste serviço para o cliente.
                     </p>
                   </div>
                 </>
