@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Rocket, Mail } from "lucide-react";
+import { Loader2, Rocket, Mail, ArrowLeft } from "lucide-react";
 import { FaGoogle, FaFacebook } from "react-icons/fa";
 import logo from "@/assets/logo.png";
 
@@ -155,6 +155,19 @@ const Auth = () => {
       </div>
 
       <div className="min-h-screen flex flex-col items-center justify-center p-4 relative z-10">
+        {/* Back button */}
+        <div className="w-full max-w-md mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            onClick={() => navigate("/")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para o site
+          </Button>
+        </div>
+
         {/* Logo and branding */}
         <div className="text-center mb-8">
           <img src={logo} alt="Foguete Gestão Empresarial" className="h-24 md:h-28 w-auto mx-auto" />
