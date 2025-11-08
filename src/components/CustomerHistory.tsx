@@ -172,36 +172,66 @@ export const CustomerHistory = ({ customerId }: CustomerHistoryProps) => {
 
   return (
     <div className="space-y-4">
+      <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+        <h3 className="font-semibold mb-2">Resumo de Atividades</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <Calendar className="w-4 h-4 text-blue-500 inline mr-1" />
+            <span className="font-semibold">{events.filter(e => e.type === "appointment").length}</span>
+            <span className="text-muted-foreground ml-1">Agendamentos</span>
+          </div>
+          <div>
+            <FileText className="w-4 h-4 text-purple-500 inline mr-1" />
+            <span className="font-semibold">{events.filter(e => e.type === "proposal").length}</span>
+            <span className="text-muted-foreground ml-1">Orçamentos</span>
+          </div>
+          <div>
+            <DollarSign className="w-4 h-4 text-green-500 inline mr-1" />
+            <span className="font-semibold">{events.filter(e => e.type === "transaction" && e.amount).length}</span>
+            <span className="text-muted-foreground ml-1">Transações</span>
+          </div>
+          <div>
+            <ListTodo className="w-4 h-4 text-orange-500 inline mr-1" />
+            <span className="font-semibold">{events.filter(e => e.type === "task").length}</span>
+            <span className="text-muted-foreground ml-1">Tarefas</span>
+          </div>
+        </div>
+      </div>
+      
       {events.map((event) => {
         const Icon = event.icon;
         return (
-          <Card key={`${event.type}-${event.id}`} className="hover:shadow-md transition-shadow">
+          <Card key={`${event.type}-${event.id}`} className="hover:shadow-lg transition-all">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                  <Icon className={`w-5 h-5 ${event.color}`} />
-                  <CardTitle className="text-base">{event.title}</CardTitle>
+                  <div className={`p-2 rounded-lg bg-muted/50`}>
+                    <Icon className={`w-4 h-4 ${event.color}`} />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">{event.title}</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {format(new Date(event.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  </div>
                 </div>
-                {getStatusBadge(event.type, event.status)}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-2">
-                {event.description && (
-                  <p className="text-sm text-muted-foreground">{event.description}</p>
-                )}
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {format(new Date(event.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                  </span>
+                <div className="flex flex-col items-end gap-1">
+                  {getStatusBadge(event.type, event.status)}
                   {event.amount && (
-                    <span className={`font-semibold ${event.color}`}>
+                    <span className={`text-sm font-bold ${event.color}`}>
                       {formatCurrency(event.amount)}
                     </span>
                   )}
                 </div>
               </div>
-            </CardContent>
+            </CardHeader>
+            {event.description && (
+              <CardContent className="pt-0">
+                <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+                  {event.description}
+                </p>
+              </CardContent>
+            )}
           </Card>
         );
       })}

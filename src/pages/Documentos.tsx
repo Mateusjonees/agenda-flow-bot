@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { 
   FileText, Mail, Download, Search, Calendar, User, 
@@ -54,6 +55,8 @@ const Documentos = () => {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("history");
   const [sending, setSending] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
 
   useEffect(() => {
     checkAuth();
@@ -527,6 +530,17 @@ const Documentos = () => {
                           <div className="flex gap-2">
                             <Button
                               size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setPreviewData({ type: 'proposal', data: proposal });
+                                setPreviewOpen(true);
+                              }}
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              Preview
+                            </Button>
+                            <Button
+                              size="sm"
                               variant="outline"
                               onClick={() => handleSendProposalPdf(proposal.id)}
                               disabled={sending === `proposal-pdf-${proposal.id}`}
@@ -598,6 +612,17 @@ const Documentos = () => {
                           <div className="flex gap-2 flex-wrap">
                             <Button
                               size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setPreviewData({ type: 'subscription', data: subscription });
+                                setPreviewOpen(true);
+                              }}
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              Preview
+                            </Button>
+                            <Button
+                              size="sm"
                               variant="outline"
                               onClick={() => handleSendSubscriptionDocument(subscription.id, "contract")}
                               disabled={sending === `subscription-contract-${subscription.id}`}
@@ -633,6 +658,72 @@ const Documentos = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog de Preview */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Preview do Documento</DialogTitle>
+            <DialogDescription>
+              Visualize o documento antes de enviar
+            </DialogDescription>
+          </DialogHeader>
+          {previewData && (
+            <div className="space-y-4">
+              {previewData.type === 'proposal' && (
+                <>
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold">{previewData.data.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Cliente: {previewData.data.customers.name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Email: {previewData.data.customers.email}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold mb-2">Valor do Orçamento:</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {formatCurrency(previewData.data.final_amount)}
+                    </p>
+                  </div>
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      Este documento será enviado para o email do cliente com todos os detalhes do orçamento.
+                    </p>
+                  </div>
+                </>
+              )}
+              {previewData.type === 'subscription' && (
+                <>
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold">
+                      {previewData.data.subscription_plans?.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Cliente: {previewData.data.customers?.name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Email: {previewData.data.customers?.email}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold mb-2">Valor da Assinatura:</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {formatCurrency(previewData.data.subscription_plans?.price || 0)}
+                    </p>
+                  </div>
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      Você pode enviar o contrato ou comprovante desta assinatura para o cliente.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
