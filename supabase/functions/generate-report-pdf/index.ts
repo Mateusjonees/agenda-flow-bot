@@ -79,7 +79,7 @@ serve(async (req) => {
     // Buscar configurações do negócio (RLS policies garantem que só busca do próprio usuário)
     const { data: businessSettings, error: bizError } = await supabaseClient
       .from('business_settings')
-      .select('business_name, address, email, whatsapp_number')
+      .select('business_name, address, email, whatsapp_number, cpf_cnpj, profile_image_url')
       .eq('user_id', user.id)
       .single();
 
@@ -87,8 +87,15 @@ serve(async (req) => {
       console.error('Error fetching business settings:', bizError);
     }
 
-    const businessName = businessSettings?.business_name || 'Meu Negócio';
-    console.log('Business name:', businessName);
+    const businessInfo = {
+      business_name: businessSettings?.business_name || 'Meu Negócio',
+      address: businessSettings?.address || '',
+      email: businessSettings?.email || '',
+      whatsapp_number: businessSettings?.whatsapp_number || '',
+      cpf_cnpj: businessSettings?.cpf_cnpj || '',
+      profile_image_url: businessSettings?.profile_image_url || ''
+    };
+    console.log('Business name:', businessInfo.business_name);
 
     // Formatar datas
     const formatDate = (dateStr: string) => {
@@ -120,6 +127,19 @@ serve(async (req) => {
             margin-bottom: 40px;
             border-bottom: 3px solid #E31E24;
             padding-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+          }
+          .header img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+          }
+          .header-content {
+            text-align: left;
           }
           .header h1 {
             color: #E31E24;
@@ -128,7 +148,8 @@ serve(async (req) => {
           }
           .header p {
             color: #666;
-            margin: 10px 0 0 0;
+            margin: 5px 0;
+            font-size: 12px;
           }
           .summary {
             display: grid;
@@ -206,9 +227,16 @@ serve(async (req) => {
       </head>
       <body>
         <div class="header">
-          <h1>${businessName}</h1>
-          <p>Relatório Financeiro</p>
-          <p>${formatDate(reportData.startDate)} até ${formatDate(reportData.endDate)}</p>
+          ${businessInfo.profile_image_url ? `<img src="${businessInfo.profile_image_url}" alt="Logo" />` : ''}
+          <div class="header-content">
+            <h1>${businessInfo.business_name}</h1>
+            <p>Relatório Financeiro</p>
+            <p>${formatDate(reportData.startDate)} até ${formatDate(reportData.endDate)}</p>
+            ${businessInfo.email ? `<p>📧 ${businessInfo.email}</p>` : ''}
+            ${businessInfo.whatsapp_number ? `<p>📱 ${businessInfo.whatsapp_number}</p>` : ''}
+            ${businessInfo.address ? `<p>📍 ${businessInfo.address}</p>` : ''}
+            ${businessInfo.cpf_cnpj ? `<p>CPF/CNPJ: ${businessInfo.cpf_cnpj}</p>` : ''}
+          </div>
         </div>
 
         <div class="summary">
@@ -316,7 +344,7 @@ serve(async (req) => {
 
         <div class="footer">
           <p>Relatório gerado em ${formatDate(new Date().toISOString())}</p>
-          <p>${businessName} - Sistema de Gestão</p>
+          <p>${businessInfo.business_name} - Sistema de Gestão</p>
         </div>
       </body>
       </html>
@@ -327,13 +355,13 @@ serve(async (req) => {
     const data = encoder.encode(htmlContent);
     const base64 = btoa(String.fromCharCode(...data));
 
-    console.log('PDF report generated successfully for:', businessName);
+    console.log('PDF report generated successfully for:', businessInfo.business_name);
 
     return new Response(
       JSON.stringify({ 
         pdf: base64,
         type: 'html',
-        businessName: businessName
+        businessName: businessInfo.business_name
       }),
       {
         headers: { 

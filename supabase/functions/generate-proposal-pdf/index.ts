@@ -13,11 +13,12 @@ const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-const generateProposalHTML = (proposal: any, businessName: string, businessEmail: string): string => {
-  const services = proposal.items as any[];
-  const servicesHTML = services
+const generateProposalHTML = (proposal: any, businessInfo: any): string => {
+  // Garantir que items existe e é um array  
+  const items = Array.isArray(proposal.items) ? proposal.items : [];
+  const servicesHTML = items
     .map(
-      (s) => `
+      (s: any) => `
       <tr style="border-bottom: 1px solid #e5e7eb;">
         <td style="padding: 12px 8px;">${s.description}</td>
         <td style="padding: 12px 8px; text-align: center;">${s.quantity}</td>
@@ -46,9 +47,19 @@ const generateProposalHTML = (proposal: any, businessName: string, businessEmail
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937; max-width: 800px; margin: 0 auto; padding: 20px; background: #f9fafb;">
       <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px;">
-        <h1 style="margin: 0 0 10px 0; font-size: 32px;">Orçamento</h1>
-        <p style="margin: 0; font-size: 18px; opacity: 0.9;">${businessName}</p>
-        ${businessEmail ? `<p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.8;">${businessEmail}</p>` : ""}
+        <div style="display: flex; align-items: center; gap: 20px;">
+          ${businessInfo.profile_image_url ? `
+            <img src="${businessInfo.profile_image_url}" alt="Logo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid white;" />
+          ` : ''}
+          <div>
+            <h1 style="margin: 0 0 10px 0; font-size: 32px;">Orçamento</h1>
+            <p style="margin: 0; font-size: 18px; opacity: 0.9;">${businessInfo.business_name}</p>
+            ${businessInfo.email ? `<p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.8;">${businessInfo.email}</p>` : ""}
+            ${businessInfo.whatsapp_number ? `<p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.8;">📱 ${businessInfo.whatsapp_number}</p>` : ""}
+          </div>
+        </div>
+        ${businessInfo.address ? `<p style="margin: 15px 0 0 0; font-size: 12px; opacity: 0.7;">📍 ${businessInfo.address}</p>` : ""}
+        ${businessInfo.cpf_cnpj ? `<p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.7;">CPF/CNPJ: ${businessInfo.cpf_cnpj}</p>` : ""}
       </div>
 
       <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #e5e7eb;">
@@ -116,6 +127,7 @@ const generateProposalHTML = (proposal: any, businessName: string, businessEmail
 
       <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px;">
         <p>Orçamento gerado em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}</p>
+        <p>${businessInfo.business_name}</p>
       </div>
       
       <div class="no-print" style="text-align: center; margin-top: 30px;">
@@ -180,15 +192,21 @@ serve(async (req: Request) => {
     // Buscar configurações do negócio
     const { data: businessSettings } = await supabase
       .from("business_settings")
-      .select("business_name, email")
+      .select("business_name, email, whatsapp_number, address, cpf_cnpj, profile_image_url")
       .eq("user_id", user.id)
       .single();
 
-    const businessName = businessSettings?.business_name || "Estabelecimento";
-    const businessEmail = businessSettings?.email || "";
+    const businessInfo = {
+      business_name: businessSettings?.business_name || "Estabelecimento",
+      email: businessSettings?.email || "",
+      whatsapp_number: businessSettings?.whatsapp_number || "",
+      address: businessSettings?.address || "",
+      cpf_cnpj: businessSettings?.cpf_cnpj || "",
+      profile_image_url: businessSettings?.profile_image_url || ""
+    };
 
     // Gerar HTML da proposta
-    const htmlContent = generateProposalHTML(proposal, businessName, businessEmail);
+    const htmlContent = generateProposalHTML(proposal, businessInfo);
 
     return new Response(htmlContent, {
       status: 200,

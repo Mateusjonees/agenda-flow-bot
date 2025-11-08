@@ -109,13 +109,18 @@ const generateContractHTML = (data: any): string => {
     </head>
     <body>
       <div class="header">
+        ${businessSettings.profile_image_url ? `
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="${businessSettings.profile_image_url}" alt="Logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #667eea;" />
+          </div>
+        ` : ''}
         <h1>Contrato de Prestação de Serviços por Assinatura</h1>
       </div>
 
       <div class="section">
         <h2>Partes Contratantes</h2>
         <p><strong>CONTRATANTE:</strong> ${customer.name}, inscrito no CPF ${customer.cpf || "não informado"}, residente e domiciliado à ${customer.address || "não informado"}, telefone ${customer.phone}, e-mail ${customer.email || "não informado"}.</p>
-        <p><strong>CONTRATADA:</strong> ${businessSettings.business_name || "Estabelecimento"}, inscrito no CNPJ/CPF ${businessSettings.document || "não informado"}, com sede à ${businessSettings.address || "não informado"}, telefone ${businessSettings.whatsapp_number || "não informado"}, e-mail ${businessSettings.email || "não informado"}.</p>
+        <p><strong>CONTRATADA:</strong> ${businessSettings.business_name || "Estabelecimento"}, inscrito no CNPJ/CPF ${businessSettings.cpf_cnpj || "não informado"}, com sede à ${businessSettings.address || "não informado"}, telefone ${businessSettings.whatsapp_number || "não informado"}, e-mail ${businessSettings.email || "não informado"}.</p>
       </div>
 
       <div class="section">
@@ -288,9 +293,16 @@ const generateReceiptHTML = (data: any): string => {
     <body>
       <div class="receipt">
         <div class="header">
+          ${businessSettings.profile_image_url ? `
+            <div style="text-align: center; margin-bottom: 15px;">
+              <img src="${businessSettings.profile_image_url}" alt="Logo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #667eea;" />
+            </div>
+          ` : ''}
           <h1>✓ Comprovante de Pagamento</h1>
           <p style="margin: 0; color: #6b7280;">${businessSettings.business_name || "Estabelecimento"}</p>
           ${businessSettings.email ? `<p style="margin: 5px 0 0 0; color: #6b7280; font-size: 14px;">${businessSettings.email}</p>` : ""}
+          ${businessSettings.whatsapp_number ? `<p style="margin: 5px 0 0 0; color: #6b7280; font-size: 14px;">📱 ${businessSettings.whatsapp_number}</p>` : ""}
+          ${businessSettings.cpf_cnpj ? `<p style="margin: 5px 0 0 0; color: #6b7280; font-size: 12px;">CPF/CNPJ: ${businessSettings.cpf_cnpj}</p>` : ""}
         </div>
 
         <div style="margin-bottom: 30px;">
