@@ -701,7 +701,7 @@ const Landing = () => {
       {/* Footer */}
       <footer className="border-t bg-card/50 mt-20">
         <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-8">
             {/* Logo and Description */}
             <div className="md:col-span-1">
               <div className="flex items-center gap-3 mb-4">
@@ -773,29 +773,61 @@ const Landing = () => {
 
             {/* Suporte */}
             <div>
-              <h3 className="font-semibold text-foreground mb-4">Suporte</h3>
+              <h3 className="font-semibold text-foreground mb-4">Contato</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Central de Ajuda
+                  <div className="text-sm font-medium text-foreground mb-1 flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4 text-primary" />
+                    Vendas
+                  </div>
+                  <a 
+                    href="https://wa.me/5548988430812?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    (48) 98843-0812
                   </a>
                 </li>
-                <li>
+                <li className="pt-2">
+                  <div className="text-sm font-medium text-foreground mb-1 flex items-center gap-2">
+                    <HeadphonesIcon className="w-4 h-4 text-primary" />
+                    Suporte
+                  </div>
+                  <a 
+                    href="https://wa.me/5548990751889?text=Olá,%20preciso%20de%20suporte" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    (48) 99075-1889
+                  </a>
+                </li>
+                <li className="pt-2">
                   <button onClick={() => scrollToSection('faq')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     FAQ
                   </button>
                 </li>
+              </ul>
+            </div>
+
+            {/* Horário */}
+            <div>
+              <h3 className="font-semibold text-foreground mb-4">Horário</h3>
+              <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4" />
-                    Chat ao Vivo
-                  </a>
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <Clock className="w-4 h-4 text-primary" />
+                    <span className="font-medium">Segunda - Sexta</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground ml-6">9h às 18h</p>
                 </li>
-                <li>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
-                    <HeadphonesIcon className="w-4 h-4" />
-                    WhatsApp
-                  </a>
+                <li className="pt-2">
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <Shield className="w-4 h-4 text-primary" />
+                    <span className="font-medium">Suporte 24/7</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground ml-6">Via WhatsApp</p>
                 </li>
               </ul>
             </div>

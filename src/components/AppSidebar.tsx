@@ -73,9 +73,9 @@ export function AppSidebar() {
               
               {/* WhatsApp Support */}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Suporte WhatsApp">
+                <SidebarMenuButton asChild tooltip="Suporte">
                   <a 
-                    href="https://wa.me/5511999999999?text=Olá,%20preciso%20de%20suporte" 
+                    href="https://wa.me/5548990751889?text=Olá,%20preciso%20de%20suporte" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center gap-3"
