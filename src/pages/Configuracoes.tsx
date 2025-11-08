@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Save, Star, Gift, Link as LinkIcon, Upload, Camera, Lock, Mail, Phone } from "lucide-react";
+import { Save, Star, Gift, Link as LinkIcon, Upload, Camera, Lock, Phone } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,11 +20,9 @@ const Configuracoes = () => {
   
   // Estados para alteração de senha e dados
   const [currentPassword, setCurrentPassword] = useState("");
-  const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState("");
   const [currentPasswordForPhone, setCurrentPasswordForPhone] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState("");
 
   // Buscar dados do usuário e configurações
@@ -217,45 +215,6 @@ const Configuracoes = () => {
     },
   });
 
-  // Mutation para alterar email
-  const changeEmailMutation = useMutation({
-    mutationFn: async () => {
-      if (!currentPasswordForEmail) {
-        throw new Error("Digite sua senha atual para confirmar");
-      }
-
-      if (!newEmail || !newEmail.includes("@")) {
-        throw new Error("Email inválido");
-      }
-
-      // Validar senha atual
-      if (!user?.email) throw new Error("Email não encontrado");
-      
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: currentPasswordForEmail,
-      });
-
-      if (signInError) {
-        throw new Error("Senha atual incorreta");
-      }
-
-      // Alterar email
-      const { error } = await supabase.auth.updateUser({
-        email: newEmail
-      });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Email alterado! Verifique sua caixa de entrada para confirmar.");
-      setNewEmail("");
-      setCurrentPasswordForEmail("");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Erro ao alterar email");
-    },
-  });
 
   // Mutation para alterar telefone
   const changePhoneMutation = useMutation({
@@ -527,50 +486,6 @@ const Configuracoes = () => {
           <CardDescription>Gerencie suas informações de acesso e segurança</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Alteração de Email */}
-          <div className="space-y-3 pb-4 border-b">
-            <div className="flex items-center gap-2 mb-2">
-              <Mail className="w-4 h-4 text-muted-foreground" />
-              <Label className="font-semibold">Alterar Email</Label>
-            </div>
-            <div className="space-y-3">
-              <Label htmlFor="current-email" className="text-xs text-muted-foreground">
-                Email atual: {user?.email || "Não definido"}
-              </Label>
-              <div className="space-y-2">
-                <Label htmlFor="password-for-email">Senha Atual *</Label>
-                <Input
-                  id="password-for-email"
-                  type="password"
-                  placeholder="Digite sua senha atual"
-                  value={currentPasswordForEmail}
-                  onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new-email">Novo Email</Label>
-                <Input
-                  id="new-email"
-                  type="email"
-                  placeholder="Novo email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                />
-              </div>
-              <Button
-                onClick={() => changeEmailMutation.mutate()}
-                disabled={!newEmail || !currentPasswordForEmail || changeEmailMutation.isPending}
-                variant="secondary"
-                className="w-full"
-              >
-                {changeEmailMutation.isPending ? "Alterando..." : "Alterar Email"}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Você receberá um email de confirmação no novo endereço
-              </p>
-            </div>
-          </div>
-
           {/* Alteração de Telefone */}
           <div className="space-y-3 pb-4 border-b">
             <div className="flex items-center gap-2 mb-2">
