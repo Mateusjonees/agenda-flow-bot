@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Save, Star, Gift, Link as LinkIcon, Upload, Camera } from "lucide-react";
+import { Save, Star, Gift, Link as LinkIcon, Upload, Camera, Lock, Mail, Phone } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,13 @@ const Configuracoes = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [stampsRequired, setStampsRequired] = useState(5);
+  
+  // Estados para alteração de senha e dados
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
 
   // Buscar dados do usuário e configurações
   const { data: user } = useQuery({
@@ -162,6 +169,78 @@ const Configuracoes = () => {
   const handleSaveSettings = () => {
     saveSettingsMutation.mutate();
   };
+
+  // Mutation para alterar senha
+  const changePasswordMutation = useMutation({
+    mutationFn: async () => {
+      if (newPassword !== confirmPassword) {
+        throw new Error("As senhas não coincidem");
+      }
+      
+      if (newPassword.length < 6) {
+        throw new Error("A senha deve ter no mínimo 6 caracteres");
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Senha alterada com sucesso!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erro ao alterar senha");
+    },
+  });
+
+  // Mutation para alterar email
+  const changeEmailMutation = useMutation({
+    mutationFn: async () => {
+      if (!newEmail || !newEmail.includes("@")) {
+        throw new Error("Email inválido");
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        email: newEmail
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Email alterado! Verifique sua caixa de entrada para confirmar.");
+      setNewEmail("");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erro ao alterar email");
+    },
+  });
+
+  // Mutation para alterar telefone
+  const changePhoneMutation = useMutation({
+    mutationFn: async () => {
+      if (!newPhone) {
+        throw new Error("Telefone inválido");
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        phone: newPhone
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Telefone alterado com sucesso!");
+      setNewPhone("");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erro ao alterar telefone");
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -377,6 +456,121 @@ const Configuracoes = () => {
                   Quando atingir o número necessário, o cartão é zerado e o cliente tem direito a uma visita grátis! 🎉
                 </p>
               </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="w-5 h-5 text-primary" />
+            Segurança da Conta
+          </CardTitle>
+          <CardDescription>Gerencie suas informações de acesso e segurança</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Alteração de Email */}
+          <div className="space-y-3 pb-4 border-b">
+            <div className="flex items-center gap-2 mb-2">
+              <Mail className="w-4 h-4 text-muted-foreground" />
+              <Label className="font-semibold">Alterar Email</Label>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="current-email" className="text-xs text-muted-foreground">
+                Email atual: {user?.email || "Não definido"}
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="new-email"
+                  type="email"
+                  placeholder="Novo email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                />
+                <Button
+                  onClick={() => changeEmailMutation.mutate()}
+                  disabled={!newEmail || changeEmailMutation.isPending}
+                  variant="secondary"
+                >
+                  {changeEmailMutation.isPending ? "Alterando..." : "Alterar"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Você receberá um email de confirmação no novo endereço
+              </p>
+            </div>
+          </div>
+
+          {/* Alteração de Telefone */}
+          <div className="space-y-3 pb-4 border-b">
+            <div className="flex items-center gap-2 mb-2">
+              <Phone className="w-4 h-4 text-muted-foreground" />
+              <Label className="font-semibold">Alterar Telefone</Label>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="current-phone" className="text-xs text-muted-foreground">
+                Telefone atual: {user?.phone || "Não definido"}
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="new-phone"
+                  type="tel"
+                  placeholder="(11) 99999-9999"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                />
+                <Button
+                  onClick={() => changePhoneMutation.mutate()}
+                  disabled={!newPhone || changePhoneMutation.isPending}
+                  variant="secondary"
+                >
+                  {changePhoneMutation.isPending ? "Alterando..." : "Alterar"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Alteração de Senha */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Lock className="w-4 h-4 text-muted-foreground" />
+              <Label className="font-semibold">Alterar Senha</Label>
+            </div>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">Nova Senha</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  placeholder="Digite a nova senha"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirmar Nova Senha</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  placeholder="Confirme a nova senha"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+              <Button
+                onClick={() => changePasswordMutation.mutate()}
+                disabled={!newPassword || !confirmPassword || changePasswordMutation.isPending}
+                variant="secondary"
+                className="w-full"
+              >
+                {changePasswordMutation.isPending ? "Alterando..." : "Alterar Senha"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                A senha deve ter no mínimo 6 caracteres
+              </p>
             </div>
           </div>
         </CardContent>
