@@ -219,9 +219,15 @@ export const TaskList = ({
     setLoading(false);
   };
 
-  const handleCheckboxChange = (taskId: string) => {
-    setTaskToComplete(taskId);
-    setConfirmDialogOpen(true);
+  const handleCheckboxChange = (taskId: string, currentStatus: string) => {
+    if (currentStatus === "completed") {
+      // Se já está concluída, desmarcar diretamente
+      handleUncompleteTask(taskId);
+    } else {
+      // Se não está concluída, pedir confirmação
+      setTaskToComplete(taskId);
+      setConfirmDialogOpen(true);
+    }
   };
 
   const handleCompleteTask = async () => {
@@ -259,6 +265,34 @@ export const TaskList = ({
     
     setConfirmDialogOpen(false);
     setTaskToComplete(null);
+  };
+
+  const handleUncompleteTask = async (taskId: string) => {
+    console.log("🔵 Desmarcando tarefa:", taskId);
+    
+    const { error } = await supabase
+      .from("tasks")
+      .update({ 
+        status: "pending",
+        completed_at: null
+      })
+      .eq("id", taskId);
+
+    if (error) {
+      console.error("❌ Erro ao desmarcar tarefa:", error);
+      toast({
+        title: "Erro ao desmarcar tarefa",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      console.log("✅ Tarefa desmarcada com sucesso!");
+      toast({
+        title: "Tarefa desmarcada!",
+        description: "Tarefa voltou para pendente.",
+      });
+      fetchTasks();
+    }
   };
 
   const handleDeleteTask = async (taskId: string) => {
@@ -390,22 +424,22 @@ export const TaskList = ({
         <Card 
           key={task.id} 
           className={`${
-            !showCompleted && isOverdue(task.due_date) 
-              ? "border-2 border-destructive bg-destructive/5" 
-              : taskToComplete === task.id
-                ? "border-2 border-green-500 bg-green-50 dark:bg-green-950/20"
-                : ""
+            task.status === "completed"
+              ? "border-2 border-green-500 bg-green-50 dark:bg-green-950/20"
+              : !showCompleted && isOverdue(task.due_date) 
+                ? "border-2 border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20" 
+                : taskToComplete === task.id
+                  ? "border-2 border-green-500 bg-green-50 dark:bg-green-950/20"
+                  : ""
           } transition-all hover:shadow-md`}
         >
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              {!showCompleted && (
-                <Checkbox
-                  checked={task.status === "completed"}
-                  onCheckedChange={() => handleCheckboxChange(task.id)}
-                  className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
-                />
-              )}
+              <Checkbox
+                checked={task.status === "completed"}
+                onCheckedChange={() => handleCheckboxChange(task.id, task.status)}
+                className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+              />
               <div className="flex-1 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
@@ -466,8 +500,8 @@ export const TaskList = ({
                       </>
                     ) : isOverdue(task.due_date) ? (
                       <>
-                        <AlertCircle className="h-3 w-3 text-destructive" />
-                        <span className="text-destructive font-medium">Atrasada</span>
+                        <AlertCircle className="h-3 w-3 text-yellow-600 dark:text-yellow-500" />
+                        <span className="text-yellow-600 dark:text-yellow-500 font-medium">Atrasada</span>
                       </>
                     ) : (
                       <>
