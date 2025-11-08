@@ -24,6 +24,7 @@ const Configuracoes = () => {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
+  const [cpfCnpj, setCpfCnpj] = useState("");
   
   // Estados para alteração de senha
   const [currentPassword, setCurrentPassword] = useState("");
@@ -83,6 +84,7 @@ const Configuracoes = () => {
       setPhone(settings.whatsapp_number || "");
       setEmail(settings.email || "");
       setAddress(settings.address || "");
+      setCpfCnpj(settings.cpf_cnpj || "");
     }
   }, [settings]);
 
@@ -146,6 +148,7 @@ const Configuracoes = () => {
           whatsapp_number: phone,
           email: email,
           address: address,
+          cpf_cnpj: cpfCnpj,
           profile_image_url: settings?.profile_image_url,
         }, {
           onConflict: "user_id"
@@ -340,14 +343,25 @@ const Configuracoes = () => {
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="address">Endereço</Label>
-            <Input 
-              id="address" 
-              placeholder="Rua Example, 123 - Bairro, Cidade - UF"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-            />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="cpf-cnpj">CPF/CNPJ</Label>
+              <Input 
+                id="cpf-cnpj" 
+                placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                value={cpfCnpj}
+                onChange={(e) => setCpfCnpj(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Endereço</Label>
+              <Input 
+                id="address" 
+                placeholder="Rua Example, 123 - Bairro, Cidade - UF"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

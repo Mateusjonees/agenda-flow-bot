@@ -166,6 +166,7 @@ export type Database = {
         Row: {
           address: string | null
           business_name: string | null
+          cpf_cnpj: string | null
           created_at: string | null
           email: string | null
           id: string
@@ -181,6 +182,7 @@ export type Database = {
         Insert: {
           address?: string | null
           business_name?: string | null
+          cpf_cnpj?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -196,6 +198,7 @@ export type Database = {
         Update: {
           address?: string | null
           business_name?: string | null
+          cpf_cnpj?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
