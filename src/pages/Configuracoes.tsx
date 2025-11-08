@@ -11,11 +11,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PaymentHistory } from "@/components/PaymentHistory";
 
 const Configuracoes = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -551,95 +554,108 @@ const Configuracoes = () => {
       <Separator />
 
       {subscription && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-primary" />
-              Minha Assinatura
-            </CardTitle>
-            <CardDescription>Gerencie sua assinatura e plano</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-lg">
-                    {subscription.subscription_plans?.name || "Plano Atual"}
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-primary" />
+                Minha Assinatura
+              </CardTitle>
+              <CardDescription>Gerencie sua assinatura e plano</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-lg">
+                      {subscription.subscription_plans?.name || "Plano Atual"}
+                    </p>
+                    <Badge variant={
+                      subscription.status === "active" ? "default" :
+                      subscription.status === "trial" ? "secondary" :
+                      subscription.status === "cancelled" ? "destructive" :
+                      "outline"
+                    }>
+                      {subscription.status === "active" ? "Ativo" :
+                       subscription.status === "trial" ? "Trial" :
+                       subscription.status === "cancelled" ? "Cancelado" :
+                       subscription.status === "suspended" ? "Suspenso" :
+                       subscription.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {subscription.status === "trial" 
+                      ? "Período de teste gratuito" 
+                      : subscription.subscription_plans?.description || ""}
                   </p>
-                  <Badge variant={
-                    subscription.status === "active" ? "default" :
-                    subscription.status === "trial" ? "secondary" :
-                    subscription.status === "cancelled" ? "destructive" :
-                    "outline"
-                  }>
-                    {subscription.status === "active" ? "Ativo" :
-                     subscription.status === "trial" ? "Trial" :
-                     subscription.status === "cancelled" ? "Cancelado" :
-                     subscription.status === "suspended" ? "Suspenso" :
-                     subscription.status}
-                  </Badge>
+                  {subscription.next_billing_date && subscription.status !== "cancelled" && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Próximo pagamento: {format(new Date(subscription.next_billing_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    </p>
+                  )}
+                  {subscription.status === "cancelled" && (
+                    <p className="text-xs text-destructive mt-2">
+                      Assinatura cancelada
+                    </p>
+                  )}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {subscription.status === "trial" 
-                    ? "Período de teste gratuito" 
-                    : subscription.subscription_plans?.description || ""}
-                </p>
-                {subscription.next_billing_date && subscription.status !== "cancelled" && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Próximo pagamento: {format(new Date(subscription.next_billing_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                  </p>
-                )}
-                {subscription.status === "cancelled" && (
-                  <p className="text-xs text-destructive mt-2">
-                    Assinatura cancelada
-                  </p>
+                {subscription.subscription_plans?.price && subscription.status !== "cancelled" && (
+                  <div className="text-right">
+                    <p className="text-2xl font-bold">
+                      {new Intl.NumberFormat("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      }).format(subscription.subscription_plans.price)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      /{subscription.subscription_plans.billing_frequency === "monthly" ? "mês" : "ano"}
+                    </p>
+                  </div>
                 )}
               </div>
-              {subscription.subscription_plans?.price && subscription.status !== "cancelled" && (
-                <div className="text-right">
-                  <p className="text-2xl font-bold">
-                    {new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(subscription.subscription_plans.price)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    /{subscription.subscription_plans.billing_frequency === "monthly" ? "mês" : "ano"}
-                  </p>
-                </div>
-              )}
-            </div>
 
-            {subscription.status !== "cancelled" && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full gap-2">
-                    <AlertTriangle className="w-4 h-4" />
-                    Cancelar Assinatura
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Tem certeza que deseja cancelar?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Ao cancelar sua assinatura, você perderá acesso a todos os recursos premium.
-                      Esta ação não pode ser desfeita.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Voltar</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => cancelSubscriptionMutation.mutate()}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Confirmar Cancelamento
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </CardContent>
-        </Card>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => navigate("/planos")}
+                >
+                  Gerenciar Plano
+                </Button>
+                {subscription.status !== "cancelled" && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="flex-1 gap-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        Cancelar
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Tem certeza que deseja cancelar?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Ao cancelar sua assinatura, você perderá acesso a todos os recursos premium.
+                          Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Voltar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => cancelSubscriptionMutation.mutate()}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Confirmar Cancelamento
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <PaymentHistory userId={user?.id} />
+        </>
       )}
 
       <Card>

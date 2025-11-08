@@ -23,6 +23,7 @@ import Tarefas from "./pages/Tarefas";
 import Estoque from "./pages/Estoque";
 import Servicos from "./pages/Servicos";
 import Pricing from "./pages/Pricing";
+import Planos from "./pages/Planos";
 import Maintenance from "./pages/Maintenance";
 import NotFound from "./pages/NotFound";
 
@@ -51,6 +52,7 @@ const App = () => (
                 <Route path="/propostas" element={<Layout><Propostas /></Layout>} />
                 <Route path="/assinaturas" element={<Layout><Assinaturas /></Layout>} />
                 <Route path="/pricing" element={<Pricing />} />
+                <Route path="/planos" element={<Layout><Planos /></Layout>} />
                 <Route path="/tarefas" element={<Layout><Tarefas /></Layout>} />
                 <Route path="/estoque" element={<Layout><Estoque /></Layout>} />
                 <Route path="/configuracoes" element={<Layout><Configuracoes /></Layout>} />
