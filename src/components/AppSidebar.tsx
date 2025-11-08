@@ -12,6 +12,7 @@ import {
   Package,
   MessageCircle,
   FolderOpen,
+  Briefcase,
 } from "lucide-react";
 import {
   Sidebar,
@@ -28,9 +29,9 @@ import logo from "@/assets/logo.png";
 const navItems = [
   { path: "/dashboard", label: "Painel", icon: LayoutDashboard },
   { path: "/tarefas", label: "Tarefas", icon: ListTodo },
-  { path: "/agendamentos", label: "Atendimentos", icon: Calendar },
+  { path: "/agendamentos", label: "Agenda", icon: Calendar },
   { path: "/clientes", label: "Clientes", icon: Users },
-  { path: "/servicos", label: "Serviços", icon: Package },
+  { path: "/servicos", label: "Serviços", icon: Briefcase },
   { path: "/propostas", label: "Orçamentos", icon: FileText },
   { path: "/assinaturas", label: "Assinaturas", icon: Repeat },
   { path: "/estoque", label: "Estoque", icon: Package },
