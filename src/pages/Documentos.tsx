@@ -221,6 +221,35 @@ const Documentos = () => {
     }
   };
 
+  const handleViewSubscriptionDocument = async (subscriptionId: string, documentType: "contract" | "receipt") => {
+    setSending(`subscription-view-${documentType}-${subscriptionId}`);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-subscription-document", {
+        body: { subscriptionId, documentType },
+      });
+
+      if (error) throw error;
+
+      const blob = new Blob([data], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+
+      toast({
+        title: "Documento gerado!",
+        description: `${documentType === "contract" ? "Contrato" : "Comprovante"} aberto em nova aba.`,
+      });
+    } catch (error: any) {
+      console.error("Erro:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível visualizar o documento.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(null);
+    }
+  };
+
   const handleSendSubscriptionDocument = async (subscriptionId: string, documentType: "contract" | "receipt") => {
     setSending(`subscription-${documentType}-${subscriptionId}`);
     try {
@@ -544,11 +573,12 @@ const Documentos = () => {
                               variant="outline"
                               onClick={() => handleSendProposalPdf(proposal.id)}
                               disabled={sending === `proposal-pdf-${proposal.id}`}
+                              title="Visualizar Orçamento"
                             >
                               {sending === `proposal-pdf-${proposal.id}` ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
-                                <Download className="w-4 h-4" />
+                                <FileText className="w-4 h-4" />
                               )}
                             </Button>
                             <Button
@@ -624,10 +654,11 @@ const Documentos = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleSendSubscriptionDocument(subscription.id, "contract")}
-                              disabled={sending === `subscription-contract-${subscription.id}`}
+                              onClick={() => handleViewSubscriptionDocument(subscription.id, "contract")}
+                              disabled={sending === `subscription-view-contract-${subscription.id}`}
+                              title="Visualizar Contrato"
                             >
-                              {sending === `subscription-contract-${subscription.id}` ? (
+                              {sending === `subscription-view-contract-${subscription.id}` ? (
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                               ) : (
                                 <FileCheck className="w-4 h-4 mr-2" />
@@ -637,10 +668,11 @@ const Documentos = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleSendSubscriptionDocument(subscription.id, "receipt")}
-                              disabled={sending === `subscription-receipt-${subscription.id}`}
+                              onClick={() => handleViewSubscriptionDocument(subscription.id, "receipt")}
+                              disabled={sending === `subscription-view-receipt-${subscription.id}`}
+                              title="Visualizar Comprovante"
                             >
-                              {sending === `subscription-receipt-${subscription.id}` ? (
+                              {sending === `subscription-view-receipt-${subscription.id}` ? (
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                               ) : (
                                 <Receipt className="w-4 h-4 mr-2" />
