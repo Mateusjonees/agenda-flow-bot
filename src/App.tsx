@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MaintenanceGuard } from "./components/MaintenanceGuard";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Layout from "./components/Layout";
 import Agendamentos from "./pages/Agendamentos";
@@ -36,6 +37,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
               <Route path="/manutencao" element={<Maintenance />} />
               <Route path="/agendamentos" element={<Layout><Agendamentos /></Layout>} />
               <Route path="/clientes" element={<Layout><Clientes /></Layout>} />

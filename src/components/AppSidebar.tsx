@@ -25,7 +25,7 @@ import {
 import logo from "@/assets/logo.png";
 
 const navItems = [
-  { path: "/", label: "Painel", icon: LayoutDashboard },
+  { path: "/dashboard", label: "Painel", icon: LayoutDashboard },
   { path: "/tarefas", label: "Tarefas", icon: ListTodo },
   { path: "/agendamentos", label: "Atendimentos", icon: Calendar },
   { path: "/clientes", label: "Clientes", icon: Users },
