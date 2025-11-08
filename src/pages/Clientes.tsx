@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Phone, Mail, User, CalendarPlus, ListTodo, Search, Filter, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { LoyaltyCard } from "@/components/LoyaltyCard";
+import { CustomerSubscriptions } from "@/components/CustomerSubscriptions";
 import { CustomerCoupons } from "@/components/CustomerCoupons";
 import { CustomerHistory } from "@/components/CustomerHistory";
 import { CustomerDocuments } from "@/components/CustomerDocuments";
@@ -776,7 +776,7 @@ const Clientes = () => {
                 </TabsContent>
 
                 <TabsContent value="loyalty">
-                  <LoyaltyCard customerId={selectedCustomer.id} />
+                  <CustomerSubscriptions customerId={selectedCustomer.id} />
                 </TabsContent>
 
                 <TabsContent value="coupons">
