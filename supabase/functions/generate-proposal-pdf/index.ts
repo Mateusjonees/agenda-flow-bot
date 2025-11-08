@@ -14,22 +14,20 @@ const formatCurrency = (value: number): string => {
 };
 
 const generateProposalHTML = (proposal: any, businessInfo: any): string => {
-  // Garantir que items existe e é um array  
   const items = Array.isArray(proposal.items) ? proposal.items : [];
   const servicesHTML = items
-    .map(
-      (s: any) => `
-      <tr style="border-bottom: 1px solid #e5e7eb;">
-        <td style="padding: 12px 8px;">${s.description}</td>
-        <td style="padding: 12px 8px; text-align: center;">${s.quantity}</td>
-        <td style="padding: 12px 8px; text-align: right;">${formatCurrency(s.unit_price)}</td>
-        <td style="padding: 12px 8px; text-align: right; font-weight: bold;">${formatCurrency(s.quantity * s.unit_price)}</td>
+    .map((s: any, index: number) => `
+      <tr style="background: ${index % 2 === 0 ? '#f8fafc' : 'white'}; transition: background 0.3s;">
+        <td style="padding: 16px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #1e293b;">${s.description}</td>
+        <td style="padding: 16px 12px; text-align: center; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #64748b; font-weight: 600;">${s.quantity}</td>
+        <td style="padding: 16px 12px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #64748b;">${formatCurrency(s.unit_price)}</td>
+        <td style="padding: 16px 12px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 15px; font-weight: 700; color: #0f172a;">${formatCurrency(s.quantity * s.unit_price)}</td>
       </tr>
-    `
-    )
+    `)
     .join("");
 
   const discountAmount = (proposal.total_amount * (proposal.discount_percentage || 0)) / 100;
+  const currentDate = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 
   return `
     <!DOCTYPE html>
@@ -37,103 +35,430 @@ const generateProposalHTML = (proposal: any, businessInfo: any): string => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Orçamento - ${proposal.title}</title>
+      <title>Proposta Comercial - ${proposal.title}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
       <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        @page { size: A4; margin: 0; }
+        
+        body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          line-height: 1.6;
+          color: #1e293b;
+          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+          -webkit-font-smoothing: antialiased;
+        }
+        
+        .page {
+          width: 210mm;
+          min-height: 297mm;
+          background: white;
+          margin: 0 auto;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .watermark {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%) rotate(-45deg);
+          font-size: 120px;
+          font-weight: 900;
+          color: rgba(148, 163, 184, 0.03);
+          text-transform: uppercase;
+          letter-spacing: 20px;
+          pointer-events: none;
+          z-index: 0;
+        }
+        
+        .content {
+          position: relative;
+          z-index: 1;
+          padding: 50px 50px 40px;
+        }
+        
+        .header {
+          background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+          color: white;
+          padding: 40px;
+          border-radius: 20px;
+          margin-bottom: 35px;
+          box-shadow: 0 20px 40px rgba(30, 41, 59, 0.15);
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .header::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          right: -20%;
+          width: 500px;
+          height: 500px;
+          background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+          border-radius: 50%;
+        }
+        
+        .header-content {
+          display: flex;
+          align-items: center;
+          gap: 25px;
+          position: relative;
+          z-index: 1;
+        }
+        
+        .logo-circle {
+          min-width: 90px;
+          width: 90px;
+          height: 90px;
+          border-radius: 50%;
+          background: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+          overflow: hidden;
+        }
+        
+        .logo-circle img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        
+        .header-text h1 {
+          font-size: 36px;
+          font-weight: 800;
+          margin-bottom: 8px;
+          letter-spacing: -0.5px;
+        }
+        
+        .header-subtitle {
+          font-size: 16px;
+          font-weight: 500;
+          opacity: 0.95;
+          margin-bottom: 12px;
+        }
+        
+        .header-info {
+          font-size: 13px;
+          opacity: 0.85;
+          display: flex;
+          gap: 15px;
+          flex-wrap: wrap;
+        }
+        
+        .info-item {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+        }
+        
+        .section {
+          background: white;
+          border-radius: 16px;
+          padding: 32px;
+          margin-bottom: 24px;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: start;
+          padding-bottom: 20px;
+          border-bottom: 2px solid #e2e8f0;
+          margin-bottom: 25px;
+        }
+        
+        .section-title {
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+          color: #64748b;
+          margin-bottom: 8px;
+        }
+        
+        .section-value {
+          font-size: 20px;
+          font-weight: 700;
+          color: #0f172a;
+        }
+        
+        .proposal-title {
+          font-size: 28px;
+          font-weight: 800;
+          color: #0f172a;
+          margin: 25px 0 15px;
+          line-height: 1.3;
+        }
+        
+        .proposal-description {
+          color: #64748b;
+          font-size: 15px;
+          line-height: 1.8;
+        }
+        
+        table {
+          width: 100%;
+          border-collapse: separate;
+          border-spacing: 0;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        
+        thead th {
+          background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+          color: white;
+          padding: 16px 12px;
+          text-align: left;
+          font-size: 13px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        
+        .totals-section {
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          border-radius: 16px;
+          padding: 28px 32px;
+          border: 2px solid #e2e8f0;
+        }
+        
+        .total-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 0;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .total-row:last-child {
+          border-bottom: none;
+          padding-top: 20px;
+          margin-top: 15px;
+          border-top: 3px solid #1e293b;
+        }
+        
+        .total-label {
+          font-size: 16px;
+          color: #64748b;
+          font-weight: 600;
+        }
+        
+        .total-value {
+          font-size: 16px;
+          color: #0f172a;
+          font-weight: 700;
+        }
+        
+        .final-total .total-label {
+          font-size: 24px;
+          color: #0f172a;
+          font-weight: 800;
+        }
+        
+        .final-total .total-value {
+          font-size: 36px;
+          color: #059669;
+          font-weight: 900;
+        }
+        
+        .validity-alert {
+          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+          padding: 20px 24px;
+          border-radius: 12px;
+          border-left: 5px solid #f59e0b;
+          display: flex;
+          align-items: center;
+          gap: 15px;
+        }
+        
+        .validity-icon {
+          font-size: 32px;
+          flex-shrink: 0;
+        }
+        
+        .validity-text {
+          font-size: 14px;
+          color: #92400e;
+          font-weight: 600;
+        }
+        
+        .footer {
+          margin-top: 40px;
+          padding-top: 30px;
+          border-top: 2px solid #e2e8f0;
+          text-align: center;
+        }
+        
+        .footer-info {
+          color: #64748b;
+          font-size: 12px;
+          line-height: 1.8;
+        }
+        
+        .signature-section {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 40px;
+          margin-top: 50px;
+          padding: 30px 0;
+        }
+        
+        .signature-box {
+          text-align: center;
+        }
+        
+        .signature-line {
+          border-top: 2px solid #1e293b;
+          padding-top: 12px;
+          margin-top: 60px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #1e293b;
+        }
+        
+        .signature-label {
+          font-size: 12px;
+          color: #64748b;
+          margin-top: 5px;
+        }
+        
         @media print {
-          body { margin: 0; padding: 20px; }
-          .no-print { display: none; }
+          body { background: white; }
+          .page { box-shadow: none; margin: 0; }
+          .no-print { display: none !important; }
+          .section { page-break-inside: avoid; }
         }
       </style>
     </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937; max-width: 800px; margin: 0 auto; padding: 20px; background: #f9fafb;">
-      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px;">
-        <div style="display: flex; align-items: center; gap: 20px;">
-          ${businessInfo.profile_image_url ? `
-            <img src="${businessInfo.profile_image_url}" alt="Logo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid white;" />
-          ` : ''}
-          <div>
-            <h1 style="margin: 0 0 10px 0; font-size: 32px;">Orçamento</h1>
-            <p style="margin: 0; font-size: 18px; opacity: 0.9;">${businessInfo.business_name}</p>
-            ${businessInfo.email ? `<p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.8;">${businessInfo.email}</p>` : ""}
-            ${businessInfo.whatsapp_number ? `<p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.8;">📱 ${businessInfo.whatsapp_number}</p>` : ""}
+    <body>
+      <div class="page">
+        <div class="watermark">PROPOSTA</div>
+        <div class="content">
+          <!-- Header -->
+          <div class="header">
+            <div class="header-content">
+              ${businessInfo.profile_image_url ? `
+                <div class="logo-circle">
+                  <img src="${businessInfo.profile_image_url}" alt="Logo da Empresa" />
+                </div>
+              ` : `
+                <div class="logo-circle" style="font-size: 36px; font-weight: 900; color: #1e293b;">
+                  ${businessInfo.business_name.charAt(0).toUpperCase()}
+                </div>
+              `}
+              <div class="header-text">
+                <h1>PROPOSTA COMERCIAL</h1>
+                <div class="header-subtitle">${businessInfo.business_name}</div>
+                <div class="header-info">
+                  ${businessInfo.email ? `<div class="info-item">✉️ ${businessInfo.email}</div>` : ""}
+                  ${businessInfo.whatsapp_number ? `<div class="info-item">📱 ${businessInfo.whatsapp_number}</div>` : ""}
+                  ${businessInfo.address ? `<div class="info-item">📍 ${businessInfo.address}</div>` : ""}
+                  ${businessInfo.cpf_cnpj ? `<div class="info-item">🏢 ${businessInfo.cpf_cnpj}</div>` : ""}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        ${businessInfo.address ? `<p style="margin: 15px 0 0 0; font-size: 12px; opacity: 0.7;">📍 ${businessInfo.address}</p>` : ""}
-        ${businessInfo.cpf_cnpj ? `<p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.7;">CPF/CNPJ: ${businessInfo.cpf_cnpj}</p>` : ""}
-      </div>
 
-      <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #e5e7eb;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-          <div>
-            <h3 style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px; text-transform: uppercase;">Cliente</h3>
-            <p style="margin: 0; font-size: 18px; font-weight: bold; color: #374151;">${proposal.customers.name}</p>
-            <p style="margin: 5px 0 0 0; color: #6b7280;">${proposal.customers.phone || ""}</p>
+          <!-- Client & Date Section -->
+          <div class="section">
+            <div class="section-header">
+              <div>
+                <div class="section-title">Cliente</div>
+                <div class="section-value">${proposal.customers.name}</div>
+                <div style="color: #64748b; font-size: 14px; margin-top: 4px;">${proposal.customers.phone || ""}</div>
+              </div>
+              <div style="text-align: right;">
+                <div class="section-title">Data de Emissão</div>
+                <div class="section-value">${currentDate}</div>
+              </div>
+            </div>
+            
+            <h2 class="proposal-title">${proposal.title}</h2>
+            ${proposal.description ? `<p class="proposal-description">${proposal.description}</p>` : ""}
           </div>
-          <div style="text-align: right;">
-            <h3 style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px; text-transform: uppercase;">Data</h3>
-            <p style="margin: 0; font-size: 18px; font-weight: bold; color: #374151;">${new Date().toLocaleDateString("pt-BR")}</p>
+
+          <!-- Services Section -->
+          <div class="section">
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 20px; color: #0f172a;">Serviços Propostos</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Descrição do Serviço</th>
+                  <th style="text-align: center;">Qtd</th>
+                  <th style="text-align: right;">Valor Unitário</th>
+                  <th style="text-align: right;">Valor Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${servicesHTML}
+              </tbody>
+            </table>
           </div>
-        </div>
-        
-        <h2 style="margin: 20px 0 15px 0; color: #374151; font-size: 24px;">${proposal.title}</h2>
-        ${proposal.description ? `<p style="color: #6b7280; margin-top: 10px;">${proposal.description}</p>` : ""}
-      </div>
 
-      <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #e5e7eb;">
-        <h3 style="margin: 0 0 15px 0; color: #374151; font-size: 20px;">Serviços</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead>
-            <tr style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
-              <th style="padding: 12px 8px; text-align: left; font-weight: 600;">Descrição</th>
-              <th style="padding: 12px 8px; text-align: center; font-weight: 600;">Qtd</th>
-              <th style="padding: 12px 8px; text-align: right; font-weight: 600;">Valor Unit.</th>
-              <th style="padding: 12px 8px; text-align: right; font-weight: 600;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${servicesHTML}
-          </tbody>
-        </table>
-      </div>
+          <!-- Totals Section -->
+          <div class="totals-section">
+            <div class="total-row">
+              <span class="total-label">Subtotal</span>
+              <span class="total-value">${formatCurrency(proposal.total_amount)}</span>
+            </div>
+            ${discountAmount > 0 ? `
+            <div class="total-row">
+              <span class="total-label" style="color: #dc2626;">Desconto (${proposal.discount_percentage || 0}%)</span>
+              <span class="total-value" style="color: #dc2626;">- ${formatCurrency(discountAmount)}</span>
+            </div>
+            ` : ""}
+            <div class="total-row final-total">
+              <span class="total-label">Valor Total</span>
+              <span class="total-value">${formatCurrency(proposal.final_amount)}</span>
+            </div>
+          </div>
 
-      <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #e5e7eb;">
-        <table style="width: 100%;">
-          <tr>
-            <td style="padding: 8px 0; font-size: 16px; color: #6b7280;">Subtotal</td>
-            <td style="text-align: right; padding: 8px 0; font-size: 16px; color: #374151;">${formatCurrency(proposal.total_amount)}</td>
-          </tr>
-          ${discountAmount > 0 ? `
-          <tr>
-            <td style="padding: 8px 0; font-size: 16px; color: #ef4444;">Desconto (${proposal.discount_percentage || 0}%)</td>
-            <td style="text-align: right; padding: 8px 0; font-size: 16px; color: #ef4444;">- ${formatCurrency(discountAmount)}</td>
-          </tr>
+          <!-- Validity Alert -->
+          ${proposal.valid_until ? `
+          <div class="validity-alert" style="margin-top: 24px;">
+            <div class="validity-icon">⏰</div>
+            <div>
+              <div class="validity-text">Proposta válida até ${new Date(proposal.valid_until).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}</div>
+              <div style="font-size: 12px; color: #b45309; margin-top: 3px;">Após esta data, valores e condições poderão ser reavaliados</div>
+            </div>
+          </div>
           ` : ""}
-          <tr style="border-top: 2px solid #e5e7eb;">
-            <td style="padding: 15px 0 8px 0; font-size: 24px; font-weight: bold; color: #374151;">Valor Total</td>
-            <td style="text-align: right; padding: 15px 0 8px 0; font-size: 28px; font-weight: bold; color: #10b981;">
-              ${formatCurrency(proposal.final_amount)}
-            </td>
-          </tr>
-        </table>
-      </div>
 
-      ${proposal.valid_until ? `
-      <div style="background: #fef3c7; padding: 20px; border-radius: 10px; border: 1px solid #fbbf24; margin-bottom: 25px;">
-        <p style="margin: 0; font-size: 14px; color: #92400e;">
-          <strong>⏰ Validade:</strong> Este orçamento é válido até ${new Date(proposal.valid_until).toLocaleDateString("pt-BR")}
-        </p>
-      </div>
-      ` : ""}
+          <!-- Signature Section -->
+          <div class="signature-section">
+            <div class="signature-box">
+              <div class="signature-line">${businessInfo.business_name}</div>
+              <div class="signature-label">Prestador de Serviços</div>
+            </div>
+            <div class="signature-box">
+              <div class="signature-line">${proposal.customers.name}</div>
+              <div class="signature-label">Cliente Contratante</div>
+            </div>
+          </div>
 
-      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px;">
-        <p>Orçamento gerado em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}</p>
-        <p>${businessInfo.business_name}</p>
-      </div>
-      
-      <div class="no-print" style="text-align: center; margin-top: 30px;">
-        <button onclick="window.print()" style="background: #667eea; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold;">
-          🖨️ Imprimir ou Salvar como PDF
-        </button>
+          <!-- Footer -->
+          <div class="footer">
+            <div class="footer-info">
+              <strong>Documento gerado em:</strong> ${currentDate} às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}<br>
+              ${businessInfo.business_name} | Proposta Nº ${proposal.id.substring(0, 8).toUpperCase()}<br>
+              Este documento é válido como proposta comercial
+            </div>
+          </div>
+          
+          <!-- Print Button -->
+          <div class="no-print" style="text-align: center; margin-top: 40px;">
+            <button onclick="window.print()" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white; padding: 16px 40px; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 10px 25px rgba(30, 41, 59, 0.3); transition: all 0.3s;">
+              🖨️ Imprimir ou Salvar como PDF
+            </button>
+          </div>
+        </div>
       </div>
     </body>
     </html>
