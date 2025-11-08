@@ -172,11 +172,12 @@ const handler = async (req: Request): Promise<Response> => {
         customer_name: customerName,
         customer_phone: customerPhone || null,
         qr_code: qrCode,
-        qr_code_base64: qrCodeBase64,
+        qr_code_url: ticketUrl,
+        description: description || "Pagamento de serviço",
         status: mpData.status || "pending",
         expires_at: mpData.date_of_expiration || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         metadata: {
-          description: description || "Pagamento de serviço",
+          qr_code_base64: qrCodeBase64,
           mp_payment_id: mpData.id,
           ticket_url: ticketUrl,
           ...metadata
