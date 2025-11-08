@@ -217,6 +217,20 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
+      {/* WhatsApp Floating Button */}
+      <a
+        href="https://wa.me/5548988430812?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 animate-fade-in group"
+        aria-label="Fale conosco no WhatsApp"
+      >
+        <MessageCircle className="w-6 h-6" />
+        <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-card text-foreground px-3 py-2 rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm font-medium">
+          Fale conosco!
+        </span>
+      </a>
+
       {/* Header */}
       <header className="border-b bg-card/95 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
