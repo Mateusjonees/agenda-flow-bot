@@ -12,45 +12,22 @@ interface ProposalViewDialogProps {
   onOpenChange: (open: boolean) => void;
   onScheduleAppointment?: (proposal: any) => void;
   onDownloadPdf?: (proposalId: string) => Promise<void>;
-  onResendEmail?: (proposalId: string) => Promise<void>;
-  onResendWhatsApp?: (proposalId: string) => Promise<void>;
 }
 
-export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleAppointment, onDownloadPdf, onResendEmail, onResendWhatsApp }: ProposalViewDialogProps) => {
-  const [loading, setLoading] = useState<'download' | 'email' | 'whatsapp' | null>(null);
+export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleAppointment, onDownloadPdf }: ProposalViewDialogProps) => {
+  const [loading, setLoading] = useState(false);
   
   if (!proposal) return null;
   
   const canSchedule = proposal.status === 'accepted' || proposal.status === 'confirmed';
-  const canResend = proposal.status === 'sent' || proposal.status === 'accepted';
 
   const handleDownloadPdf = async () => {
     if (!onDownloadPdf) return;
-    setLoading('download');
+    setLoading(true);
     try {
       await onDownloadPdf(proposal.id);
     } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleResendEmail = async () => {
-    if (!onResendEmail) return;
-    setLoading('email');
-    try {
-      await onResendEmail(proposal.id);
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleResendWhatsApp = async () => {
-    if (!onResendWhatsApp) return;
-    setLoading('whatsapp');
-    try {
-      await onResendWhatsApp(proposal.id);
-    } finally {
-      setLoading(null);
+      setLoading(false);
     }
   };
 
@@ -111,7 +88,7 @@ export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleApp
           <div>
             <p className="text-sm font-medium mb-3">Serviços Inclusos</p>
             <div className="space-y-2">
-              {proposal.services.map((service: any, idx: number) => (
+              {(proposal.items || []).map((service: any, idx: number) => (
                 <div key={idx} className="flex justify-between p-3 bg-muted rounded-lg">
                   <div className="flex-1">
                     <p className="font-medium">{service.description}</p>
@@ -162,56 +139,19 @@ export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleApp
 
           {/* Botões de ação */}
           <div className="pt-4 border-t space-y-3">
-            <div className="grid grid-cols-3 gap-3">
-              <Button 
-                onClick={handleDownloadPdf}
-                variant="outline"
-                className="gap-2"
-                disabled={loading === 'download'}
-              >
-                {loading === 'download' ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
-                <span className="hidden sm:inline">Baixar PDF</span>
-                <span className="sm:hidden">PDF</span>
-              </Button>
-              
-              {canResend && onResendWhatsApp && (
-                <Button 
-                  onClick={handleResendWhatsApp}
-                  variant="outline"
-                  className="gap-2 hover:bg-green-500/10 hover:text-green-600 hover:border-green-600"
-                  disabled={loading === 'whatsapp'}
-                >
-                  {loading === 'whatsapp' ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <MessageCircle className="w-4 h-4" />
-                  )}
-                  <span className="hidden sm:inline">WhatsApp</span>
-                  <span className="sm:hidden">Whats</span>
-                </Button>
+            <Button 
+              onClick={handleDownloadPdf}
+              variant="outline"
+              className="w-full gap-2"
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
               )}
-              
-              {canResend && onResendEmail && (
-                <Button 
-                  onClick={handleResendEmail}
-                  variant="outline"
-                  className="gap-2"
-                  disabled={loading === 'email'}
-                >
-                  {loading === 'email' ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Mail className="w-4 h-4" />
-                  )}
-                  <span className="hidden sm:inline">Email</span>
-                  <span className="sm:hidden">Email</span>
-                </Button>
-              )}
-            </div>
+              Baixar PDF
+            </Button>
 
             {canSchedule && onScheduleAppointment && (
               <Button 

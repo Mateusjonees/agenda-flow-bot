@@ -1166,7 +1166,7 @@ _${businessName}_
                       
                       {/* Botões de ação principais */}
                       <div className="flex gap-1.5 sm:gap-2 pt-1 sm:pt-2 relative z-20">
-                        {(proposal.status === "pending" || proposal.status === "sent") && (
+                        {(proposal.status === "pending" || proposal.status === "sent" || proposal.status === "accepted") && (
                           <>
                             <Button 
                               type="button"
@@ -1277,34 +1277,6 @@ _${businessName}_
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="flex-1 gap-1.5 sm:gap-2 hover:bg-green-500/10 hover:text-green-600 relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            handleSendWhatsApp(proposal.id);
-                          }}
-                        >
-                          <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          <span className="hidden xs:inline">WhatsApp</span>
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="flex-1 gap-1.5 sm:gap-2 relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            handleSendProposal(proposal.id);
-                          }}
-                        >
-                          <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          <span className="hidden xs:inline">Email</span>
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
                           className="flex-1 gap-1.5 sm:gap-2 relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1350,8 +1322,6 @@ _${businessName}_
           setScheduleProposal(proposal);
         }}
         onDownloadPdf={handleDownloadProposal}
-        onResendEmail={handleSendProposal}
-        onResendWhatsApp={handleSendWhatsApp}
       />
 
       <ScheduleAppointmentDialog
