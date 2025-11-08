@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Users, TrendingUp, CreditCard, FileText, DollarSign, Calendar,
-  RefreshCw, XCircle, Pause, Play, CheckCircle, PackageCheck
+  RefreshCw, XCircle, Pause, Play, CheckCircle, PackageCheck, FileDown, FileCheck
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -59,6 +59,7 @@ const Assinaturas = () => {
   const [cancelSubscription, setCancelSubscription] = useState<Subscription | null>(null);
   const [pauseSubscription, setPauseSubscription] = useState<Subscription | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string>("pix");
+  const [generatingDocument, setGeneratingDocument] = useState<string>("");
   const [metrics, setMetrics] = useState({
     mrr: 0,
     totalRevenue: 0,
@@ -320,6 +321,47 @@ const Assinaturas = () => {
       setPauseSubscription(null);
       fetchSubscriptions();
       calculateMetrics();
+    }
+  };
+
+  const handleGenerateDocument = async (subscriptionId: string, documentType: "contract" | "receipt") => {
+    setGeneratingDocument(`${subscriptionId}-${documentType}`);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-subscription-document", {
+        body: {
+          subscriptionId,
+          documentType,
+        },
+      });
+
+      if (error) throw error;
+
+      // Criar um blob com o HTML retornado e abrir em nova aba
+      const blob = new Blob([data], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, "_blank");
+      
+      // Aguardar um pouco e permitir impressão
+      if (win) {
+        setTimeout(() => {
+          win.print();
+        }, 1000);
+      }
+
+      toast({
+        title: "Documento gerado!",
+        description: documentType === "contract" ? "Contrato gerado com sucesso" : "Comprovante gerado com sucesso",
+      });
+    } catch (error: any) {
+      console.error("Error generating document:", error);
+      toast({
+        title: "Erro ao gerar documento",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingDocument("");
     }
   };
 
@@ -607,6 +649,26 @@ const Assinaturas = () => {
                       </div>
                       
                       <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleGenerateDocument(subscription.id, "contract")}
+                          disabled={generatingDocument === `${subscription.id}-contract`}
+                        >
+                          <FileCheck className="mr-2 h-4 w-4" />
+                          {generatingDocument === `${subscription.id}-contract` ? "Gerando..." : "Gerar Contrato"}
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleGenerateDocument(subscription.id, "receipt")}
+                          disabled={generatingDocument === `${subscription.id}-receipt`}
+                        >
+                          <FileDown className="mr-2 h-4 w-4" />
+                          {generatingDocument === `${subscription.id}-receipt` ? "Gerando..." : "Comprovante"}
+                        </Button>
+                        
                         {subscription.status === "active" && (
                           <Button
                             size="sm"
