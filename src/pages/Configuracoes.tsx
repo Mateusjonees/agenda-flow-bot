@@ -4,21 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Save, Star, Gift, Link as LinkIcon, Upload, Camera, Lock, CreditCard, AlertTriangle } from "lucide-react";
+import { Save, Star, Gift, Link as LinkIcon, Upload, Camera, Lock, CreditCard } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { PaymentHistory } from "@/components/PaymentHistory";
 
 const Configuracoes = () => {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -76,22 +70,6 @@ const Configuracoes = () => {
     enabled: !!user,
   });
 
-  // Buscar assinatura do usuário
-  const { data: subscription } = useQuery({
-    queryKey: ["user-subscription", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
-        .from("subscriptions")
-        .select("*, subscription_plans(*)")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user,
-  });
 
   // Atualizar estado quando os dados forem carregados
   useEffect(() => {
@@ -269,27 +247,6 @@ const Configuracoes = () => {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erro ao alterar senha");
-    },
-  });
-
-  // Mutation para cancelar assinatura do plano
-  const cancelSubscriptionMutation = useMutation({
-    mutationFn: async () => {
-      if (!user || !subscription) throw new Error("Assinatura não encontrada");
-
-      const { data, error } = await supabase.functions.invoke("cancel-subscription", {
-        body: { subscriptionId: subscription.id },
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      toast.success("Assinatura cancelada com sucesso");
-      queryClient.invalidateQueries({ queryKey: ["user-subscription"] });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Erro ao cancelar assinatura");
     },
   });
 
@@ -582,174 +539,56 @@ const Configuracoes = () => {
             <CreditCard className="w-5 h-5 text-primary" />
             Minha Assinatura
           </CardTitle>
-          <CardDescription>Gerencie sua assinatura e plano</CardDescription>
+          <CardDescription>Assine via Mercado Pago para acessar todos os recursos</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {subscription ? (
-            <>
-              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-lg">
-                      {subscription.subscription_plans?.name || "Plano Atual"}
-                    </p>
-                    <Badge variant={
-                      subscription.status === "active" ? "default" :
-                      subscription.status === "trial" ? "secondary" :
-                      subscription.status === "cancelled" ? "destructive" :
-                      "outline"
-                    }>
-                      {subscription.status === "active" ? "Ativo" :
-                       subscription.status === "trial" ? "Trial" :
-                       subscription.status === "cancelled" ? "Cancelado" :
-                       subscription.status === "suspended" ? "Suspenso" :
-                       subscription.status}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {subscription.status === "trial" 
-                      ? "Período de teste gratuito" 
-                      : subscription.subscription_plans?.description || ""}
-                  </p>
-                  {subscription.next_billing_date && subscription.status !== "cancelled" && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Próximo pagamento: {format(new Date(subscription.next_billing_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                    </p>
-                  )}
-                  {subscription.status === "cancelled" && (
-                    <p className="text-xs text-destructive mt-2">
-                      Assinatura cancelada
-                    </p>
-                  )}
-                </div>
-                {subscription.subscription_plans?.price && subscription.status !== "cancelled" && (
-                  <div className="text-right">
-                    <p className="text-2xl font-bold">
-                      {new Intl.NumberFormat("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      }).format(subscription.subscription_plans.price)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      /{subscription.subscription_plans.billing_frequency === "monthly" ? "mês" : "ano"}
-                    </p>
-                  </div>
-                )}
+          <p className="text-sm text-muted-foreground">
+            Escolha um plano e complete o pagamento via Mercado Pago para desbloquear todos os recursos da plataforma.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Button
+              onClick={() => createSubscriptionMutation.mutate("monthly")}
+              disabled={createSubscriptionMutation.isPending}
+              className="gap-2 h-auto py-4 flex-col"
+            >
+              <CreditCard className="w-5 h-5" />
+              <div className="text-center">
+                <div className="font-bold text-lg">R$ 29,90</div>
+                <div className="text-xs opacity-90">Mensal</div>
               </div>
-
-              {subscription.status === "cancelled" && (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Sua assinatura foi cancelada. Assine novamente para continuar usando todos os recursos da plataforma.
-                  </p>
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    <Button
-                      onClick={() => createSubscriptionMutation.mutate("monthly")}
-                      disabled={createSubscriptionMutation.isPending}
-                      className="gap-2"
-                    >
-                      <CreditCard className="w-4 h-4" />
-                      {createSubscriptionMutation.isPending ? "Processando..." : "Assinar Mensal"}
-                    </Button>
-                    <Button
-                      onClick={() => createSubscriptionMutation.mutate("quarterly")}
-                      disabled={createSubscriptionMutation.isPending}
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <CreditCard className="w-4 h-4" />
-                      {createSubscriptionMutation.isPending ? "Processando..." : "Assinar Trimestral"}
-                    </Button>
-                    <Button
-                      onClick={() => createSubscriptionMutation.mutate("annual")}
-                      disabled={createSubscriptionMutation.isPending}
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <CreditCard className="w-4 h-4" />
-                      {createSubscriptionMutation.isPending ? "Processando..." : "Assinar Anual"}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {subscription.status !== "cancelled" && (
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => navigate("/planos")}
-                  >
-                    Gerenciar Plano
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" className="flex-1 gap-2">
-                        <AlertTriangle className="w-4 h-4" />
-                        Cancelar
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Tem certeza que deseja cancelar?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Ao cancelar sua assinatura, você perderá acesso a todos os recursos premium.
-                          Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Voltar</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => cancelSubscriptionMutation.mutate()}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Confirmar Cancelamento
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Você ainda não possui uma assinatura ativa. Escolha um plano para começar a usar todos os recursos da plataforma.
-              </p>
-              <div className="grid gap-2 sm:grid-cols-3">
-                <Button
-                  onClick={() => createSubscriptionMutation.mutate("monthly")}
-                  disabled={createSubscriptionMutation.isPending}
-                  className="gap-2"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  {createSubscriptionMutation.isPending ? "Processando..." : "Mensal - R$ 29,90"}
-                </Button>
-                <Button
-                  onClick={() => createSubscriptionMutation.mutate("quarterly")}
-                  disabled={createSubscriptionMutation.isPending}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  {createSubscriptionMutation.isPending ? "Processando..." : "Trimestral - R$ 79,90"}
-                </Button>
-                <Button
-                  onClick={() => createSubscriptionMutation.mutate("annual")}
-                  disabled={createSubscriptionMutation.isPending}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  {createSubscriptionMutation.isPending ? "Processando..." : "Anual - R$ 299,90"}
-                </Button>
+            </Button>
+            <Button
+              onClick={() => createSubscriptionMutation.mutate("quarterly")}
+              disabled={createSubscriptionMutation.isPending}
+              variant="outline"
+              className="gap-2 h-auto py-4 flex-col border-primary"
+            >
+              <CreditCard className="w-5 h-5" />
+              <div className="text-center">
+                <div className="font-bold text-lg">R$ 79,90</div>
+                <div className="text-xs opacity-75">Trimestral</div>
+                <Badge variant="secondary" className="mt-1 text-xs">Economize 10%</Badge>
               </div>
-            </div>
-          )}
+            </Button>
+            <Button
+              onClick={() => createSubscriptionMutation.mutate("annual")}
+              disabled={createSubscriptionMutation.isPending}
+              variant="outline"
+              className="gap-2 h-auto py-4 flex-col"
+            >
+              <CreditCard className="w-5 h-5" />
+              <div className="text-center">
+                <div className="font-bold text-lg">R$ 299,90</div>
+                <div className="text-xs opacity-75">Anual</div>
+                <Badge variant="secondary" className="mt-1 text-xs">Economize 16%</Badge>
+              </div>
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground text-center pt-2">
+            Pagamento seguro processado pelo Mercado Pago
+          </p>
         </CardContent>
       </Card>
-
-      {subscription && <PaymentHistory userId={user?.id} />}
 
       <Card>
         <CardHeader>
