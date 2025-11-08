@@ -264,28 +264,16 @@ const Auth = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSocialLogin('google')}
-                    disabled={loading}
-                    className="h-12 font-medium"
-                  >
-                    <FaGoogle className="mr-2 h-4 w-4" />
-                    Google
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSocialLogin('facebook')}
-                    disabled={loading}
-                    className="h-12 font-medium"
-                  >
-                    <FaFacebook className="mr-2 h-4 w-4" />
-                    Facebook
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSocialLogin('google')}
+                  disabled={loading}
+                  className="w-full h-12 font-medium"
+                >
+                  <FaGoogle className="mr-2 h-4 w-4" />
+                  Google
+                </Button>
                 
                 <div className="flex items-center justify-between text-sm pt-2">
                   <button
@@ -374,28 +362,16 @@ const Auth = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSocialLogin('google')}
-                    disabled={loading}
-                    className="h-12 font-medium"
-                  >
-                    <FaGoogle className="mr-2 h-4 w-4" />
-                    Google
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSocialLogin('facebook')}
-                    disabled={loading}
-                    className="h-12 font-medium"
-                  >
-                    <FaFacebook className="mr-2 h-4 w-4" />
-                    Facebook
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSocialLogin('google')}
+                  disabled={loading}
+                  className="w-full h-12 font-medium"
+                >
+                  <FaGoogle className="mr-2 h-4 w-4" />
+                  Google
+                </Button>
                 
                 <div className="text-center text-sm pt-2">
                   <button

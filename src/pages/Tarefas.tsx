@@ -124,44 +124,70 @@ const Tarefas = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
-    const { error } = await supabase
-      .from("tasks")
-      .insert({
-        user_id: session.user.id,
-        title: formData.title,
-        description: formData.description,
-        due_date: new Date(formData.due_date).toISOString(),
-        priority: formData.priority,
-        status: formData.status,
-        type: formData.type,
-        related_entity_type: formData.related_entity_id ? "customer" : null,
-        related_entity_id: formData.related_entity_id || null,
-      });
-
-    if (error) {
+    if (!formData.title || !formData.due_date) {
       toast({
-        title: "Erro ao criar tarefa",
-        description: error.message,
+        title: "Campos obrigatórios",
+        description: "Preencha o título e a data de vencimento",
         variant: "destructive",
       });
-    } else {
+      return;
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
       toast({
-        title: "Tarefa criada!",
+        title: "Erro de autenticação",
+        description: "Você precisa estar logado",
+        variant: "destructive",
       });
-      setOpen(false);
-      setFormData({
-        title: "",
-        description: "",
-        due_date: "",
-        related_entity_id: "",
-        priority: "medium",
-        status: "pending",
-        type: "manual",
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("tasks")
+        .insert({
+          user_id: session.user.id,
+          title: formData.title.trim(),
+          description: formData.description.trim() || null,
+          due_date: new Date(formData.due_date).toISOString(),
+          priority: formData.priority,
+          status: formData.status,
+          type: formData.type,
+          related_entity_type: formData.related_entity_id ? "customer" : null,
+          related_entity_id: formData.related_entity_id || null,
+        });
+
+      if (error) {
+        console.error("Erro ao criar tarefa:", error);
+        toast({
+          title: "Erro ao criar tarefa",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Tarefa criada com sucesso!",
+        });
+        setOpen(false);
+        setFormData({
+          title: "",
+          description: "",
+          due_date: "",
+          related_entity_id: "",
+          priority: "medium",
+          status: "pending",
+          type: "manual",
+        });
+        fetchStats();
+      }
+    } catch (err) {
+      console.error("Erro inesperado:", err);
+      toast({
+        title: "Erro ao criar tarefa",
+        description: "Ocorreu um erro inesperado",
+        variant: "destructive",
       });
-      fetchStats();
     }
   };
 
