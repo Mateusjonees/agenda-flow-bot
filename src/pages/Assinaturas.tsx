@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,7 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, TrendingUp, CreditCard, FileText, Smartphone, XCircle, RefreshCw } from "lucide-react";
+import { 
+  Plus, Users, TrendingUp, CreditCard, FileText, DollarSign, Calendar,
+  RefreshCw, XCircle, Pause, Play, CheckCircle, PackageCheck
+} from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface SubscriptionPlan {
@@ -30,9 +33,15 @@ interface Subscription {
   plan_id: string;
   status: string;
   next_billing_date: string;
+  start_date: string;
   failed_payments_count: number;
-  customers?: { name: string } | null;
-  subscription_plans?: { name: string; price: number } | null;
+  customers?: { name: string; phone: string; email: string } | null;
+  subscription_plans?: { 
+    name: string; 
+    price: number; 
+    billing_frequency: string;
+    services: any[];
+  } | null;
 }
 
 const Assinaturas = () => {
@@ -42,10 +51,19 @@ const Assinaturas = () => {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubscribeDialogOpen, setIsSubscribeDialogOpen] = useState(false);
+  const [selectedPlanForSubscription, setSelectedPlanForSubscription] = useState<string>("");
+  const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [customers, setCustomers] = useState<any[]>([]);
   const [renewSubscription, setRenewSubscription] = useState<Subscription | null>(null);
   const [cancelSubscription, setCancelSubscription] = useState<Subscription | null>(null);
+  const [pauseSubscription, setPauseSubscription] = useState<Subscription | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string>("pix");
+  const [metrics, setMetrics] = useState({
+    mrr: 0,
+    totalRevenue: 0,
+    activeSubscriptions: 0,
+  });
   
   const [newPlan, setNewPlan] = useState({
     name: "",
@@ -61,6 +79,7 @@ const Assinaturas = () => {
     fetchPlans();
     fetchSubscriptions();
     fetchCustomers();
+    calculateMetrics();
   }, []);
 
   const checkAuth = async () => {
@@ -104,8 +123,8 @@ const Assinaturas = () => {
       const subsWithDetails = await Promise.all(
         (data || []).map(async (sub) => {
           const [customerRes, planRes] = await Promise.all([
-            supabase.from("customers").select("name").eq("id", sub.customer_id).single(),
-            supabase.from("subscription_plans").select("name, price").eq("id", sub.plan_id).single(),
+            supabase.from("customers").select("name, phone, email").eq("id", sub.customer_id).single(),
+            supabase.from("subscription_plans").select("name, price, billing_frequency, services").eq("id", sub.plan_id).single(),
           ]);
           return {
             ...sub,
@@ -125,6 +144,42 @@ const Assinaturas = () => {
       .select("*")
       .order("name");
     setCustomers(data || []);
+  };
+
+  const calculateMetrics = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Buscar assinaturas ativas
+    const { data: activeSubs } = await supabase
+      .from("subscriptions")
+      .select(`
+        *,
+        subscription_plans (price, billing_frequency)
+      `)
+      .eq("user_id", user.id)
+      .eq("status", "active");
+
+    if (activeSubs) {
+      // Calcular MRR (Monthly Recurring Revenue)
+      const mrr = activeSubs.reduce((sum, sub: any) => {
+        const price = sub.subscription_plans?.price || 0;
+        const freq = sub.subscription_plans?.billing_frequency;
+        
+        // Converter para mensal
+        if (freq === "quarterly") return sum + (price / 3);
+        return sum + price;
+      }, 0);
+
+      // Total de receita (aproximado - MRR * 12)
+      const totalRevenue = mrr * 12;
+
+      setMetrics({
+        mrr,
+        totalRevenue,
+        activeSubscriptions: activeSubs.length,
+      });
+    }
   };
 
   const handleCreatePlan = async () => {
@@ -172,6 +227,102 @@ const Assinaturas = () => {
     }
   };
 
+  const handleCreateSubscription = async () => {
+    if (!selectedCustomer || !selectedPlanForSubscription) {
+      toast({
+        title: "Erro",
+        description: "Selecione um cliente e um plano",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const nextBillingDate = new Date();
+    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+
+    const { error } = await supabase.from("subscriptions").insert({
+      user_id: user.id,
+      customer_id: selectedCustomer,
+      plan_id: selectedPlanForSubscription,
+      status: "active",
+      next_billing_date: nextBillingDate.toISOString(),
+      start_date: new Date().toISOString(),
+      failed_payments_count: 0,
+    });
+
+    if (error) {
+      toast({
+        title: "Erro ao criar assinatura",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Assinatura criada com sucesso!",
+        description: "O cliente foi vinculado ao plano.",
+      });
+      setIsSubscribeDialogOpen(false);
+      setSelectedCustomer("");
+      setSelectedPlanForSubscription("");
+      fetchSubscriptions();
+      calculateMetrics();
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!cancelSubscription) return;
+
+    const { error } = await supabase
+      .from("subscriptions")
+      .update({ status: "cancelled" })
+      .eq("id", cancelSubscription.id);
+
+    if (error) {
+      toast({
+        title: "Erro ao cancelar assinatura",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Assinatura cancelada!",
+        description: "A assinatura foi cancelada com sucesso.",
+      });
+      setCancelSubscription(null);
+      fetchSubscriptions();
+      calculateMetrics();
+    }
+  };
+
+  const handlePauseSubscription = async () => {
+    if (!pauseSubscription) return;
+
+    const newStatus = pauseSubscription.status === "active" ? "suspended" : "active";
+    
+    const { error } = await supabase
+      .from("subscriptions")
+      .update({ status: newStatus })
+      .eq("id", pauseSubscription.id);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: newStatus === "active" ? "Assinatura reativada!" : "Assinatura pausada!",
+      });
+      setPauseSubscription(null);
+      fetchSubscriptions();
+      calculateMetrics();
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -201,201 +352,188 @@ const Assinaturas = () => {
     return labels[frequency] || frequency;
   };
 
-  const handleRenewSubscription = async () => {
-    if (!renewSubscription) return;
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    try {
-      // Calcular próxima data de cobrança
-      const nextBillingDate = new Date();
-      nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
-
-      // Atualizar assinatura
-      const { error: updateError } = await supabase
-        .from("subscriptions")
-        .update({
-          next_billing_date: nextBillingDate.toISOString(),
-          status: "active",
-          failed_payments_count: 0,
-        })
-        .eq("id", renewSubscription.id);
-
-      if (updateError) throw updateError;
-
-      // Se for PIX, criar cobrança
-      if (paymentMethod === "pix" && renewSubscription.subscription_plans) {
-        const { data: customer } = await supabase
-          .from("customers")
-          .select("name, phone")
-          .eq("id", renewSubscription.customer_id)
-          .single();
-
-        if (customer) {
-          const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-          const txid = `SUB${Date.now()}${Math.random().toString(36).substring(7)}`;
-          
-          await supabase.from("pix_charges").insert({
-            user_id: user.id,
-            customer_id: renewSubscription.customer_id,
-            customer_name: customer.name,
-            customer_phone: customer.phone,
-            amount: renewSubscription.subscription_plans.price,
-            status: "pending",
-            expires_at: expiresAt.toISOString(),
-            txid: txid,
-            qr_code: "pending",
-            metadata: {
-              subscription_id: renewSubscription.id,
-              type: "subscription_renewal",
-            },
-          });
-        }
-      }
-
-      toast({
-        title: "Assinatura renovada!",
-        description: `Renovação agendada para ${nextBillingDate.toLocaleDateString("pt-BR")}`,
-      });
-
-      setRenewSubscription(null);
-      fetchSubscriptions();
-    } catch (error: any) {
-      toast({
-        title: "Erro ao renovar assinatura",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-    if (!cancelSubscription) return;
-
-    const { error } = await supabase
-      .from("subscriptions")
-      .update({ status: "cancelled" })
-      .eq("id", cancelSubscription.id);
-
-    if (error) {
-      toast({
-        title: "Erro ao cancelar assinatura",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Assinatura cancelada!",
-        description: "A assinatura foi cancelada com sucesso.",
-      });
-      setCancelSubscription(null);
-      fetchSubscriptions();
-    }
-  };
-
   if (loading) {
     return <div className="p-8">Carregando...</div>;
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Planos</h1>
+          <h1 className="text-4xl font-bold">Assinaturas</h1>
           <p className="text-muted-foreground mt-1">
-            Gerencie planos e pacotes para seus clientes
+            Gerencie planos e assinaturas dos seus clientes
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Plano
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Criar Novo Plano</DialogTitle>
-              <DialogDescription>
-                Configure um plano de assinatura recorrente
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Nome do Plano *</Label>
-                <Input
-                  id="name"
-                  value={newPlan.name}
-                  onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
-                  placeholder="Ex: Pacote 4 Aulas/Mês"
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Descrição</Label>
-                <Textarea
-                  id="description"
-                  value={newPlan.description}
-                  onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
-                  placeholder="Descreva o que está incluso no plano"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="price">Valor (R$) *</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    value={newPlan.price}
-                    onChange={(e) => setNewPlan({ ...newPlan, price: e.target.value })}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="duration">Duração (meses)</Label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    min="1"
-                    value={newPlan.duration_months}
-                    onChange={(e) => setNewPlan({ ...newPlan, duration_months: e.target.value })}
-                    placeholder="3"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="frequency">Frequência de Cobrança</Label>
-                <Select
-                  value={newPlan.billing_frequency}
-                  onValueChange={(value) => setNewPlan({ ...newPlan, billing_frequency: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly">Mensal</SelectItem>
-                    <SelectItem value="quarterly">Trimestral</SelectItem>
-                    <SelectItem value="single">Pagamento Único</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Suporta pagamento via Pix (CobV)
-                </p>
-              </div>
-              <Button onClick={handleCreatePlan} className="w-full">
-                Criar Plano
+        <div className="flex gap-2">
+          {/* Diálogo de Vincular Cliente */}
+          <Dialog open={isSubscribeDialogOpen} onOpenChange={setIsSubscribeDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Users className="mr-2 h-4 w-4" />
+                Vincular Cliente
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Vincular Cliente a um Plano</DialogTitle>
+                <DialogDescription>
+                  Selecione um cliente e um plano para criar uma nova assinatura
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Cliente</Label>
+                  <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Plano</Label>
+                  <Select value={selectedPlanForSubscription} onValueChange={setSelectedPlanForSubscription}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um plano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {plans.filter(p => p.is_active).map((plan) => (
+                        <SelectItem key={plan.id} value={plan.id}>
+                          {plan.name} - {formatCurrency(plan.price)}/{getFrequencyLabel(plan.billing_frequency)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsSubscribeDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleCreateSubscription}>
+                  Criar Assinatura
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
+          {/* Diálogo de Novo Plano */}
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Plano
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Criar Novo Plano</DialogTitle>
+                <DialogDescription>
+                  Configure um plano de assinatura recorrente
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Nome do Plano *</Label>
+                  <Input
+                    id="name"
+                    value={newPlan.name}
+                    onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
+                    placeholder="Ex: Pacote 4 Aulas/Mês"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Descrição</Label>
+                  <Textarea
+                    id="description"
+                    value={newPlan.description}
+                    onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
+                    placeholder="Descreva o que está incluso no plano"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="price">Valor (R$) *</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      value={newPlan.price}
+                      onChange={(e) => setNewPlan({ ...newPlan, price: e.target.value })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="duration">Duração (meses)</Label>
+                    <Input
+                      id="duration"
+                      type="number"
+                      min="1"
+                      value={newPlan.duration_months}
+                      onChange={(e) => setNewPlan({ ...newPlan, duration_months: e.target.value })}
+                      placeholder="3"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="frequency">Frequência de Cobrança</Label>
+                  <Select
+                    value={newPlan.billing_frequency}
+                    onValueChange={(value) => setNewPlan({ ...newPlan, billing_frequency: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">Mensal</SelectItem>
+                      <SelectItem value="quarterly">Trimestral</SelectItem>
+                      <SelectItem value="single">Pagamento Único</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={handleCreatePlan} className="w-full">
+                  Criar Plano
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      {/* Métricas */}
+      <div className="grid gap-6 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">MRR</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(metrics.mrr)}</div>
+            <p className="text-xs text-muted-foreground">Receita recorrente mensal</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita Anual</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(metrics.totalRevenue)}</div>
+            <p className="text-xs text-muted-foreground">Projeção anual</p>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Planos Ativos</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <PackageCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{plans.filter(p => p.is_active).length}</div>
@@ -403,22 +541,110 @@ const Assinaturas = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Clientes com Planos</CardTitle>
+            <CardTitle className="text-sm font-medium">Assinaturas Ativas</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {subscriptions.filter(s => s.status === "active").length}
-            </div>
+            <div className="text-2xl font-bold">{metrics.activeSubscriptions}</div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="plans" className="space-y-4">
+      {/* Tabs */}
+      <Tabs defaultValue="subscriptions" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="plans">Planos Disponíveis</TabsTrigger>
           <TabsTrigger value="subscriptions">Assinantes</TabsTrigger>
+          <TabsTrigger value="plans">Planos Disponíveis</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="subscriptions" className="space-y-4">
+          {subscriptions.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-10">
+                <p className="text-muted-foreground mb-4">Nenhuma assinatura ativa ainda</p>
+                <Button onClick={() => setIsSubscribeDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Vincular Primeiro Cliente
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {subscriptions.map((subscription) => (
+                <Card key={subscription.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>{subscription.customers?.name}</CardTitle>
+                        <CardDescription>
+                          {subscription.subscription_plans?.name}
+                        </CardDescription>
+                      </div>
+                      {getStatusBadge(subscription.status)}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Valor</p>
+                          <p className="font-semibold">
+                            {formatCurrency(subscription.subscription_plans?.price || 0)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Próximo Pagamento</p>
+                          <p className="font-semibold">
+                            {new Date(subscription.next_billing_date).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Início</p>
+                          <p className="font-semibold">
+                            {new Date(subscription.start_date).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        {subscription.status === "active" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setPauseSubscription(subscription)}
+                          >
+                            <Pause className="mr-2 h-4 w-4" />
+                            Pausar
+                          </Button>
+                        )}
+                        
+                        {subscription.status === "suspended" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setPauseSubscription(subscription)}
+                          >
+                            <Play className="mr-2 h-4 w-4" />
+                            Reativar
+                          </Button>
+                        )}
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setCancelSubscription(subscription)}
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
 
         <TabsContent value="plans" className="space-y-4">
           {plans.length === 0 ? (
@@ -448,9 +674,6 @@ const Assinaturas = () => {
                       <div className="text-sm text-muted-foreground">
                         {getFrequencyLabel(plan.billing_frequency)}
                       </div>
-                      {plan.description && (
-                        <p className="text-sm mt-2">{plan.description}</p>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -458,163 +681,43 @@ const Assinaturas = () => {
             </div>
           )}
         </TabsContent>
-
-        <TabsContent value="subscriptions" className="space-y-4">
-          {subscriptions.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <p className="text-muted-foreground">Nenhuma assinatura ativa ainda</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {subscriptions.map((subscription) => (
-                <Card key={subscription.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle>{subscription.customers?.name}</CardTitle>
-                        <CardDescription>
-                          {subscription.subscription_plans?.name}
-                        </CardDescription>
-                      </div>
-                      {getStatusBadge(subscription.status)}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Valor</p>
-                          <p className="font-semibold">
-                            {formatCurrency(subscription.subscription_plans?.price || 0)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Próximo Pagamento</p>
-                          <p className="font-semibold">
-                            {new Date(subscription.next_billing_date).toLocaleDateString("pt-BR")}
-                          </p>
-                        </div>
-                      </div>
-
-                      {subscription.status === "active" && (
-                        <div className="flex gap-2 pt-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1 gap-2"
-                            onClick={() => setRenewSubscription(subscription)}
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                            Renovar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1 gap-2 text-destructive hover:bg-destructive/10"
-                            onClick={() => setCancelSubscription(subscription)}
-                          >
-                            <XCircle className="w-4 h-4" />
-                            Cancelar
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
       </Tabs>
 
-      {/* Dialog de Renovação */}
-      <Dialog open={!!renewSubscription} onOpenChange={(open) => !open && setRenewSubscription(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Renovar Assinatura</DialogTitle>
-            <DialogDescription>
-              Escolha a forma de pagamento para renovar a assinatura
-            </DialogDescription>
-          </DialogHeader>
-          
-          {renewSubscription && (
-            <div className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">Cliente</p>
-                <p className="font-medium">{renewSubscription.customers?.name}</p>
-                <p className="text-sm text-muted-foreground mt-2">Valor</p>
-                <p className="text-2xl font-bold">
-                  {formatCurrency(renewSubscription.subscription_plans?.price || 0)}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Forma de Pagamento</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pix">
-                      <div className="flex items-center gap-2">
-                        <Smartphone className="w-4 h-4" />
-                        PIX
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="credit_card">
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4" />
-                        Cartão de Crédito
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="boleto">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        Boleto
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setRenewSubscription(null)}
-                >
-                  Cancelar
-                </Button>
-                <Button className="flex-1" onClick={handleRenewSubscription}>
-                  Confirmar Renovação
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
       {/* Dialog de Cancelamento */}
-      <AlertDialog open={!!cancelSubscription} onOpenChange={(open) => !open && setCancelSubscription(null)}>
+      <AlertDialog open={!!cancelSubscription} onOpenChange={() => setCancelSubscription(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar Assinatura</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja cancelar a assinatura de{" "}
-              <strong>{cancelSubscription?.customers?.name}</strong>?
-              Esta ação não pode ser desfeita.
+              Tem certeza que deseja cancelar esta assinatura? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancelSubscription}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleCancelSubscription}>
               Confirmar Cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de Pausar/Reativar */}
+      <AlertDialog open={!!pauseSubscription} onOpenChange={() => setPauseSubscription(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pauseSubscription?.status === "active" ? "Pausar" : "Reativar"} Assinatura
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pauseSubscription?.status === "active" 
+                ? "A assinatura será pausada e não haverá cobranças até ser reativada."
+                : "A assinatura será reativada e as cobranças voltarão ao normal."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePauseSubscription}>
+              Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
