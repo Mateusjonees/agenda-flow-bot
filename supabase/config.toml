@@ -143,3 +143,6 @@ verify_jwt = true
 
 [functions.reactivate-subscription]
 verify_jwt = true
+
+[functions.create-subscription-preference]
+verify_jwt = true
