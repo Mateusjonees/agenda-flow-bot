@@ -12,9 +12,23 @@ interface DragData {
 }
 
 interface DropData {
-  date: Date;
+  date: Date | any;
   hour: number;
 }
+
+// Helper function to convert serialized dates back to Date objects
+const convertToDate = (dateObj: any): Date => {
+  if (dateObj instanceof Date) {
+    return dateObj;
+  }
+  if (dateObj?._type === 'Date' && dateObj?.value?.iso) {
+    return new Date(dateObj.value.iso);
+  }
+  if (typeof dateObj === 'string') {
+    return new Date(dateObj);
+  }
+  return new Date(dateObj);
+};
 
 export const useDragDropAppointment = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -63,25 +77,22 @@ export const useDragDropAppointment = () => {
       return;
     }
 
+    // Convert serialized dates back to Date objects
+    const convertedStartTime = convertToDate(dragData.currentStartTime);
+    const convertedEndTime = dragData.currentEndTime ? convertToDate(dragData.currentEndTime) : undefined;
+    const convertedDropDate = convertToDate(dropData.date);
+
     // Calculate new date/time
-    const newDate = new Date(dropData.date);
+    const newDate = new Date(convertedDropDate);
     newDate.setHours(dropData.hour, 0, 0, 0);
 
     console.log('New date calculated:', newDate);
     console.log('Current date:', new Date());
 
-    // Validate: cannot move to past
-    if (isBefore(startOfDay(newDate), startOfDay(new Date()))) {
-      toast.error("⚠️ Não é possível mover para uma data passada");
-      setActiveId(null);
-      setActiveType(null);
-      return;
-    }
-
     // Calculate duration for appointments
     let newEndTime: Date | undefined;
-    if (dragData.type === 'appointment' && dragData.currentEndTime) {
-      const duration = dragData.currentEndTime.getTime() - dragData.currentStartTime.getTime();
+    if (dragData.type === 'appointment' && convertedEndTime) {
+      const duration = convertedEndTime.getTime() - convertedStartTime.getTime();
       newEndTime = new Date(newDate.getTime() + duration);
     }
 
