@@ -148,33 +148,70 @@ const Financeiro = () => {
     setLoading(false);
   };
 
-  const exportToPDF = () => {
-    // Simple export - in production, use a library like jsPDF
-    const content = `
-RELATÓRIO FINANCEIRO
-Período: ${format(new Date(filters.startDate), "dd/MM/yyyy")} - ${format(new Date(filters.endDate), "dd/MM/yyyy")}
+  const exportToPDF = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-RESUMO:
-Receitas: ${formatCurrency(summary.income)}
-Despesas: ${formatCurrency(summary.expenses)}
-Saldo: ${formatCurrency(summary.balance)}
+    try {
+      const startDate = new Date(filters.startDate);
+      const endDate = new Date(filters.endDate);
+      endDate.setHours(23, 59, 59, 999);
 
-TOTAIS POR FORMA DE PAGAMENTO:
-${paymentMethodTotals.map((m) => `${getPaymentMethodLabel(m.method)}: ${formatCurrency(m.total)} (${m.count} transações)`).join("\n")}
-    `.trim();
+      const { data, error } = await supabase.functions.invoke("generate-report-pdf", {
+        body: {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          summary: {
+            total_revenue: summary.income,
+            total_expenses: summary.expenses,
+            profit: summary.balance,
+            canceled_appointments: 0,
+            pending_payments: 0,
+          },
+          income_transactions: transactions.filter(t => t.type === "income").map(t => ({
+            id: t.id,
+            amount: t.amount,
+            description: t.description,
+            transaction_date: t.transaction_date,
+            payment_method: t.payment_method,
+          })),
+          expense_transactions: transactions.filter(t => t.type === "expense").map(t => ({
+            id: t.id,
+            amount: t.amount,
+            description: t.description,
+            transaction_date: t.transaction_date,
+            payment_method: t.payment_method,
+          })),
+        },
+      });
 
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `relatorio-financeiro-${format(new Date(), "yyyy-MM-dd")}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+      if (error) throw error;
 
-    toast({
-      title: "Relatório exportado!",
-      description: "O arquivo foi baixado com sucesso.",
-    });
+      // O edge function retorna HTML base64
+      const htmlContent = atob(data.pdf);
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        
+        // Aguardar carregar e então imprimir
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
+      }
+
+      toast({
+        title: "PDF pronto para impressão!",
+        description: "O relatório foi aberto em uma nova janela. Use Ctrl+P ou Cmd+P para salvar como PDF.",
+      });
+    } catch (error: any) {
+      console.error("Erro ao gerar PDF:", error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: error.message || "Não foi possível gerar o PDF.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getPaymentMethodLabel = (method: string) => {

@@ -44,8 +44,11 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting PDF generation...');
+    
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('Missing Authorization header');
       throw new Error('Missing Authorization header');
     }
 
@@ -62,20 +65,28 @@ serve(async (req) => {
     // Verificar autenticação
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
+      console.error('Authentication error:', userError);
       throw new Error('Unauthorized');
     }
 
+    console.log('User authenticated:', user.id);
+
     const reportData: ReportData = await req.json();
-    console.log('Generating PDF report for user:', user.id);
+    console.log('Report data received, date range:', reportData.startDate, 'to', reportData.endDate);
 
     // Buscar configurações do negócio
-    const { data: businessSettings } = await supabaseClient
+    const { data: businessSettings, error: bizError } = await supabaseClient
       .from('business_settings')
-      .select('business_name')
+      .select('business_name, address, email, whatsapp_number')
       .eq('user_id', user.id)
       .single();
 
+    if (bizError) {
+      console.error('Error fetching business settings:', bizError);
+    }
+
     const businessName = businessSettings?.business_name || 'Meu Negócio';
+    console.log('Business name:', businessName);
 
     // Formatar datas
     const formatDate = (dateStr: string) => {
@@ -105,11 +116,11 @@ serve(async (req) => {
           .header {
             text-align: center;
             margin-bottom: 40px;
-            border-bottom: 3px solid #FF6B35;
+            border-bottom: 3px solid #E31E24;
             padding-bottom: 20px;
           }
           .header h1 {
-            color: #FF6B35;
+            color: #E31E24;
             margin: 0;
             font-size: 28px;
           }
@@ -127,7 +138,7 @@ serve(async (req) => {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
-            border-left: 4px solid #FF6B35;
+            border-left: 4px solid #E31E24;
           }
           .summary-card h3 {
             margin: 0 0 10px 0;
@@ -150,7 +161,7 @@ serve(async (req) => {
             margin-bottom: 40px;
           }
           .section h2 {
-            color: #FF6B35;
+            color: #E31E24;
             border-bottom: 2px solid #e5e7eb;
             padding-bottom: 10px;
             margin-bottom: 20px;
@@ -161,7 +172,7 @@ serve(async (req) => {
             margin-bottom: 20px;
           }
           th {
-            background: #FF6B35;
+            background: #E31E24;
             color: white;
             padding: 12px;
             text-align: left;
@@ -187,7 +198,7 @@ serve(async (req) => {
           .total-row {
             font-weight: bold;
             background: #f8f9fa;
-            border-top: 2px solid #FF6B35;
+            border-top: 2px solid #E31E24;
           }
         </style>
       </head>
@@ -309,21 +320,18 @@ serve(async (req) => {
       </html>
     `;
 
-    // Usar API do Cloudflare Workers para converter HTML em PDF
-    // Como alternativa simples, vamos retornar um base64 do HTML para o cliente processar
-    // Em produção, você pode usar serviços como PDFShift, DocRaptor, ou Puppeteer no servidor
-    
-    // Por enquanto, vamos usar uma abordagem simplificada com a API do navegador
-    // O cliente receberá o HTML e usará window.print() ou outra biblioteca
-    
-    const base64Html = btoa(unescape(encodeURIComponent(htmlContent)));
+    // Usar base64 encode correto para UTF-8
+    const encoder = new TextEncoder();
+    const data = encoder.encode(htmlContent);
+    const base64 = btoa(String.fromCharCode(...data));
 
-    console.log('PDF report generated successfully');
+    console.log('PDF report generated successfully for:', businessName);
 
     return new Response(
       JSON.stringify({ 
-        pdf: base64Html,
-        type: 'html' // Cliente saberá que precisa processar como HTML
+        pdf: base64,
+        type: 'html',
+        businessName: businessName
       }),
       {
         headers: { 
@@ -337,7 +345,8 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'Failed to generate PDF report';
     return new Response(
       JSON.stringify({ 
-        error: errorMessage
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : undefined
       }),
       {
         status: 400,
