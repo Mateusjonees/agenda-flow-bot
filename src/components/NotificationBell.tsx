@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 interface Appointment {
   id: string;
@@ -31,6 +32,7 @@ interface Task {
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Buscar notificações não vistas
   const { data: notifications, isLoading } = useQuery({
@@ -43,6 +45,19 @@ export function NotificationBell() {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return { appointments: [], tasks: [] };
+
+      // Buscar visualizações do usuário
+      const { data: viewsData } = await supabase
+        .from("notification_views")
+        .select("notification_id, notification_type")
+        .eq("user_id", user.id);
+
+      const viewedAppointments = new Set(
+        viewsData?.filter(v => v.notification_type === "appointment").map(v => v.notification_id) || []
+      );
+      const viewedTasks = new Set(
+        viewsData?.filter(v => v.notification_type === "task").map(v => v.notification_id) || []
+      );
 
       // Buscar atendimentos do dia
       const { data: appointmentsData } = await supabase
@@ -63,34 +78,79 @@ export function NotificationBell() {
         .order("due_date", { ascending: true })
         .limit(10);
 
-      // Retornar todas as notificações (sem filtro de visualizadas)
+      // Filtrar apenas as não visualizadas
+      const unviewedAppointments = (appointmentsData || []).filter(apt => !viewedAppointments.has(apt.id));
+      const unviewedTasks = (tasksData || []).filter(task => !viewedTasks.has(task.id));
+
       return {
-        appointments: appointmentsData || [],
-        tasks: tasksData || [],
+        appointments: unviewedAppointments,
+        tasks: unviewedTasks,
       };
     },
     refetchInterval: 30000, // Refetch a cada 30 segundos
     refetchOnWindowFocus: true,
   });
 
-  // Mutation para marcar todas como vistas (desabilitado - tabela não existe)
-  const markAllAsViewed = useMutation({
-    mutationFn: async () => {
-      // Tabela notification_views não existe ainda
-      return;
+  // Mutation para marcar uma notificação como vista
+  const markAsViewed = useMutation({
+    mutationFn: async ({ notificationId, notificationType }: { notificationId: string; notificationType: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from("notification_views")
+        .insert({
+          user_id: user.id,
+          notification_id: notificationId,
+          notification_type: notificationType,
+        });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      queryClient.refetchQueries({ queryKey: ["notifications"] });
     },
   });
 
+  // Mutation para marcar todas como vistas
+  const markAllAsViewed = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const allNotifications = [
+        ...(notifications?.appointments || []).map(apt => ({
+          user_id: user.id,
+          notification_id: apt.id,
+          notification_type: "appointment"
+        })),
+        ...(notifications?.tasks || []).map(task => ({
+          user_id: user.id,
+          notification_id: task.id,
+          notification_type: "task"
+        }))
+      ];
+
+      if (allNotifications.length > 0) {
+        await supabase
+          .from("notification_views")
+          .insert(allNotifications);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const handleNotificationClick = (notificationId: string, notificationType: string, path: string) => {
+    // Marcar como vista
+    markAsViewed.mutate({ notificationId, notificationType });
+    // Navegar para a página relevante
+    navigate(path);
+    // Fechar o popover
+    setOpen(false);
+  };
+
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
-    if (!newOpen && notifications && (notifications.appointments.length > 0 || notifications.tasks.length > 0)) {
-      // Marcar todas como vistas quando fechar o popover
-      markAllAsViewed.mutate();
-    }
   };
 
   const totalNotifications = notifications
@@ -161,7 +221,8 @@ export function NotificationBell() {
                     {appointments.map((apt) => (
                       <div
                         key={apt.id}
-                        className="flex items-start gap-3 p-2 rounded-md hover:bg-muted transition-colors"
+                        className="flex items-start gap-3 p-2 rounded-md hover:bg-muted transition-colors cursor-pointer"
+                        onClick={() => handleNotificationClick(apt.id, "appointment", "/agendamentos")}
                       >
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{apt.title}</p>
@@ -189,7 +250,8 @@ export function NotificationBell() {
                     {tasks.map((task) => (
                       <div
                         key={task.id}
-                        className="flex items-start gap-3 p-2 rounded-md hover:bg-muted transition-colors"
+                        className="flex items-start gap-3 p-2 rounded-md hover:bg-muted transition-colors cursor-pointer"
+                        onClick={() => handleNotificationClick(task.id, "task", "/tarefas")}
                       >
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{task.title}</p>
