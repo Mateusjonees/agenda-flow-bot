@@ -42,7 +42,7 @@ const Tarefas = () => {
     related_entity_id: "",
     priority: "medium",
     status: "pending",
-    type: "manual",
+    type: "general",
   });
 
   useEffect(() => {
@@ -177,7 +177,7 @@ const Tarefas = () => {
           related_entity_id: "",
           priority: "medium",
           status: "pending",
-          type: "manual",
+          type: "general",
         });
         fetchStats();
       }
@@ -193,26 +193,20 @@ const Tarefas = () => {
 
   const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      manual: "Manual",
-      post_sale: "Pós-venda",
-      followup: "Follow-up",
-      payment: "Pagamento",
+      general: "Geral",
+      follow_up: "Follow-up",
       reactivation: "Reativação",
-      restock: "Reposição",
-      preparation: "Preparação",
+      proposal_follow_up: "Follow-up de Proposta",
     };
     return labels[type] || type;
   };
 
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      manual: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-      post_sale: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
-      followup: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
-      payment: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300",
+      general: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+      follow_up: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
       reactivation: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
-      restock: "bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300",
-      preparation: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300",
+      proposal_follow_up: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
     };
     return colors[type] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
   };
@@ -316,13 +310,10 @@ const Tarefas = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="manual">Manual</SelectItem>
-                    <SelectItem value="post_sale">Pós-venda</SelectItem>
-                    <SelectItem value="followup">Follow-up</SelectItem>
-                    <SelectItem value="payment">Pagamento</SelectItem>
+                    <SelectItem value="general">Geral</SelectItem>
+                    <SelectItem value="follow_up">Follow-up</SelectItem>
                     <SelectItem value="reactivation">Reativação</SelectItem>
-                    <SelectItem value="restock">Reposição</SelectItem>
-                    <SelectItem value="preparation">Preparação</SelectItem>
+                    <SelectItem value="proposal_follow_up">Follow-up de Proposta</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
