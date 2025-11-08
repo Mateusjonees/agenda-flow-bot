@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Save, Star, Gift, Link as LinkIcon, Upload, Camera, Lock, Phone } from "lucide-react";
+import { Save, Star, Gift, Link as LinkIcon, Upload, Camera, Lock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,12 +18,10 @@ const Configuracoes = () => {
   const [uploading, setUploading] = useState(false);
   const [stampsRequired, setStampsRequired] = useState(5);
   
-  // Estados para alteração de senha e dados
+  // Estados para alteração de senha
   const [currentPassword, setCurrentPassword] = useState("");
-  const [currentPasswordForPhone, setCurrentPasswordForPhone] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [newPhone, setNewPhone] = useState("");
 
   // Buscar dados do usuário e configurações
   const { data: user } = useQuery({
@@ -216,45 +214,6 @@ const Configuracoes = () => {
   });
 
 
-  // Mutation para alterar telefone
-  const changePhoneMutation = useMutation({
-    mutationFn: async () => {
-      if (!currentPasswordForPhone) {
-        throw new Error("Digite sua senha atual para confirmar");
-      }
-
-      if (!newPhone) {
-        throw new Error("Telefone inválido");
-      }
-
-      // Validar senha atual
-      if (!user?.email) throw new Error("Email não encontrado");
-      
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: currentPasswordForPhone,
-      });
-
-      if (signInError) {
-        throw new Error("Senha atual incorreta");
-      }
-
-      // Alterar telefone
-      const { error } = await supabase.auth.updateUser({
-        phone: newPhone
-      });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Telefone alterado com sucesso!");
-      setNewPhone("");
-      setCurrentPasswordForPhone("");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Erro ao alterar telefone");
-    },
-  });
 
   return (
     <div className="space-y-6">
@@ -486,47 +445,6 @@ const Configuracoes = () => {
           <CardDescription>Gerencie suas informações de acesso e segurança</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Alteração de Telefone */}
-          <div className="space-y-3 pb-4 border-b">
-            <div className="flex items-center gap-2 mb-2">
-              <Phone className="w-4 h-4 text-muted-foreground" />
-              <Label className="font-semibold">Alterar Telefone</Label>
-            </div>
-            <div className="space-y-3">
-              <Label htmlFor="current-phone" className="text-xs text-muted-foreground">
-                Telefone atual: {user?.phone || "Não definido"}
-              </Label>
-              <div className="space-y-2">
-                <Label htmlFor="password-for-phone">Senha Atual *</Label>
-                <Input
-                  id="password-for-phone"
-                  type="password"
-                  placeholder="Digite sua senha atual"
-                  value={currentPasswordForPhone}
-                  onChange={(e) => setCurrentPasswordForPhone(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new-phone">Novo Telefone</Label>
-                <Input
-                  id="new-phone"
-                  type="tel"
-                  placeholder="(11) 99999-9999"
-                  value={newPhone}
-                  onChange={(e) => setNewPhone(e.target.value)}
-                />
-              </div>
-              <Button
-                onClick={() => changePhoneMutation.mutate()}
-                disabled={!newPhone || !currentPasswordForPhone || changePhoneMutation.isPending}
-                variant="secondary"
-                className="w-full"
-              >
-                {changePhoneMutation.isPending ? "Alterando..." : "Alterar Telefone"}
-              </Button>
-            </div>
-          </div>
-
           {/* Alteração de Senha */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 mb-2">
