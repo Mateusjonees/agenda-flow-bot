@@ -61,8 +61,22 @@ const Layout = ({ children }: LayoutProps) => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Foto de perfil (tabela não existe ainda)
-  const profileImage = null;
+  // Buscar foto de perfil
+  const { data: businessSettings } = useQuery({
+    queryKey: ["business-settings", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("business_settings")
+        .select("profile_image_url")
+        .eq("user_id", user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const profileImage = businessSettings?.profile_image_url;
 
   // Buscar notificações não vistas
   const { data: notifications } = useQuery({

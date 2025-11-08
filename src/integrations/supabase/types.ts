@@ -93,6 +93,45 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       business_hours: {
         Row: {
           created_at: string | null
@@ -168,6 +207,45 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
+      cash_flow_projections: {
+        Row: {
+          confirmed_expenses: number | null
+          confirmed_income: number | null
+          created_at: string | null
+          date: string
+          expected_expenses: number | null
+          expected_income: number | null
+          id: string
+          notes: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          confirmed_expenses?: number | null
+          confirmed_income?: number | null
+          created_at?: string | null
+          date: string
+          expected_expenses?: number | null
+          expected_income?: number | null
+          id?: string
+          notes?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          confirmed_expenses?: number | null
+          confirmed_income?: number | null
+          created_at?: string | null
+          date?: string
+          expected_expenses?: number | null
+          expected_income?: number | null
+          id?: string
+          notes?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -970,11 +1048,43 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       update_inventory_stock: {
         Args: {
           p_item_id: string
@@ -988,7 +1098,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "owner" | "admin" | "employee" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1115,6 +1225,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["owner", "admin", "employee", "viewer"],
+    },
   },
 } as const
