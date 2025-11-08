@@ -9,8 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Clock, DollarSign, Package } from "lucide-react";
+import { Plus, Edit, Trash2, Clock, DollarSign, Package, Copy, History, Search, Filter, Layers } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { ServiceStats } from "@/components/ServiceStats";
+import { ServicePackageDialog } from "@/components/ServicePackageDialog";
+import { PriceHistoryDialog } from "@/components/PriceHistoryDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Service {
   id: string;
@@ -30,6 +34,14 @@ const Servicos = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
+  const [isPackageDialogOpen, setIsPackageDialogOpen] = useState(false);
+  const [priceHistoryDialog, setPriceHistoryDialog] = useState<{ open: boolean; serviceId: string; serviceName: string }>({
+    open: false,
+    serviceId: "",
+    serviceName: "",
+  });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   
   const [formData, setFormData] = useState({
     name: "",
@@ -100,6 +112,16 @@ const Servicos = () => {
     };
 
     if (editingService) {
+      // Check if price changed
+      const newPrice = parseFloat(formData.price) || 0;
+      if (editingService.price !== newPrice) {
+        await supabase.from("service_price_history").insert({
+          service_id: editingService.id,
+          old_price: editingService.price,
+          new_price: newPrice,
+        });
+      }
+
       const { error } = await supabase
         .from("services")
         .update(serviceData)
@@ -119,9 +141,11 @@ const Servicos = () => {
         fetchServices();
       }
     } else {
-      const { error } = await supabase
+      const { data: newService, error } = await supabase
         .from("services")
-        .insert([serviceData]);
+        .insert([serviceData])
+        .select()
+        .single();
 
       if (error) {
         toast({
@@ -130,6 +154,14 @@ const Servicos = () => {
           variant: "destructive",
         });
       } else {
+        // Record initial price
+        if (newService) {
+          await supabase.from("service_price_history").insert({
+            service_id: newService.id,
+            old_price: null,
+            new_price: parseFloat(formData.price) || 0,
+          });
+        }
         toast({
           title: "Serviço criado com sucesso!",
         });
@@ -151,6 +183,35 @@ const Servicos = () => {
       is_active: service.is_active,
     });
     setIsDialogOpen(true);
+  };
+
+  const handleDuplicate = async (service: Service) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.from("services").insert({
+      user_id: user.id,
+      name: `${service.name} (Cópia)`,
+      description: service.description,
+      category: service.category,
+      duration: service.duration,
+      price: service.price,
+      color: service.color,
+      is_active: service.is_active,
+    });
+
+    if (error) {
+      toast({
+        title: "Erro ao duplicar serviço",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Serviço duplicado com sucesso!",
+      });
+      fetchServices();
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -196,6 +257,15 @@ const Servicos = () => {
     }).format(value);
   };
 
+  const uniqueCategories = Array.from(new Set(services.map(s => s.category).filter(Boolean)));
+
+  const filteredServices = services.filter(service => {
+    const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          service.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === "all" || service.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
   if (loading) {
     return <div>Carregando...</div>;
   }
@@ -207,13 +277,18 @@ const Servicos = () => {
           <h1 className="text-4xl font-bold text-foreground mb-2">Catálogo de Serviços</h1>
           <p className="text-muted-foreground">Gerencie os serviços oferecidos pelo seu negócio</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditingService(null)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Serviço
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsPackageDialogOpen(true)}>
+            <Layers className="mr-2 h-4 w-4" />
+            Criar Pacote
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditingService(null)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Serviço
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -311,7 +386,39 @@ const Servicos = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
+
+      {/* Search and Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar serviços por nome ou descrição..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as categorias</SelectItem>
+                {uniqueCategories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
@@ -360,7 +467,7 @@ const Servicos = () => {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {services.map((service) => (
+          {filteredServices.map((service) => (
             <Card key={service.id} className={!service.is_active ? "opacity-60" : ""}>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -378,7 +485,25 @@ const Servicos = () => {
                       </Badge>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setPriceHistoryDialog({ open: true, serviceId: service.id, serviceName: service.name })}
+                      title="Histórico de preços"
+                    >
+                      <History className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleDuplicate(service)}
+                      title="Duplicar serviço"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -426,12 +551,26 @@ const Servicos = () => {
                       Inativo
                     </Badge>
                   )}
+                  <ServiceStats serviceId={service.id} serviceName={service.name} />
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <ServicePackageDialog 
+        open={isPackageDialogOpen} 
+        onOpenChange={setIsPackageDialogOpen}
+        onSuccess={fetchServices}
+      />
+
+      <PriceHistoryDialog
+        open={priceHistoryDialog.open}
+        onOpenChange={(open) => setPriceHistoryDialog({ ...priceHistoryDialog, open })}
+        serviceId={priceHistoryDialog.serviceId}
+        serviceName={priceHistoryDialog.serviceName}
+      />
     </div>
   );
 };
