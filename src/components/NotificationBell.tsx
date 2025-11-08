@@ -99,13 +99,21 @@ export function NotificationBell() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      await supabase
+      const { error } = await supabase
         .from("notification_views")
-        .insert({
+        .upsert({
           user_id: user.id,
           notification_id: notificationId,
           notification_type: notificationType,
+        }, {
+          onConflict: 'user_id,notification_type,notification_id',
+          ignoreDuplicates: true
         });
+      
+      if (error) {
+        console.error("Erro ao marcar notificação como vista:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -132,9 +140,17 @@ export function NotificationBell() {
       ];
 
       if (allNotifications.length > 0) {
-        await supabase
+        const { error } = await supabase
           .from("notification_views")
-          .insert(allNotifications);
+          .upsert(allNotifications, {
+            onConflict: 'user_id,notification_type,notification_id',
+            ignoreDuplicates: true
+          });
+        
+        if (error) {
+          console.error("Erro ao limpar notificações:", error);
+          throw error;
+        }
       }
     },
     onSuccess: () => {
