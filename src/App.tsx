@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MaintenanceGuard } from "./components/MaintenanceGuard";
 import { OnboardingTutorial } from "./components/OnboardingTutorial";
+import { SubscriptionGuard } from "./components/SubscriptionGuard";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
@@ -40,22 +41,28 @@ const App = () => (
           <BrowserRouter>
             <MaintenanceGuard>
               <Routes>
+                {/* Rotas públicas (sem guard) */}
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
                 <Route path="/manutencao" element={<Maintenance />} />
-                <Route path="/agendamentos" element={<Layout><Agendamentos /></Layout>} />
-                <Route path="/clientes" element={<Layout><Clientes /></Layout>} />
-                <Route path="/servicos" element={<Layout><Servicos /></Layout>} />
-                <Route path="/financeiro" element={<Layout><Financeiro /></Layout>} />
-                <Route path="/relatorios" element={<Layout><Relatorios /></Layout>} />
-                <Route path="/propostas" element={<Layout><Propostas /></Layout>} />
-                <Route path="/assinaturas" element={<Layout><Assinaturas /></Layout>} />
                 <Route path="/pricing" element={<Pricing />} />
-                <Route path="/planos" element={<Layout><Planos /></Layout>} />
-                <Route path="/tarefas" element={<Layout><Tarefas /></Layout>} />
-                <Route path="/estoque" element={<Layout><Estoque /></Layout>} />
+                
+                {/* Página de configurações (fora do guard para permitir renovação) */}
                 <Route path="/configuracoes" element={<Layout><Configuracoes /></Layout>} />
+                
+                {/* Rotas protegidas (com guard) */}
+                <Route path="/dashboard" element={<Layout><SubscriptionGuard><Dashboard /></SubscriptionGuard></Layout>} />
+                <Route path="/agendamentos" element={<Layout><SubscriptionGuard><Agendamentos /></SubscriptionGuard></Layout>} />
+                <Route path="/clientes" element={<Layout><SubscriptionGuard><Clientes /></SubscriptionGuard></Layout>} />
+                <Route path="/servicos" element={<Layout><SubscriptionGuard><Servicos /></SubscriptionGuard></Layout>} />
+                <Route path="/financeiro" element={<Layout><SubscriptionGuard><Financeiro /></SubscriptionGuard></Layout>} />
+                <Route path="/relatorios" element={<Layout><SubscriptionGuard><Relatorios /></SubscriptionGuard></Layout>} />
+                <Route path="/propostas" element={<Layout><SubscriptionGuard><Propostas /></SubscriptionGuard></Layout>} />
+                <Route path="/assinaturas" element={<Layout><SubscriptionGuard><Assinaturas /></SubscriptionGuard></Layout>} />
+                <Route path="/planos" element={<Layout><SubscriptionGuard><Planos /></SubscriptionGuard></Layout>} />
+                <Route path="/tarefas" element={<Layout><SubscriptionGuard><Tarefas /></SubscriptionGuard></Layout>} />
+                <Route path="/estoque" element={<Layout><SubscriptionGuard><Estoque /></SubscriptionGuard></Layout>} />
+                
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
