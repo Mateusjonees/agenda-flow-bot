@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Phone, Mail, User, CalendarPlus, ListTodo, Search, Filter, Pencil } from "lucide-react";
+import { Plus, Phone, Mail, User, CalendarPlus, ListTodo, Search, Filter, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { LoyaltyCard } from "@/components/LoyaltyCard";
 import { CustomerCoupons } from "@/components/CustomerCoupons";
 import { CustomerHistory } from "@/components/CustomerHistory";
@@ -43,6 +44,8 @@ const Clientes = () => {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [editCustomer, setEditCustomer] = useState({
     id: "",
     name: "",
@@ -317,6 +320,32 @@ const Clientes = () => {
     }
   };
 
+  const handleDeleteCustomer = async () => {
+    if (!customerToDelete) return;
+
+    const { error } = await supabase
+      .from("customers")
+      .delete()
+      .eq("id", customerToDelete.id);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o cliente.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Cliente excluído!",
+        description: "O cliente foi removido com sucesso.",
+      });
+      setDeleteDialogOpen(false);
+      setDetailsOpen(false);
+      setCustomerToDelete(null);
+      fetchCustomers();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
@@ -524,6 +553,17 @@ const Clientes = () => {
                     >
                       <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       Editar Cliente
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm text-destructive hover:text-destructive"
+                      onClick={() => {
+                        setCustomerToDelete(selectedCustomer);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      Excluir Cliente
                     </Button>
                 <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
                   <DialogTrigger asChild>
@@ -795,6 +835,29 @@ const Clientes = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de confirmação de exclusão */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja excluir?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O cliente <strong>{customerToDelete?.name}</strong> será permanentemente removido do sistema, incluindo todo o histórico, fidelidade e cupons associados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCustomerToDelete(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCustomer}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir Cliente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
