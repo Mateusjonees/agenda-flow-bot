@@ -641,18 +641,6 @@ const Documentos = () => {
                                 <FileText className="w-4 h-4" />
                               )}
                             </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleSendProposalEmail(proposal.id)}
-                              disabled={sending === `proposal-email-${proposal.id}`}
-                            >
-                              {sending === `proposal-email-${proposal.id}` ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              ) : (
-                                <Mail className="w-4 h-4 mr-2" />
-                              )}
-                              Enviar Email
-                            </Button>
                           </div>
                         </div>
                       </CardContent>
