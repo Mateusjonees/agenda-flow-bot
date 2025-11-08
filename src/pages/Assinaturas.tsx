@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Users, TrendingUp, CreditCard, FileText, DollarSign, Calendar,
-  RefreshCw, XCircle, Pause, Play, CheckCircle, PackageCheck, FileDown, FileCheck
+  RefreshCw, XCircle, Pause, Play, CheckCircle, PackageCheck, FileDown, FileCheck, Mail, Loader2
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -60,6 +60,7 @@ const Assinaturas = () => {
   const [pauseSubscription, setPauseSubscription] = useState<Subscription | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string>("pix");
   const [generatingDocument, setGeneratingDocument] = useState<string>("");
+  const [sendingDocument, setSendingDocument] = useState<string>("");
   const [metrics, setMetrics] = useState({
     mrr: 0,
     totalRevenue: 0,
@@ -365,6 +366,37 @@ const Assinaturas = () => {
     }
   };
 
+  const handleSendDocument = async (subscriptionId: string, documentType: "contract" | "receipt") => {
+    setSendingDocument(`${subscriptionId}-${documentType}`);
+    
+    try {
+      const { error } = await supabase.functions.invoke("send-subscription-document", {
+        body: {
+          subscriptionId,
+          documentType,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Documento enviado!",
+        description: documentType === "contract" 
+          ? "Contrato enviado por email com sucesso" 
+          : "Comprovante enviado por email com sucesso",
+      });
+    } catch (error: any) {
+      console.error("Error sending document:", error);
+      toast({
+        title: "Erro ao enviar documento",
+        description: error.message || "Não foi possível enviar o documento por email",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingDocument("");
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -648,15 +680,33 @@ const Assinaturas = () => {
                         </div>
                       </div>
                       
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleGenerateDocument(subscription.id, "contract")}
                           disabled={generatingDocument === `${subscription.id}-contract`}
                         >
-                          <FileCheck className="mr-2 h-4 w-4" />
-                          {generatingDocument === `${subscription.id}-contract` ? "Gerando..." : "Gerar Contrato"}
+                          {generatingDocument === `${subscription.id}-contract` ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileCheck className="mr-2 h-4 w-4" />
+                          )}
+                          {generatingDocument === `${subscription.id}-contract` ? "Gerando..." : "Contrato"}
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSendDocument(subscription.id, "contract")}
+                          disabled={sendingDocument === `${subscription.id}-contract`}
+                        >
+                          {sendingDocument === `${subscription.id}-contract` ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Mail className="mr-2 h-4 w-4" />
+                          )}
+                          {sendingDocument === `${subscription.id}-contract` ? "Enviando..." : "Email Contrato"}
                         </Button>
                         
                         <Button
@@ -665,8 +715,26 @@ const Assinaturas = () => {
                           onClick={() => handleGenerateDocument(subscription.id, "receipt")}
                           disabled={generatingDocument === `${subscription.id}-receipt`}
                         >
-                          <FileDown className="mr-2 h-4 w-4" />
+                          {generatingDocument === `${subscription.id}-receipt` ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileDown className="mr-2 h-4 w-4" />
+                          )}
                           {generatingDocument === `${subscription.id}-receipt` ? "Gerando..." : "Comprovante"}
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSendDocument(subscription.id, "receipt")}
+                          disabled={sendingDocument === `${subscription.id}-receipt`}
+                        >
+                          {sendingDocument === `${subscription.id}-receipt` ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Mail className="mr-2 h-4 w-4" />
+                          )}
+                          {sendingDocument === `${subscription.id}-receipt` ? "Enviando..." : "Email Comprovante"}
                         </Button>
                         
                         {subscription.status === "active" && (

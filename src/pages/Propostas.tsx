@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Trash2, Filter, CheckCircle, XCircle, Calendar as CalendarIcon, User, DollarSign, Sparkles, Search, ChevronsUpDown, HelpCircle, Package, Percent, Calendar, UserCheck } from "lucide-react";
+import { Plus, FileText, Send, Eye, Check, X, Clock, Loader2, Edit, Trash2, Filter, CheckCircle, XCircle, Calendar as CalendarIcon, User, DollarSign, Sparkles, Search, ChevronsUpDown, HelpCircle, Package, Percent, Calendar, UserCheck, Download, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -68,6 +68,7 @@ const Propostas = () => {
   const [scheduleProposal, setScheduleProposal] = useState<Proposal | null>(null);
   const [deleteProposalId, setDeleteProposalId] = useState<string | null>(null);
   const [lastEmailSent, setLastEmailSent] = useState<{ [key: string]: number }>({});
+  const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Filtros e tabs
@@ -330,6 +331,42 @@ const Propostas = () => {
       fetchData();
     }
     setDeleteProposalId(null);
+  };
+
+  const handleDownloadProposal = async (proposalId: string) => {
+    setDownloadingPdf(proposalId);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-proposal-pdf", {
+        body: { proposalId },
+      });
+
+      if (error) throw error;
+
+      // Criar blob com HTML e abrir em nova aba
+      const blob = new Blob([data], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, "_blank");
+      
+      if (win) {
+        setTimeout(() => {
+          win.focus();
+        }, 500);
+      }
+
+      toast({
+        title: "PDF gerado!",
+        description: "Abrindo em nova aba...",
+      });
+    } catch (error: any) {
+      console.error("Erro ao gerar PDF:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível gerar o PDF do orçamento.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingPdf(null);
+    }
   };
 
   const addService = () => {
@@ -1069,7 +1106,26 @@ const Propostas = () => {
                           }}
                         >
                           <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          <span className="hidden xs:inline">Visualizar</span>
+                          <span className="hidden xs:inline">Ver</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="flex-1 gap-1.5 sm:gap-2 relative z-30 pointer-events-auto text-xs sm:text-sm h-8 sm:h-9"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleDownloadProposal(proposal.id);
+                          }}
+                          disabled={downloadingPdf === proposal.id}
+                        >
+                          {downloadingPdf === proposal.id ? (
+                            <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          )}
+                          <span className="hidden xs:inline">PDF</span>
                         </Button>
                         <Button
                           type="button"
@@ -1119,6 +1175,8 @@ const Propostas = () => {
           setViewProposal(null);
           setScheduleProposal(proposal);
         }}
+        onDownloadPdf={handleDownloadProposal}
+        onResendEmail={handleSendProposal}
       />
 
       <ScheduleAppointmentDialog

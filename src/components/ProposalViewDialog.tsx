@@ -1,21 +1,47 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Calendar, Download, Mail, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useState } from "react";
 
 interface ProposalViewDialogProps {
   proposal: any;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onScheduleAppointment?: (proposal: any) => void;
+  onDownloadPdf?: (proposalId: string) => Promise<void>;
+  onResendEmail?: (proposalId: string) => Promise<void>;
 }
 
-export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleAppointment }: ProposalViewDialogProps) => {
+export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleAppointment, onDownloadPdf, onResendEmail }: ProposalViewDialogProps) => {
+  const [loading, setLoading] = useState<'download' | 'email' | null>(null);
+  
   if (!proposal) return null;
   
   const canSchedule = proposal.status === 'accepted' || proposal.status === 'confirmed';
+  const canResend = proposal.status === 'sent' || proposal.status === 'accepted';
+
+  const handleDownloadPdf = async () => {
+    if (!onDownloadPdf) return;
+    setLoading('download');
+    try {
+      await onDownloadPdf(proposal.id);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleResendEmail = async () => {
+    if (!onResendEmail) return;
+    setLoading('email');
+    try {
+      await onResendEmail(proposal.id);
+    } finally {
+      setLoading(null);
+    }
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -123,8 +149,41 @@ export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleApp
             </div>
           )}
 
-          {canSchedule && onScheduleAppointment && (
-            <div className="pt-4 border-t">
+          {/* Botões de ação */}
+          <div className="pt-4 border-t space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                onClick={handleDownloadPdf}
+                variant="outline"
+                className="gap-2"
+                disabled={loading === 'download'}
+              >
+                {loading === 'download' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                Baixar PDF
+              </Button>
+              
+              {canResend && onResendEmail && (
+                <Button 
+                  onClick={handleResendEmail}
+                  variant="outline"
+                  className="gap-2"
+                  disabled={loading === 'email'}
+                >
+                  {loading === 'email' ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Mail className="w-4 h-4" />
+                  )}
+                  Reenviar Email
+                </Button>
+              )}
+            </div>
+
+            {canSchedule && onScheduleAppointment && (
               <Button 
                 onClick={() => onScheduleAppointment(proposal)} 
                 className="w-full gap-2"
@@ -132,8 +191,8 @@ export const ProposalViewDialog = ({ proposal, open, onOpenChange, onScheduleApp
                 <Calendar className="w-4 h-4" />
                 Agendar Atendimento
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
