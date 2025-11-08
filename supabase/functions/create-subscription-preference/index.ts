@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface PreferenceRequest {
-  planType: "monthly" | "quarterly" | "annual";
+  planType: "monthly" | "semestral" | "annual";
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -40,23 +40,23 @@ const handler = async (req: Request): Promise<Response> => {
     // Definir preços e descrições baseado no plano
     const planDetails = {
       monthly: { 
-        price: 29.90, 
+        price: 97.00, 
         title: "Plano Mensal", 
-        description: "Assinatura mensal da plataforma",
+        description: "Assinatura mensal da plataforma - Ideal para começar",
         frequency: 1,
         frequency_type: "months"
       },
-      quarterly: { 
-        price: 79.90, 
-        title: "Plano Trimestral", 
-        description: "Assinatura trimestral da plataforma (economia de 10%)",
-        frequency: 3,
+      semestral: { 
+        price: 582.00, 
+        title: "Plano Semestral", 
+        description: "Assinatura semestral da plataforma - 7 meses pelo preço de 6 (economia de 14%)",
+        frequency: 6,
         frequency_type: "months"
       },
       annual: { 
-        price: 299.90, 
+        price: 1164.00, 
         title: "Plano Anual", 
-        description: "Assinatura anual da plataforma (economia de 16%)",
+        description: "Assinatura anual da plataforma - 14 meses pelo preço de 12 (economia de 17%)",
         frequency: 12,
         frequency_type: "months"
       }

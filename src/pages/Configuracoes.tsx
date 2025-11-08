@@ -252,7 +252,7 @@ const Configuracoes = () => {
 
   // Mutation para criar preferência de assinatura no Mercado Pago
   const createSubscriptionMutation = useMutation({
-    mutationFn: async (planType: "monthly" | "quarterly" | "annual") => {
+    mutationFn: async (planType: "monthly" | "semestral" | "annual") => {
       if (!user) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase.functions.invoke("create-subscription-preference", {
@@ -549,25 +549,29 @@ const Configuracoes = () => {
             <Button
               onClick={() => createSubscriptionMutation.mutate("monthly")}
               disabled={createSubscriptionMutation.isPending}
+              variant="outline"
               className="gap-2 h-auto py-4 flex-col"
             >
               <CreditCard className="w-5 h-5" />
               <div className="text-center">
-                <div className="font-bold text-lg">R$ 29,90</div>
-                <div className="text-xs opacity-90">Mensal</div>
+                <div className="font-bold text-lg">R$ 97</div>
+                <div className="text-xs opacity-90">por 1 mês</div>
+                <div className="text-xs opacity-75 mt-1">Ideal para começar</div>
               </div>
             </Button>
             <Button
-              onClick={() => createSubscriptionMutation.mutate("quarterly")}
+              onClick={() => createSubscriptionMutation.mutate("semestral")}
               disabled={createSubscriptionMutation.isPending}
               variant="outline"
-              className="gap-2 h-auto py-4 flex-col border-primary"
+              className="gap-2 h-auto py-4 flex-col border-2 border-primary relative"
             >
-              <CreditCard className="w-5 h-5" />
+              <Badge className="absolute -top-2 bg-destructive text-destructive-foreground">MAIS POPULAR</Badge>
+              <Star className="w-5 h-5" />
               <div className="text-center">
-                <div className="font-bold text-lg">R$ 79,90</div>
-                <div className="text-xs opacity-75">Trimestral</div>
-                <Badge variant="secondary" className="mt-1 text-xs">Economize 10%</Badge>
+                <div className="font-bold text-lg">R$ 582</div>
+                <div className="text-xs opacity-75 line-through">R$ 679</div>
+                <div className="text-xs opacity-90 mt-1">7 meses pelo preço de 6</div>
+                <Badge variant="secondary" className="mt-1 text-xs">Economize 14%</Badge>
               </div>
             </Button>
             <Button
@@ -578,9 +582,10 @@ const Configuracoes = () => {
             >
               <CreditCard className="w-5 h-5" />
               <div className="text-center">
-                <div className="font-bold text-lg">R$ 299,90</div>
-                <div className="text-xs opacity-75">Anual</div>
-                <Badge variant="secondary" className="mt-1 text-xs">Economize 16%</Badge>
+                <div className="font-bold text-lg">R$ 1164</div>
+                <div className="text-xs opacity-75 line-through">R$ 1358</div>
+                <div className="text-xs opacity-90 mt-1">14 meses pelo preço de 12</div>
+                <Badge variant="secondary" className="mt-1 text-xs">Economize 17%</Badge>
               </div>
             </Button>
           </div>
