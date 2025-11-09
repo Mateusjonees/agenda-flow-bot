@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useReadOnly } from "@/components/SubscriptionGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,7 @@ interface Subscription {
 const Assinaturas = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isReadOnly } = useReadOnly();
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -528,7 +530,7 @@ const Assinaturas = () => {
           {/* Diálogo de Vincular Cliente */}
           <Dialog open={isSubscribeDialogOpen} onOpenChange={setIsSubscribeDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" disabled={isReadOnly}>
                 <Users className="mr-2 h-4 w-4" />
                 Vincular Cliente
               </Button>
@@ -576,7 +578,7 @@ const Assinaturas = () => {
                 <Button variant="outline" onClick={() => setIsSubscribeDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleCreateSubscription}>
+                <Button onClick={handleCreateSubscription} disabled={isReadOnly}>
                   Criar Assinatura
                 </Button>
               </DialogFooter>
@@ -586,7 +588,7 @@ const Assinaturas = () => {
           {/* Diálogo de Novo Plano */}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button disabled={isReadOnly}>
                 <Plus className="mr-2 h-4 w-4" />
                 Novo Plano
               </Button>
@@ -657,7 +659,7 @@ const Assinaturas = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleCreatePlan} className="w-full">
+                <Button onClick={handleCreatePlan} className="w-full" disabled={isReadOnly}>
                   Criar Plano
                 </Button>
               </div>
@@ -804,7 +806,7 @@ const Assinaturas = () => {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-10">
                 <p className="text-muted-foreground mb-4">Nenhuma assinatura ativa ainda</p>
-                <Button onClick={() => setIsSubscribeDialogOpen(true)}>
+                <Button onClick={() => setIsSubscribeDialogOpen(true)} disabled={isReadOnly}>
                   <Plus className="mr-2 h-4 w-4" />
                   Vincular Primeiro Cliente
                 </Button>

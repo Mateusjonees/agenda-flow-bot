@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useReadOnly } from "@/components/SubscriptionGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,7 @@ interface StockMovement {
 const Estoque = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isReadOnly } = useReadOnly();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -305,7 +307,7 @@ const Estoque = () => {
         <div className="flex gap-2">
           <Dialog open={isMovementDialogOpen} onOpenChange={setIsMovementDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" disabled={isReadOnly}>
                 <History className="mr-2 h-4 w-4" />
                 Movimentar
               </Button>
@@ -398,7 +400,7 @@ const Estoque = () => {
                     placeholder="Descreva o motivo da movimentação"
                   />
                 </div>
-                <Button onClick={handleStockMovement} className="w-full">
+                <Button onClick={handleStockMovement} className="w-full" disabled={isReadOnly}>
                   Confirmar Movimentação
                 </Button>
               </div>
@@ -406,7 +408,7 @@ const Estoque = () => {
           </Dialog>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button disabled={isReadOnly}>
                 <Plus className="mr-2 h-4 w-4" />
                 Novo Item
               </Button>

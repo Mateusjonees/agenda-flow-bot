@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useReadOnly } from "@/components/SubscriptionGuard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -38,6 +39,7 @@ interface PaymentMethodTotal {
 
 const Financeiro = () => {
   const { toast } = useToast();
+  const { isReadOnly } = useReadOnly();
   const [summary, setSummary] = useState<FinancialSummary>({
     income: 0,
     expenses: 0,
@@ -315,7 +317,7 @@ const Financeiro = () => {
               <Button variant="outline" onClick={() => setCategoryDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleCreateCategory}>
+              <Button onClick={handleCreateCategory} disabled={isReadOnly}>
                 Criar Categoria
               </Button>
             </div>
@@ -330,7 +332,7 @@ const Financeiro = () => {
         </div>
         <div className="flex gap-3">
           <DailyClosing />
-          <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+          <Button className="gap-2" onClick={() => setDialogOpen(true)} disabled={isReadOnly}>
             <Plus className="w-4 h-4" />
             Nova Transação
           </Button>

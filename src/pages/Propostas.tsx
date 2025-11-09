@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useReadOnly } from "@/components/SubscriptionGuard";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -68,6 +69,7 @@ const Propostas = () => {
   const [deleteProposalId, setDeleteProposalId] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
   const { toast } = useToast();
+  const { isReadOnly } = useReadOnly();
 
   // Filtros e tabs
   const [activeTab, setActiveTab] = useState<string>("all");
@@ -574,7 +576,7 @@ _${businessName}_
           
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-xl hover:scale-105 transition-all w-full sm:w-auto flex-shrink-0 text-sm sm:text-base">
+              <Button className="gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-xl hover:scale-105 transition-all w-full sm:w-auto flex-shrink-0 text-sm sm:text-base" disabled={isReadOnly}>
                 <Plus className="w-4 h-4" />
                 <span className="sm:inline">Novo Orçamento</span>
               </Button>
@@ -961,7 +963,7 @@ _${businessName}_
                   <Button 
                     onClick={handleCreateProposal} 
                     className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:shadow-xl hover:scale-[1.02] transition-all"
-                    disabled={loading || !newProposal.customer_id || !newProposal.title || newProposal.services.some(s => !s.description || s.quantity <= 0 || s.unit_price <= 0)}
+                    disabled={loading || !newProposal.customer_id || !newProposal.title || newProposal.services.some(s => !s.description || s.quantity <= 0 || s.unit_price <= 0) || isReadOnly}
                   >
                     {loading ? (
                       <>

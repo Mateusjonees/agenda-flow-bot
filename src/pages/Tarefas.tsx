@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useReadOnly } from "@/components/SubscriptionGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -21,6 +22,7 @@ import { cn } from "@/lib/utils";
 const Tarefas = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isReadOnly } = useReadOnly();
   const [stats, setStats] = useState({
     pending: 0,
     completed: 0,
@@ -224,7 +226,7 @@ const Tarefas = () => {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button disabled={isReadOnly}>
               <Plus className="h-4 w-4 mr-2" />
               Nova Tarefa
             </Button>
@@ -337,7 +339,7 @@ const Tarefas = () => {
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit">Criar Tarefa</Button>
+                <Button type="submit" disabled={isReadOnly}>Criar Tarefa</Button>
               </div>
             </form>
           </DialogContent>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useReadOnly } from "@/components/SubscriptionGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ interface Service {
 const Servicos = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isReadOnly } = useReadOnly();
   const [loading, setLoading] = useState(true);
   const [services, setServices] = useState<Service[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -278,13 +280,13 @@ const Servicos = () => {
           <p className="text-muted-foreground">Gerencie os serviços oferecidos pelo seu negócio</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsPackageDialogOpen(true)}>
+          <Button variant="outline" onClick={() => setIsPackageDialogOpen(true)} disabled={isReadOnly}>
             <Layers className="mr-2 h-4 w-4" />
             Criar Pacote
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => setEditingService(null)}>
+              <Button onClick={() => setEditingService(null)} disabled={isReadOnly}>
                 <Plus className="mr-2 h-4 w-4" />
                 Novo Serviço
               </Button>
@@ -380,7 +382,7 @@ const Servicos = () => {
                 />
               </div>
 
-              <Button onClick={handleSubmit} className="w-full">
+              <Button onClick={handleSubmit} className="w-full" disabled={isReadOnly}>
                 {editingService ? "Atualizar Serviço" : "Criar Serviço"}
               </Button>
             </div>
@@ -459,7 +461,7 @@ const Servicos = () => {
           <CardContent className="flex flex-col items-center justify-center py-10">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-4">Nenhum serviço cadastrado</p>
-            <Button onClick={() => setIsDialogOpen(true)}>
+            <Button onClick={() => setIsDialogOpen(true)} disabled={isReadOnly}>
               <Plus className="mr-2 h-4 w-4" />
               Criar Primeiro Serviço
             </Button>
@@ -501,6 +503,7 @@ const Servicos = () => {
                       className="h-8 w-8"
                       onClick={() => handleDuplicate(service)}
                       title="Duplicar serviço"
+                      disabled={isReadOnly}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -509,6 +512,7 @@ const Servicos = () => {
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => handleEdit(service)}
+                      disabled={isReadOnly}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -517,6 +521,7 @@ const Servicos = () => {
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => handleDelete(service.id)}
+                      disabled={isReadOnly}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

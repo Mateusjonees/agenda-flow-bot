@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useReadOnly } from "@/components/SubscriptionGuard";
 import { Calendar, Users, CheckCircle2, TrendingUp, ListTodo, Plus, Clock, DollarSign, Package, Sparkles } from "lucide-react";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, parseISO, subDays, eachDayOfInterval, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -31,6 +32,7 @@ type Appointment = {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { isReadOnly } = useReadOnly();
   const [stats, setStats] = useState<Stats>({
     todayAppointments: 0,
     weekAppointments: 0,
@@ -411,6 +413,7 @@ const Dashboard = () => {
                   variant="outline"
                   className="group relative h-auto p-4 flex flex-col items-start gap-3 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-2 hover:border-primary/50 overflow-hidden"
                   onClick={action.action}
+                  disabled={isReadOnly}
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${action.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
                   
