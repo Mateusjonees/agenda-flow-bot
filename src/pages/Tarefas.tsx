@@ -69,7 +69,7 @@ const Tarefas = () => {
       .from("tasks")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .in("status", ["pending", "in_progress"]);
+      .eq("status", "pending");
 
     const { count: completedCount } = await supabase
       .from("tasks")
@@ -89,7 +89,7 @@ const Tarefas = () => {
       .from("tasks")
       .select("type")
       .eq("user_id", user.id)
-      .in("status", ["pending", "in_progress"]);
+      .eq("status", "pending");
 
     const typeCounts: Record<string, number> = {};
     typeData?.forEach((task) => {
@@ -330,7 +330,6 @@ const Tarefas = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">Pendente</SelectItem>
-                    <SelectItem value="in_progress">Em Progresso</SelectItem>
                     <SelectItem value="completed">Concluída</SelectItem>
                   </SelectContent>
                 </Select>
@@ -427,7 +426,6 @@ const Tarefas = () => {
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="in_progress">Em Progresso</SelectItem>
                   <SelectItem value="completed">Concluída</SelectItem>
                   <SelectItem value="cancelled">Cancelada</SelectItem>
                 </SelectContent>

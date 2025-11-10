@@ -168,7 +168,6 @@ export const EditTaskDialog = ({ task, open, onOpenChange, onTaskUpdated }: Edit
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">Pendente</SelectItem>
-                    <SelectItem value="in_progress">Em Progresso</SelectItem>
                     <SelectItem value="completed">Concluída</SelectItem>
                     <SelectItem value="cancelled">Cancelada</SelectItem>
                   </SelectContent>
