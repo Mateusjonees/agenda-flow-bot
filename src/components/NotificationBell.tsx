@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, Calendar, ListTodo, Check } from "lucide-react";
+import { Bell, Calendar, ListTodo, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -46,7 +46,16 @@ export function NotificationBell() {
       tomorrow.setDate(tomorrow.getDate() + 1);
 
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { appointments: [], tasks: [] };
+      if (!user) return { appointments: [], tasks: [], subscription: null };
+
+      // Buscar assinatura do usuário
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("*, subscription_plans(*)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       // Buscar visualizações do usuário
       const { data: viewsData } = await supabase
@@ -60,6 +69,7 @@ export function NotificationBell() {
       const viewedTasks = new Set(
         viewsData?.filter(v => v.notification_type === "task").map(v => v.notification_id) || []
       );
+      const viewedSubscription = viewsData?.some(v => v.notification_type === "subscription") || false;
 
       // Buscar atendimentos do dia
       const { data: appointmentsData } = await supabase
@@ -84,9 +94,26 @@ export function NotificationBell() {
       const unviewedAppointments = (appointmentsData || []).filter(apt => !viewedAppointments.has(apt.id));
       const unviewedTasks = (tasksData || []).filter(task => !viewedTasks.has(task.id));
 
+      // Verificar se deve mostrar notificação de assinatura
+      let subscriptionNotification = null;
+      if (subscription && !viewedSubscription) {
+        const nextBilling = subscription.next_billing_date ? new Date(subscription.next_billing_date) : null;
+        const daysRemaining = nextBilling ? Math.ceil((nextBilling.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+        
+        // Mostrar se está em trial e faltam 3 dias ou menos, ou se está expirado
+        if ((subscription.status === "trial" && daysRemaining <= 3) || subscription.status === "expired") {
+          subscriptionNotification = {
+            status: subscription.status,
+            daysRemaining,
+            planName: subscription.subscription_plans?.name || "Plano",
+          };
+        }
+      }
+
       return {
         appointments: unviewedAppointments,
         tasks: unviewedTasks,
+        subscription: subscriptionNotification,
       };
     },
     refetchInterval: 30000, // Refetch a cada 30 segundos
@@ -173,13 +200,31 @@ export function NotificationBell() {
     }
   };
 
+  const handleSubscriptionClick = async () => {
+    // Marcar notificação de assinatura como vista
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from("notification_views")
+        .upsert({
+          user_id: user.id,
+          notification_id: "subscription_warning",
+          notification_type: "subscription",
+        }, {
+          onConflict: 'user_id,notification_type,notification_id'
+        });
+    }
+    navigate("/planos");
+    setOpen(false);
+  };
+
   const handleClearAll = () => {
     markAllAsViewed.mutate();
     setHasViewedPopover(false);
   };
 
   const totalNotifications = notifications
-    ? notifications.appointments.length + notifications.tasks.length
+    ? notifications.appointments.length + notifications.tasks.length + (notifications.subscription ? 1 : 0)
     : 0;
 
   // Resetar o estado apenas quando NOVAS notificações chegarem
@@ -244,6 +289,45 @@ export function NotificationBell() {
             </div>
           ) : (
             <div className="p-2">
+              {/* Notificação de Assinatura */}
+              {notifications?.subscription && (
+                <div className="mb-2">
+                  <div
+                    className={`flex items-start gap-3 p-3 rounded-md cursor-pointer transition-colors ${
+                      notifications.subscription.status === "expired"
+                        ? "bg-destructive/10 hover:bg-destructive/20 border border-destructive/20"
+                        : "bg-yellow-50 dark:bg-yellow-950 hover:bg-yellow-100 dark:hover:bg-yellow-900 border border-yellow-200 dark:border-yellow-800"
+                    }`}
+                    onClick={handleSubscriptionClick}
+                  >
+                    <AlertCircle className={`w-5 h-5 flex-shrink-0 ${
+                      notifications.subscription.status === "expired"
+                        ? "text-destructive"
+                        : "text-yellow-600 dark:text-yellow-400"
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold">
+                        {notifications.subscription.status === "expired"
+                          ? "Assinatura Expirada"
+                          : "Período de teste acabando"}
+                      </p>
+                      <p className="text-xs mt-1 text-muted-foreground">
+                        {notifications.subscription.status === "expired"
+                          ? "Renove agora para continuar usando"
+                          : `Restam ${notifications.subscription.daysRemaining} ${notifications.subscription.daysRemaining === 1 ? 'dia' : 'dias'}`}
+                      </p>
+                      <Button size="sm" className="mt-2 h-7 text-xs">
+                        Ver Planos
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {notifications?.subscription && (appointments.length > 0 || tasks.length > 0) && (
+                <Separator className="my-2" />
+              )}
+
               {appointments.length > 0 && (
                 <div className="mb-2">
                   <div className="flex items-center gap-2 px-2 py-1.5">

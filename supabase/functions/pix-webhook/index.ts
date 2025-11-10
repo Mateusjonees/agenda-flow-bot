@@ -67,12 +67,87 @@ const handler = async (req: Request): Promise<Response> => {
       throw updateError;
     }
 
-    // The trigger will automatically:
-    // 1. Update appointment payment status
-    // 2. Create/update financial transaction
-    // 3. Mark as paid in the system
-
     console.log("Pix charge updated successfully:", pixCharge.id);
+
+    // Process subscription if this is a subscription payment
+    if (payload.status === "paid" && pixCharge.metadata) {
+      const metadata = typeof pixCharge.metadata === 'string' 
+        ? JSON.parse(pixCharge.metadata) 
+        : pixCharge.metadata;
+
+      if (metadata?.userId && metadata?.planId) {
+        console.log("Processing subscription payment for user:", metadata.userId);
+
+        // Check if subscription exists
+        const { data: existingSub } = await supabaseClient
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", metadata.userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const startDate = new Date();
+        const nextBillingDate = new Date(startDate);
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + (metadata.months || 1));
+
+        if (existingSub) {
+          // Update existing subscription
+          const { error: subUpdateError } = await supabaseClient
+            .from("subscriptions")
+            .update({
+              status: "active",
+              plan_id: metadata.planId || existingSub.plan_id,
+              start_date: startDate.toISOString(),
+              next_billing_date: nextBillingDate.toISOString(),
+              last_billing_date: startDate.toISOString(),
+              failed_payments_count: 0,
+            })
+            .eq("id", existingSub.id);
+
+          if (subUpdateError) {
+            console.error("Error updating subscription:", subUpdateError);
+          } else {
+            console.log("Subscription updated successfully");
+          }
+        } else {
+          // Create new subscription
+          const { error: subCreateError } = await supabaseClient
+            .from("subscriptions")
+            .insert({
+              user_id: metadata.userId,
+              plan_id: metadata.planId,
+              status: "active",
+              start_date: startDate.toISOString(),
+              next_billing_date: nextBillingDate.toISOString(),
+              last_billing_date: startDate.toISOString(),
+            });
+
+          if (subCreateError) {
+            console.error("Error creating subscription:", subCreateError);
+          } else {
+            console.log("Subscription created successfully");
+          }
+        }
+
+        // Create financial transaction for subscription
+        const { error: transError } = await supabaseClient
+          .from("financial_transactions")
+          .insert({
+            user_id: metadata.userId,
+            type: "income",
+            amount: payload.amount,
+            description: `Assinatura ${metadata.billingFrequency || 'Renovação'} - PIX`,
+            payment_method: "pix",
+            status: "completed",
+            transaction_date: new Date().toISOString(),
+          });
+
+        if (transError) {
+          console.error("Error creating financial transaction:", transError);
+        }
+      }
+    }
 
     // TODO: Send WhatsApp confirmation message to customer
     // You can call send-whatsapp function here

@@ -55,24 +55,48 @@ const handler = async (req: Request): Promise<Response> => {
     const metadata = payment.metadata;
     const status = payment.status;
 
-    if (status === "approved") {
-      // Create subscription
-      const { data: planData } = await supabaseClient
-        .from("subscription_plans")
+    console.log("Payment status:", status);
+    console.log("Payment metadata:", metadata);
+
+    if (status === "approved" && metadata?.userId) {
+      // Check if subscription already exists
+      const { data: existingSub } = await supabaseClient
+        .from("subscriptions")
         .select("*")
-        .eq("id", metadata.planId)
-        .single();
+        .eq("user_id", metadata.userId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (planData) {
-        const startDate = new Date();
-        const nextBillingDate = new Date(startDate);
-        nextBillingDate.setMonth(nextBillingDate.getMonth() + metadata.months);
+      const startDate = new Date();
+      const nextBillingDate = new Date(startDate);
+      nextBillingDate.setMonth(nextBillingDate.getMonth() + (metadata.months || 1));
 
-        const { error: subError } = await supabaseClient
+      if (existingSub) {
+        // Update existing subscription
+        const { error: updateError } = await supabaseClient
+          .from("subscriptions")
+          .update({
+            status: "active",
+            plan_id: metadata.planId || existingSub.plan_id,
+            start_date: startDate.toISOString(),
+            next_billing_date: nextBillingDate.toISOString(),
+            last_billing_date: startDate.toISOString(),
+            failed_payments_count: 0,
+          })
+          .eq("id", existingSub.id);
+
+        if (updateError) {
+          console.error("Error updating subscription:", updateError);
+        } else {
+          console.log("Subscription updated successfully");
+        }
+      } else {
+        // Create new subscription
+        const { error: createError } = await supabaseClient
           .from("subscriptions")
           .insert({
             user_id: metadata.userId,
-            customer_id: metadata.userId, // Using user as customer
             plan_id: metadata.planId,
             status: "active",
             start_date: startDate.toISOString(),
@@ -80,28 +104,28 @@ const handler = async (req: Request): Promise<Response> => {
             last_billing_date: startDate.toISOString(),
           });
 
-        if (subError) {
-          console.error("Error creating subscription:", subError);
+        if (createError) {
+          console.error("Error creating subscription:", createError);
         } else {
           console.log("Subscription created successfully");
         }
+      }
 
-        // Create financial transaction
-        const { error: transError } = await supabaseClient
-          .from("financial_transactions")
-          .insert({
-            user_id: metadata.userId,
-            type: "income",
-            amount: payment.transaction_amount,
-            description: `Assinatura ${metadata.billingFrequency}`,
-            payment_method: payment.payment_type_id,
-            status: "completed",
-            transaction_date: new Date().toISOString(),
-          });
+      // Create financial transaction
+      const { error: transError } = await supabaseClient
+        .from("financial_transactions")
+        .insert({
+          user_id: metadata.userId,
+          type: "income",
+          amount: payment.transaction_amount,
+          description: `Assinatura ${metadata.billingFrequency || 'Renovação'}`,
+          payment_method: payment.payment_type_id,
+          status: "completed",
+          transaction_date: new Date().toISOString(),
+        });
 
-        if (transError) {
-          console.error("Error creating transaction:", transError);
-        }
+      if (transError) {
+        console.error("Error creating transaction:", transError);
       }
     }
 
