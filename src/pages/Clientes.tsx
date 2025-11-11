@@ -137,6 +137,7 @@ const Clientes = () => {
 
     if (!error && data) {
       setCustomers(data);
+      setFilteredCustomers(data);
     }
     setLoading(false);
   };
@@ -189,7 +190,7 @@ const Clientes = () => {
       });
       setDialogOpen(false);
       setNewCustomer({ name: "", phone: "", email: "", cpf: "", notes: "" });
-      fetchCustomers();
+      await fetchCustomers();
     }
   };
 
@@ -334,7 +335,7 @@ const Clientes = () => {
         description: "As informações foram atualizadas com sucesso.",
       });
       setEditDialogOpen(false);
-      fetchCustomers();
+      await fetchCustomers();
       // Atualizar selectedCustomer se for o mesmo
       if (selectedCustomer && selectedCustomer.id === editCustomer.id) {
         setSelectedCustomer({
@@ -371,7 +372,7 @@ const Clientes = () => {
       setDeleteDialogOpen(false);
       setDetailsOpen(false);
       setCustomerToDelete(null);
-      fetchCustomers();
+      await fetchCustomers();
     }
   };
 
