@@ -105,20 +105,21 @@ const Clientes = () => {
 
   useEffect(() => {
     // Aplicar filtros de busca
-    if (!searchTerm) {
+    if (!searchTerm || searchTerm.trim() === "") {
       setFilteredCustomers(customers);
       return;
     }
 
     const filtered = customers.filter(customer => {
-      const searchLower = searchTerm.toLowerCase();
-      const cpfClean = searchTerm.replace(/\D/g, ''); // Remove pontuação para busca
+      const searchLower = searchTerm.toLowerCase().trim();
+      const cpfClean = searchTerm.replace(/\D/g, '');
       
       return (
-        customer.name.toLowerCase().includes(searchLower) ||
-        customer.phone.includes(searchTerm) ||
-        (customer.email?.toLowerCase() || "").includes(searchLower) ||
-        (customer.cpf?.replace(/\D/g, '') || "").includes(cpfClean)
+        customer.name?.toLowerCase().includes(searchLower) ||
+        customer.phone?.includes(searchTerm) ||
+        customer.phone?.replace(/\D/g, '').includes(cpfClean) ||
+        customer.email?.toLowerCase().includes(searchLower) ||
+        customer.cpf?.replace(/\D/g, '').includes(cpfClean)
       );
     });
 
