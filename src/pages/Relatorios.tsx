@@ -612,11 +612,11 @@ const Relatorios = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Relatórios Inteligentes</h1>
-          <p className="text-muted-foreground">Insights e ações para o crescimento do seu negócio</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">Relatórios Inteligentes</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Insights e ações para o crescimento do seu negócio</p>
         </div>
         
         {/* Filtros e Exportação */}
@@ -627,10 +627,10 @@ const Relatorios = () => {
             size="sm"
             onClick={exportToExcel}
             disabled={!financialSummary}
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-initial"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span className="hidden sm:inline">Excel</span>
+            <span>Excel</span>
           </Button>
           
           <Button
@@ -638,17 +638,17 @@ const Relatorios = () => {
             size="sm"
             onClick={exportToPDF}
             disabled={!financialSummary}
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-initial"
           >
             <FileText className="w-4 h-4" />
-            <span className="hidden sm:inline">PDF</span>
+            <span>PDF</span>
           </Button>
           
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
                 <CalendarIcon className="w-4 h-4" />
-                {getFilterLabel()}
+                <span className="text-xs sm:text-sm truncate">{getFilterLabel()}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80" align="end">
@@ -695,7 +695,7 @@ const Relatorios = () => {
           </Popover>
 
           <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px] h-9">
               <SelectValue placeholder="Método de pagamento" />
             </SelectTrigger>
             <SelectContent>
@@ -711,60 +711,60 @@ const Relatorios = () => {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="financial">Financeiro</TabsTrigger>
-          <TabsTrigger value="services">Serviços</TabsTrigger>
-          <TabsTrigger value="inventory">Estoque</TabsTrigger>
-          <TabsTrigger value="inactive">Clientes</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm px-2 py-2">Geral</TabsTrigger>
+          <TabsTrigger value="financial" className="text-xs sm:text-sm px-2 py-2">Financeiro</TabsTrigger>
+          <TabsTrigger value="services" className="text-xs sm:text-sm px-2 py-2">Serviços</TabsTrigger>
+          <TabsTrigger value="inventory" className="text-xs sm:text-sm px-2 py-2">Estoque</TabsTrigger>
+          <TabsTrigger value="inactive" className="text-xs sm:text-sm px-2 py-2">Clientes</TabsTrigger>
+          <TabsTrigger value="performance" className="text-xs sm:text-sm px-2 py-2">Performance</TabsTrigger>
         </TabsList>
 
         {/* Visão Geral */}
         <TabsContent value="overview" className="space-y-4">
           {/* Comparação com Período Anterior */}
           {comparisonData && (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
               <Card className="border-l-4 border-l-primary">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="flex items-center justify-between text-sm sm:text-base">
                     <span className="flex items-center gap-2">
-                      <DollarSign className="w-5 h-5 text-primary" />
-                      Receita vs Período Anterior
+                      <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                      <span className="text-xs sm:text-base">Receita vs Período Anterior</span>
                     </span>
                     {comparisonData.revenue_growth >= 0 ? (
-                      <ArrowUpRight className="w-5 h-5 text-accent" />
+                      <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
                     ) : (
-                      <ArrowDownRight className="w-5 h-5 text-destructive" />
+                      <ArrowDownRight className="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
                     )}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Período Atual</p>
-                      <p className="text-2xl font-bold text-primary">
+                      <p className="text-xs sm:text-sm text-muted-foreground">Período Atual</p>
+                      <p className="text-xl sm:text-2xl font-bold text-primary">
                         {formatCurrency(comparisonData.current_revenue)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Período Anterior</p>
-                      <p className="text-lg font-semibold text-muted-foreground">
+                      <p className="text-xs sm:text-sm text-muted-foreground">Período Anterior</p>
+                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">
                         {formatCurrency(comparisonData.previous_revenue)}
                       </p>
                     </div>
                   </div>
-                  <div className={`flex items-center gap-2 p-3 rounded-lg ${
+                  <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${
                     comparisonData.revenue_growth >= 0 
                       ? 'bg-accent/10 text-accent' 
                       : 'bg-destructive/10 text-destructive'
                   }`}>
-                    <Percent className="w-4 h-4" />
-                    <span className="font-bold text-lg">
+                    <Percent className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="font-bold text-base sm:text-lg">
                       {comparisonData.revenue_growth >= 0 ? '+' : ''}
                       {comparisonData.revenue_growth.toFixed(1)}%
                     </span>
-                    <span className="text-sm">
+                    <span className="text-xs sm:text-sm">
                       {comparisonData.revenue_growth >= 0 ? 'de crescimento' : 'de queda'}
                     </span>
                   </div>
@@ -772,45 +772,45 @@ const Relatorios = () => {
               </Card>
 
               <Card className="border-l-4 border-l-accent">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="flex items-center justify-between text-sm sm:text-base">
                     <span className="flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5 text-accent" />
-                      Agendamentos Concluídos
+                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
+                      <span className="text-xs sm:text-base">Agendamentos Concluídos</span>
                     </span>
                     {comparisonData.appointments_growth >= 0 ? (
-                      <ArrowUpRight className="w-5 h-5 text-accent" />
+                      <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
                     ) : (
-                      <ArrowDownRight className="w-5 h-5 text-destructive" />
+                      <ArrowDownRight className="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
                     )}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Período Atual</p>
-                      <p className="text-2xl font-bold text-accent">
+                      <p className="text-xs sm:text-sm text-muted-foreground">Período Atual</p>
+                      <p className="text-xl sm:text-2xl font-bold text-accent">
                         {comparisonData.current_appointments}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Período Anterior</p>
-                      <p className="text-lg font-semibold text-muted-foreground">
+                      <p className="text-xs sm:text-sm text-muted-foreground">Período Anterior</p>
+                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">
                         {comparisonData.previous_appointments}
                       </p>
                     </div>
                   </div>
-                  <div className={`flex items-center gap-2 p-3 rounded-lg ${
+                  <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${
                     comparisonData.appointments_growth >= 0 
                       ? 'bg-accent/10 text-accent' 
                       : 'bg-destructive/10 text-destructive'
                   }`}>
-                    <Percent className="w-4 h-4" />
-                    <span className="font-bold text-lg">
+                    <Percent className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="font-bold text-base sm:text-lg">
                       {comparisonData.appointments_growth >= 0 ? '+' : ''}
                       {comparisonData.appointments_growth.toFixed(1)}%
                     </span>
-                    <span className="text-sm">
+                    <span className="text-xs sm:text-sm">
                       {comparisonData.appointments_growth >= 0 ? 'de crescimento' : 'de queda'}
                     </span>
                   </div>
@@ -821,62 +821,62 @@ const Relatorios = () => {
 
           {/* Cards de Resumo */}
           {financialSummary && appointmentStats && (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Total de Agendamentos</CardTitle>
-                  <Calendar className="w-4 h-4 text-primary" />
+                <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 sm:p-6">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Total de Agendamentos</CardTitle>
+                  <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{appointmentStats.total_appointments}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                <CardContent className="p-3 sm:p-6 pt-0">
+                  <div className="text-xl sm:text-2xl font-bold">{appointmentStats.total_appointments}</div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                     {appointmentStats.completed} concluídos
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Taxa de Conclusão</CardTitle>
-                  <Activity className="w-4 h-4 text-accent" />
+                <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 sm:p-6">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Taxa de Conclusão</CardTitle>
+                  <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-accent">
+                <CardContent className="p-3 sm:p-6 pt-0">
+                  <div className="text-xl sm:text-2xl font-bold text-accent">
                     {appointmentStats.completion_rate.toFixed(1)}%
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                     {appointmentStats.completed} de {appointmentStats.total_appointments}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Taxa de Cancelamento</CardTitle>
-                  <XCircle className="w-4 h-4 text-destructive" />
+                <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 sm:p-6">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Taxa de Cancelamento</CardTitle>
+                  <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-destructive" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-destructive">
+                <CardContent className="p-3 sm:p-6 pt-0">
+                  <div className="text-xl sm:text-2xl font-bold text-destructive">
                     {appointmentStats.cancellation_rate.toFixed(1)}%
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                     {appointmentStats.canceled} cancelados
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
-                  <Sparkles className="w-4 h-4 text-primary" />
+                <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 sm:p-6">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Ticket Médio</CardTitle>
+                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-primary">
+                <CardContent className="p-3 sm:p-6 pt-0">
+                  <div className="text-xl sm:text-2xl font-bold text-primary">
                     {appointmentStats.completed > 0
                       ? formatCurrency(financialSummary.total_revenue / appointmentStats.completed)
                       : formatCurrency(0)}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                     Por agendamento concluído
                   </p>
                 </CardContent>
