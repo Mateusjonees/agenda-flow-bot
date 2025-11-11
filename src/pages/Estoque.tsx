@@ -153,6 +153,14 @@ const Estoque = () => {
     const costPrice = newItem.cost_price ? parseFloat(newItem.cost_price) : 0;
     const totalCost = currentStock * costPrice;
 
+    console.log("🔍 Criando item com estoque:", {
+      name: newItem.name,
+      currentStock,
+      costPrice,
+      totalCost,
+      willCreateExpense: currentStock > 0 && costPrice > 0
+    });
+
     const { error } = await supabase.from("inventory_items").insert([{
       user_id: user.id,
       name: newItem.name,
@@ -166,6 +174,7 @@ const Estoque = () => {
     }]);
 
     if (error) {
+      console.error("❌ Erro ao criar item:", error);
       toast({
         title: "Erro ao criar item",
         description: error.message,
@@ -174,9 +183,12 @@ const Estoque = () => {
       return;
     }
 
+    console.log("✅ Item criado com sucesso!");
+
     // Se tiver estoque inicial e custo, registrar despesa no financeiro
     if (currentStock > 0 && costPrice > 0) {
-      const { error: transactionError } = await supabase
+      console.log("💰 Criando transação financeira...");
+      const { data: transactionData, error: transactionError } = await supabase
         .from("financial_transactions")
         .insert({
           user_id: user.id,
@@ -186,21 +198,32 @@ const Estoque = () => {
           payment_method: "cash",
           status: "completed",
           transaction_date: new Date().toISOString(),
-        });
+        })
+        .select();
+
+      console.log("📊 Resultado da transação:", {
+        success: !transactionError,
+        transactionId: transactionData?.[0]?.id,
+        error: transactionError
+      });
 
       if (transactionError) {
+        console.error("❌ Erro ao criar transação:", transactionError);
         toast({
           title: "Item criado",
-          description: "Mas não foi possível registrar a despesa no financeiro.",
+          description: `Erro ao registrar despesa: ${transactionError.message}`,
           variant: "destructive",
         });
       } else {
+        console.log("✅ Transação financeira criada! ID:", transactionData?.[0]?.id);
         toast({
           title: "✅ Item e despesa criados!",
-          description: `Despesa de ${formatCurrency(totalCost)} registrada no financeiro.`,
+          description: `Item adicionado e despesa de ${formatCurrency(totalCost)} registrada no financeiro.`,
         });
       }
     } else {
+      const reason = currentStock === 0 ? "Estoque inicial é 0" : "Custo não informado";
+      console.log(`ℹ️ Não criando despesa: ${reason}`);
       toast({
         title: "Item criado com sucesso!",
         description: currentStock > 0 ? "💡 Dica: Informe o custo de compra para registrar automaticamente no financeiro." : undefined,
