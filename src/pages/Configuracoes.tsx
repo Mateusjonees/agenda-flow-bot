@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { SubscriptionManager } from "@/components/SubscriptionManager";
 
 const Configuracoes = () => {
   const queryClient = useQueryClient();
@@ -358,31 +359,6 @@ const Configuracoes = () => {
     },
   });
 
-  // Mutation para criar preferência de assinatura no Mercado Pago
-  const createSubscriptionMutation = useMutation({
-    mutationFn: async (planType: "monthly" | "semestral" | "annual") => {
-      if (!user) throw new Error("Usuário não autenticado");
-
-      const { data, error } = await supabase.functions.invoke("create-subscription-preference", {
-        body: { planType },
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      if (data.init_point) {
-        // Redirecionar para o checkout do Mercado Pago
-        window.location.href = data.init_point;
-      }
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Erro ao criar assinatura");
-    },
-  });
-
-
-
   return (
     <div className="space-y-6">
       <div>
@@ -429,6 +405,9 @@ const Configuracoes = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Gerenciamento de Assinatura */}
+      <SubscriptionManager />
 
       <Card>
         <CardHeader>
@@ -743,68 +722,6 @@ const Configuracoes = () => {
       </Card>
 
       <Separator />
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-primary" />
-            Minha Assinatura
-          </CardTitle>
-          <CardDescription>Assine via Mercado Pago para acessar todos os recursos</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Escolha um plano e complete o pagamento via Mercado Pago para desbloquear todos os recursos da plataforma.
-          </p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Button
-              onClick={() => createSubscriptionMutation.mutate("monthly")}
-              disabled={createSubscriptionMutation.isPending}
-              variant="outline"
-              className="gap-2 h-auto py-4 flex-col"
-            >
-              <CreditCard className="w-5 h-5" />
-              <div className="text-center">
-                <div className="font-bold text-lg">R$ 97</div>
-                <div className="text-xs opacity-90">por 1 mês</div>
-                <div className="text-xs opacity-75 mt-1">Ideal para começar</div>
-              </div>
-            </Button>
-            <Button
-              onClick={() => createSubscriptionMutation.mutate("semestral")}
-              disabled={createSubscriptionMutation.isPending}
-              variant="outline"
-              className="gap-2 h-auto py-4 flex-col border-2 border-primary relative"
-            >
-              <Badge className="absolute -top-2 bg-destructive text-destructive-foreground">MAIS POPULAR</Badge>
-              <Star className="w-5 h-5" />
-              <div className="text-center">
-                <div className="font-bold text-lg">R$ 582</div>
-                <div className="text-xs opacity-75 line-through">R$ 679</div>
-                <div className="text-xs opacity-90 mt-1">7 meses pelo preço de 6</div>
-                <Badge variant="secondary" className="mt-1 text-xs">Economize 14%</Badge>
-              </div>
-            </Button>
-            <Button
-              onClick={() => createSubscriptionMutation.mutate("annual")}
-              disabled={createSubscriptionMutation.isPending}
-              variant="outline"
-              className="gap-2 h-auto py-4 flex-col"
-            >
-              <CreditCard className="w-5 h-5" />
-              <div className="text-center">
-                <div className="font-bold text-lg">R$ 1164</div>
-                <div className="text-xs opacity-75 line-through">R$ 1358</div>
-                <div className="text-xs opacity-90 mt-1">14 meses pelo preço de 12</div>
-                <Badge variant="secondary" className="mt-1 text-xs">Economize 17%</Badge>
-              </div>
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground text-center pt-2">
-            Pagamento seguro processado pelo Mercado Pago
-          </p>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
