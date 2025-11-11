@@ -47,7 +47,15 @@ export function useSubscriptionStatus() {
   // Estados derivados
   const isActive = subscription?.status === "active" || subscription?.status === "trial";
   const isTrial = subscription?.status === "trial";
-  const isExpired = subscription?.status === "expired" || subscription?.status === "cancelled";
+  
+  // Assinatura cancelada ainda tem acesso até next_billing_date
+  const isCancelled = subscription?.status === "cancelled";
+  const hasAccessUntil = subscription?.next_billing_date 
+    ? new Date(subscription.next_billing_date).getTime() > new Date().getTime()
+    : false;
+  
+  // Só está expirado se o status for "expired" OU se cancelou e já passou da data de acesso
+  const isExpired = subscription?.status === "expired" || (isCancelled && !hasAccessUntil);
   
   const daysRemaining = subscription?.next_billing_date
     ? Math.ceil((new Date(subscription.next_billing_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
