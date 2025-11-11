@@ -12,7 +12,6 @@ import {
   Package,
   MessageCircle,
   FolderOpen,
-  Briefcase,
   CreditCard,
 } from "lucide-react";
 import {
@@ -32,7 +31,6 @@ const navItems = [
   { path: "/tarefas", label: "Tarefas", icon: ListTodo },
   { path: "/agendamentos", label: "Agenda", icon: Calendar },
   { path: "/clientes", label: "Clientes", icon: Users },
-  { path: "/servicos", label: "Serviços", icon: Briefcase },
   { path: "/propostas", label: "Orçamentos", icon: FileText },
   { path: "/assinaturas", label: "Assinaturas", icon: Repeat },
   { path: "/estoque", label: "Estoque", icon: Package },
