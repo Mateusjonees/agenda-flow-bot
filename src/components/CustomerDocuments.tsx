@@ -460,129 +460,140 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
             </TabsList>
 
             {/* Documentos Anexados */}
-            <TabsContent value="attached" className="mt-4">
-              <div className="flex items-center justify-between mb-4">
+            <TabsContent value="attached" className="mt-3 sm:mt-4">
+              <div className="mb-3 sm:mb-4">
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button size="sm" variant="outline" className="gap-2">
+                    <Button size="sm" variant="outline" className="w-full sm:w-auto gap-2">
                       <Plus className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Adicionar</span>
+                      <span>Adicionar Documento</span>
                     </Button>
                   </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Adicionar Documento</DialogTitle>
-                <DialogDescription>
-                  Anexe contratos, documentos ou outros arquivos relevantes
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="file-upload">Arquivo *</Label>
-                  <div className="mt-2">
-                    <Input
-                      id="file-upload"
-                      type="file"
-                      onChange={handleFileSelect}
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    />
-                    {selectedFile && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                      </p>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Máximo 10MB. Formatos: PDF, DOC, DOCX, JPG, PNG
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="description">Descrição</Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Descreva o documento..."
-                    rows={3}
-                  />
-                </div>
-                <Button 
-                  onClick={handleUpload} 
-                  disabled={!selectedFile || uploading}
-                  className="w-full"
-                >
-                  {uploading ? (
-                    <>
-                      <Upload className="w-4 h-4 mr-2 animate-spin" />
-                      Enviando...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Enviar Documento
-                    </>
-                  )}
-                </Button>
-              </div>
+                  <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle className="text-base sm:text-lg">Adicionar Documento</DialogTitle>
+                      <DialogDescription className="text-xs sm:text-sm">
+                        Anexe contratos, documentos ou outros arquivos relevantes
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 sm:space-y-4">
+                      <div>
+                        <Label htmlFor="file-upload" className="text-xs sm:text-sm">Arquivo *</Label>
+                        <div className="mt-2">
+                          <Input
+                            id="file-upload"
+                            type="file"
+                            onChange={handleFileSelect}
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                            className="text-xs sm:text-sm"
+                          />
+                          {selectedFile && (
+                            <p className="text-xs text-muted-foreground mt-2 truncate">
+                              {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                            </p>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Máximo 10MB. Formatos: PDF, DOC, DOCX, JPG, PNG
+                        </p>
+                      </div>
+                      <div>
+                        <Label htmlFor="description" className="text-xs sm:text-sm">Descrição</Label>
+                        <Textarea
+                          id="description"
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          placeholder="Descreva o documento..."
+                          rows={3}
+                          className="text-xs sm:text-sm"
+                        />
+                      </div>
+                      <Button 
+                        onClick={handleUpload} 
+                        disabled={!selectedFile || uploading}
+                        className="w-full"
+                      >
+                        {uploading ? (
+                          <>
+                            <Upload className="w-4 h-4 mr-2 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4 mr-2" />
+                            Enviar Documento
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </DialogContent>
                 </Dialog>
               </div>
               
               {loading ? (
-                <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">
+                <p className="text-xs sm:text-sm text-muted-foreground text-center py-6">
                   Carregando documentos...
                 </p>
               ) : documents.length === 0 ? (
-                <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">
-                  Nenhum documento anexado ainda.
-                </p>
+                <div className="text-center py-8">
+                  <FileText className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Nenhum documento anexado ainda.
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="flex items-center justify-between p-2 sm:p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                      className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                     >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center mt-0.5">
+                          <FileText className="w-4 h-4 text-primary" />
+                        </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs sm:text-sm font-medium truncate">
+                          <p className="text-sm font-medium break-words line-clamp-2 mb-0.5">
                             {doc.file_name}
                           </p>
                           {doc.description && (
-                            <p className="text-xs text-muted-foreground truncate">
+                            <p className="text-xs text-muted-foreground line-clamp-1 mb-1">
                               {doc.description}
                             </p>
                           )}
-                          <p className="text-xs text-muted-foreground">
-                            {formatFileSize(doc.file_size)} • {new Date(doc.created_at).toLocaleDateString()}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                            <span className="font-medium">{formatFileSize(doc.file_size)}</span>
+                            <span>•</span>
+                            <span>{format(new Date(doc.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
+                      <div className="flex items-center gap-1 self-end sm:self-center flex-shrink-0">
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleView(doc)}
-                          className="h-8 w-8 p-0"
+                          className="h-8 px-2 gap-1.5"
                           title="Visualizar"
                         >
                           <Eye className="w-3.5 h-3.5" />
+                          <span className="text-xs hidden sm:inline">Ver</span>
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDownload(doc)}
-                          className="h-8 w-8 p-0"
+                          className="h-8 px-2 gap-1.5"
                           title="Baixar"
                         >
                           <Download className="w-3.5 h-3.5" />
+                          <span className="text-xs hidden sm:inline">Baixar</span>
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDelete(doc)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                           title="Excluir"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
