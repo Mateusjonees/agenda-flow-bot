@@ -104,8 +104,11 @@ const Clientes = () => {
   }, [searchParams]);
 
   useEffect(() => {
+    console.log('🔍 Search Effect Triggered:', { searchTerm, customersCount: customers.length });
+    
     // Aplicar filtros de busca
     if (!searchTerm || searchTerm.trim() === "") {
+      console.log('📋 Showing all customers');
       setFilteredCustomers(customers);
       return;
     }
@@ -114,15 +117,15 @@ const Clientes = () => {
       const searchLower = searchTerm.toLowerCase().trim();
       const cpfClean = searchTerm.replace(/\D/g, '');
       
-      return (
-        customer.name?.toLowerCase().includes(searchLower) ||
-        customer.phone?.includes(searchTerm) ||
-        customer.phone?.replace(/\D/g, '').includes(cpfClean) ||
-        customer.email?.toLowerCase().includes(searchLower) ||
-        customer.cpf?.replace(/\D/g, '').includes(cpfClean)
-      );
+      const matchName = customer.name?.toLowerCase().includes(searchLower);
+      const matchPhone = customer.phone?.includes(searchTerm) || customer.phone?.replace(/\D/g, '').includes(cpfClean);
+      const matchEmail = customer.email?.toLowerCase().includes(searchLower);
+      const matchCpf = customer.cpf?.replace(/\D/g, '').includes(cpfClean);
+      
+      return matchName || matchPhone || matchEmail || matchCpf;
     });
 
+    console.log('✅ Filtered Results:', filtered.length);
     setFilteredCustomers(filtered);
   }, [customers, searchTerm]);
 
@@ -470,7 +473,10 @@ const Clientes = () => {
         <Input
           placeholder="Buscar por nome, telefone, email ou CPF..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => {
+            console.log('🔤 Input Changed:', e.target.value);
+            setSearchTerm(e.target.value);
+          }}
           className="pl-10 h-10 sm:h-11 text-sm sm:text-base"
         />
       </div>
