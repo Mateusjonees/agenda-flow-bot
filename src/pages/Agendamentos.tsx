@@ -1248,37 +1248,37 @@ const Agendamentos = () => {
           const borderColor = statusColors[apt.status as keyof typeof statusColors] || statusColors.completed;
           
           return (
-            <Card key={apt.id} className={cn("border-l-4 hover:shadow-md transition-all", borderColor)}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 space-y-2">
+            <Card key={apt.id} className={cn("border-l-4 hover:shadow-md transition-all touch-manipulation", borderColor)}>
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 space-y-2 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-bold">
+                      <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                      <span className="font-bold text-xs sm:text-sm">
                         {format(parseISO(apt.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                       </span>
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-[10px] sm:text-xs">
                         {apt.status === "completed" ? "Concluído" :
                          apt.status === "cancelled" ? "Cancelado" :
                          apt.status === "pending" ? "Pendente" : "Confirmado"}
                       </Badge>
                     </div>
                     
-                    <div className="text-lg font-semibold">{apt.title}</div>
+                    <div className="text-base sm:text-lg font-semibold truncate">{apt.title}</div>
                     
                     {apt.customers && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <User className="w-4 h-4" />
-                        <span>{apt.customers.name}</span>
+                      <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                        <User className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                        <span className="truncate">{apt.customers.name}</span>
                       </div>
                     )}
                     
                     {apt.description && (
-                      <p className="text-sm text-muted-foreground">{apt.description}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{apt.description}</p>
                     )}
                   </div>
                   
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5 sm:gap-2 flex-shrink-0">
                     <Button
                       size="sm"
                       variant="outline"
@@ -1287,8 +1287,9 @@ const Agendamentos = () => {
                         setEditDialogOpen(true);
                       }}
                       disabled={isReadOnly}
+                      className="h-9 w-9 p-0"
                     >
-                      <Pencil className="w-4 h-4" />
+                      <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </Button>
                     
                     {apt.status !== "completed" && (
@@ -1300,22 +1301,23 @@ const Agendamentos = () => {
                           setFinishDialogOpen(true);
                         }}
                         disabled={isReadOnly}
+                        className="h-9 w-9 p-0"
                       >
-                        <CheckCircle className="w-4 h-4" />
+                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </Button>
                     )}
                     
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive h-9 w-9 p-0"
                       onClick={() => {
                         setDeleteAppointmentId(apt.id);
                         setDeleteDialogOpen(true);
                       }}
                       disabled={isReadOnly}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </Button>
                   </div>
                 </div>
@@ -1337,117 +1339,111 @@ const Agendamentos = () => {
       onDragCancel={handleDragCancel}
     >
       <div className="space-y-4 sm:space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">Atendimentos</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Gerencie todos os seus atendimentos</p>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">Atendimentos</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">Gerencie todos os seus atendimentos</p>
+            </div>
           </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            className="gap-2 h-10"
-            onClick={() => setQuickSearchOpen(true)}
-          >
-            <Search className="w-4 h-4" />
-            <span className="hidden md:inline">Buscar</span>
-            <kbd className="hidden md:inline pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
-              <span className="text-xs">⌘</span>K
-            </kbd>
-          </Button>
-          <Button 
-            variant="outline" 
-            className="gap-2 h-10"
-            onClick={testNotification}
-            title="Testar notificações de lembrete"
-          >
-            <Bell className="w-4 h-4" />
-            <span className="hidden md:inline">Notificações</span>
-          </Button>
-          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="gap-2 h-10">
-                <Filter className="w-4 h-4" />
-                <span className="hidden sm:inline">Filtros</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Filtros</Label>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() => {
-                        setFilterStatus("all");
-                        setFilterCustomer("all");
-                        setFilterPaymentStatus("all");
-                      }}
-                    >
-                      Limpar
-                    </Button>
+          
+          {/* Barra de ações mobile-friendly */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="gap-2 flex-1 sm:flex-none min-h-[44px]"
+              onClick={() => setQuickSearchOpen(true)}
+            >
+              <Search className="w-4 h-4" />
+              <span>Buscar</span>
+            </Button>
+            
+            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none min-h-[44px]">
+                  <Filter className="w-4 h-4" />
+                  <span>Filtros</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[90vw] sm:w-80 max-w-md" align="end">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Filtros</Label>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => {
+                          setFilterStatus("all");
+                          setFilterCustomer("all");
+                          setFilterPaymentStatus("all");
+                        }}
+                      >
+                        Limpar
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Status do Atendimento</Label>
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger className="min-h-[44px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="scheduled">Agendado</SelectItem>
+                        <SelectItem value="completed">Concluído</SelectItem>
+                        <SelectItem value="cancelled">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Status do Pagamento</Label>
+                    <Select value={filterPaymentStatus} onValueChange={setFilterPaymentStatus}>
+                      <SelectTrigger className="min-h-[44px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="pending">Pendente</SelectItem>
+                        <SelectItem value="paid">Pago</SelectItem>
+                        <SelectItem value="cancelled">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Cliente</Label>
+                    <Select value={filterCustomer} onValueChange={setFilterCustomer}>
+                      <SelectTrigger className="min-h-[44px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {customers.map(c => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Status do Atendimento</Label>
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="scheduled">Agendado</SelectItem>
-                      <SelectItem value="completed">Concluído</SelectItem>
-                      <SelectItem value="cancelled">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Status do Pagamento</Label>
-                  <Select value={filterPaymentStatus} onValueChange={setFilterPaymentStatus}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="pending">Pendente</SelectItem>
-                      <SelectItem value="paid">Pago</SelectItem>
-                      <SelectItem value="cancelled">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Cliente</Label>
-                  <Select value={filterCustomer} onValueChange={setFilterCustomer}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      {customers.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-            <Button className="gap-2 h-10" disabled={isReadOnly}>
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Novo Agendamento</span>
-              <span className="sm:hidden">Novo</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Novo Agendamento</DialogTitle>
-              <DialogDescription>
-                Crie um novo agendamento preenchendo os dados abaixo
-              </DialogDescription>
+              </PopoverContent>
+            </Popover>
+            
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 flex-1 sm:flex-none min-h-[44px]" disabled={isReadOnly}>
+                  <Plus className="w-4 h-4" />
+                  <span>Novo</span>
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-lg sm:text-xl">Novo Agendamento</DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm">
+                  Crie um novo agendamento preenchendo os dados abaixo
+                </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 mt-4">
               <div className="space-y-2">
@@ -1574,63 +1570,63 @@ const Agendamentos = () => {
       </div>
 
       {/* Estatísticas e Legenda */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
         <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/30 dark:to-yellow-900/20 border-yellow-200 dark:border-yellow-800">
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-2.5 sm:p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Próximos</p>
-                <p className="text-xl sm:text-2xl font-bold text-yellow-900 dark:text-yellow-100">{appointmentStats.proximos}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Próximos</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-900 dark:text-yellow-100">{appointmentStats.proximos}</p>
               </div>
-              <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
+              <Clock className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-yellow-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 border-blue-200 dark:border-blue-800">
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-2.5 sm:p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Em Breve</p>
-                <p className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-100">{appointmentStats.emBreve}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Em Breve</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-900 dark:text-blue-100">{appointmentStats.emBreve}</p>
               </div>
-              <CalendarIcon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+              <CalendarIcon className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 border-green-200 dark:border-green-800">
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-2.5 sm:p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Concluídos</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-900 dark:text-green-100">{appointmentStats.concluidos}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Concluídos</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-900 dark:text-green-100">{appointmentStats.concluidos}</p>
               </div>
-              <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
+              <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20 border-orange-200 dark:border-orange-800">
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-2.5 sm:p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Atrasados</p>
-                <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{appointmentStats.atrasados}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Atrasados</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-orange-900 dark:text-orange-100">{appointmentStats.atrasados}</p>
               </div>
-              <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
+              <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950/30 dark:to-slate-900/20 border-slate-200 dark:border-slate-800">
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-2.5 sm:p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Total</p>
-                <p className="text-xl sm:text-2xl font-bold">{appointmentStats.total}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Total</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold">{appointmentStats.total}</p>
               </div>
-              <CalendarDays className="w-6 h-6 sm:w-8 sm:h-8 text-slate-600" />
+              <CalendarDays className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-slate-600" />
             </div>
           </CardContent>
         </Card>
@@ -1638,27 +1634,27 @@ const Agendamentos = () => {
 
       {/* Legenda de Cores */}
       <Card>
-        <CardContent className="p-3 sm:p-4">
-          <h3 className="font-semibold text-sm mb-3">Legenda de Status</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-yellow-500 rounded animate-pulse" />
+        <CardContent className="p-2.5 sm:p-3 md:p-4">
+          <h3 className="font-semibold text-xs sm:text-sm mb-2 sm:mb-3">Legenda de Status</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 text-[10px] sm:text-xs">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-yellow-500 rounded animate-pulse flex-shrink-0" />
               <span>Próximo (30min)</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-500 rounded" />
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded flex-shrink-0" />
               <span>Em breve (2h)</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-500 rounded" />
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded flex-shrink-0" />
               <span>Concluído</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-orange-600 rounded animate-pulse" />
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-orange-600 rounded animate-pulse flex-shrink-0" />
               <span>Atrasado</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-red-500 rounded" />
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded flex-shrink-0" />
               <span>Cancelado</span>
             </div>
           </div>
@@ -1667,45 +1663,53 @@ const Agendamentos = () => {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-              <CardTitle className="text-xl sm:text-2xl">Visualização</CardTitle>
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")}>
-                <TabsList className="h-9 grid grid-cols-2 w-full sm:w-auto">
-                  <TabsTrigger value="list" className="text-xs sm:text-sm gap-1.5">
-                    <List className="w-3 h-3" />
-                    Lista
-                  </TabsTrigger>
-                  <TabsTrigger value="calendar" className="text-xs sm:text-sm gap-1.5">
-                    <CalendarDays className="w-3 h-3" />
-                    Calendário
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-              {viewMode === "calendar" && (
-                <Tabs value={viewType} onValueChange={(v) => setViewType(v as "day" | "week" | "month")}>
-                  <TabsList className="h-9 grid grid-cols-3 w-full sm:w-auto">
-                    <TabsTrigger value="day" className="text-xs sm:text-sm">Dia</TabsTrigger>
-                    <TabsTrigger value="week" className="text-xs sm:text-sm">Semana</TabsTrigger>
-                    <TabsTrigger value="month" className="text-xs sm:text-sm">Mês</TabsTrigger>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <CardTitle className="text-lg sm:text-xl md:text-2xl">Visualização</CardTitle>
+                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")}>
+                  <TabsList className="h-10 grid grid-cols-2 w-full sm:w-auto">
+                    <TabsTrigger value="list" className="text-xs sm:text-sm gap-1.5 min-h-[40px]">
+                      <List className="w-3 h-3 sm:w-4 sm:h-4" />
+                      Lista
+                    </TabsTrigger>
+                    <TabsTrigger value="calendar" className="text-xs sm:text-sm gap-1.5 min-h-[40px]">
+                      <CalendarDays className="w-3 h-3 sm:w-4 sm:h-4" />
+                      Calendário
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
-              )}
+              </div>
             </div>
             
             {viewMode === "calendar" && (
-              <div className="flex items-center gap-2 justify-between sm:justify-start">
-                <Button variant="outline" size="sm" onClick={handleToday} className="gap-1 sm:gap-2 h-9 px-2 sm:px-3">
-                  <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="text-xs sm:text-sm">Hoje</span>
-                </Button>
-                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" onClick={handlePrevious} className="h-9 w-9">
-                    <ChevronLeft className="w-4 h-4" />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <Tabs value={viewType} onValueChange={(v) => setViewType(v as "day" | "week" | "month")}>
+                  <TabsList className="h-10 grid grid-cols-3 w-full sm:w-auto">
+                    <TabsTrigger value="day" className="text-xs sm:text-sm min-h-[40px]">Dia</TabsTrigger>
+                    <TabsTrigger value="week" className="text-xs sm:text-sm min-h-[40px]">Semana</TabsTrigger>
+                    <TabsTrigger value="month" className="text-xs sm:text-sm min-h-[40px]">Mês</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                
+                <div className="flex items-center gap-2 justify-between sm:justify-start">
+                  <Button variant="outline" size="sm" onClick={handleToday} className="gap-1 sm:gap-2 h-10 px-3 flex-1 sm:flex-none min-h-[44px]">
+                    <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="text-xs sm:text-sm">Hoje</span>
                   </Button>
-                  <Button variant="outline" size="icon" onClick={handleNext} className="h-9 w-9">
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-1 sm:gap-2 flex-1 sm:flex-none">
+                    <Button variant="outline" size="icon" onClick={handlePrevious} className="h-10 w-10 min-h-[44px] min-w-[44px]">
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <div className="text-center min-w-[180px] sm:min-w-[200px] font-semibold text-sm sm:text-base">
+                      {viewType === "day" && format(currentDate, "dd 'de' MMMM", { locale: ptBR })}
+                      {viewType === "week" && `${format(startOfWeek(currentDate, { locale: ptBR }), "dd MMM", { locale: ptBR })} - ${format(endOfWeek(currentDate, { locale: ptBR }), "dd MMM", { locale: ptBR })}`}
+                      {viewType === "month" && format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
+                    </div>
+                    <Button variant="outline" size="icon" onClick={handleNext} className="h-10 w-10 min-h-[44px] min-w-[44px]">
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
