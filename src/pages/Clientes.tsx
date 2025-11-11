@@ -31,7 +31,6 @@ interface Customer {
 
 const Clientes = () => {
   const [searchParams] = useSearchParams();
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -103,41 +102,49 @@ const Clientes = () => {
     }
   }, [searchParams]);
 
+  // Buscar clientes quando o termo de pesquisa mudar
   useEffect(() => {
-    // Aplicar filtros de busca
-    if (!searchTerm || searchTerm.trim() === "") {
-      setFilteredCustomers(customers);
-      return;
-    }
+    const timeoutId = setTimeout(() => {
+      fetchCustomers();
+    }, 300); // Debounce de 300ms
 
-    const filtered = customers.filter(customer => {
-      const searchLower = searchTerm.toLowerCase().trim();
-      const cpfClean = searchTerm.replace(/\D/g, '');
-      
-      const matchName = customer.name?.toLowerCase().includes(searchLower);
-      const matchPhone = customer.phone?.includes(searchTerm) || customer.phone?.replace(/\D/g, '').includes(cpfClean);
-      const matchEmail = customer.email?.toLowerCase().includes(searchLower);
-      const matchCpf = customer.cpf?.replace(/\D/g, '').includes(cpfClean);
-      
-      return matchName || matchPhone || matchEmail || matchCpf;
-    });
-
-    setFilteredCustomers(filtered);
-  }, [customers, searchTerm]);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
   const fetchCustomers = async () => {
+    setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("customers")
       .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .eq("user_id", user.id);
+
+    // Se há termo de pesquisa, adicionar filtros
+    if (searchTerm && searchTerm.trim() !== "") {
+      const searchLower = searchTerm.toLowerCase().trim();
+      const cpfClean = searchTerm.replace(/\D/g, '');
+      
+      // Buscar em múltiplos campos usando OR
+      query = query.or(
+        `name.ilike.%${searchLower}%,` +
+        `phone.ilike.%${searchTerm}%,` +
+        `phone.ilike.%${cpfClean}%,` +
+        `email.ilike.%${searchLower}%,` +
+        `cpf.ilike.%${cpfClean}%`
+      );
+    }
+
+    query = query.order("created_at", { ascending: false });
+
+    const { data, error } = await query;
 
     if (!error && data) {
-      setCustomers(data);
       setFilteredCustomers(data);
+    } else if (error) {
+      console.error("Erro ao buscar clientes:", error);
+      setFilteredCustomers([]);
     }
     setLoading(false);
   };
