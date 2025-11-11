@@ -284,23 +284,11 @@ const Tarefas = () => {
         variant: "destructive",
       });
       // Revert on error
-      fetchTasks();
-    } else {
-      toast({
-        title: "Tarefa movida!",
-        description: "Status atualizado com sucesso",
-        action: undoStack.length > 0 ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleUndo()}
-          >
-            <Undo2 className="h-3 w-3 mr-1" />
-            Desfazer
-          </Button>
-        ) : undefined,
-      });
-      fetchTasks();
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === taskId ? { ...task, status: oldStatus } : task
+        )
+      );
     }
   };
 

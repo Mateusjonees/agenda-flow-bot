@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Trash2, Edit, User, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, Trash2, Edit, User, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useDraggable } from "@dnd-kit/core";
@@ -98,18 +98,27 @@ export const TaskCard = ({
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
-      className={isDragging ? "cursor-grabbing" : "cursor-grab"}
+      className={isDragging ? "opacity-50" : ""}
     >
       <Card className="hover:shadow-md transition-all duration-200 border-l-4 border-l-primary">
         <CardHeader className="p-3 pb-2">
-          <CardTitle className="text-sm font-medium line-clamp-2">{task.title}</CardTitle>
-          {hasSubtasks && (
-            <div className="text-xs text-muted-foreground mt-1">
-              {completedSubtasks}/{subtasks.length} subtarefas concluídas
+          <div className="flex items-start gap-2">
+            <div
+              {...listeners}
+              {...attributes}
+              className="cursor-grab active:cursor-grabbing mt-1 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <GripVertical className="h-4 w-4" />
             </div>
-          )}
+            <div className="flex-1">
+              <CardTitle className="text-sm font-medium line-clamp-2">{task.title}</CardTitle>
+              {hasSubtasks && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  {completedSubtasks}/{subtasks.length} subtarefas concluídas
+                </div>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-3 pt-0 space-y-3">
           {task.description && (
