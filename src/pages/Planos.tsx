@@ -459,39 +459,64 @@ const Planos = () => {
       )}
 
       {/* Trial Info */}
-      {subscription && subscription.status === "trial" && (
-        <Card className="border-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent">
-          <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-amber-500/10 border-2 border-amber-500/20 flex-shrink-0">
-                <div className="text-center">
-                  <p className="text-2xl sm:text-3xl font-bold text-amber-600">
-                    {subscription.next_billing_date 
-                      ? Math.max(0, Math.ceil((new Date(subscription.next_billing_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
-                      : 0
-                    }
-                  </p>
-                  <p className="text-xs text-amber-600">dias</p>
-                </div>
-              </div>
-              
-              <div className="flex-1">
-                <div className="flex items-start gap-2 mb-2">
-                  <Sparkles className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
-                      Período de Teste Ativo - Aproveite Gratuitamente!
+      {subscription && subscription.status === "trial" && (() => {
+        const trialDays = 7; // Período total do trial
+        const startDate = new Date(subscription.start_date);
+        const endDate = new Date(subscription.next_billing_date || new Date());
+        const today = new Date();
+        
+        const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+        const daysUsed = trialDays - daysRemaining;
+        const progressPercentage = Math.min(100, (daysUsed / trialDays) * 100);
+        
+        return (
+          <Card className="border-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent">
+            <CardContent className="pt-6 space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-amber-500/10 border-2 border-amber-500/20 flex-shrink-0">
+                  <div className="text-center">
+                    <p className="text-2xl sm:text-3xl font-bold text-amber-600">
+                      {daysRemaining}
                     </p>
-                    <p className="text-sm text-amber-700 dark:text-amber-200">
-                      Seu teste gratuito termina em {subscription.next_billing_date 
-                        ? format(new Date(subscription.next_billing_date), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })
-                        : "breve"
-                      }. Escolha um plano abaixo para continuar usando todos os recursos após o período de teste.
-                    </p>
+                    <p className="text-xs text-amber-600">dias</p>
                   </div>
                 </div>
                 
-                <div className="mt-3">
+                <div className="flex-1 w-full">
+                  <div className="flex items-start gap-2 mb-3">
+                    <Sparkles className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                        Período de Teste Ativo - Aproveite Gratuitamente!
+                      </p>
+                      <p className="text-sm text-amber-700 dark:text-amber-200">
+                        Seu teste gratuito termina em {format(endDate, "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Barra de Progresso */}
+                  <div className="space-y-2 mb-3">
+                    <div className="flex items-center justify-between text-xs text-amber-700 dark:text-amber-300">
+                      <span className="font-medium">Progresso do teste: {daysUsed} de {trialDays} dias usados</span>
+                      <span className="font-semibold">{Math.round(progressPercentage)}%</span>
+                    </div>
+                    <div className="relative h-3 bg-amber-100 dark:bg-amber-950 rounded-full overflow-hidden border border-amber-200 dark:border-amber-800">
+                      <div 
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-500 to-amber-600 transition-all duration-500 rounded-full"
+                        style={{ width: `${progressPercentage}%` }}
+                      >
+                        <div className="absolute inset-0 bg-amber-400/30 animate-pulse" />
+                      </div>
+                    </div>
+                    {daysRemaining <= 3 && (
+                      <p className="text-xs font-medium text-amber-800 dark:text-amber-200 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Escolha um plano agora para não perder o acesso!
+                      </p>
+                    )}
+                  </div>
+                  
                   <Button 
                     size="sm"
                     onClick={() => {
@@ -505,10 +530,10 @@ const Planos = () => {
                   </Button>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Payment Method Tabs */}
       <div id="plans-section" className="space-y-4 sm:space-y-6">
