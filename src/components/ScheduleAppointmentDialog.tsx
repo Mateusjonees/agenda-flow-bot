@@ -101,7 +101,7 @@ export const ScheduleAppointmentDialog = ({
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">Agendar Atendimento</DialogTitle>
           <DialogDescription className="text-sm">
-            Agendar atendimento para o orçamento: {proposal.title}
+            Agendar atendimento para a proposta: {proposal.title}
           </DialogDescription>
         </DialogHeader>
         

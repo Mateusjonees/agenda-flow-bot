@@ -188,14 +188,14 @@ export const CustomerHistory = ({ customerId }: CustomerHistoryProps) => {
       window.open(url, "_blank");
 
       toast({
-        title: "Orçamento gerado!",
+        title: "Proposta gerada!",
         description: "Abrindo em nova aba...",
       });
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível gerar o orçamento.",
+        description: "Não foi possível gerar a proposta.",
         variant: "destructive",
       });
     } finally {
@@ -275,7 +275,7 @@ export const CustomerHistory = ({ customerId }: CustomerHistoryProps) => {
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="appointment">Agendamentos</SelectItem>
-            <SelectItem value="proposal">Orçamentos</SelectItem>
+            <SelectItem value="proposal">Propostas</SelectItem>
             <SelectItem value="transaction">Transações</SelectItem>
             <SelectItem value="task">Tarefas</SelectItem>
           </SelectContent>
@@ -294,7 +294,7 @@ export const CustomerHistory = ({ customerId }: CustomerHistoryProps) => {
           <div>
             <FileText className="w-4 h-4 text-purple-500 inline mr-1" />
             <span className="font-semibold">{events.filter(e => e.type === "proposal").length}</span>
-            <span className="text-muted-foreground ml-1">Orçamentos</span>
+            <span className="text-muted-foreground ml-1">Propostas</span>
           </div>
           <div>
             <DollarSign className="w-4 h-4 text-green-500 inline mr-1" />
@@ -355,7 +355,7 @@ export const CustomerHistory = ({ customerId }: CustomerHistoryProps) => {
                       </p>
                     )}
                     
-                    {/* Botões de ação para orçamentos */}
+                    {/* Botões de ação para propostas */}
                     {event.type === "proposal" && (
                       <div className="flex gap-2">
                         <Button
@@ -370,7 +370,7 @@ export const CustomerHistory = ({ customerId }: CustomerHistoryProps) => {
                           ) : (
                             <FileText className="w-4 h-4" />
                           )}
-                          Ver Orçamento
+                          Ver Proposta
                         </Button>
                       </div>
                     )}

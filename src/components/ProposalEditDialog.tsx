@@ -102,12 +102,12 @@ export const ProposalEditDialog = ({
     if (error) {
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar o orçamento.",
+        description: "Não foi possível atualizar a proposta.",
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Orçamento atualizado!",
+        title: "Proposta atualizada!",
       });
       onSuccess();
       onOpenChange(false);
@@ -147,8 +147,8 @@ export const ProposalEditDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Editar Orçamento</DialogTitle>
-          <DialogDescription>Atualize os detalhes do orçamento</DialogDescription>
+          <DialogTitle>Editar Proposta</DialogTitle>
+          <DialogDescription>Atualize os detalhes da proposta</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -171,7 +171,7 @@ export const ProposalEditDialog = ({
           </div>
 
           <div>
-            <Label>Título do Orçamento *</Label>
+            <Label>Título da Proposta *</Label>
             <Input
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -184,13 +184,13 @@ export const ProposalEditDialog = ({
             <Textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Detalhes adicionais do orçamento..."
+              placeholder="Detalhes adicionais da proposta..."
               rows={3}
             />
           </div>
 
           <div>
-            <Label>Status do Orçamento</Label>
+            <Label>Status da Proposta</Label>
             <Select
               value={formData.status}
               onValueChange={(value) => setFormData({ ...formData, status: value })}

@@ -344,7 +344,7 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
 
       toast({
         title: "PDF gerado!",
-        description: "O orçamento foi gerado com sucesso.",
+        description: "A proposta foi gerada com sucesso.",
       });
     } catch (error: any) {
       toast({
@@ -482,7 +482,7 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
           <Tabs defaultValue="attached" className="w-full">
             <TabsList className="grid w-full grid-cols-3 h-9">
               <TabsTrigger value="attached" className="text-xs sm:text-sm">Anexados</TabsTrigger>
-              <TabsTrigger value="proposals" className="text-xs sm:text-sm">Orçamentos</TabsTrigger>
+              <TabsTrigger value="proposals" className="text-xs sm:text-sm">Propostas</TabsTrigger>
               <TabsTrigger value="services" className="text-xs sm:text-sm">Serviços</TabsTrigger>
             </TabsList>
 
@@ -735,15 +735,15 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
               )}
             </TabsContent>
 
-            {/* Orçamentos */}
+            {/* Propostas */}
             <TabsContent value="proposals" className="mt-4">
               {proposalsLoading ? (
                 <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">
-                  Carregando orçamentos...
+                  Carregando propostas...
                 </p>
               ) : proposals.length === 0 ? (
                 <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">
-                  Nenhum orçamento encontrado.
+                  Nenhuma proposta encontrada.
                 </p>
               ) : (
                 <div className="space-y-2">

@@ -73,7 +73,7 @@ export const ProposalConfirmDialog = ({
 
       if (appointmentError) throw appointmentError;
 
-      // Atualizar status do orçamento para "confirmed"
+      // Atualizar status da proposta para "confirmed"
       const { error: proposalError } = await supabase
         .from("proposals")
         .update({
@@ -85,7 +85,7 @@ export const ProposalConfirmDialog = ({
       if (proposalError) throw proposalError;
 
       toast({
-        title: "Orçamento confirmado!",
+        title: "Proposta confirmada!",
         description: "O agendamento foi criado com sucesso.",
       });
 
@@ -98,10 +98,10 @@ export const ProposalConfirmDialog = ({
       setDuration("60");
       setNotes("");
     } catch (error: any) {
-      console.error("Erro ao confirmar orçamento:", error);
+      console.error("Erro ao confirmar proposta:", error);
       toast({
-        title: "Erro ao confirmar orçamento",
-        description: error.message || "Não foi possível confirmar o orçamento. Tente novamente.",
+        title: "Erro ao confirmar proposta",
+        description: error.message || "Não foi possível confirmar a proposta. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -113,7 +113,7 @@ export const ProposalConfirmDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Confirmar Orçamento</DialogTitle>
+          <DialogTitle>Confirmar Proposta</DialogTitle>
           <DialogDescription>
             Selecione a data e horário para criar o agendamento
           </DialogDescription>

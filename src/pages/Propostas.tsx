@@ -217,8 +217,8 @@ const Propostas = () => {
       if (error) throw error;
 
       toast({
-        title: "Orçamento criado com sucesso!",
-        description: "Você pode enviá-lo ao cliente agora.",
+        title: "Proposta criada com sucesso!",
+        description: "Você pode enviá-la ao cliente agora.",
       });
       
       setDialogOpen(false);
@@ -234,10 +234,10 @@ const Propostas = () => {
       
       await fetchData();
     } catch (error: any) {
-      console.error("Erro ao criar orçamento:", error);
+      console.error("Erro ao criar proposta:", error);
       toast({
-        title: "Erro ao criar orçamento",
-        description: error.message || "Não foi possível criar o orçamento. Tente novamente.",
+        title: "Erro ao criar proposta",
+        description: error.message || "Não foi possível criar a proposta. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -299,7 +299,7 @@ const Propostas = () => {
       const emailBody = `
 Olá ${proposalData.customers.name},
 
-Segue orçamento para sua análise:
+Segue proposta para sua análise:
 
 📋 ${proposalData.title}
 💰 Valor: ${formatCurrency(proposalData.final_amount)}
@@ -316,7 +316,7 @@ ${businessName}
       `.trim();
 
       // Abrir cliente de email com dados preenchidos
-      const mailtoLink = `mailto:${proposalData.customers.email}?subject=${encodeURIComponent(`Orçamento: ${proposalData.title}`)}&body=${encodeURIComponent(emailBody)}`;
+      const mailtoLink = `mailto:${proposalData.customers.email}?subject=${encodeURIComponent(`Proposta: ${proposalData.title}`)}&body=${encodeURIComponent(emailBody)}`;
       
       window.open(mailtoLink, '_blank');
 
@@ -392,7 +392,7 @@ ${businessName}
       const whatsappMessage = `
 Olá ${proposalData.customers.name}! 👋
 
-Segue o orçamento solicitado:
+Segue a proposta solicitada:
 
 📋 *${proposalData.title}*
 💰 Valor: *${formatCurrency(proposalData.final_amount)}*
@@ -436,15 +436,15 @@ _${businessName}_
       if (error) throw error;
       
       toast({
-        title: "Orçamento cancelado!",
+        title: "Proposta cancelada!",
         description: "O status foi atualizado com sucesso.",
       });
       await fetchData();
     } catch (error) {
-      console.error("Erro ao cancelar orçamento:", error);
+      console.error("Erro ao cancelar proposta:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível cancelar o orçamento.",
+        description: "Não foi possível cancelar a proposta.",
         variant: "destructive",
       });
     }
@@ -461,12 +461,12 @@ _${businessName}_
     if (error) {
       toast({
         title: "Erro",
-        description: "Não foi possível excluir o orçamento.",
+        description: "Não foi possível excluir a proposta.",
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Orçamento excluído!",
+        title: "Proposta excluída!",
       });
       fetchData();
     }
@@ -501,7 +501,7 @@ _${businessName}_
       console.error("Erro ao gerar PDF:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível gerar o PDF do orçamento.",
+        description: "Não foi possível gerar o PDF da proposta.",
         variant: "destructive",
       });
     } finally {
@@ -567,9 +567,9 @@ _${businessName}_
               </div>
               <div className="min-w-0 flex-1">
                 <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight">
-                  Orçamentos
+                  Propostas
                 </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 truncate">Crie e gerencie orçamentos profissionais</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 truncate">Crie e gerencie propostas profissionais</p>
               </div>
             </div>
           </div>
@@ -578,17 +578,17 @@ _${businessName}_
             <DialogTrigger asChild>
               <Button className="gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-xl hover:scale-105 transition-all w-full sm:w-auto flex-shrink-0 text-sm sm:text-base" disabled={isReadOnly}>
                 <Plus className="w-4 h-4" />
-                <span className="sm:inline">Novo Orçamento</span>
+                <span className="sm:inline">Nova Proposta</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <FileText className="w-5 h-5 text-primary" />
-                  Criar Novo Orçamento
+                  Criar Nova Proposta
                 </DialogTitle>
                 <DialogDescription>
-                  Preencha cuidadosamente todos os campos marcados com (*) para criar um orçamento profissional
+                  Preencha cuidadosamente todos os campos marcados com (*) para criar uma proposta profissional
                 </DialogDescription>
               </DialogHeader>
               
@@ -609,7 +609,7 @@ _${businessName}_
                             <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
-                            <p>Selecione o cliente que receberá este orçamento. O cliente precisa estar cadastrado no sistema.</p>
+                            <p>Selecione o cliente que receberá esta proposta. O cliente precisa estar cadastrado no sistema.</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -657,27 +657,27 @@ _${businessName}_
                         </PopoverContent>
                       </Popover>
                       <p className="text-xs text-muted-foreground mt-1.5">
-                        Este será o destinatário do orçamento
+                        Este será o destinatário da proposta
                       </p>
                     </div>
                   </div>
 
-                  {/* Seção 2: Detalhes do Orçamento */}
+                  {/* Seção 2: Detalhes da Proposta */}
                   <div className="space-y-3 p-4 bg-accent/5 rounded-lg border border-border/50">
                     <div className="flex items-center gap-2 mb-2">
                       <FileText className="w-4 h-4 text-primary" />
-                      <h3 className="font-semibold text-sm">2. Detalhes do Orçamento</h3>
+                      <h3 className="font-semibold text-sm">2. Detalhes da Proposta</h3>
                     </div>
 
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <Label className="font-medium">Título do Orçamento *</Label>
+                        <Label className="font-medium">Título da Proposta *</Label>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
-                            <p>Um nome curto e descritivo para identificar facilmente este orçamento.</p>
+                            <p>Um nome curto e descritivo para identificar facilmente esta proposta.</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -728,7 +728,7 @@ _${businessName}_
                             <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
-                            <p>Liste todos os serviços ou produtos que farão parte deste orçamento. Você pode adicionar múltiplos itens.</p>
+                            <p>Liste todos os serviços ou produtos que farão parte desta proposta. Você pode adicionar múltiplos itens.</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -882,7 +882,7 @@ _${businessName}_
                               <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
-                              <p>Por quantos dias este orçamento será válido? Após esse período, expirará automaticamente.</p>
+                              <p>Por quantos dias esta proposta será válida? Após esse período, expirará automaticamente.</p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
@@ -908,7 +908,7 @@ _${businessName}_
                   <div className="p-5 bg-gradient-to-br from-primary/5 to-accent/5 rounded-lg border-2 border-primary/20">
                     <div className="flex items-center gap-2 mb-4">
                       <Sparkles className="w-5 h-5 text-primary" />
-                      <h3 className="font-semibold text-base">Resumo do Orçamento</h3>
+                      <h3 className="font-semibold text-base">Resumo da Proposta</h3>
                     </div>
                     
                     <div className="space-y-3">
@@ -973,7 +973,7 @@ _${businessName}_
                     ) : (
                       <>
                         <FileText className="w-5 h-5 mr-2" />
-                        Criar Orçamento
+                        Criar Proposta
                       </>
                     )}
                   </Button>
@@ -1065,11 +1065,11 @@ _${businessName}_
                   <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted mb-4">
                     <FileText className="w-10 h-10 text-muted-foreground" />
                   </div>
-                  <p className="text-lg font-medium text-muted-foreground">Nenhum orçamento encontrado</p>
+                  <p className="text-lg font-medium text-muted-foreground">Nenhuma proposta encontrada</p>
                   <p className="text-sm text-muted-foreground mt-2">
                     {searchTerm || filterCustomer !== "all" 
                       ? "Tente ajustar os filtros para encontrar o que procura" 
-                      : "Crie seu primeiro orçamento para começar"
+                      : "Crie sua primeira proposta para começar"
                     }
                   </p>
                 </CardContent>
@@ -1235,7 +1235,7 @@ _${businessName}_
                         
                         {proposal.status === "canceled" && (
                           <div className="w-full text-center text-xs sm:text-sm text-muted-foreground py-1.5 sm:py-2">
-                            Orçamento cancelado
+                            Proposta cancelada
                           </div>
                         )}
                       </div>
@@ -1353,7 +1353,7 @@ _${businessName}_
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir esta proposta? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
