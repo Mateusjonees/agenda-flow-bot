@@ -34,14 +34,7 @@ interface LayoutProps {
 
 // Componente interno que usa useSidebar
 function LayoutContent({ children, user, profileImage, notifications, totalNotifications, navigate, queryClient, markAllAsViewed, handleLogout, notificationsOpen, setNotificationsOpen }: any) {
-  const { setOpen, isMobile, state } = useSidebar();
-
-  // Manter sidebar colapsada no mobile mas visível com ícones
-  useEffect(() => {
-    if (isMobile && state !== "collapsed") {
-      setOpen(false);
-    }
-  }, [isMobile, setOpen, state]);
+  const { isMobile, open } = useSidebar();
 
   return (
     <div className="min-h-screen flex w-full bg-background">
@@ -327,7 +320,7 @@ const Layout = ({ children }: LayoutProps) => {
   if (!user) return null;
 
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider defaultOpen={true}>
       <LayoutContent
         user={user}
         profileImage={profileImage}
