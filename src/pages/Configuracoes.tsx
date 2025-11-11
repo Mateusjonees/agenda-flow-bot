@@ -4,14 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Save, Star, Gift, Link as LinkIcon, Upload, Camera, Lock, CreditCard } from "lucide-react";
+import { Save, Star, Gift, Link as LinkIcon, Upload, Camera, Lock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { SubscriptionManager } from "@/components/SubscriptionManager";
+
 
 const Configuracoes = () => {
   const queryClient = useQueryClient();
@@ -406,8 +406,6 @@ const Configuracoes = () => {
         </CardContent>
       </Card>
 
-      {/* Gerenciamento de Assinatura */}
-      <SubscriptionManager />
 
       <Card>
         <CardHeader>
