@@ -596,14 +596,14 @@ const Agendamentos = () => {
     const isCurrentDay = isSameDay(currentDate, new Date());
     
     return (
-      <div className="border rounded-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-3 sm:p-4 border-b">
-          <h3 className="font-semibold text-base sm:text-lg capitalize">{format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}</h3>
-          <p className="text-sm text-muted-foreground mt-1">
+      <div className="border rounded-lg overflow-hidden shadow-sm">
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-2.5 sm:p-4 border-b">
+          <h3 className="font-semibold text-sm sm:text-base md:text-lg capitalize">{format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}</h3>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
             Funcionamento: {dayHours.start} - {dayHours.end}
           </p>
         </div>
-        <div className="divide-y relative">
+        <div className="divide-y relative bg-card">
           {hours.map((hour) => {
             const hourAppointments = dayAppointments.filter(apt => {
               const aptHour = parseISO(apt.start_time).getHours();
@@ -621,7 +621,10 @@ const Agendamentos = () => {
                 id={`day-${format(currentDate, 'yyyy-MM-dd')}-${hour}`}
                 date={currentDate}
                 hour={hour}
-                className="flex items-start p-2 sm:p-4 hover:bg-muted/50 transition-colors min-h-[70px] sm:min-h-[90px] relative"
+                className={cn(
+                  "flex items-start hover:bg-muted/30 transition-colors min-h-[60px] sm:min-h-[70px] md:min-h-[90px] relative",
+                  compactView ? "p-1.5 sm:p-2" : "p-2 sm:p-4"
+                )}
               >
                 {/* Linha de hora atual */}
                 {isCurrentDay && hour === currentHour && (
@@ -629,120 +632,130 @@ const Agendamentos = () => {
                     className="absolute left-0 w-full border-t-2 border-red-500 z-10 pointer-events-none"
                     style={{ top: `${(currentMinute / 60) * 100}%` }}
                   >
-                    <div className="absolute -left-1 -top-2 w-4 h-4 bg-red-500 rounded-full animate-pulse" />
-                    <span className="absolute left-4 -top-3 text-xs text-red-500 font-bold bg-background px-1">
+                    <div className="absolute -left-1 -top-2 w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full animate-pulse" />
+                    <span className="absolute left-3 sm:left-4 -top-2.5 sm:-top-3 text-[10px] sm:text-xs text-red-500 font-bold bg-background px-1 rounded">
                       AGORA
                     </span>
                   </div>
                 )}
                 
-                <div className="w-14 sm:w-20 text-xs sm:text-sm text-muted-foreground font-semibold pt-0.5 flex-shrink-0">
+                <div className={cn(
+                  "text-xs text-muted-foreground font-semibold pt-0.5 flex-shrink-0",
+                  compactView ? "w-10 sm:w-14" : "w-12 sm:w-20"
+                )}>
                   {String(hour).padStart(2, "0")}:00
                 </div>
                 <div className="flex-1 min-w-0">
                   {hourAppointments.length > 0 || hourTasks.length > 0 ? (
-                     <div className="space-y-3">
+                     <div className={cn("space-y-2", compactView && "space-y-1.5")}>
                          {hourAppointments.map((apt) => {
                            const colors = getAppointmentColors(apt);
                            const now = new Date();
                            const timeDiff = (parseISO(apt.start_time).getTime() - now.getTime()) / (1000 * 60);
                            
                            return (
-                          <DraggableAppointment
-                            key={apt.id}
-                            id={apt.id}
-                            type="appointment"
-                            currentStartTime={parseISO(apt.start_time)}
-                            currentEndTime={parseISO(apt.end_time)}
-                          >
-                            <div className={cn(
-                              "group relative overflow-hidden rounded-lg border-l-4 transition-all duration-300",
-                              "hover:shadow-md hover:scale-[1.02]",
-                              compactView ? "p-2 sm:p-3" : "p-3 sm:p-4",
-                              colors.bg,
-                              colors.border,
-                              colors.pulse && "animate-pulse"
-                            )}>
-                             <div className={cn("flex flex-col", compactView ? "gap-2" : "gap-3")}>
-                               <div className="flex items-start justify-between gap-2">
-                                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                                   {getStatusIcon(apt.status, timeDiff)}
-                                   <div className="flex-1">
-                                     <div className={cn("font-semibold truncate", compactView ? "text-sm" : "text-base sm:text-lg")}>{apt.title}</div>
-                                     <div className={cn("opacity-75 mt-0.5", compactView ? "text-[10px]" : "text-xs sm:text-sm")}>
-                                       {format(parseISO(apt.start_time), "HH:mm")} - {format(parseISO(apt.end_time), "HH:mm")}
-                                       {!compactView && (
-                                         <span className="ml-2">
-                                           ({Math.floor((parseISO(apt.end_time).getTime() - parseISO(apt.start_time).getTime()) / 60000)}min)
-                                         </span>
-                                       )}
-                                     </div>
-                                   </div>
-                                 </div>
-                                 <Badge className={cn(colors.badge, "text-white", compactView && "text-[10px] px-1.5 py-0.5")}>
-                                   {getStatusLabel(apt.status, timeDiff)}
-                                 </Badge>
-                               </div>
-                               
-                               {!compactView && (
-                                 <div className="flex items-center gap-2 text-sm">
-                                   <User className="w-4 h-4 opacity-60" />
-                                   <span className="font-medium">{apt.customers?.name}</span>
-                                 </div>
-                               )}
+                         <DraggableAppointment
+                           key={apt.id}
+                           id={apt.id}
+                           type="appointment"
+                           currentStartTime={parseISO(apt.start_time)}
+                           currentEndTime={parseISO(apt.end_time)}
+                         >
+                           <div className={cn(
+                             "group relative overflow-hidden rounded-lg border-l-4 transition-all duration-200",
+                             "hover:shadow-lg active:scale-[0.98]",
+                             compactView ? "p-2" : "p-2.5 sm:p-3",
+                             colors.bg,
+                             colors.border,
+                             colors.pulse && "animate-pulse"
+                           )}>
+                            <div className={cn("flex flex-col", compactView ? "gap-1.5" : "gap-2")}>
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
+                                  {!compactView && getStatusIcon(apt.status, timeDiff)}
+                                  <div className="flex-1 min-w-0">
+                                    <div className={cn("font-semibold truncate", compactView ? "text-xs sm:text-sm" : "text-sm sm:text-base")}>
+                                      {apt.title}
+                                    </div>
+                                    <div className={cn("text-muted-foreground mt-0.5 flex items-center gap-1", compactView ? "text-[10px]" : "text-xs")}>
+                                      <Clock className="w-3 h-3 flex-shrink-0" />
+                                      <span>
+                                        {format(parseISO(apt.start_time), "HH:mm")} - {format(parseISO(apt.end_time), "HH:mm")}
+                                        {!compactView && (
+                                          <span className="ml-1 opacity-70">
+                                            ({Math.floor((parseISO(apt.end_time).getTime() - parseISO(apt.start_time).getTime()) / 60000)}min)
+                                          </span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <Badge className={cn(colors.badge, "text-white text-[10px] px-1.5 py-0 h-5 flex-shrink-0")}>
+                                  {getStatusLabel(apt.status, timeDiff)}
+                                </Badge>
+                              </div>
                               
-                               {!compactView && timeDiff >= 0 && timeDiff <= 30 && apt.status === "scheduled" && (
-                                 <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-md">
-                                   <div className="flex items-center gap-2 text-xs font-medium text-yellow-900 dark:text-yellow-100">
-                                     <Clock className="w-3 h-3" />
-                                     Faltam {Math.floor(timeDiff)} minutos
-                                   </div>
-                                 </div>
-                               )}
-                               
-                                 <div className="flex gap-2">
-                                   <Button
-                                     size="sm"
-                                     variant="ghost"
-                                     className={cn("gap-1 flex-1 sm:flex-none", compactView ? "h-7 text-[10px] px-2" : "h-8 sm:h-9 text-xs sm:text-sm")}
-                                     onClick={() => {
-                                       setEditAppointmentId(apt.id);
-                                       setEditDialogOpen(true);
-                                     }}
-                                     disabled={isReadOnly}
-                                   >
-                                     <Pencil className="w-3 h-3" />
-                                     {!compactView && <span>Editar</span>}
-                                   </Button>
-                                   {apt.status !== "completed" && (
-                                     <Button
-                                       size="sm"
-                                       variant="default"
-                                       className={cn("gap-1 flex-1 sm:flex-none", compactView ? "h-7 text-[10px] px-2" : "h-8 sm:h-9 text-xs sm:text-sm")}
-                                       onClick={() => {
-                                         setSelectedAppointment({ id: apt.id, title: apt.title });
-                                         setFinishDialogOpen(true);
-                                       }}
-                                       disabled={isReadOnly}
-                                     >
-                                       <CheckCircle className="w-3 h-3" />
-                                       {!compactView && <span>Finalizar</span>}
-                                     </Button>
-                                   )}
-                                   <Button
-                                     size="sm"
-                                     variant="ghost"
-                                     className={cn("gap-1 flex-1 sm:flex-none text-destructive hover:text-destructive hover:bg-destructive/10", compactView ? "h-7 text-[10px] px-2" : "h-8 sm:h-9 text-xs sm:text-sm")}
-                                     onClick={() => {
-                                       setDeleteAppointmentId(apt.id);
-                                       setDeleteDialogOpen(true);
-                                     }}
-                                     disabled={isReadOnly}
-                                   >
-                                     <Trash2 className="w-3 h-3" />
-                                     {!compactView && <span>Excluir</span>}
-                                   </Button>
-                                 </div>
+                              {!compactView && (
+                                <div className="flex items-center gap-1.5 text-xs bg-muted/50 rounded px-2 py-1">
+                                  <User className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                                  <span className="font-medium truncate">{apt.customers?.name}</span>
+                                </div>
+                              )}
+                              
+                              {!compactView && timeDiff >= 0 && timeDiff <= 30 && apt.status === "scheduled" && (
+                                <div className="p-1.5 bg-yellow-100 dark:bg-yellow-900/20 rounded text-center">
+                                  <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-xs font-semibold text-yellow-900 dark:text-yellow-100">
+                                    <Clock className="w-3 h-3" />
+                                    Faltam {Math.floor(timeDiff)} minutos
+                                  </div>
+                                </div>
+                              )}
+                              
+                                <div className={cn("flex gap-1.5", compactView && "flex-wrap")}>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className={cn("gap-1 flex-1", compactView ? "h-7 text-[10px] px-2" : "h-8 text-xs")}
+                                    onClick={() => {
+                                      setEditAppointmentId(apt.id);
+                                      setEditDialogOpen(true);
+                                    }}
+                                    disabled={isReadOnly}
+                                  >
+                                    <Pencil className="w-3 h-3 flex-shrink-0" />
+                                    {!compactView && <span>Editar</span>}
+                                  </Button>
+                                  {apt.status !== "completed" && (
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      className={cn("gap-1 flex-1", compactView ? "h-7 text-[10px] px-2" : "h-8 text-xs")}
+                                      onClick={() => {
+                                        setSelectedAppointment({ id: apt.id, title: apt.title });
+                                        setFinishDialogOpen(true);
+                                      }}
+                                      disabled={isReadOnly}
+                                    >
+                                      <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                                      {!compactView && <span>Finalizar</span>}
+                                    </Button>
+                                  )}
+                                  {!compactView && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="gap-1 h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                                      onClick={() => {
+                                        setDeleteAppointmentId(apt.id);
+                                        setDeleteDialogOpen(true);
+                                      }}
+                                      disabled={isReadOnly}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                      <span>Excluir</span>
+                                    </Button>
+                                  )}
+                                </div>
                             </div>
                            </div>
                          </DraggableAppointment>
@@ -756,18 +769,23 @@ const Agendamentos = () => {
                             type="task"
                             currentStartTime={parseISO(task.due_date)}
                           >
-                           <div className="bg-orange-100 dark:bg-orange-950 border-l-4 border-orange-500 p-2 sm:p-3 rounded-md">
+                           <div className={cn(
+                             "bg-orange-50 dark:bg-orange-950/30 border-l-4 border-orange-500 rounded-lg",
+                             compactView ? "p-1.5" : "p-2"
+                           )}>
                              <div className="flex items-start justify-between gap-2">
                                <div className="flex-1 min-w-0">
-                                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                   <div className="font-semibold text-sm sm:text-base truncate">{task.title}</div>
-                                   <Badge variant="outline" className="text-xs w-fit">
+                                 <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                                   <div className={cn("font-semibold truncate", compactView ? "text-xs" : "text-sm")}>{task.title}</div>
+                                   <Badge variant="outline" className="text-[10px] w-fit px-1.5 py-0 h-4">
                                      Tarefa
                                    </Badge>
                                  </div>
-                                 <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                                   {task.description || "Sem descrição"} • {format(parseISO(task.due_date), "HH:mm")}
-                                 </div>
+                                 {!compactView && (
+                                   <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                                     {task.description || "Sem descrição"} • {format(parseISO(task.due_date), "HH:mm")}
+                                   </div>
+                                 )}
                                </div>
                              </div>
                            </div>
@@ -775,7 +793,9 @@ const Agendamentos = () => {
                          ))}
                       </div>
                    ) : (
-                     <div className="text-xs sm:text-sm text-muted-foreground/60 italic py-1">Disponível</div>
+                     <div className={cn("text-muted-foreground/60 italic py-1", compactView ? "text-[10px]" : "text-xs")}>
+                       Disponível
+                     </div>
                    )}
                  </div>
                </DroppableTimeSlot>
@@ -1637,186 +1657,198 @@ const Agendamentos = () => {
       </div>
 
       {/* Estatísticas e Legenda */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
-        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/30 dark:to-yellow-900/20 border-yellow-200 dark:border-yellow-800">
-          <CardContent className="p-2.5 sm:p-3 md:p-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100/50 dark:from-yellow-950/20 dark:to-yellow-900/10 border-yellow-200 dark:border-yellow-800/50 shadow-sm">
+          <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Próximos</p>
-                <p className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-900 dark:text-yellow-100">{appointmentStats.proximos}</p>
+              <div className="flex-1">
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wide">Próximos</p>
+                <p className="text-xl sm:text-2xl font-bold text-yellow-900 dark:text-yellow-100 mt-0.5">{appointmentStats.proximos}</p>
               </div>
-              <Clock className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-yellow-600" />
+              <div className="bg-yellow-500/10 dark:bg-yellow-500/20 p-2 rounded-full">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 dark:text-yellow-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 border-blue-200 dark:border-blue-800">
-          <CardContent className="p-2.5 sm:p-3 md:p-4">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/10 border-blue-200 dark:border-blue-800/50 shadow-sm">
+          <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Em Breve</p>
-                <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-900 dark:text-blue-100">{appointmentStats.emBreve}</p>
+              <div className="flex-1">
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wide">Em Breve</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-100 mt-0.5">{appointmentStats.emBreve}</p>
               </div>
-              <CalendarIcon className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-600" />
+              <div className="bg-blue-500/10 dark:bg-blue-500/20 p-2 rounded-full">
+                <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 border-green-200 dark:border-green-800">
-          <CardContent className="p-2.5 sm:p-3 md:p-4">
+        <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10 border-green-200 dark:border-green-800/50 shadow-sm">
+          <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Concluídos</p>
-                <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-900 dark:text-green-100">{appointmentStats.concluidos}</p>
+              <div className="flex-1">
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wide">Concluídos</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-900 dark:text-green-100 mt-0.5">{appointmentStats.concluidos}</p>
               </div>
-              <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-green-600" />
+              <div className="bg-green-500/10 dark:bg-green-500/20 p-2 rounded-full">
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20 border-orange-200 dark:border-orange-800">
-          <CardContent className="p-2.5 sm:p-3 md:p-4">
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/20 dark:to-orange-900/10 border-orange-200 dark:border-orange-800/50 shadow-sm">
+          <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Atrasados</p>
-                <p className="text-lg sm:text-xl md:text-2xl font-bold text-orange-900 dark:text-orange-100">{appointmentStats.atrasados}</p>
+              <div className="flex-1">
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wide">Atrasados</p>
+                <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100 mt-0.5">{appointmentStats.atrasados}</p>
               </div>
-              <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-orange-600" />
+              <div className="bg-orange-500/10 dark:bg-orange-500/20 p-2 rounded-full">
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 dark:text-orange-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950/30 dark:to-slate-900/20 border-slate-200 dark:border-slate-800">
-          <CardContent className="p-2.5 sm:p-3 md:p-4">
+        <Card className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-950/20 dark:to-slate-900/10 border-slate-200 dark:border-slate-700/50 shadow-sm">
+          <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Total</p>
-                <p className="text-lg sm:text-xl md:text-2xl font-bold">{appointmentStats.total}</p>
+              <div className="flex-1">
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wide">Total</p>
+                <p className="text-xl sm:text-2xl font-bold mt-0.5">{appointmentStats.total}</p>
               </div>
-              <CalendarDays className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-slate-600" />
+              <div className="bg-primary/10 dark:bg-primary/20 p-2 rounded-full">
+                <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Legenda de Cores */}
-      <Card>
-        <CardContent className="p-2.5 sm:p-3 md:p-4">
-          <h3 className="font-semibold text-xs sm:text-sm mb-2 sm:mb-3">Legenda de Status</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 text-[10px] sm:text-xs">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-yellow-500 rounded animate-pulse flex-shrink-0" />
-              <span>Próximo (30min)</span>
+      <Card className="shadow-sm">
+        <CardContent className="p-2.5 sm:p-3">
+          <h3 className="font-semibold text-xs sm:text-sm mb-2 text-muted-foreground uppercase tracking-wide">Legenda de Status</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-[10px] sm:text-xs">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-yellow-500 rounded-full animate-pulse flex-shrink-0 shadow-sm" />
+              <span className="text-muted-foreground">Próximo (30min)</span>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded flex-shrink-0" />
-              <span>Em breve (2h)</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-blue-500 rounded-full flex-shrink-0 shadow-sm" />
+              <span className="text-muted-foreground">Em breve (2h)</span>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded flex-shrink-0" />
-              <span>Concluído</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full flex-shrink-0 shadow-sm" />
+              <span className="text-muted-foreground">Concluído</span>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-orange-600 rounded animate-pulse flex-shrink-0" />
-              <span>Atrasado</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-orange-600 rounded-full animate-pulse flex-shrink-0 shadow-sm" />
+              <span className="text-muted-foreground">Atrasado</span>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded flex-shrink-0" />
-              <span>Cancelado</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full flex-shrink-0 shadow-sm" />
+              <span className="text-muted-foreground">Cancelado</span>
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <CardTitle className="text-lg sm:text-xl md:text-2xl">Visualização</CardTitle>
-                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")}>
-                  <TabsList className="h-10 grid grid-cols-2 w-full sm:w-auto">
-                    <TabsTrigger value="list" className="text-xs sm:text-sm gap-1.5 min-h-[40px]">
-                      <List className="w-3 h-3 sm:w-4 sm:h-4" />
-                      Lista
-                    </TabsTrigger>
-                    <TabsTrigger value="calendar" className="text-xs sm:text-sm gap-1.5 min-h-[40px]">
-                      <CalendarDays className="w-3 h-3 sm:w-4 sm:h-4" />
-                      Calendário
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
+        <CardHeader className="pb-2 sm:pb-3 space-y-3">
+          {/* Primeira linha: Título + Tabs de visualização */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <CardTitle className="text-lg sm:text-xl md:text-2xl hidden sm:block">Visualização</CardTitle>
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")} className="w-full sm:w-auto">
+              <TabsList className="h-10 sm:h-11 grid grid-cols-2 w-full sm:w-auto">
+                <TabsTrigger value="list" className="text-xs sm:text-sm gap-1.5 min-h-[44px]">
+                  <List className="w-4 h-4" />
+                  <span className="hidden sm:inline">Lista</span>
+                </TabsTrigger>
+                <TabsTrigger value="calendar" className="text-xs sm:text-sm gap-1.5 min-h-[44px]">
+                  <CalendarDays className="w-4 h-4" />
+                  <span className="hidden sm:inline">Calendário</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          
+          {viewMode === "calendar" && (
+            <>
+              {/* Segunda linha: Tipo de visualização (Dia/Semana/Mês) */}
+              <Tabs value={viewType} onValueChange={(v) => setViewType(v as "day" | "week" | "month")} className="w-full">
+                <TabsList className="h-10 sm:h-11 grid grid-cols-3 w-full">
+                  <TabsTrigger value="day" className="text-xs sm:text-sm font-medium min-h-[44px]">Dia</TabsTrigger>
+                  <TabsTrigger value="week" className="text-xs sm:text-sm font-medium min-h-[44px]">Semana</TabsTrigger>
+                  <TabsTrigger value="month" className="text-xs sm:text-sm font-medium min-h-[44px]">Mês</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              
+              {/* Terceira linha: Data e navegação */}
+              <div className="flex items-center justify-between gap-2">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={handlePrevious} 
+                  className="h-10 w-10 sm:h-11 sm:w-11 min-h-[44px] min-w-[44px] flex-shrink-0"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </Button>
+                
+                <div className="flex-1 text-center">
+                  <div className="font-bold text-base sm:text-lg capitalize">
+                    {getDateRangeText()}
+                  </div>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={handleNext} 
+                  className="h-10 w-10 sm:h-11 sm:w-11 min-h-[44px] min-w-[44px] flex-shrink-0"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
               </div>
               
-              <div className="flex items-center gap-3">
+              {/* Quarta linha: Controles (Hoje, Atualizar, Compacto) */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleToday} 
+                  className="gap-2 h-10 px-3 min-h-[44px] flex-1 sm:flex-none"
+                >
+                  <CalendarIcon className="w-4 h-4" />
+                  <span className="text-xs sm:text-sm">Hoje</span>
+                </Button>
+                
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleRefresh}
                   disabled={isRefreshing}
-                  className="gap-2 h-10 min-h-[44px]"
+                  className="gap-2 h-10 px-3 min-h-[44px] flex-1 sm:flex-none"
                 >
                   <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
                   <span className="text-xs sm:text-sm">Atualizar</span>
                 </Button>
                 
-                {viewMode === "calendar" && (
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="compact-mode" className="text-xs sm:text-sm cursor-pointer whitespace-nowrap">
-                      Compacto
-                    </Label>
-                    <Switch
-                      id="compact-mode"
-                      checked={compactView}
-                      onCheckedChange={setCompactView}
-                    />
-                    {compactView ? (
-                      <Minimize2 className="w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <Maximize2 className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {viewMode === "calendar" && (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <Tabs value={viewType} onValueChange={(v) => setViewType(v as "day" | "week" | "month")}>
-                  <TabsList className="h-10 grid grid-cols-3 w-full sm:w-auto">
-                    <TabsTrigger value="day" className="text-xs sm:text-sm min-h-[40px]">Dia</TabsTrigger>
-                    <TabsTrigger value="week" className="text-xs sm:text-sm min-h-[40px]">Semana</TabsTrigger>
-                    <TabsTrigger value="month" className="text-xs sm:text-sm min-h-[40px]">Mês</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-                
-                <div className="flex items-center gap-2 justify-between sm:justify-start">
-                  <Button variant="outline" size="sm" onClick={handleToday} className="gap-1 sm:gap-2 h-10 px-3 flex-1 sm:flex-none min-h-[44px]">
-                    <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span className="text-xs sm:text-sm">Hoje</span>
-                  </Button>
-                  <div className="flex items-center gap-1 sm:gap-2 flex-1 sm:flex-none">
-                    <Button variant="outline" size="icon" onClick={handlePrevious} className="h-10 w-10 min-h-[44px] min-w-[44px]">
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <div className="text-center min-w-[180px] sm:min-w-[200px] font-semibold text-sm sm:text-base">
-                      {viewType === "day" && format(currentDate, "dd 'de' MMMM", { locale: ptBR })}
-                      {viewType === "week" && `${format(startOfWeek(currentDate, { locale: ptBR }), "dd MMM", { locale: ptBR })} - ${format(endOfWeek(currentDate, { locale: ptBR }), "dd MMM", { locale: ptBR })}`}
-                      {viewType === "month" && format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
-                    </div>
-                    <Button variant="outline" size="icon" onClick={handleNext} className="h-10 w-10 min-h-[44px] min-w-[44px]">
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
+                <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-background flex-1 sm:flex-none min-h-[44px]">
+                  <Minimize2 className={cn("w-4 h-4 transition-colors", compactView ? "text-primary" : "text-muted-foreground")} />
+                  <Switch
+                    id="compact-mode"
+                    checked={compactView}
+                    onCheckedChange={setCompactView}
+                  />
+                  <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Compacto</span>
                 </div>
               </div>
-            )}
-          </div>
-          
-          {viewMode === "calendar" && (
-            <div className="flex items-center justify-center pt-2">
-              <h3 className="text-lg sm:text-xl md:text-2xl font-bold capitalize text-center">{getDateRangeText()}</h3>
-            </div>
+            </>
           )}
         </CardHeader>
         <CardContent>
