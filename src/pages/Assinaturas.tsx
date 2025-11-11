@@ -14,8 +14,10 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Users, TrendingUp, CreditCard, FileText, DollarSign, Calendar,
-  RefreshCw, XCircle, Pause, Play, CheckCircle, PackageCheck, FileDown, FileCheck, Mail, Loader2, AlertTriangle
+  RefreshCw, XCircle, Pause, Play, CheckCircle, PackageCheck, FileDown, FileCheck, Mail, Loader2, AlertTriangle,
+  Search, Filter, MoreVertical, Edit, Trash2, Power
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -76,6 +78,16 @@ const Assinaturas = () => {
   const [reactivateUserSubscription, setReactivateUserSubscription] = useState(false);
   const [processingUserAction, setProcessingUserAction] = useState(false);
   
+  // Estados para filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [planFilter, setPlanFilter] = useState("all");
+  
+  // Estados para edição/exclusão de planos
+  const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
+  const [deletingPlan, setDeletingPlan] = useState<SubscriptionPlan | null>(null);
+  const [planSubscriptionCounts, setPlanSubscriptionCounts] = useState<Record<string, number>>({});
+  
   const [newPlan, setNewPlan] = useState({
     name: "",
     description: "",
@@ -92,6 +104,7 @@ const Assinaturas = () => {
     fetchSubscriptions();
     fetchCustomers();
     calculateMetrics();
+    fetchPlanSubscriptionCounts();
   }, []);
 
   const checkAuth = async () => {
@@ -174,6 +187,25 @@ const Assinaturas = () => {
       .select("*")
       .order("name");
     setCustomers(data || []);
+  };
+
+  const fetchPlanSubscriptionCounts = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("subscriptions")
+      .select("plan_id")
+      .eq("user_id", user.id)
+      .in("status", ["active", "suspended"]);
+
+    if (data) {
+      const counts: Record<string, number> = {};
+      data.forEach((sub: any) => {
+        counts[sub.plan_id] = (counts[sub.plan_id] || 0) + 1;
+      });
+      setPlanSubscriptionCounts(counts);
+    }
   };
 
   const calculateMetrics = async () => {
@@ -524,6 +556,114 @@ const Assinaturas = () => {
     }
   };
 
+  const handleEditPlan = async () => {
+    if (!editingPlan || !editingPlan.name || !editingPlan.price) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase
+      .from("subscription_plans")
+      .update({
+        name: editingPlan.name,
+        description: editingPlan.description,
+        price: editingPlan.price,
+        billing_frequency: editingPlan.billing_frequency,
+        services: editingPlan.services,
+      })
+      .eq("id", editingPlan.id);
+
+    if (error) {
+      toast({
+        title: "Erro ao atualizar plano",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Plano atualizado!",
+        description: "As alterações foram salvas com sucesso.",
+      });
+      setEditingPlan(null);
+      fetchPlans();
+    }
+  };
+
+  const handleTogglePlanStatus = async (planId: string, currentStatus: boolean) => {
+    const { error } = await supabase
+      .from("subscription_plans")
+      .update({ is_active: !currentStatus })
+      .eq("id", planId);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: !currentStatus ? "Plano ativado!" : "Plano desativado!",
+      });
+      fetchPlans();
+    }
+  };
+
+  const handleDeletePlan = async () => {
+    if (!deletingPlan) return;
+
+    const activeSubscriptions = planSubscriptionCounts[deletingPlan.id] || 0;
+    
+    if (activeSubscriptions > 0) {
+      toast({
+        title: "Não é possível excluir",
+        description: `Este plano possui ${activeSubscriptions} assinatura(s) ativa(s). Desative-as primeiro.`,
+        variant: "destructive",
+      });
+      setDeletingPlan(null);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("subscription_plans")
+      .delete()
+      .eq("id", deletingPlan.id);
+
+    if (error) {
+      toast({
+        title: "Erro ao excluir plano",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Plano excluído!",
+        description: "O plano foi removido com sucesso.",
+      });
+      setDeletingPlan(null);
+      fetchPlans();
+      fetchPlanSubscriptionCounts();
+    }
+  };
+
+  const getFilteredSubscriptions = () => {
+    return subscriptions.filter((subscription) => {
+      const matchesSearch = searchTerm === "" || 
+        subscription.customers?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        subscription.customers?.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === "all" || subscription.status === statusFilter;
+      
+      const matchesPlan = planFilter === "all" || subscription.plan_id === planFilter;
+
+      return matchesSearch && matchesStatus && matchesPlan;
+    });
+  };
+
   if (loading) {
     return <div className="p-8">Carregando...</div>;
   }
@@ -814,6 +954,62 @@ const Assinaturas = () => {
         </TabsList>
 
         <TabsContent value="subscriptions" className="space-y-4">
+          {/* Filtros */}
+          <Card className="mb-4">
+            <CardContent className="pt-6">
+              <div className="grid gap-4 md:grid-cols-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome ou email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Status</SelectItem>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="suspended">Suspenso</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                    <SelectItem value="payment_failed">Pagamento Falhou</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={planFilter} onValueChange={setPlanFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Plano" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Planos</SelectItem>
+                    {plans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                    setPlanFilter("all");
+                  }}
+                >
+                  <Filter className="mr-2 h-4 w-4" />
+                  Limpar Filtros
+                </Button>
+              </div>
+              <div className="mt-2 text-sm text-muted-foreground">
+                Mostrando {getFilteredSubscriptions().length} de {subscriptions.length} assinatura(s)
+              </div>
+            </CardContent>
+          </Card>
+
           {subscriptions.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-10">
@@ -824,9 +1020,25 @@ const Assinaturas = () => {
                 </Button>
               </CardContent>
             </Card>
+          ) : getFilteredSubscriptions().length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-10">
+                <p className="text-muted-foreground mb-4">Nenhuma assinatura encontrada com os filtros aplicados</p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                    setPlanFilter("all");
+                  }}
+                >
+                  Limpar Filtros
+                </Button>
+              </CardContent>
+            </Card>
           ) : (
             <div className="space-y-4">
-              {subscriptions.map((subscription) => (
+              {getFilteredSubscriptions().map((subscription) => (
                 <Card key={subscription.id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -977,19 +1189,61 @@ const Assinaturas = () => {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {plans.map((plan) => (
-                <Card key={plan.id}>
+                <Card key={plan.id} className={!plan.is_active ? "opacity-60" : ""}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle>{plan.name}</CardTitle>
-                      {plan.is_active && <Badge>Ativo</Badge>}
+                      <div className="flex-1">
+                        <CardTitle className="flex items-center gap-2">
+                          {plan.name}
+                          {!plan.is_active && (
+                            <Badge variant="secondary">Inativo</Badge>
+                          )}
+                          {plan.is_active && (
+                            <Badge variant="default">Ativo</Badge>
+                          )}
+                        </CardTitle>
+                        <CardDescription className="mt-1">{plan.description}</CardDescription>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" disabled={isReadOnly}>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setEditingPlan(plan)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleTogglePlanStatus(plan.id, plan.is_active)}>
+                            <Power className="mr-2 h-4 w-4" />
+                            {plan.is_active ? "Desativar" : "Ativar"}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => setDeletingPlan(plan)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <CardDescription>{plan.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
-                      <div className="text-3xl font-bold">{formatCurrency(plan.price)}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {getFrequencyLabel(plan.billing_frequency)}
+                    <div className="space-y-3">
+                      <div>
+                        <div className="text-3xl font-bold">{formatCurrency(plan.price)}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {getFrequencyLabel(plan.billing_frequency)}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          {planSubscriptionCounts[plan.id] || 0} assinante(s)
+                        </span>
                       </div>
                     </div>
                   </CardContent>
@@ -1093,6 +1347,123 @@ const Assinaturas = () => {
                 "Confirmar Reativação"
               )}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de Edição de Plano */}
+      <Dialog open={!!editingPlan} onOpenChange={(open) => !open && setEditingPlan(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Plano</DialogTitle>
+            <DialogDescription>
+              Modifique as informações do plano de assinatura
+            </DialogDescription>
+          </DialogHeader>
+          {editingPlan && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-name">Nome do Plano *</Label>
+                <Input
+                  id="edit-name"
+                  value={editingPlan.name}
+                  onChange={(e) => setEditingPlan({ ...editingPlan, name: e.target.value })}
+                  placeholder="Ex: Pacote 4 Aulas/Mês"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-description">Descrição</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingPlan.description || ""}
+                  onChange={(e) => setEditingPlan({ ...editingPlan, description: e.target.value })}
+                  placeholder="Descreva o que está incluso no plano"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-price">Valor (R$) *</Label>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    step="0.01"
+                    value={editingPlan.price}
+                    onChange={(e) => setEditingPlan({ ...editingPlan, price: parseFloat(e.target.value) || 0 })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-frequency">Frequência de Cobrança</Label>
+                  <Select
+                    value={editingPlan.billing_frequency}
+                    onValueChange={(value) => setEditingPlan({ ...editingPlan, billing_frequency: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">Mensal</SelectItem>
+                      <SelectItem value="quarterly">Trimestral</SelectItem>
+                      <SelectItem value="single">Pagamento Único</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {planSubscriptionCounts[editingPlan.id] > 0 && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                        Atenção
+                      </p>
+                      <p className="text-sm text-amber-600 dark:text-amber-500 mt-1">
+                        Este plano possui {planSubscriptionCounts[editingPlan.id]} assinatura(s) ativa(s). 
+                        Alterações no valor afetarão as próximas cobranças.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditingPlan(null)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleEditPlan} disabled={isReadOnly}>
+                  Salvar Alterações
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Exclusão de Plano */}
+      <AlertDialog open={!!deletingPlan} onOpenChange={(open) => !open && setDeletingPlan(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Plano</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingPlan && planSubscriptionCounts[deletingPlan.id] > 0 ? (
+                <div className="space-y-2">
+                  <p>Este plano possui {planSubscriptionCounts[deletingPlan.id]} assinatura(s) ativa(s) e não pode ser excluído.</p>
+                  <p className="text-sm">Você pode desativar o plano para impedir novas assinaturas, ou cancelar todas as assinaturas ativas primeiro.</p>
+                </div>
+              ) : (
+                <p>Tem certeza que deseja excluir este plano? Esta ação não pode ser desfeita.</p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            {deletingPlan && planSubscriptionCounts[deletingPlan.id] === 0 && (
+              <AlertDialogAction 
+                onClick={handleDeletePlan}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Excluir Plano
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
