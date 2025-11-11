@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Trash2, Edit, User, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
+import { Calendar, Trash2, Edit, User, ChevronDown, ChevronUp, GripVertical, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useDraggable } from "@dnd-kit/core";
@@ -19,6 +19,7 @@ interface TaskCardProps {
   subtasks?: SubTask[];
   onSubtaskToggle?: (taskId: string, subtaskId: string) => void;
   onAddSubtask?: (taskId: string) => void;
+  onComplete?: (taskId: string) => void;
 }
 
 interface SubTask {
@@ -35,6 +36,7 @@ export const TaskCard = ({
   subtasks = [],
   onSubtaskToggle,
   onAddSubtask,
+  onComplete,
 }: TaskCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -196,6 +198,21 @@ export const TaskCard = ({
 
           {task.status !== "completed" && (
             <div className="flex gap-1.5 pt-1">
+              {(task.status === "pending" || task.status === "in_progress") && onComplete && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-7 px-2 flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onComplete(task.id);
+                  }}
+                  disabled={isReadOnly}
+                >
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  <span className="text-xs">Concluir</span>
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"

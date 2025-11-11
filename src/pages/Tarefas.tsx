@@ -424,6 +424,53 @@ const Tarefas = () => {
     }
   };
 
+  const handleCompleteTask = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const oldStatus = task.status;
+
+    // Add to undo stack
+    setUndoStack(prev => [...prev, { taskId, oldStatus, newStatus: "completed" }]);
+
+    // Update local state
+    setTasks((prevTasks) =>
+      prevTasks.map((t) =>
+        t.id === taskId ? { ...t, status: "completed" } : t
+      )
+    );
+
+    // Update in database
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        status: "completed",
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", taskId);
+
+    if (error) {
+      console.error("Erro ao concluir tarefa:", error);
+      toast({
+        title: "Erro ao concluir tarefa",
+        description: error.message,
+        variant: "destructive",
+      });
+      // Revert on error
+      setTasks((prevTasks) =>
+        prevTasks.map((t) =>
+          t.id === taskId ? { ...t, status: oldStatus } : t
+        )
+      );
+    } else {
+      toast({
+        title: "✅ Tarefa concluída!",
+        description: "A tarefa foi marcada como concluída.",
+      });
+      fetchTasks();
+    }
+  };
+
   const pendingTasks = tasks.filter((t) => t.status === "pending");
   const inProgressTasks = tasks.filter((t) => t.status === "in_progress");
   const completedTasks = tasks.filter((t) => t.status === "completed");
@@ -557,6 +604,7 @@ const Tarefas = () => {
                   <SelectContent>
                     <SelectItem value="pending">A Fazer</SelectItem>
                     <SelectItem value="in_progress">Em Progresso</SelectItem>
+                    <SelectItem value="completed">Concluída</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -610,7 +658,7 @@ const Tarefas = () => {
       )}
 
       {/* Stats Cards */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">A Fazer</CardTitle>
@@ -631,6 +679,16 @@ const Tarefas = () => {
           </CardContent>
         </Card>
         
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-500">{stats.completed}</div>
+          </CardContent>
+        </Card>
+        
         <Card className="border-l-4 border-l-red-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Atrasadas</CardTitle>
@@ -642,9 +700,9 @@ const Tarefas = () => {
         </Card>
       </div>
 
-      {/* Kanban Board - Only Active Tasks */}
+      {/* Kanban Board - 3 Columns */}
       <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <TaskColumn
             id="pending"
             title="A Fazer"
@@ -663,6 +721,7 @@ const Tarefas = () => {
                 task={task}
                 onEdit={setEditingTask}
                 onDelete={setDeleteTaskId}
+                onComplete={handleCompleteTask}
                 isReadOnly={isReadOnly}
                 subtasks={subtasks[task.id] || []}
                 onSubtaskToggle={handleSubtaskToggle}
@@ -695,6 +754,7 @@ const Tarefas = () => {
                 task={task}
                 onEdit={setEditingTask}
                 onDelete={setDeleteTaskId}
+                onComplete={handleCompleteTask}
                 isReadOnly={isReadOnly}
                 subtasks={subtasks[task.id] || []}
                 onSubtaskToggle={handleSubtaskToggle}
@@ -705,6 +765,38 @@ const Tarefas = () => {
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                 <CircleDot className="h-8 w-8 mb-2 opacity-50" />
                 <p className="text-sm">Nenhuma tarefa em progresso</p>
+              </div>
+            )}
+          </TaskColumn>
+
+          <TaskColumn
+            id="completed"
+            title="Concluídas"
+            icon={<CheckCircle2 className="h-5 w-5 text-green-500" />}
+            count={completedTasks.length}
+            onAddTask={() => {
+              setFormData({ ...formData, status: "completed" });
+              setOpen(true);
+            }}
+            isReadOnly={isReadOnly}
+            accentColor="border-green-500"
+          >
+            {completedTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onEdit={setEditingTask}
+                onDelete={setDeleteTaskId}
+                isReadOnly={isReadOnly}
+                subtasks={subtasks[task.id] || []}
+                onSubtaskToggle={handleSubtaskToggle}
+                onAddSubtask={(taskId) => setAddSubtaskDialog({ open: true, taskId })}
+              />
+            ))}
+            {completedTasks.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <CheckCircle2 className="h-8 w-8 mb-2 opacity-50" />
+                <p className="text-sm">Nenhuma tarefa concluída</p>
               </div>
             )}
           </TaskColumn>
