@@ -13,7 +13,6 @@ import { Plus, Phone, Mail, User, CalendarPlus, ListTodo, Search, Filter, Pencil
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CustomerSubscriptions } from "@/components/CustomerSubscriptions";
-import { CustomerCoupons } from "@/components/CustomerCoupons";
 import { CustomerHistory } from "@/components/CustomerHistory";
 import { CustomerDocuments } from "@/components/CustomerDocuments";
 import { CustomerLoyalty } from "@/components/CustomerLoyalty";
@@ -615,12 +614,11 @@ const Clientes = () => {
               </DialogHeader>
 
               <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mt-3 sm:mt-4">
-                <TabsList className="grid w-full grid-cols-5 h-auto">
+                <TabsList className="grid w-full grid-cols-4 h-auto">
                   <TabsTrigger value="info" className="text-xs sm:text-sm py-2 px-2">Info</TabsTrigger>
                   <TabsTrigger value="history" className="text-xs sm:text-sm py-2 px-2">Histórico</TabsTrigger>
                   <TabsTrigger value="subscriptions" className="text-xs sm:text-sm py-2 px-2">Assinaturas</TabsTrigger>
                   <TabsTrigger value="loyalty" className="text-xs sm:text-sm py-2 px-2">Fidelidade</TabsTrigger>
-                  <TabsTrigger value="coupons" className="text-xs sm:text-sm py-2 px-2">Cupons</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="info" className="space-y-3 sm:space-y-4">
@@ -847,10 +845,6 @@ const Clientes = () => {
 
                 <TabsContent value="loyalty">
                   <CustomerLoyalty customerId={selectedCustomer.id} />
-                </TabsContent>
-
-                <TabsContent value="coupons">
-                  <CustomerCoupons customerId={selectedCustomer.id} />
                 </TabsContent>
               </Tabs>
             </>
