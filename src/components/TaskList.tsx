@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { TaskItem } from "@/types/task";
 import { 
   CheckCircle2, 
   Circle, 
@@ -26,17 +27,18 @@ import { ptBR } from "date-fns/locale";
 interface Task {
   id: string;
   title: string;
-  description: string;
+  description?: string;
   type: string;
   priority: string;
   status: string;
-  due_date: string;
-  related_entity_type: string;
-  related_entity_id: string;
+  due_date?: string;
+  related_entity_type?: string;
+  related_entity_id?: string;
   completed_at?: string;
-  updated_at: string;
+  updated_at?: string;
   metadata?: {
     customer_id?: string;
+    customer_name?: string;
     [key: string]: any;
   };
 }
@@ -73,7 +75,7 @@ export const TaskList = ({
   const { toast } = useToast();
   const [tasks, setTasks] = useState<TaskWithCustomer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [taskToComplete, setTaskToComplete] = useState<string | null>(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -475,7 +477,18 @@ export const TaskList = ({
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => {
-                            setEditingTask(task);
+                            setEditingTask({
+                              id: task.id,
+                              title: task.title,
+                              description: task.description,
+                              type: task.type,
+                              priority: task.priority,
+                              status: task.status,
+                              due_date: task.due_date,
+                              metadata: {
+                                customer_name: task.customer_name || task.metadata?.customer_name,
+                              },
+                            });
                             setEditDialogOpen(true);
                           }}
                         >

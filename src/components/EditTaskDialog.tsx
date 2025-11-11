@@ -13,19 +13,10 @@ import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  type: string;
-  priority: string;
-  status: string;
-  due_date: string;
-}
+import { TaskItem } from "@/types/task";
 
 interface EditTaskDialogProps {
-  task: Task | null;
+  task: TaskItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTaskUpdated: () => void;
@@ -48,7 +39,9 @@ export const EditTaskDialog = ({ task, open, onOpenChange, onTaskUpdated }: Edit
       setType(task.type);
       setPriority(task.priority);
       setStatus(task.status);
-      setDueDate(new Date(task.due_date));
+      if (task.due_date) {
+        setDueDate(new Date(task.due_date));
+      }
     }
   }, [task]);
 
@@ -167,9 +160,9 @@ export const EditTaskDialog = ({ task, open, onOpenChange, onTaskUpdated }: Edit
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending">Pendente</SelectItem>
-                    <SelectItem value="completed">Concluída</SelectItem>
-                    <SelectItem value="cancelled">Cancelada</SelectItem>
+                    <SelectItem value="pending">A Fazer</SelectItem>
+                    <SelectItem value="in_progress">Em Progresso</SelectItem>
+                    <SelectItem value="completed">Concluído</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
