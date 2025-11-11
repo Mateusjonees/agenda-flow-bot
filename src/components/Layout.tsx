@@ -50,7 +50,7 @@ function LayoutContent({ children, user, profileImage, notifications, totalNotif
       {/* Backdrop para mobile quando sidebar está aberta */}
       {isMobile && open && (
         <div 
-          className="fixed inset-0 bg-black/50 z-30 animate-fade-in backdrop-blur-sm"
+          className="fixed inset-0 bg-black/50 z-30 animate-fade-in backdrop-blur-sm transition-opacity duration-300 ease-out"
           onClick={() => setOpen(false)}
           aria-label="Fechar menu"
         />

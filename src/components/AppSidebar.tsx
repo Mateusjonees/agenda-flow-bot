@@ -54,33 +54,41 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r relative z-40">
+    <Sidebar 
+      collapsible="icon" 
+      className="border-r relative z-40 transition-transform duration-300 ease-out"
+    >
       <SidebarHeader className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
-        <div className="flex items-center justify-center p-4 group-data-[collapsible=icon]:p-2">
+        <div className="flex items-center justify-center p-4 group-data-[collapsible=icon]:p-2 transition-all duration-300">
           <div className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl p-3 shadow-sm border border-primary/20 backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:scale-105 group-data-[collapsible=icon]:p-2">
             <img 
               src={logo} 
               alt="Foguete Gestão Empresarial" 
-              className="h-10 w-auto drop-shadow-sm group-data-[collapsible=icon]:h-6" 
+              className="h-10 w-auto drop-shadow-sm group-data-[collapsible=icon]:h-6 transition-all duration-300" 
             />
           </div>
         </div>
       </SidebarHeader>
       
-      <SidebarContent className="pt-4">
+      <SidebarContent className="pt-4 transition-opacity duration-300 ease-out">
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
                 
                 return (
                   <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={isActive} 
+                      tooltip={item.label}
+                      className="transition-all duration-200 ease-out"
+                    >
                       <NavLink to={item.path} onClick={handleNavClick}>
-                        <Icon className="w-5 h-5" />
-                        <span>{item.label}</span>
+                        <Icon className="w-5 h-5 transition-transform duration-200" />
+                        <span className="transition-opacity duration-300">{item.label}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -89,7 +97,11 @@ export function AppSidebar() {
               
               {/* WhatsApp Support */}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Suporte">
+                <SidebarMenuButton 
+                  asChild 
+                  tooltip="Suporte"
+                  className="transition-all duration-200 ease-out"
+                >
                   <a 
                     href="https://wa.me/5548990751889?text=Olá,%20preciso%20de%20suporte" 
                     target="_blank" 
@@ -97,8 +109,8 @@ export function AppSidebar() {
                     className="flex items-center gap-3"
                     onClick={handleNavClick}
                   >
-                    <MessageCircle className="w-5 h-5" />
-                    <span>Suporte WhatsApp</span>
+                    <MessageCircle className="w-5 h-5 transition-transform duration-200" />
+                    <span className="transition-opacity duration-300">Suporte WhatsApp</span>
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
