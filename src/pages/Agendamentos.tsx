@@ -224,6 +224,46 @@ const Agendamentos = () => {
     },
   });
 
+  // Buscar horários de funcionamento
+  const { data: businessHours = [] } = useQuery({
+    queryKey: ["business-hours"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
+      const { data, error } = await supabase
+        .from("business_hours")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("day_of_week");
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Verificar se um dia está ativo
+  const isDayActive = (date: Date) => {
+    const dayOfWeek = date.getDay();
+    const dayConfig = businessHours.find(h => h.day_of_week === dayOfWeek);
+    return dayConfig?.is_active ?? true; // Default true se não configurado
+  };
+
+  // Obter horários de funcionamento de um dia específico
+  const getDayHours = (date: Date) => {
+    const dayOfWeek = date.getDay();
+    const dayConfig = businessHours.find(h => h.day_of_week === dayOfWeek);
+    
+    if (!dayConfig || !dayConfig.is_active) {
+      return null;
+    }
+    
+    return {
+      start: dayConfig.start_time,
+      end: dayConfig.end_time,
+    };
+  };
+
   // Mutation para excluir agendamento
   const deleteAppointmentMutation = useMutation({
     mutationFn: async (appointmentId: string) => {
@@ -454,7 +494,31 @@ const Agendamentos = () => {
   };
 
   const renderDayView = () => {
-    const hours = Array.from({ length: 14 }, (_, i) => i + 8);
+    const today = currentDate;
+    
+    // Verificar se o dia está ativo
+    const dayHours = getDayHours(today);
+    
+    if (!dayHours) {
+      return (
+        <div className="border rounded-lg overflow-hidden bg-card p-8 text-center">
+          <CalendarIcon className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Dia não disponível</h3>
+          <p className="text-muted-foreground">
+            {format(today, "EEEE", { locale: ptBR })} não está configurado como dia de funcionamento
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Vá em Configurações {'>'} Horário de Funcionamento para ativar este dia
+          </p>
+        </div>
+      );
+    }
+    
+    // Gerar horários baseados na configuração
+    const [startHour] = dayHours.start.split(':').map(Number);
+    const [endHour] = dayHours.end.split(':').map(Number);
+    const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
+    
     const dayAppointments = appointments.filter(apt => {
       const aptDate = parseISO(apt.start_time);
       return isSameDay(aptDate, currentDate);
@@ -473,6 +537,9 @@ const Agendamentos = () => {
       <div className="border rounded-lg overflow-hidden">
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-3 sm:p-4 border-b">
           <h3 className="font-semibold text-base sm:text-lg capitalize">{format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Funcionamento: {dayHours.start} - {dayHours.end}
+          </p>
         </div>
         <div className="divide-y relative">
           {hours.map((hour) => {
@@ -655,22 +722,56 @@ const Agendamentos = () => {
   const renderWeekView = () => {
     const start = startOfWeek(currentDate, { weekStartsOn: 0 });
     const end = endOfWeek(currentDate, { weekStartsOn: 0 });
-    const days = eachDayOfInterval({ start, end });
-    const hours = Array.from({ length: 13 }, (_, i) => i + 8); // 8h às 20h
+    const allDays = eachDayOfInterval({ start, end });
+    
+    // Filtrar apenas dias ativos
+    const activeDays = allDays.filter(day => isDayActive(day));
+    
+    if (activeDays.length === 0) {
+      return (
+        <div className="border rounded-lg overflow-hidden bg-card p-8 text-center">
+          <CalendarIcon className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Nenhum dia disponível</h3>
+          <p className="text-muted-foreground">
+            Não há dias de funcionamento configurados para esta semana
+          </p>
+        </div>
+      );
+    }
+    
+    // Determinar o horário mínimo e máximo entre todos os dias ativos
+    let minHour = 23;
+    let maxHour = 0;
+    
+    activeDays.forEach(day => {
+      const dayHours = getDayHours(day);
+      if (dayHours) {
+        const [start] = dayHours.start.split(':').map(Number);
+        const [end] = dayHours.end.split(':').map(Number);
+        minHour = Math.min(minHour, start);
+        maxHour = Math.max(maxHour, end);
+      }
+    });
+    
+    const hours = Array.from({ length: maxHour - minHour + 1 }, (_, i) => minHour + i);
 
     return (
       <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
         <div className="overflow-x-auto">
           {/* Cabeçalho dos dias */}
-          <div className="grid grid-cols-8 border-b bg-muted/50 min-w-[700px] lg:min-w-[900px] sticky top-0 z-10">
+          <div className={cn(
+            "grid border-b bg-muted/50 min-w-[700px] lg:min-w-[900px] sticky top-0 z-10",
+            `grid-cols-${activeDays.length + 1}`
+          )} style={{ gridTemplateColumns: `100px repeat(${activeDays.length}, 1fr)` }}>
             <div className="p-4 border-r">
               <div className="text-xs text-muted-foreground uppercase tracking-wider">Horário</div>
             </div>
-            {days.map((day) => {
+            {activeDays.map((day) => {
               const isCurrentDay = isSameDay(day, new Date());
               const dayAppointmentsCount = appointments.filter(apt => 
                 isSameDay(parseISO(apt.start_time), day)
               ).length;
+              const dayHours = getDayHours(day);
               
               return (
                 <div
@@ -693,6 +794,11 @@ const Agendamentos = () => {
                       {format(day, "dd")}
                     </div>
                   </div>
+                  {dayHours && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {dayHours.start} - {dayHours.end}
+                    </div>
+                  )}
                   {dayAppointmentsCount > 0 && (
                     <Badge variant="secondary" className="text-xs h-5 mt-2">
                       {dayAppointmentsCount} {dayAppointmentsCount === 1 ? 'evento' : 'eventos'}
@@ -706,12 +812,25 @@ const Agendamentos = () => {
           {/* Grid de horários */}
           <div className="divide-y min-w-[700px] lg:min-w-[900px]">
             {hours.map((hour) => (
-              <div key={hour} className="grid grid-cols-8 min-h-[80px]">
+              <div 
+                key={hour} 
+                className="grid min-h-[80px]"
+                style={{ gridTemplateColumns: `100px repeat(${activeDays.length}, 1fr)` }}
+              >
                 <div className="p-3 text-sm text-muted-foreground border-r font-medium flex items-start bg-muted/20">
                   {String(hour).padStart(2, "0")}:00
                 </div>
-                {days.map((day) => {
+                {activeDays.map((day) => {
                   const isCurrentDay = isSameDay(day, new Date());
+                  const dayHours = getDayHours(day);
+                  
+                  // Verificar se este horário está dentro do horário de funcionamento do dia
+                  const isWithinBusinessHours = dayHours && (() => {
+                    const [startHour] = dayHours.start.split(':').map(Number);
+                    const [endHour] = dayHours.end.split(':').map(Number);
+                    return hour >= startHour && hour < endHour;
+                  })();
+                  
                   const dayHourAppointments = appointments.filter(apt => {
                     const aptDate = parseISO(apt.start_time);
                     return isSameDay(aptDate, day) && aptDate.getHours() === hour;
@@ -724,11 +843,17 @@ const Agendamentos = () => {
                       date={day}
                       hour={hour}
                       className={cn(
-                        "p-2 border-l hover:bg-accent/5 transition-colors relative",
-                        isCurrentDay && "bg-primary/5"
+                        "p-2 border-l transition-colors relative",
+                        isWithinBusinessHours ? "hover:bg-accent/5" : "bg-muted/40",
+                        isCurrentDay && isWithinBusinessHours && "bg-primary/5"
                       )}
                     >
-                      {dayHourAppointments.map((apt) => {
+                      {!isWithinBusinessHours && (
+                        <div className="text-xs text-muted-foreground/60 italic text-center py-1">
+                          Fechado
+                        </div>
+                      )}
+                      {isWithinBusinessHours && dayHourAppointments.map((apt) => {
                         const statusColors = {
                           confirmed: "hsl(142 71% 45%)",
                           pending: "hsl(48 96% 53%)",
@@ -821,6 +946,7 @@ const Agendamentos = () => {
           {allDays.map((day, idx) => {
             const isCurrentMonth = day >= start && day <= end;
             const isCurrentDay = isSameDay(day, new Date());
+            const isActive = isDayActive(day);
             
             const dayAppointments = appointments.filter(apt => {
               const aptDate = parseISO(apt.start_time);
@@ -837,8 +963,9 @@ const Agendamentos = () => {
                 hour={8}
                 className={cn(
                   "min-h-[110px] sm:min-h-[140px] p-2 border-b border-l first:border-l-0",
-                  "relative group bg-card hover:bg-accent/5 transition-colors",
-                  !isCurrentMonth && "bg-muted/30 opacity-60",
+                  "relative group transition-colors",
+                  isActive ? "bg-card hover:bg-accent/5" : "bg-muted/40",
+                  !isCurrentMonth && "opacity-60",
                   isCurrentDay && "bg-primary/5 ring-2 ring-primary/30"
                 )}
               >
@@ -849,15 +976,23 @@ const Agendamentos = () => {
                       "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-all",
                       isCurrentDay && "bg-primary text-primary-foreground shadow-sm",
                       !isCurrentDay && !isCurrentMonth && "text-muted-foreground/50",
-                      !isCurrentDay && isCurrentMonth && "text-foreground hover:bg-muted/50"
+                      !isCurrentDay && isCurrentMonth && isActive && "text-foreground hover:bg-muted/50",
+                      !isCurrentDay && isCurrentMonth && !isActive && "text-muted-foreground/50"
                     )}
                   >
                     {format(day, "d")}
                   </div>
                 </div>
                 
+                {/* Indicador de dia fechado */}
+                {isCurrentMonth && !isActive && (
+                  <div className="text-xs text-center text-muted-foreground/70 italic">
+                    Fechado
+                  </div>
+                )}
+                
                 {/* Indicador de agendamentos no topo */}
-                {hasAppointments && (
+                {hasAppointments && isActive && (
                   <div className="absolute top-2 right-2">
                     <div className="w-2 h-2 rounded-full bg-primary shadow-sm" />
                   </div>
