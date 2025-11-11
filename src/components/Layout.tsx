@@ -44,7 +44,7 @@ function LayoutContent({ children, user, profileImage, notifications, totalNotif
   }, [isMobile, setOpen]);
 
   return (
-    <div className="min-h-screen flex w-full bg-background">
+    <div className="min-h-screen flex items-start w-full bg-background">
       <AppSidebar />
       
       {/* Backdrop para mobile quando sidebar está aberta */}
