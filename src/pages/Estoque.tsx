@@ -149,15 +149,19 @@ const Estoque = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    const currentStock = parseFloat(newItem.current_stock) || 0;
+    const costPrice = newItem.cost_price ? parseFloat(newItem.cost_price) : 0;
+    const totalCost = currentStock * costPrice;
+
     const { error } = await supabase.from("inventory_items").insert([{
       user_id: user.id,
       name: newItem.name,
       description: newItem.description,
       category: newItem.category,
       unit: newItem.unit,
-      current_stock: parseFloat(newItem.current_stock) || 0,
+      current_stock: currentStock,
       min_quantity: parseFloat(newItem.min_quantity) || 0,
-      cost_price: newItem.cost_price ? parseFloat(newItem.cost_price) : 0,
+      cost_price: costPrice,
       unit_price: newItem.unit_price ? parseFloat(newItem.unit_price) : 0,
     }]);
 
@@ -167,23 +171,54 @@ const Estoque = () => {
         description: error.message,
         variant: "destructive",
       });
+      return;
+    }
+
+    // Se tiver estoque inicial e custo, registrar despesa no financeiro
+    if (currentStock > 0 && costPrice > 0) {
+      const { error: transactionError } = await supabase
+        .from("financial_transactions")
+        .insert({
+          user_id: user.id,
+          type: "expense",
+          amount: totalCost,
+          description: `Compra de estoque inicial: ${newItem.name} (${currentStock} ${newItem.unit})`,
+          payment_method: "cash",
+          status: "completed",
+          transaction_date: new Date().toISOString(),
+        });
+
+      if (transactionError) {
+        toast({
+          title: "Item criado",
+          description: "Mas não foi possível registrar a despesa no financeiro.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "✅ Item e despesa criados!",
+          description: `Despesa de ${formatCurrency(totalCost)} registrada no financeiro.`,
+        });
+      }
     } else {
       toast({
         title: "Item criado com sucesso!",
+        description: currentStock > 0 ? "💡 Dica: Informe o custo de compra para registrar automaticamente no financeiro." : undefined,
       });
-      setIsDialogOpen(false);
-      setNewItem({
-        name: "",
-        description: "",
-        category: "",
-        unit: "un",
-        current_stock: "0",
-        min_quantity: "0",
-        cost_price: "",
-        unit_price: "",
-      });
-      fetchItems();
     }
+
+    setIsDialogOpen(false);
+    setNewItem({
+      name: "",
+      description: "",
+      category: "",
+      unit: "un",
+      current_stock: "0",
+      min_quantity: "0",
+      cost_price: "",
+      unit_price: "",
+    });
+    fetchItems();
   };
 
   const handleStockMovement = async () => {
