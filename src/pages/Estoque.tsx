@@ -12,8 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Package, AlertTriangle, TrendingDown, TrendingUp, History, DollarSign } from "lucide-react";
+import { Plus, Package, AlertTriangle, TrendingDown, TrendingUp, History, DollarSign, Minus, Pencil, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface InventoryItem {
   id: string;
@@ -47,7 +48,10 @@ const Estoque = () => {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isMovementDialogOpen, setIsMovementDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<string>("");
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   
   const [newItem, setNewItem] = useState({
     name: "",
@@ -283,6 +287,157 @@ const Estoque = () => {
 
   const isLowStock = (item: InventoryItem) => {
     return item.current_stock <= item.min_quantity && item.min_quantity > 0;
+  };
+
+  const quickAddStock = async (item: InventoryItem, amount: number) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.rpc("update_inventory_stock", {
+      p_item_id: item.id,
+      p_quantity: amount,
+      p_type: "in",
+      p_reason: "Adição rápida",
+      p_reference_type: "manual",
+    });
+
+    if (error) {
+      toast({
+        title: "Erro ao atualizar estoque",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Estoque atualizado!",
+        description: `${amount > 0 ? '+' : ''}${amount} ${item.unit} adicionado(s)`,
+      });
+      fetchItems();
+    }
+  };
+
+  const quickRemoveStock = async (item: InventoryItem, amount: number) => {
+    if (item.current_stock < amount) {
+      toast({
+        title: "Estoque insuficiente",
+        description: "Não há estoque suficiente para remover essa quantidade.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.rpc("update_inventory_stock", {
+      p_item_id: item.id,
+      p_quantity: amount,
+      p_type: "out",
+      p_reason: "Remoção rápida",
+      p_reference_type: "manual",
+    });
+
+    if (error) {
+      toast({
+        title: "Erro ao atualizar estoque",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Estoque atualizado!",
+        description: `-${amount} ${item.unit} removido(s)`,
+      });
+      fetchItems();
+    }
+  };
+
+  const handleEditItem = (item: InventoryItem) => {
+    setNewItem({
+      name: item.name,
+      description: item.description || "",
+      category: item.category || "",
+      unit: item.unit,
+      current_stock: item.current_stock.toString(),
+      min_quantity: item.min_quantity.toString(),
+      cost_price: item.cost_price ? item.cost_price.toString() : "",
+      unit_price: item.unit_price ? item.unit_price.toString() : "",
+    });
+    setSelectedItem(item.id);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateItem = async () => {
+    if (!newItem.name) {
+      toast({
+        title: "Erro",
+        description: "Preencha o nome do item",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase
+      .from("inventory_items")
+      .update({
+        name: newItem.name,
+        description: newItem.description,
+        category: newItem.category,
+        unit: newItem.unit,
+        min_quantity: parseFloat(newItem.min_quantity) || 0,
+        cost_price: newItem.cost_price ? parseFloat(newItem.cost_price) : 0,
+        unit_price: newItem.unit_price ? parseFloat(newItem.unit_price) : 0,
+      })
+      .eq("id", selectedItem);
+
+    if (error) {
+      toast({
+        title: "Erro ao atualizar item",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Item atualizado com sucesso!",
+      });
+      setIsEditDialogOpen(false);
+      setSelectedItem("");
+      setNewItem({
+        name: "",
+        description: "",
+        category: "",
+        unit: "un",
+        current_stock: "0",
+        min_quantity: "0",
+        cost_price: "",
+        unit_price: "",
+      });
+      fetchItems();
+    }
+  };
+
+  const handleDeleteItem = async () => {
+    if (!itemToDelete) return;
+
+    const { error } = await supabase
+      .from("inventory_items")
+      .delete()
+      .eq("id", itemToDelete.id);
+
+    if (error) {
+      toast({
+        title: "Erro ao excluir item",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Item excluído com sucesso!",
+      });
+      setIsDeleteDialogOpen(false);
+      setItemToDelete(null);
+      fetchItems();
+    }
   };
 
   const stats = {
@@ -580,19 +735,67 @@ const Estoque = () => {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">{item.name}</CardTitle>
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => handleEditItem(item)}
+                          disabled={isReadOnly}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => {
+                            setItemToDelete(item);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          disabled={isReadOnly}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                     {item.category && (
                       <CardDescription>{item.category}</CardDescription>
                     )}
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Estoque:</span>
                         <span className={`font-bold ${isLowStock(item) ? "text-destructive" : ""}`}>
                           {item.current_stock} {item.unit}
                         </span>
                       </div>
+
+                      {/* Botões de ajuste rápido */}
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-1"
+                          onClick={() => quickRemoveStock(item, 1)}
+                          disabled={isReadOnly || item.current_stock < 1}
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                          Remover
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-1"
+                          onClick={() => quickAddStock(item, 1)}
+                          disabled={isReadOnly}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Adicionar
+                        </Button>
+                      </div>
+
                       {item.min_quantity > 0 && (
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Mínimo:</span>
@@ -677,6 +880,123 @@ const Estoque = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog de edição */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Item</DialogTitle>
+            <DialogDescription>
+              Atualize as informações do item
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-name">Nome *</Label>
+                <Input
+                  id="edit-name"
+                  value={newItem.name}
+                  onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-category">Categoria</Label>
+                <Input
+                  id="edit-category"
+                  value={newItem.category}
+                  onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="edit-description">Descrição</Label>
+              <Textarea
+                id="edit-description"
+                value={newItem.description}
+                onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-unit">Unidade</Label>
+                <Select value={newItem.unit} onValueChange={(value) => setNewItem({ ...newItem, unit: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="un">Unidade</SelectItem>
+                    <SelectItem value="kg">Quilograma (kg)</SelectItem>
+                    <SelectItem value="l">Litro (L)</SelectItem>
+                    <SelectItem value="m">Metro (m)</SelectItem>
+                    <SelectItem value="cx">Caixa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-cost_price">Custo de Compra (R$)</Label>
+                <Input
+                  id="edit-cost_price"
+                  type="number"
+                  step="0.01"
+                  value={newItem.cost_price}
+                  onChange={(e) => setNewItem({ ...newItem, cost_price: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-unit_price">Preço de Venda (R$)</Label>
+                <Input
+                  id="edit-unit_price"
+                  type="number"
+                  step="0.01"
+                  value={newItem.unit_price}
+                  onChange={(e) => setNewItem({ ...newItem, unit_price: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-min_quantity">Estoque Mínimo</Label>
+                <Input
+                  id="edit-min_quantity"
+                  type="number"
+                  step="0.01"
+                  value={newItem.min_quantity}
+                  onChange={(e) => setNewItem({ ...newItem, min_quantity: e.target.value })}
+                />
+              </div>
+            </div>
+            {newItem.cost_price && newItem.unit_price && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium">
+                  Margem: {(((parseFloat(newItem.unit_price) - parseFloat(newItem.cost_price)) / parseFloat(newItem.cost_price)) * 100).toFixed(1)}%
+                </p>
+              </div>
+            )}
+            <Button onClick={handleUpdateItem} className="w-full">
+              Salvar Alterações
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmação de exclusão */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Item</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir "{itemToDelete?.name}"? Esta ação não pode ser desfeita e todo o histórico de movimentações deste item será mantido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteItem} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
