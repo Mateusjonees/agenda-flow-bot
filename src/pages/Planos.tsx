@@ -332,10 +332,24 @@ const Planos = () => {
         <Card className="border-primary bg-gradient-to-br from-primary/5 to-transparent">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" />
-              Sua Assinatura Ativa
+              {subscription.status === "trial" ? (
+                <>
+                  <Sparkles className="w-5 h-5 text-amber-600" />
+                  Período de Teste Gratuito
+                </>
+              ) : (
+                <>
+                  <Shield className="w-5 h-5 text-primary" />
+                  Sua Assinatura Ativa
+                </>
+              )}
             </CardTitle>
-            <CardDescription>Gerenciamento completo da sua conta</CardDescription>
+            <CardDescription>
+              {subscription.status === "trial" 
+                ? "Experimente todos os recursos gratuitamente por 7 dias"
+                : "Gerenciamento completo da sua conta"
+              }
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
             <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
@@ -345,11 +359,19 @@ const Planos = () => {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold text-lg sm:text-xl">
-                        {subscription.subscription_plans?.name || "Plano Atual"}
+                        {subscription.subscription_plans?.name || (subscription.status === "trial" ? "Período de Teste" : "Plano Atual")}
                       </p>
-                      <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
-                        Ativo
-                      </Badge>
+                      {subscription.status === "trial" ? (
+                        <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+                          <Sparkles className="w-3 h-3 mr-1" />
+                          Teste Grátis
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
+                          <Check className="w-3 h-3 mr-1" />
+                          Plano Ativo
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs sm:text-sm text-muted-foreground">
                       {subscription.subscription_plans?.description || ""}
