@@ -25,6 +25,27 @@ const Configuracoes = () => {
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
+  const [googleReviewLink, setGoogleReviewLink] = useState("");
+  const [instagramLink, setInstagramLink] = useState("");
+  const [defaultSlotDuration, setDefaultSlotDuration] = useState(60);
+  const [bufferTime, setBufferTime] = useState(0);
+  
+  // Estrutura para armazenar horários de cada dia
+  interface DaySchedule {
+    isActive: boolean;
+    startTime: string;
+    endTime: string;
+  }
+
+  const [schedules, setSchedules] = useState<Record<number, DaySchedule>>({
+    0: { isActive: false, startTime: "09:00", endTime: "18:00" }, // Domingo
+    1: { isActive: true, startTime: "09:00", endTime: "18:00" }, // Segunda
+    2: { isActive: true, startTime: "09:00", endTime: "18:00" }, // Terça
+    3: { isActive: true, startTime: "09:00", endTime: "18:00" }, // Quarta
+    4: { isActive: true, startTime: "09:00", endTime: "18:00" }, // Quinta
+    5: { isActive: true, startTime: "09:00", endTime: "18:00" }, // Sexta
+    6: { isActive: true, startTime: "09:00", endTime: "14:00" }, // Sábado
+  });
   
   // Estados para alteração de senha
   const [currentPassword, setCurrentPassword] = useState("");
@@ -70,6 +91,20 @@ const Configuracoes = () => {
     enabled: !!user,
   });
 
+  // Buscar horários de funcionamento
+  const { data: businessHours } = useQuery({
+    queryKey: ["business-hours", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("business_hours")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("day_of_week");
+      return data || [];
+    },
+    enabled: !!user,
+  });
 
   // Atualizar estado quando os dados forem carregados
   useEffect(() => {
@@ -82,12 +117,32 @@ const Configuracoes = () => {
   useEffect(() => {
     if (settings) {
       setBusinessName(settings.business_name || "");
+      setBusinessType(settings.business_type || "");
       setPhone(settings.whatsapp_number || "");
       setEmail(settings.email || "");
       setAddress(settings.address || "");
       setCpfCnpj(settings.cpf_cnpj || "");
+      setGoogleReviewLink(settings.google_review_link || "");
+      setInstagramLink(settings.instagram_link || "");
+      setDefaultSlotDuration(settings.default_slot_duration || 60);
+      setBufferTime(settings.buffer_time || 0);
     }
   }, [settings]);
+
+  // Atualizar horários quando carregados
+  useEffect(() => {
+    if (businessHours && businessHours.length > 0) {
+      const loadedSchedules: Record<number, DaySchedule> = {};
+      businessHours.forEach((hour: any) => {
+        loadedSchedules[hour.day_of_week] = {
+          isActive: hour.is_active,
+          startTime: hour.start_time,
+          endTime: hour.end_time,
+        };
+      });
+      setSchedules(loadedSchedules);
+    }
+  }, [businessHours]);
 
   // Mutation para fazer upload da imagem
   const uploadImageMutation = useMutation({
@@ -146,10 +201,15 @@ const Configuracoes = () => {
         .upsert({
           user_id: user.id,
           business_name: businessName,
+          business_type: businessType,
           whatsapp_number: phone,
           email: email,
           address: address,
           cpf_cnpj: cpfCnpj,
+          google_review_link: googleReviewLink,
+          instagram_link: instagramLink,
+          default_slot_duration: defaultSlotDuration,
+          buffer_time: bufferTime,
           profile_image_url: settings?.profile_image_url,
         }, {
           onConflict: "user_id"
@@ -177,6 +237,41 @@ const Configuracoes = () => {
     },
   });
 
+  // Mutation para salvar horários de funcionamento
+  const saveBusinessHoursMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("Usuário não autenticado");
+
+      // Deletar horários existentes
+      await supabase
+        .from("business_hours")
+        .delete()
+        .eq("user_id", user.id);
+
+      // Inserir novos horários
+      const hoursToInsert = Object.entries(schedules).map(([day, schedule]) => ({
+        user_id: user.id,
+        day_of_week: Number(day),
+        start_time: schedule.startTime,
+        end_time: schedule.endTime,
+        is_active: schedule.isActive,
+      }));
+
+      const { error } = await supabase
+        .from("business_hours")
+        .insert(hoursToInsert);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["business-hours"] });
+    },
+    onError: (error) => {
+      console.error("Erro ao salvar horários:", error);
+      throw error;
+    },
+  });
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -201,8 +296,15 @@ const Configuracoes = () => {
     }
   };
 
-  const handleSaveSettings = () => {
-    saveSettingsMutation.mutate();
+  const handleSaveSettings = async () => {
+    try {
+      await saveSettingsMutation.mutateAsync();
+      await saveBusinessHoursMutation.mutateAsync();
+      toast.success("Configurações salvas com sucesso!");
+    } catch (error) {
+      console.error("Erro ao salvar:", error);
+      toast.error("Erro ao salvar configurações");
+    }
   };
 
   // Mutation para alterar senha
@@ -397,15 +499,54 @@ const Configuracoes = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
-            {["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"].map((day) => (
+            {[
+              { day: 1, name: "Segunda" },
+              { day: 2, name: "Terça" },
+              { day: 3, name: "Quarta" },
+              { day: 4, name: "Quinta" },
+              { day: 5, name: "Sexta" },
+              { day: 6, name: "Sábado" },
+              { day: 0, name: "Domingo" },
+            ].map(({ day, name }) => (
               <div key={day} className="flex items-center gap-4">
-                <div className="w-24">
-                  <p className="text-sm font-medium">{day}</p>
+                <div className="w-24 flex items-center gap-2">
+                  <Switch
+                    checked={schedules[day]?.isActive || false}
+                    onCheckedChange={(checked) =>
+                      setSchedules({
+                        ...schedules,
+                        [day]: { ...schedules[day], isActive: checked },
+                      })
+                    }
+                  />
+                  <p className="text-sm font-medium">{name}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-1">
-                  <Input type="time" defaultValue="09:00" className="w-32" />
+                  <Input
+                    type="time"
+                    value={schedules[day]?.startTime || "09:00"}
+                    onChange={(e) =>
+                      setSchedules({
+                        ...schedules,
+                        [day]: { ...schedules[day], startTime: e.target.value },
+                      })
+                    }
+                    disabled={!schedules[day]?.isActive}
+                    className="w-32"
+                  />
                   <span className="text-muted-foreground">até</span>
-                  <Input type="time" defaultValue="18:00" className="w-32" />
+                  <Input
+                    type="time"
+                    value={schedules[day]?.endTime || "18:00"}
+                    onChange={(e) =>
+                      setSchedules({
+                        ...schedules,
+                        [day]: { ...schedules[day], endTime: e.target.value },
+                      })
+                    }
+                    disabled={!schedules[day]?.isActive}
+                    className="w-32"
+                  />
                 </div>
               </div>
             ))}
@@ -422,11 +563,25 @@ const Configuracoes = () => {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="slot-duration">Duração padrão (minutos)</Label>
-              <Input id="slot-duration" type="number" defaultValue="60" />
+              <Input 
+                id="slot-duration" 
+                type="number" 
+                value={defaultSlotDuration}
+                onChange={(e) => setDefaultSlotDuration(Number(e.target.value))}
+                min="15"
+                max="240"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="buffer-time">Tempo entre agendamentos (minutos)</Label>
-              <Input id="buffer-time" type="number" defaultValue="0" />
+              <Input 
+                id="buffer-time" 
+                type="number" 
+                value={bufferTime}
+                onChange={(e) => setBufferTime(Number(e.target.value))}
+                min="0"
+                max="60"
+              />
             </div>
           </div>
         </CardContent>
@@ -451,7 +606,9 @@ const Configuracoes = () => {
             <Input 
               id="google-review" 
               type="url" 
-              placeholder="https://g.page/r/..." 
+              placeholder="https://g.page/r/..."
+              value={googleReviewLink}
+              onChange={(e) => setGoogleReviewLink(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
               Link para avaliação no Google Meu Negócio
@@ -466,7 +623,9 @@ const Configuracoes = () => {
             <Input 
               id="instagram-review" 
               type="url" 
-              placeholder="https://instagram.com/seunegocio" 
+              placeholder="https://instagram.com/seunegocio"
+              value={instagramLink}
+              onChange={(e) => setInstagramLink(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
               Perfil do Instagram do seu negócio

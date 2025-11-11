@@ -165,11 +165,16 @@ export type Database = {
       business_settings: {
         Row: {
           address: string | null
+          buffer_time: number | null
           business_name: string | null
+          business_type: string | null
           cpf_cnpj: string | null
           created_at: string | null
+          default_slot_duration: number | null
           email: string | null
+          google_review_link: string | null
           id: string
+          instagram_link: string | null
           is_maintenance_mode: boolean | null
           maintenance_estimated_return: string | null
           maintenance_message: string | null
@@ -181,11 +186,16 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          buffer_time?: number | null
           business_name?: string | null
+          business_type?: string | null
           cpf_cnpj?: string | null
           created_at?: string | null
+          default_slot_duration?: number | null
           email?: string | null
+          google_review_link?: string | null
           id?: string
+          instagram_link?: string | null
           is_maintenance_mode?: boolean | null
           maintenance_estimated_return?: string | null
           maintenance_message?: string | null
@@ -197,11 +207,16 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          buffer_time?: number | null
           business_name?: string | null
+          business_type?: string | null
           cpf_cnpj?: string | null
           created_at?: string | null
+          default_slot_duration?: number | null
           email?: string | null
+          google_review_link?: string | null
           id?: string
+          instagram_link?: string | null
           is_maintenance_mode?: boolean | null
           maintenance_estimated_return?: string | null
           maintenance_message?: string | null
@@ -460,6 +475,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          notes: string | null
           payment_method: string | null
           status: string | null
           transaction_date: string | null
@@ -473,6 +489,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          notes?: string | null
           payment_method?: string | null
           status?: string | null
           transaction_date?: string | null
@@ -486,6 +503,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          notes?: string | null
           payment_method?: string | null
           status?: string | null
           transaction_date?: string | null
@@ -651,6 +669,7 @@ export type Database = {
           qr_code_url: string | null
           reminders_sent: number | null
           status: string | null
+          subscription_id: string | null
           txid: string
           updated_at: string | null
           user_id: string | null
@@ -671,6 +690,7 @@ export type Database = {
           qr_code_url?: string | null
           reminders_sent?: number | null
           status?: string | null
+          subscription_id?: string | null
           txid: string
           updated_at?: string | null
           user_id?: string | null
@@ -691,6 +711,7 @@ export type Database = {
           qr_code_url?: string | null
           reminders_sent?: number | null
           status?: string | null
+          subscription_id?: string | null
           txid?: string
           updated_at?: string | null
           user_id?: string | null
@@ -701,6 +722,13 @@ export type Database = {
             columns: ["appointment_id"]
             isOneToOne: false
             referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_charges_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]
