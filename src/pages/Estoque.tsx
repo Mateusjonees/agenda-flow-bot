@@ -668,17 +668,37 @@ const Estoque = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="cost_price">Custo de Compra (R$)</Label>
+                    <Label htmlFor="cost_price">Custo Unitário (R$)</Label>
                     <Input
                       id="cost_price"
                       type="number"
                       step="0.01"
-                      placeholder="Quanto custou para comprar"
+                      placeholder="Custo por unidade"
                       value={newItem.cost_price}
                       onChange={(e) => setNewItem({ ...newItem, cost_price: e.target.value })}
                     />
                   </div>
                 </div>
+                {newItem.current_stock && newItem.cost_price && parseFloat(newItem.current_stock) > 0 && parseFloat(newItem.cost_price) > 0 && (
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                          💰 Custo Total do Estoque Inicial
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                          {parseFloat(newItem.current_stock)} {newItem.unit} × {formatCurrency(parseFloat(newItem.cost_price))}
+                        </p>
+                      </div>
+                      <p className="text-lg font-bold text-amber-900 dark:text-amber-100">
+                        {formatCurrency(parseFloat(newItem.current_stock) * parseFloat(newItem.cost_price))}
+                      </p>
+                    </div>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                      Este valor será registrado como despesa no financeiro
+                    </p>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="unit_price">Preço de Venda (R$)</Label>
