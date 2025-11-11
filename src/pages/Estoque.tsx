@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Package, AlertTriangle, TrendingDown, TrendingUp, History, DollarSign, Minus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Package, AlertTriangle, TrendingDown, TrendingUp, History, DollarSign, Minus, Pencil, Trash2, Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -52,6 +52,8 @@ const Estoque = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<string>("");
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   
   const [newItem, setNewItem] = useState({
     name: "",
@@ -288,6 +290,18 @@ const Estoque = () => {
   const isLowStock = (item: InventoryItem) => {
     return item.current_stock <= item.min_quantity && item.min_quantity > 0;
   };
+
+  // Filtrar itens
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (item.description?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  // Obter categorias únicas
+  const categories = Array.from(new Set(items.map(item => item.category).filter(Boolean)));
 
   const quickAddStock = async (item: InventoryItem, amount: number) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -713,24 +727,57 @@ const Estoque = () => {
 
       <Tabs defaultValue="items" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="items">Itens</TabsTrigger>
+          <TabsTrigger value="items">Todos os Itens</TabsTrigger>
+          <TabsTrigger value="low-stock">Estoque Baixo</TabsTrigger>
           <TabsTrigger value="movements">Movimentações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="items" className="space-y-4">
-          {items.length === 0 ? (
+          {/* Barra de busca e filtros */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome ou descrição..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Todas as categorias" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as categorias</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category || ""}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {filteredItems.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-10">
-                <p className="text-muted-foreground mb-4">Nenhum item cadastrado</p>
-                <Button onClick={() => setIsDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Criar Primeiro Item
-                </Button>
+                <p className="text-muted-foreground mb-4">
+                  {searchTerm || categoryFilter !== "all" 
+                    ? "Nenhum item encontrado com esses filtros" 
+                    : "Nenhum item cadastrado"}
+                </p>
+                {!searchTerm && categoryFilter === "all" && (
+                  <Button onClick={() => setIsDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Criar Primeiro Item
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <Card key={item.id} className={isLowStock(item) ? "border-destructive" : ""}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -740,7 +787,10 @@ const Estoque = () => {
                           size="icon"
                           variant="ghost"
                           className="h-7 w-7"
-                          onClick={() => handleEditItem(item)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditItem(item);
+                          }}
                           disabled={isReadOnly}
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -749,7 +799,8 @@ const Estoque = () => {
                           size="icon"
                           variant="ghost"
                           className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setItemToDelete(item);
                             setIsDeleteDialogOpen(true);
                           }}
@@ -778,7 +829,10 @@ const Estoque = () => {
                           size="sm"
                           variant="outline"
                           className="flex-1 gap-1"
-                          onClick={() => quickRemoveStock(item, 1)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            quickRemoveStock(item, 1);
+                          }}
                           disabled={isReadOnly || item.current_stock < 1}
                         >
                           <Minus className="h-3.5 w-3.5" />
@@ -788,7 +842,10 @@ const Estoque = () => {
                           size="sm"
                           variant="outline"
                           className="flex-1 gap-1"
-                          onClick={() => quickAddStock(item, 1)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            quickAddStock(item, 1);
+                          }}
                           disabled={isReadOnly}
                         >
                           <Plus className="h-3.5 w-3.5" />
@@ -833,6 +890,142 @@ const Estoque = () => {
                 </Card>
               ))}
             </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="low-stock" className="space-y-4">
+          {items.filter(isLowStock).length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-10">
+                <Package className="w-16 h-16 text-green-500 mb-4" />
+                <p className="text-lg font-semibold mb-2">Tudo certo!</p>
+                <p className="text-muted-foreground">Nenhum item com estoque baixo</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Itens com Estoque Baixo</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {items.filter(isLowStock).length} {items.filter(isLowStock).length === 1 ? 'item precisa' : 'itens precisam'} de atenção
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {items.filter(isLowStock).map((item) => (
+                  <Card key={item.id} className="border-destructive">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{item.name}</CardTitle>
+                        <div className="flex gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditItem(item);
+                            }}
+                            disabled={isReadOnly}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setItemToDelete(item);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                            disabled={isReadOnly}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      {item.category && (
+                        <CardDescription>{item.category}</CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <Badge variant="destructive" className="w-full justify-center mb-2">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          Estoque Baixo
+                        </Badge>
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Estoque:</span>
+                          <span className="font-bold text-destructive">
+                            {item.current_stock} {item.unit}
+                          </span>
+                        </div>
+
+                        {/* Botões de ajuste rápido */}
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 gap-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              quickRemoveStock(item, 1);
+                            }}
+                            disabled={isReadOnly || item.current_stock < 1}
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                            Remover
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="flex-1 gap-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              quickAddStock(item, 1);
+                            }}
+                            disabled={isReadOnly}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Adicionar
+                          </Button>
+                        </div>
+
+                        {item.min_quantity > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Mínimo:</span>
+                            <span>{item.min_quantity} {item.unit}</span>
+                          </div>
+                        )}
+                        {item.cost_price > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Custo:</span>
+                            <span className="text-orange-600">{formatCurrency(item.cost_price)}</span>
+                          </div>
+                        )}
+                        {item.unit_price > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Venda:</span>
+                            <span className="text-green-600 font-medium">{formatCurrency(item.unit_price)}</span>
+                          </div>
+                        )}
+                        {item.cost_price > 0 && item.unit_price > 0 && (
+                          <div className="flex justify-between text-sm border-t pt-2">
+                            <span className="text-muted-foreground font-medium">Margem:</span>
+                            <span className="font-bold text-primary">
+                              {(((item.unit_price - item.cost_price) / item.cost_price) * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </TabsContent>
 
