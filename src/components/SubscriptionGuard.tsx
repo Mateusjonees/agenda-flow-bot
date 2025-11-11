@@ -46,7 +46,7 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
                 </p>
               </div>
               <Button 
-                onClick={() => navigate("/configuracoes")}
+                onClick={() => navigate("/planos")}
                 variant="secondary"
                 className="flex-shrink-0"
               >
@@ -70,7 +70,7 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
                 </p>
               </div>
               <Button 
-                onClick={() => navigate("/configuracoes")}
+                onClick={() => navigate("/planos")}
                 className="flex-shrink-0"
               >
                 Assinar Agora
