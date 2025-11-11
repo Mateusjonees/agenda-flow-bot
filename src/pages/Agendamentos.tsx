@@ -188,6 +188,8 @@ const Agendamentos = () => {
   const [filterCustomer, setFilterCustomer] = useState<string>("all");
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<string>("all");
   const [filterOpen, setFilterOpen] = useState(false);
+  const [filterDateStart, setFilterDateStart] = useState<string>("");
+  const [filterDateEnd, setFilterDateEnd] = useState<string>("");
   
   const queryClient = useQueryClient();
   
@@ -313,6 +315,21 @@ const Agendamentos = () => {
     if (filterStatus !== "all" && apt.status !== filterStatus) return false;
     if (filterCustomer !== "all" && apt.customer_id !== filterCustomer) return false;
     if (filterPaymentStatus !== "all" && (apt as any).payment_status !== filterPaymentStatus) return false;
+    
+    // Filtro de data personalizado
+    if (filterDateStart) {
+      const aptDate = parseISO(apt.start_time);
+      const startDate = new Date(filterDateStart);
+      startDate.setHours(0, 0, 0, 0);
+      if (aptDate < startDate) return false;
+    }
+    if (filterDateEnd) {
+      const aptDate = parseISO(apt.start_time);
+      const endDate = new Date(filterDateEnd);
+      endDate.setHours(23, 59, 59, 999);
+      if (aptDate > endDate) return false;
+    }
+    
     return true;
   });
 
@@ -927,17 +944,164 @@ const Agendamentos = () => {
       parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()
     );
 
-    if (sortedAppointments.length === 0) {
-      return (
-        <div className="text-center py-12">
-          <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">Nenhum agendamento encontrado</p>
-        </div>
-      );
-    }
+    const handleQuickDateFilter = (period: string) => {
+      const today = new Date();
+      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      switch (period) {
+        case "today":
+          setFilterDateStart(format(startOfToday, "yyyy-MM-dd"));
+          setFilterDateEnd(format(startOfToday, "yyyy-MM-dd"));
+          break;
+        case "week":
+          const weekStart = startOfWeek(today, { weekStartsOn: 0 });
+          const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
+          setFilterDateStart(format(weekStart, "yyyy-MM-dd"));
+          setFilterDateEnd(format(weekEnd, "yyyy-MM-dd"));
+          break;
+        case "month":
+          const monthStart = startOfMonth(today);
+          const monthEnd = endOfMonth(today);
+          setFilterDateStart(format(monthStart, "yyyy-MM-dd"));
+          setFilterDateEnd(format(monthEnd, "yyyy-MM-dd"));
+          break;
+        case "7days":
+          setFilterDateStart(format(addDays(today, -7), "yyyy-MM-dd"));
+          setFilterDateEnd(format(today, "yyyy-MM-dd"));
+          break;
+        case "30days":
+          setFilterDateStart(format(addDays(today, -30), "yyyy-MM-dd"));
+          setFilterDateEnd(format(today, "yyyy-MM-dd"));
+          break;
+      }
+    };
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
+        {/* Filtros de Data */}
+        <Card>
+          <CardContent className="p-4 space-y-4">
+            {/* Atalhos de Período */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Períodos Rápidos</Label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickDateFilter("today")}
+                  className="text-xs"
+                >
+                  Hoje
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickDateFilter("week")}
+                  className="text-xs"
+                >
+                  Esta Semana
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickDateFilter("month")}
+                  className="text-xs"
+                >
+                  Este Mês
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickDateFilter("7days")}
+                  className="text-xs"
+                >
+                  Últimos 7 Dias
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickDateFilter("30days")}
+                  className="text-xs"
+                >
+                  Últimos 30 Dias
+                </Button>
+              </div>
+            </div>
+
+            {/* Filtros Personalizados */}
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="filter-date-start" className="text-sm font-medium">
+                  Data Início
+                </Label>
+                <Input
+                  id="filter-date-start"
+                  type="date"
+                  value={filterDateStart}
+                  onChange={(e) => setFilterDateStart(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+              
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="filter-date-end" className="text-sm font-medium">
+                  Data Fim
+                </Label>
+                <Input
+                  id="filter-date-end"
+                  type="date"
+                  value={filterDateEnd}
+                  onChange={(e) => setFilterDateEnd(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+              
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFilterDateStart("");
+                  setFilterDateEnd("");
+                }}
+                className="h-10 gap-2"
+              >
+                <XCircle className="w-4 h-4" />
+                Limpar Datas
+              </Button>
+            </div>
+            
+            {(filterDateStart || filterDateEnd) && (
+              <div className="flex items-center justify-between p-3 bg-primary/5 rounded-md border border-primary/20">
+                <div className="text-sm font-medium text-primary">
+                  <span className="font-bold">{sortedAppointments.length}</span> agendamento(s) encontrado(s)
+                  {filterDateStart && filterDateEnd && ` entre ${format(new Date(filterDateStart), "dd/MM/yyyy")} e ${format(new Date(filterDateEnd), "dd/MM/yyyy")}`}
+                  {filterDateStart && !filterDateEnd && ` a partir de ${format(new Date(filterDateStart), "dd/MM/yyyy")}`}
+                  {!filterDateStart && filterDateEnd && ` até ${format(new Date(filterDateEnd), "dd/MM/yyyy")}`}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Lista de Agendamentos */}
+        {sortedAppointments.length === 0 ? (
+          <div className="text-center py-12">
+            <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">Nenhum agendamento encontrado</p>
+            {(filterDateStart || filterDateEnd) && (
+              <Button
+                variant="link"
+                onClick={() => {
+                  setFilterDateStart("");
+                  setFilterDateEnd("");
+                }}
+                className="mt-2"
+              >
+                Limpar filtros de data
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
         {sortedAppointments.map((apt) => {
           const statusColors = {
             confirmed: "border-green-500 bg-green-50/50 dark:bg-green-950/20",
@@ -1024,6 +1188,8 @@ const Agendamentos = () => {
             </Card>
           );
         })}
+          </div>
+        )}
       </div>
     );
   };
