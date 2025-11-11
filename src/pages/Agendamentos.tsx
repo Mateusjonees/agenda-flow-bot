@@ -28,6 +28,9 @@ import { DraggableAppointment } from "@/components/DraggableAppointment";
 import { DroppableTimeSlot } from "@/components/DroppableTimeSlot";
 import { useReadOnly, ReadOnlyWrapper } from "@/components/SubscriptionGuard";
 import { DayAppointmentsDialog } from "@/components/DayAppointmentsDialog";
+import { AppointmentQuickSearch } from "@/components/AppointmentQuickSearch";
+import { Search, Bell } from "lucide-react";
+import { useAppointmentReminders } from "@/hooks/useAppointmentReminders";
 
 type Customer = {
   id: string;
@@ -142,6 +145,7 @@ const getStatusLabel = (status: string, timeDiff: number) => {
 
 const Agendamentos = () => {
   const { isReadOnly } = useReadOnly();
+  const { testNotification } = useAppointmentReminders();
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState("");
   const [service, setService] = useState("");
@@ -149,7 +153,7 @@ const Agendamentos = () => {
   const [time, setTime] = useState("");
   const [duration, setDuration] = useState("60");
   const [notes, setNotes] = useState("");
-  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("calendar");
   const [viewType, setViewType] = useState<"day" | "week" | "month">("week");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [finishDialogOpen, setFinishDialogOpen] = useState(false);
@@ -164,6 +168,20 @@ const Agendamentos = () => {
   const [dayDialogOpen, setDayDialogOpen] = useState(false);
   const [selectedDayDate, setSelectedDayDate] = useState<Date>(new Date());
   const [selectedDayAppointments, setSelectedDayAppointments] = useState<Appointment[]>([]);
+  const [quickSearchOpen, setQuickSearchOpen] = useState(false);
+  
+  // Ctrl+K para busca rápida
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setQuickSearchOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   
   // Filtros
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -849,11 +867,11 @@ const Agendamentos = () => {
                         currentEndTime={parseISO(apt.end_time)}
                       >
                         <div
-                          className={cn(
-                            "group/card relative px-2 py-1.5 rounded-md cursor-pointer border-l-[3px]",
-                            "transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:z-10",
-                            "bg-card/80 hover:bg-accent/20 backdrop-blur-sm"
-                          )}
+                           className={cn(
+                             "group/card relative px-2 py-1.5 rounded-md cursor-pointer border-l-[3px]",
+                             "transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:z-10",
+                             "bg-card hover:bg-accent/10"
+                           )}
                           style={{ borderLeftColor: borderColor }}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -904,6 +922,112 @@ const Agendamentos = () => {
     );
   };
 
+  const renderListView = () => {
+    const sortedAppointments = [...appointments].sort((a, b) => 
+      parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()
+    );
+
+    if (sortedAppointments.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+          <p className="text-muted-foreground">Nenhum agendamento encontrado</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {sortedAppointments.map((apt) => {
+          const statusColors = {
+            confirmed: "border-green-500 bg-green-50/50 dark:bg-green-950/20",
+            pending: "border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20",
+            cancelled: "border-red-500 bg-red-50/50 dark:bg-red-950/20",
+            completed: "border-primary bg-primary/5 dark:bg-primary/10"
+          };
+          
+          const borderColor = statusColors[apt.status as keyof typeof statusColors] || statusColors.completed;
+          
+          return (
+            <Card key={apt.id} className={cn("border-l-4 hover:shadow-md transition-all", borderColor)}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span className="font-bold">
+                        {format(parseISO(apt.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {apt.status === "completed" ? "Concluído" :
+                         apt.status === "cancelled" ? "Cancelado" :
+                         apt.status === "pending" ? "Pendente" : "Confirmado"}
+                      </Badge>
+                    </div>
+                    
+                    <div className="text-lg font-semibold">{apt.title}</div>
+                    
+                    {apt.customers && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <User className="w-4 h-4" />
+                        <span>{apt.customers.name}</span>
+                      </div>
+                    )}
+                    
+                    {apt.description && (
+                      <p className="text-sm text-muted-foreground">{apt.description}</p>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditAppointmentId(apt.id);
+                        setEditDialogOpen(true);
+                      }}
+                      disabled={isReadOnly}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    
+                    {apt.status !== "completed" && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => {
+                          setSelectedAppointment({ id: apt.id, title: apt.title });
+                          setFinishDialogOpen(true);
+                        }}
+                        disabled={isReadOnly}
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                      </Button>
+                    )}
+                    
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => {
+                        setDeleteAppointmentId(apt.id);
+                        setDeleteDialogOpen(true);
+                      }}
+                      disabled={isReadOnly}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <DndContext 
       sensors={sensors}
@@ -918,6 +1042,26 @@ const Agendamentos = () => {
             <p className="text-sm sm:text-base text-muted-foreground">Gerencie todos os seus atendimentos</p>
           </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            className="gap-2 h-10"
+            onClick={() => setQuickSearchOpen(true)}
+          >
+            <Search className="w-4 h-4" />
+            <span className="hidden md:inline">Buscar</span>
+            <kbd className="hidden md:inline pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
+              <span className="text-xs">⌘</span>K
+            </kbd>
+          </Button>
+          <Button 
+            variant="outline" 
+            className="gap-2 h-10"
+            onClick={testNotification}
+            title="Testar notificações de lembrete"
+          >
+            <Bell className="w-4 h-4" />
+            <span className="hidden md:inline">Notificações</span>
+          </Button>
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="gap-2 h-10">
@@ -1224,35 +1368,53 @@ const Agendamentos = () => {
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-              <CardTitle className="text-xl sm:text-2xl">Calendário</CardTitle>
-              <Tabs value={viewType} onValueChange={(v) => setViewType(v as "day" | "week" | "month")}>
-                <TabsList className="h-9 grid grid-cols-3 w-full sm:w-auto">
-                  <TabsTrigger value="day" className="text-xs sm:text-sm">Dia</TabsTrigger>
-                  <TabsTrigger value="week" className="text-xs sm:text-sm">Semana</TabsTrigger>
-                  <TabsTrigger value="month" className="text-xs sm:text-sm">Mês</TabsTrigger>
+              <CardTitle className="text-xl sm:text-2xl">Visualização</CardTitle>
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")}>
+                <TabsList className="h-9 grid grid-cols-2 w-full sm:w-auto">
+                  <TabsTrigger value="list" className="text-xs sm:text-sm gap-1.5">
+                    <List className="w-3 h-3" />
+                    Lista
+                  </TabsTrigger>
+                  <TabsTrigger value="calendar" className="text-xs sm:text-sm gap-1.5">
+                    <CalendarDays className="w-3 h-3" />
+                    Calendário
+                  </TabsTrigger>
                 </TabsList>
               </Tabs>
+              {viewMode === "calendar" && (
+                <Tabs value={viewType} onValueChange={(v) => setViewType(v as "day" | "week" | "month")}>
+                  <TabsList className="h-9 grid grid-cols-3 w-full sm:w-auto">
+                    <TabsTrigger value="day" className="text-xs sm:text-sm">Dia</TabsTrigger>
+                    <TabsTrigger value="week" className="text-xs sm:text-sm">Semana</TabsTrigger>
+                    <TabsTrigger value="month" className="text-xs sm:text-sm">Mês</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              )}
             </div>
             
-            <div className="flex items-center gap-2 justify-between sm:justify-start">
-              <Button variant="outline" size="sm" onClick={handleToday} className="gap-1 sm:gap-2 h-9 px-2 sm:px-3">
-                <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="text-xs sm:text-sm">Hoje</span>
-              </Button>
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon" onClick={handlePrevious} className="h-9 w-9">
-                  <ChevronLeft className="w-4 h-4" />
+            {viewMode === "calendar" && (
+              <div className="flex items-center gap-2 justify-between sm:justify-start">
+                <Button variant="outline" size="sm" onClick={handleToday} className="gap-1 sm:gap-2 h-9 px-2 sm:px-3">
+                  <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="text-xs sm:text-sm">Hoje</span>
                 </Button>
-                <Button variant="outline" size="icon" onClick={handleNext} className="h-9 w-9">
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="icon" onClick={handlePrevious} className="h-9 w-9">
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={handleNext} className="h-9 w-9">
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
           
-          <div className="flex items-center justify-center pt-2">
-            <h3 className="text-lg sm:text-xl md:text-2xl font-bold capitalize text-center">{getDateRangeText()}</h3>
-          </div>
+          {viewMode === "calendar" && (
+            <div className="flex items-center justify-center pt-2">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold capitalize text-center">{getDateRangeText()}</h3>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -1261,9 +1423,14 @@ const Agendamentos = () => {
             </div>
           ) : (
             <>
-              {viewType === "day" && renderDayView()}
-              {viewType === "week" && renderWeekView()}
-              {viewType === "month" && renderMonthView()}
+              {viewMode === "list" && renderListView()}
+              {viewMode === "calendar" && (
+                <>
+                  {viewType === "day" && renderDayView()}
+                  {viewType === "week" && renderWeekView()}
+                  {viewType === "month" && renderMonthView()}
+                </>
+              )}
             </>
           )}
         </CardContent>
@@ -1402,6 +1569,16 @@ const Agendamentos = () => {
           setDeleteAppointmentId(appointmentId);
           setDeleteDialogOpen(true);
           setDayDialogOpen(false);
+        }}
+      />
+      
+      {/* Busca Rápida com Ctrl+K */}
+      <AppointmentQuickSearch
+        open={quickSearchOpen}
+        onOpenChange={setQuickSearchOpen}
+        onSelectAppointment={(appointmentId) => {
+          setEditAppointmentId(appointmentId);
+          setEditDialogOpen(true);
         }}
       />
     </div>
