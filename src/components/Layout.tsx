@@ -3,12 +3,13 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, User as UserIcon, Bell, Calendar, ListTodo, Check, MessageCircle, Crown } from "lucide-react";
+import { LogOut, Settings, User as UserIcon, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SearchBar } from "@/components/SearchBar";
 import { PageBreadcrumb } from "@/components/PageBreadcrumb";
+import { NotificationBell } from "@/components/NotificationBell";
 import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,12 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useQuery } from "@tanstack/react-query";
 import logo from "@/assets/logo.png";
 
 interface LayoutProps {
@@ -33,7 +29,7 @@ interface LayoutProps {
 }
 
 // Componente interno que usa useSidebar
-function LayoutContent({ children, user, profileImage, notifications, totalNotifications, navigate, queryClient, markAllAsViewed, handleLogout, notificationsOpen, setNotificationsOpen }: any) {
+function LayoutContent({ children, user, profileImage, navigate, handleLogout }: any) {
   const { isMobile, open } = useSidebar();
 
   return (
@@ -61,13 +57,15 @@ function LayoutContent({ children, user, profileImage, notifications, totalNotif
                 variant="ghost" 
                 size="icon" 
                 className="h-9 w-9 rounded-full"
-                onClick={() => navigate("/pricing")}
+                onClick={() => navigate("/planos")}
                 title="Assinatura"
               >
                 <Crown className="h-5 w-5 text-warning" />
               </Button>
+
+              <NotificationBell />
               
-              <DropdownMenu open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                     <Avatar className="h-9 w-9 border-2 border-primary/20">
@@ -76,17 +74,9 @@ function LayoutContent({ children, user, profileImage, notifications, totalNotif
                         <UserIcon className="h-4 w-4 text-primary-foreground" />
                       </AvatarFallback>
                     </Avatar>
-                    {totalNotifications > 0 && (
-                      <Badge
-                        variant="destructive"
-                        className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs animate-pulse"
-                      >
-                        {totalNotifications}
-                      </Badge>
-                    )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-80" align="end" forceMount>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">Minha Conta</p>
@@ -95,91 +85,8 @@ function LayoutContent({ children, user, profileImage, notifications, totalNotif
                       </p>
                     </div>
                   </DropdownMenuLabel>
-                  
-                  {totalNotifications > 0 && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <div className="px-2 py-2">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Bell className="h-4 w-4 text-primary" />
-                            <span className="text-sm font-medium">Notificações</span>
-                            <Badge variant="secondary" className="h-5">
-                              {totalNotifications}
-                            </Badge>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => markAllAsViewed.mutate()}
-                            className="h-6 gap-1 text-xs"
-                          >
-                            <Check className="w-3 h-3" />
-                            Limpar
-                          </Button>
-                        </div>
-                        
-                        <ScrollArea className="h-[250px]">
-                          <div className="space-y-2">
-                            {notifications?.appointments && notifications.appointments.length > 0 && (
-                              <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Calendar className="w-3 h-3 text-primary" />
-                                  <span className="text-xs font-medium">Hoje</span>
-                                </div>
-                                {notifications.appointments.map((apt: any) => (
-                                  <div
-                                    key={apt.id}
-                                    className="p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors"
-                                  >
-                                    <p className="text-sm font-medium truncate">{apt.title}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {format(new Date(apt.start_time), "HH:mm", { locale: ptBR })}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            
-                            {notifications?.appointments && notifications.appointments.length > 0 && 
-                             notifications?.tasks && notifications.tasks.length > 0 && (
-                              <Separator />
-                            )}
-                            
-                            {notifications?.tasks && notifications.tasks.length > 0 && (
-                              <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                  <ListTodo className="w-3 h-3 text-primary" />
-                                  <span className="text-xs font-medium">Tarefas</span>
-                                </div>
-                                {notifications.tasks.map((task: any) => (
-                                  <div
-                                    key={task.id}
-                                    className="p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors"
-                                  >
-                                    <p className="text-sm font-medium truncate">{task.title}</p>
-                                    <div className="flex items-center gap-2">
-                                      <p className="text-xs text-muted-foreground">
-                                        {format(new Date(task.due_date), "dd/MM", { locale: ptBR })}
-                                      </p>
-                                      {task.priority === "high" && (
-                                        <Badge variant="destructive" className="h-4 text-[10px] px-1">
-                                          Alta
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </div>
-                    </>
-                  )}
-                  
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => { setNotificationsOpen(false); navigate("/configuracoes"); }}>
+                  <DropdownMenuItem onClick={() => navigate("/configuracoes")}>
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Configurações</span>
                   </DropdownMenuItem>
@@ -212,9 +119,7 @@ function LayoutContent({ children, user, profileImage, notifications, totalNotif
 
 const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -256,61 +161,6 @@ const Layout = ({ children }: LayoutProps) => {
 
   const profileImage = businessSettings?.profile_image_url;
 
-  // Buscar notificações não vistas
-  const { data: notifications } = useQuery({
-    queryKey: ["notifications", user?.id],
-    queryFn: async () => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
-      if (!user) return { appointments: [], tasks: [] };
-
-      // Buscar atendimentos do dia
-      const { data: appointmentsData } = await supabase
-        .from("appointments")
-        .select("id, title, start_time, customer_id")
-        .eq("user_id", user.id)
-        .gte("start_time", today.toISOString())
-        .lt("start_time", tomorrow.toISOString())
-        .order("start_time", { ascending: true });
-
-      // Buscar tarefas pendentes
-      const { data: tasksData } = await supabase
-        .from("tasks")
-        .select("id, title, due_date, priority")
-        .eq("user_id", user.id)
-        .eq("status", "pending")
-        .lte("due_date", tomorrow.toISOString())
-        .order("due_date", { ascending: true })
-        .limit(10);
-
-      // Retornar todas as notificações (sem filtro de visualizadas)
-      return {
-        appointments: appointmentsData || [],
-        tasks: tasksData || [],
-      };
-    },
-    enabled: !!user,
-    refetchInterval: 60000, // Recarregar a cada minuto
-  });
-
-  // Mutation para marcar todas como vistas (desabilitado - tabela não existe)
-  const markAllAsViewed = useMutation({
-    mutationFn: async () => {
-      // Tabela notification_views não existe ainda
-      return;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    },
-  });
-
-  const totalNotifications = notifications
-    ? notifications.appointments.length + notifications.tasks.length
-    : 0;
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.success("Logout realizado com sucesso!");
@@ -324,14 +174,8 @@ const Layout = ({ children }: LayoutProps) => {
       <LayoutContent
         user={user}
         profileImage={profileImage}
-        notifications={notifications}
-        totalNotifications={totalNotifications}
         navigate={navigate}
-        queryClient={queryClient}
-        markAllAsViewed={markAllAsViewed}
         handleLogout={handleLogout}
-        notificationsOpen={notificationsOpen}
-        setNotificationsOpen={setNotificationsOpen}
       >
         {children}
       </LayoutContent>
