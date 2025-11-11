@@ -46,7 +46,7 @@ export function AppSidebar() {
   const location = useLocation();
 
   return (
-    <Sidebar collapsible="icon" className="border-r">
+    <Sidebar collapsible="icon" className="border-r relative z-40">
       <SidebarHeader className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
         <div className="flex items-center justify-center p-4 group-data-[collapsible=icon]:p-2">
           <div className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl p-3 shadow-sm border border-primary/20 backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:scale-105 group-data-[collapsible=icon]:p-2">

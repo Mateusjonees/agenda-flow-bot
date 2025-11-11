@@ -34,7 +34,7 @@ interface LayoutProps {
 
 // Componente interno que usa useSidebar
 function LayoutContent({ children, user, profileImage, notifications, totalNotifications, navigate, queryClient, markAllAsViewed, handleLogout, notificationsOpen, setNotificationsOpen }: any) {
-  const { setOpen, isMobile } = useSidebar();
+  const { setOpen, isMobile, open } = useSidebar();
 
   // Colapsar sidebar automaticamente no mobile
   useEffect(() => {
@@ -46,6 +46,15 @@ function LayoutContent({ children, user, profileImage, notifications, totalNotif
   return (
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar />
+      
+      {/* Backdrop para mobile quando sidebar está aberta */}
+      {isMobile && open && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 animate-fade-in backdrop-blur-sm"
+          onClick={() => setOpen(false)}
+          aria-label="Fechar menu"
+        />
+      )}
       
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
