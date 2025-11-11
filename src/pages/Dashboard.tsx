@@ -311,7 +311,7 @@ const Dashboard = () => {
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
                 Painel
               </h1>
               <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
