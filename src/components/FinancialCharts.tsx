@@ -25,12 +25,12 @@ interface FinancialChartsProps {
 }
 
 const COLORS = [
-  "hsl(var(--primary))",
-  "hsl(var(--accent))",
-  "hsl(var(--secondary))",
-  "hsl(142 76% 36%)",
-  "hsl(38 92% 50%)",
-  "hsl(262 83% 58%)",
+  "#ef4444", // red-500
+  "#dc2626", // red-600
+  "#b91c1c", // red-700
+  "#991b1b", // red-800
+  "#f87171", // red-400
+  "#fca5a5", // red-300
 ];
 
 export const FinancialCharts = ({ 
@@ -52,7 +52,7 @@ export const FinancialCharts = ({
       <Card className="border-0 shadow-xl">
         <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20 pb-3">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-secondary">
+            <div className="p-2 rounded-lg bg-red-500 dark:bg-gradient-to-br dark:from-primary dark:to-secondary">
               <TrendingUp className="w-4 h-4 text-white" />
             </div>
             <CardTitle className="text-lg font-bold">Faturamento por Período</CardTitle>
@@ -63,8 +63,8 @@ export const FinancialCharts = ({
             <AreaChart data={revenueData}>
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -89,7 +89,7 @@ export const FinancialCharts = ({
               <Area 
                 type="monotone" 
                 dataKey="value" 
-                stroke="hsl(var(--primary))" 
+                stroke="#ef4444" 
                 strokeWidth={2}
                 fillOpacity={1} 
                 fill="url(#colorRevenue)" 
@@ -103,7 +103,7 @@ export const FinancialCharts = ({
       <Card className="border-0 shadow-xl">
         <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20 pb-3">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-accent to-primary">
+            <div className="p-2 rounded-lg bg-red-500 dark:bg-gradient-to-br dark:from-accent dark:to-primary">
               <PieChartIcon className="w-4 h-4 text-white" />
             </div>
             <CardTitle className="text-lg font-bold">Despesas por Categoria</CardTitle>
@@ -136,7 +136,7 @@ export const FinancialCharts = ({
       <Card className="border-0 shadow-xl lg:col-span-2">
         <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20 pb-3">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-secondary to-accent">
+            <div className="p-2 rounded-lg bg-red-500 dark:bg-gradient-to-br dark:from-secondary dark:to-accent">
               <Activity className="w-4 h-4 text-white" />
             </div>
             <CardTitle className="text-lg font-bold">Fluxo de Caixa</CardTitle>
@@ -168,13 +168,13 @@ export const FinancialCharts = ({
               <Bar 
                 dataKey="income" 
                 name="Receitas"
-                fill="hsl(var(--accent))" 
+                fill="#10b981" 
                 radius={[8, 8, 0, 0]}
               />
               <Bar 
                 dataKey="expense" 
                 name="Despesas"
-                fill="hsl(var(--destructive))" 
+                fill="#ef4444" 
                 radius={[8, 8, 0, 0]}
               />
             </BarChart>

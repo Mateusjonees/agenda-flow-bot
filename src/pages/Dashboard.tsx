@@ -237,25 +237,25 @@ const Dashboard = () => {
       title: "Atendimentos Hoje",
       value: stats.todayAppointments,
       icon: Calendar,
-      gradient: "from-primary to-secondary",
+      gradient: "from-red-500 to-red-600 dark:from-primary dark:to-secondary",
     },
     {
       title: "Atendimentos Semana",
       value: stats.weekAppointments,
       icon: TrendingUp,
-      gradient: "from-secondary to-accent",
+      gradient: "from-red-500 to-red-600 dark:from-secondary dark:to-accent",
     },
     {
       title: "Total de Clientes",
       value: stats.totalCustomers,
       icon: Users,
-      gradient: "from-accent to-primary",
+      gradient: "from-red-500 to-red-600 dark:from-accent dark:to-primary",
     },
     {
       title: "Concluídos Hoje",
       value: stats.completedToday,
       icon: CheckCircle2,
-      gradient: "from-primary via-secondary to-accent",
+      gradient: "from-red-500 to-red-600 dark:from-primary dark:via-secondary dark:to-accent",
     },
   ];
 
@@ -263,36 +263,36 @@ const Dashboard = () => {
     {
       title: "Novo Agendamento",
       icon: Calendar,
-      color: "from-primary to-secondary",
+      color: "from-red-500 to-red-600 dark:from-primary dark:to-secondary",
       action: () => navigate("/agendamentos"),
     },
     {
       title: "Novo Cliente",
       icon: Users,
-      color: "from-accent to-primary",
+      color: "from-red-500 to-red-600 dark:from-accent dark:to-primary",
       action: () => navigate("/clientes"),
     },
     {
       title: "Movimentação Financeira",
       icon: DollarSign,
-      color: "from-secondary to-accent",
+      color: "from-red-500 to-red-600 dark:from-secondary dark:to-accent",
       action: () => navigate("/financeiro"),
     },
     {
       title: "Registrar Estoque",
       icon: Package,
-      color: "from-primary via-accent to-secondary",
+      color: "from-red-500 to-red-600 dark:from-primary dark:via-accent dark:to-secondary",
       action: () => navigate("/estoque"),
     },
   ];
 
-  // Dados para gráfico de serviços com cores dinâmicas
+  // Dados para gráfico de serviços com cores em tons de vermelho para light mode
   const colors = [
-    "hsl(var(--primary))",
-    "hsl(var(--accent))",
-    "hsl(142 76% 36%)",
-    "hsl(38 92% 50%)",
-    "hsl(262 83% 58%)",
+    "#ef4444", // red-500
+    "#dc2626", // red-600
+    "#b91c1c", // red-700
+    "#991b1b", // red-800
+    "#f87171", // red-400
   ];
 
   const serviceData = popularServices.map((service, index) => ({
@@ -304,10 +304,10 @@ const Dashboard = () => {
     <div className="space-y-8 animate-fade-in">
       {/* Header Premium com gradiente */}
       <div className="relative rounded-2xl overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10" />
+        <div className="absolute inset-0 bg-red-50 dark:bg-gradient-to-r dark:from-primary/10 dark:via-secondary/10 dark:to-accent/10" />
         <div className="relative p-4 sm:p-6">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-primary via-secondary to-accent shadow-lg">
+            <div className="p-3 rounded-xl bg-red-500 dark:bg-gradient-to-br dark:from-primary dark:via-secondary dark:to-accent shadow-lg">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -350,7 +350,7 @@ const Dashboard = () => {
         <Card className="border-0 shadow-xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20 pb-3">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-secondary to-accent">
+              <div className="p-2 rounded-lg bg-red-500 dark:bg-gradient-to-br dark:from-secondary dark:to-accent">
                 <Package className="w-4 h-4 text-white" />
               </div>
               <CardTitle className="text-lg font-bold">Serviços Populares</CardTitle>
@@ -399,7 +399,7 @@ const Dashboard = () => {
       <Card className="border-0 shadow-xl overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20 pb-3">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-1 bg-gradient-to-b from-primary to-accent rounded-full" />
+            <div className="h-8 w-1 bg-red-500 dark:bg-gradient-to-b dark:from-primary dark:to-accent rounded-full" />
             <CardTitle className="text-xl font-bold">Ações Rápidas</CardTitle>
           </div>
         </CardHeader>
@@ -424,7 +424,7 @@ const Dashboard = () => {
                     <span className="text-xs font-semibold text-left">{action.title}</span>
                   </div>
                   
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-accent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-red-500 dark:bg-gradient-to-r dark:from-primary dark:to-accent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
                 </Button>
               );
             })}
@@ -437,7 +437,7 @@ const Dashboard = () => {
         <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/20 pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-accent to-primary">
+              <div className="p-2 rounded-lg bg-red-500 dark:bg-gradient-to-br dark:from-accent dark:to-primary">
                 <Clock className="h-4 w-4 text-white" />
               </div>
               <CardTitle className="text-lg font-bold">Atendimentos de Hoje</CardTitle>
