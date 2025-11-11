@@ -13,7 +13,6 @@ import { Plus, Phone, Mail, User, CalendarPlus, ListTodo, Search, Filter, Pencil
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CustomerSubscriptions } from "@/components/CustomerSubscriptions";
-import { CustomerCoupons } from "@/components/CustomerCoupons";
 import { CustomerHistory } from "@/components/CustomerHistory";
 import { CustomerDocuments } from "@/components/CustomerDocuments";
 import { CustomerLoyalty } from "@/components/CustomerLoyalty";
@@ -446,20 +445,20 @@ const Clientes = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">Clientes</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Gerencie sua base de clientes, fidelidade e cupons</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Gerencie sua base de clientes e programas de fidelidade</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 w-full sm:w-auto flex-shrink-0" disabled={isReadOnly}>
+            <Button className="gap-2 w-full sm:w-auto flex-shrink-0 h-10 sm:h-11" disabled={isReadOnly}>
               <Plus className="w-4 h-4" />
-              <span>Novo Cliente</span>
+              <span className="text-sm sm:text-base">Novo Cliente</span>
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Adicionar Novo Cliente</DialogTitle>
               <DialogDescription>
@@ -533,15 +532,19 @@ const Clientes = () => {
       </div>
 
       {/* Barra de pesquisa */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome, telefone, email ou CPF..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 h-10 sm:h-11 text-sm sm:text-base"
-        />
-      </div>
+      <Card className="shadow-sm">
+        <CardContent className="p-3 sm:p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Buscar cliente..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-10 sm:h-11 text-sm sm:text-base border-0 bg-muted/30 focus-visible:ring-1"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {loading ? (
         <Card>
@@ -561,11 +564,11 @@ const Clientes = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {filteredCustomers.map((customer) => (
             <Card 
               key={customer.id} 
-              className="hover:shadow-lg transition-shadow cursor-pointer"
+              className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98] border-border/50"
               onClick={() => {
                 setSelectedCustomer(customer);
                 setDetailsOpen(true);
@@ -573,23 +576,25 @@ const Clientes = () => {
             >
               <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
-                  <span className="truncate">{customer.name}</span>
+                  <div className="bg-primary/10 p-1.5 sm:p-2 rounded-full">
+                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+                  </div>
+                  <span className="truncate font-semibold">{customer.name}</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-1.5 sm:space-y-2 p-3 sm:p-4 pt-0">
-                <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-                  <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <CardContent className="space-y-2 p-3 sm:p-4 pt-0">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground bg-muted/30 rounded-md px-2 py-1.5">
+                  <Phone className="w-3.5 h-3.5 flex-shrink-0" />
                   <span className="truncate">{customer.phone}</span>
                 </div>
                 {customer.email && (
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-                    <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground bg-muted/30 rounded-md px-2 py-1.5">
+                    <Mail className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="truncate">{customer.email}</span>
                   </div>
                 )}
                 {customer.notes && (
-                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-2 sm:mt-3">
+                  <p className="text-xs text-muted-foreground line-clamp-2 pt-1 italic">
                     {customer.notes}
                   </p>
                 )}
@@ -601,13 +606,15 @@ const Clientes = () => {
 
       {/* Dialog de detalhes do cliente */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-3 sm:p-6">
           {selectedCustomer && (
             <>
               <DialogHeader className="space-y-2">
-                <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                  <User className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
-                  <span className="truncate">{selectedCustomer.name}</span>
+                <DialogTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
+                  <div className="bg-primary/10 p-1.5 sm:p-2 rounded-full">
+                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+                  </div>
+                  <span className="truncate font-bold">{selectedCustomer.name}</span>
                 </DialogTitle>
                 <DialogDescription className="text-xs sm:text-sm">
                   Informações completas do cliente
@@ -615,20 +622,19 @@ const Clientes = () => {
               </DialogHeader>
 
               <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mt-3 sm:mt-4">
-                <TabsList className="grid w-full grid-cols-5 h-auto">
-                  <TabsTrigger value="info" className="text-xs sm:text-sm py-2 px-2">Info</TabsTrigger>
-                  <TabsTrigger value="history" className="text-xs sm:text-sm py-2 px-2">Histórico</TabsTrigger>
-                  <TabsTrigger value="subscriptions" className="text-xs sm:text-sm py-2 px-2">Assinaturas</TabsTrigger>
-                  <TabsTrigger value="loyalty" className="text-xs sm:text-sm py-2 px-2">Fidelidade</TabsTrigger>
-                  <TabsTrigger value="coupons" className="text-xs sm:text-sm py-2 px-2">Cupons</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4 h-auto p-1">
+                  <TabsTrigger value="info" className="text-[10px] sm:text-xs md:text-sm py-2 px-1 sm:px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Info</TabsTrigger>
+                  <TabsTrigger value="history" className="text-[10px] sm:text-xs md:text-sm py-2 px-1 sm:px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Histórico</TabsTrigger>
+                  <TabsTrigger value="subscriptions" className="text-[10px] sm:text-xs md:text-sm py-2 px-1 sm:px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Assinaturas</TabsTrigger>
+                  <TabsTrigger value="loyalty" className="text-[10px] sm:text-xs md:text-sm py-2 px-1 sm:px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Fidelidade</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="info" className="space-y-3 sm:space-y-4">
+                <TabsContent value="info" className="space-y-3 sm:space-y-4 mt-4">
                   {/* Botões de ação rápida */}
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <Button 
                       variant="outline" 
-                      className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm"
+                      className="gap-1.5 h-9 sm:h-10 text-[10px] sm:text-xs md:text-sm"
                       onClick={() => {
                         setEditCustomer({
                           id: selectedCustomer.id,
@@ -642,26 +648,28 @@ const Clientes = () => {
                       }}
                       disabled={isReadOnly}
                     >
-                      <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      Editar Cliente
+                      <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                      <span className="hidden sm:inline">Editar</span>
+                      <span className="sm:hidden">Editar</span>
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm text-destructive hover:text-destructive"
+                      className="gap-1.5 h-9 sm:h-10 text-[10px] sm:text-xs md:text-sm text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => {
                         setCustomerToDelete(selectedCustomer);
                         setDeleteDialogOpen(true);
                       }}
                       disabled={isReadOnly}
                     >
-                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      Excluir Cliente
+                      <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                      <span>Excluir</span>
                     </Button>
                 <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm" disabled={isReadOnly}>
-                      <ListTodo className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      Nova Tarefa
+                    <Button variant="outline" className="gap-1.5 h-9 sm:h-10 text-[10px] sm:text-xs md:text-sm" disabled={isReadOnly}>
+                      <ListTodo className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                      <span className="hidden sm:inline">Nova Tarefa</span>
+                      <span className="sm:hidden">Tarefa</span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -735,9 +743,10 @@ const Clientes = () => {
 
                   <Dialog open={appointmentDialogOpen} onOpenChange={setAppointmentDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm" disabled={isReadOnly}>
-                        <CalendarPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        Novo Agendamento
+                      <Button variant="outline" className="gap-1.5 h-9 sm:h-10 text-[10px] sm:text-xs md:text-sm" disabled={isReadOnly}>
+                        <CalendarPlus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        <span className="hidden sm:inline">Agendamento</span>
+                        <span className="sm:hidden">Agenda</span>
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
@@ -809,24 +818,24 @@ const Clientes = () => {
                 
                 <div className="space-y-3 sm:space-y-4">
                   {/* Informações básicas */}
-                  <Card>
-                    <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
-                      <CardTitle className="text-sm sm:text-base">Informações de Contato</CardTitle>
+                  <Card className="shadow-sm border-border/50">
+                    <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3 bg-muted/30">
+                      <CardTitle className="text-sm sm:text-base font-semibold">Informações de Contato</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2 p-3 sm:p-4 pt-0">
-                      <div className="flex items-center gap-2 text-xs sm:text-sm">
-                        <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                        <span className="break-all">{selectedCustomer.phone}</span>
+                    <CardContent className="space-y-2 p-3 sm:p-4">
+                      <div className="flex items-center gap-2 text-xs sm:text-sm bg-muted/30 rounded-md px-2 py-2">
+                        <Phone className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                        <span className="break-all font-medium">{selectedCustomer.phone}</span>
                       </div>
                       {selectedCustomer.email && (
-                        <div className="flex items-center gap-2 text-xs sm:text-sm">
-                          <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                          <span className="break-all">{selectedCustomer.email}</span>
+                        <div className="flex items-center gap-2 text-xs sm:text-sm bg-muted/30 rounded-md px-2 py-2">
+                          <Mail className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                          <span className="break-all font-medium">{selectedCustomer.email}</span>
                         </div>
                       )}
                       {selectedCustomer.notes && (
-                        <div className="pt-2 border-t">
-                          <p className="text-xs sm:text-sm text-muted-foreground">{selectedCustomer.notes}</p>
+                        <div className="pt-2 border-t mt-3">
+                          <p className="text-xs sm:text-sm text-muted-foreground italic">{selectedCustomer.notes}</p>
                         </div>
                       )}
                     </CardContent>
@@ -847,10 +856,6 @@ const Clientes = () => {
 
                 <TabsContent value="loyalty">
                   <CustomerLoyalty customerId={selectedCustomer.id} />
-                </TabsContent>
-
-                <TabsContent value="coupons">
-                  <CustomerCoupons customerId={selectedCustomer.id} />
                 </TabsContent>
               </Tabs>
             </>
