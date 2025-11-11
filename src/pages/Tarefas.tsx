@@ -13,7 +13,7 @@ import { TaskCard } from "@/components/TaskCard";
 import { TaskColumn } from "@/components/TaskColumn";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { AddSubtaskDialog } from "@/components/AddSubtaskDialog";
-import { ListTodo, CheckCircle2, Clock, XCircle, Plus, Loader2, AlertCircle, CircleDot, Undo2 } from "lucide-react";
+import { ListTodo, CheckCircle2, Clock, XCircle, Plus, Loader2, AlertCircle, CircleDot, Undo2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -47,6 +47,7 @@ const Tarefas = () => {
   const [addSubtaskDialog, setAddSubtaskDialog] = useState<{ open: boolean; taskId: string | null }>({ open: false, taskId: null });
   const [undoStack, setUndoStack] = useState<Array<{ taskId: string; oldStatus: string; newStatus: string }>>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -436,7 +437,7 @@ const Tarefas = () => {
     // Update local state
     setTasks((prevTasks) =>
       prevTasks.map((t) =>
-        t.id === taskId ? { ...t, status: "completed" } : t
+        t.id === taskId ? { ...t, status: "completed", completed_at: new Date().toISOString() } : t
       )
     );
 
@@ -471,10 +472,44 @@ const Tarefas = () => {
     }
   };
 
-  const pendingTasks = tasks.filter((t) => t.status === "pending");
-  const inProgressTasks = tasks.filter((t) => t.status === "in_progress");
-  const completedTasks = tasks.filter((t) => t.status === "completed");
-  const historyTasks = tasks.filter((t) => t.status === "completed" || t.status === "cancelled");
+  // Filter tasks by search query
+  const filterTasks = (taskList: TaskItem[]) => {
+    if (!searchQuery.trim()) return taskList;
+    
+    const query = searchQuery.toLowerCase();
+    return taskList.filter((task) =>
+      task.title.toLowerCase().includes(query) ||
+      task.description?.toLowerCase().includes(query) ||
+      task.metadata?.customer_name?.toLowerCase().includes(query)
+    );
+  };
+
+  // Get today's date at start of day (00:00:00)
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  // Filter completed tasks - only show tasks completed today
+  const allCompletedTasks = tasks.filter((t) => t.status === "completed");
+  const todayCompletedTasks = allCompletedTasks.filter((t) => {
+    if (!t.completed_at) return false;
+    const completedDate = new Date(t.completed_at);
+    return completedDate >= todayStart;
+  });
+
+  // History includes all completed tasks that are not from today and cancelled tasks
+  const historyTasks = tasks.filter((t) => {
+    if (t.status === "cancelled") return true;
+    if (t.status === "completed" && t.completed_at) {
+      const completedDate = new Date(t.completed_at);
+      return completedDate < todayStart;
+    }
+    return false;
+  });
+
+  const pendingTasks = filterTasks(tasks.filter((t) => t.status === "pending"));
+  const inProgressTasks = filterTasks(tasks.filter((t) => t.status === "in_progress"));
+  const completedTasks = filterTasks(todayCompletedTasks);
+  const filteredHistoryTasks = filterTasks(historyTasks);
 
   const activeTask = tasks.find((t) => t.id === activeId);
 
@@ -488,16 +523,17 @@ const Tarefas = () => {
 
   return (
     <div className="p-4 md:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-4xl font-bold text-foreground">
-            Tarefas+
-          </h1>
-          <p className="text-sm md:text-base text-muted-foreground mt-2">
-            Gerencie suas tarefas de forma visual e intuitiva
-          </p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground">
+              Tarefas+
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground mt-2">
+              Gerencie suas tarefas de forma visual e intuitiva
+            </p>
+          </div>
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button disabled={isReadOnly}>
               <Plus className="h-4 w-4 mr-2" />
@@ -641,6 +677,29 @@ const Tarefas = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
+
+        {/* Search Filter */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Pesquisar tarefas por título, descrição ou cliente..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7"
+              onClick={() => setSearchQuery("")}
+            >
+              Limpar
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Undo Button */}
@@ -771,7 +830,7 @@ const Tarefas = () => {
 
           <TaskColumn
             id="completed"
-            title="Concluídas"
+            title="Concluídas Hoje"
             icon={<CheckCircle2 className="h-5 w-5 text-green-500" />}
             count={completedTasks.length}
             onAddTask={() => {
@@ -821,7 +880,7 @@ const Tarefas = () => {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500" />
               <CardTitle>Histórico de Tarefas</CardTitle>
-              <Badge variant="secondary">{historyTasks.length}</Badge>
+              <Badge variant="secondary">{filteredHistoryTasks.length}</Badge>
             </div>
             <Button
               variant="ghost"
@@ -837,14 +896,14 @@ const Tarefas = () => {
         </CardHeader>
         {showHistory && (
           <CardContent>
-            {historyTasks.length === 0 ? (
+            {filteredHistoryTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                 <CheckCircle2 className="h-8 w-8 mb-2 opacity-50" />
                 <p className="text-sm">Nenhuma tarefa no histórico</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {historyTasks.map((task) => (
+                {filteredHistoryTasks.map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}

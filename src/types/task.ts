@@ -7,6 +7,7 @@ export interface TaskItem {
   type: string;
   status: string;
   color?: string;
+  completed_at?: string;
   metadata?: {
     customer_name?: string;
   };
