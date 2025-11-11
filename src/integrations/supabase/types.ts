@@ -1145,6 +1145,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           id: string
+          status: string | null
           task_id: string
           title: string
           updated_at: string
@@ -1155,6 +1156,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          status?: string | null
           task_id: string
           title: string
           updated_at?: string
@@ -1165,6 +1167,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          status?: string | null
           task_id?: string
           title?: string
           updated_at?: string

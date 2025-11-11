@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TaskItem } from "@/types/task";
+import { SubtaskManager } from "@/components/SubtaskManager";
+import { Separator } from "@/components/ui/separator";
 
 interface EditTaskDialogProps {
   task: TaskItem | null;
@@ -193,6 +195,14 @@ export const EditTaskDialog = ({ task, open, onOpenChange, onTaskUpdated }: Edit
                 </Popover>
               </div>
             </div>
+
+            {/* Gerenciador de Subtarefas */}
+            {task && (
+              <>
+                <Separator className="my-4" />
+                <SubtaskManager taskId={task.id} />
+              </>
+            )}
           </div>
 
           <DialogFooter>
