@@ -360,29 +360,29 @@ const Configuracoes = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-4xl font-bold text-foreground mb-2">Configurações</h1>
-        <p className="text-muted-foreground">Configure as informações do seu negócio</p>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">Configurações</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">Configure as informações do seu negócio</p>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Foto de Perfil</CardTitle>
-          <CardDescription>
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Foto de Perfil</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             Adicione uma foto sua ou da sua empresa
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-6">
-            <Avatar className="h-24 w-24 border-4 border-primary/20">
+        <CardContent className="space-y-4 p-3 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
+            <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-primary/20">
               <AvatarImage src={settings?.profile_image_url || undefined} alt="Perfil" />
               <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-2xl">
-                <Camera className="h-10 w-10 text-primary-foreground" />
+                <Camera className="h-8 w-8 sm:h-10 sm:w-10 text-primary-foreground" />
               </AvatarFallback>
             </Avatar>
             
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 w-full sm:w-auto">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -393,12 +393,12 @@ const Configuracoes = () => {
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto"
               >
                 <Upload className="w-4 h-4" />
                 {uploading ? "Enviando..." : "Enviar Foto"}
               </Button>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground text-center sm:text-left">
                 JPG, PNG ou WEBP. Máximo 5MB.
               </p>
             </div>
@@ -408,11 +408,11 @@ const Configuracoes = () => {
 
 
       <Card>
-        <CardHeader>
-          <CardTitle>Informações do Negócio</CardTitle>
-          <CardDescription>Configure os dados principais do seu estabelecimento</CardDescription>
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Informações do Negócio</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Configure os dados principais do seu estabelecimento</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-3 sm:p-6">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="business-name">Nome do Negócio</Label>
@@ -476,11 +476,11 @@ const Configuracoes = () => {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Horário de Funcionamento</CardTitle>
-          <CardDescription>Defina os horários de atendimento</CardDescription>
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Horário de Funcionamento</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Defina os horários de atendimento</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6">
           <div className="space-y-3">
             {[
               { day: 1, name: "Segunda" },
@@ -491,8 +491,8 @@ const Configuracoes = () => {
               { day: 6, name: "Sábado" },
               { day: 0, name: "Domingo" },
             ].map(({ day, name }) => (
-              <div key={day} className="flex items-center gap-4">
-                <div className="w-24 flex items-center gap-2">
+              <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="flex items-center gap-2 min-w-[100px] sm:w-24">
                   <Switch
                     checked={schedules[day]?.isActive || false}
                     onCheckedChange={(checked) =>
@@ -504,7 +504,7 @@ const Configuracoes = () => {
                   />
                   <p className="text-sm font-medium">{name}</p>
                 </div>
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-1 pl-8 sm:pl-0">
                   <Input
                     type="time"
                     value={schedules[day]?.startTime || "09:00"}
@@ -515,9 +515,9 @@ const Configuracoes = () => {
                       })
                     }
                     disabled={!schedules[day]?.isActive}
-                    className="w-32"
+                    className="w-[100px] sm:w-32 text-xs sm:text-sm"
                   />
-                  <span className="text-muted-foreground">até</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">-</span>
                   <Input
                     type="time"
                     value={schedules[day]?.endTime || "18:00"}
@@ -528,7 +528,7 @@ const Configuracoes = () => {
                       })
                     }
                     disabled={!schedules[day]?.isActive}
-                    className="w-32"
+                    className="w-[100px] sm:w-32 text-xs sm:text-sm"
                   />
                 </div>
               </div>
