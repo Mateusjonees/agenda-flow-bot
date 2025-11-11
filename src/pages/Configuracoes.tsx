@@ -16,7 +16,11 @@ const Configuracoes = () => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [stampsRequired, setStampsRequired] = useState(5);
+  
+  // Estados para fidelidade
+  const [loyaltyEnabled, setLoyaltyEnabled] = useState(true);
+  const [loyaltyStampsRequired, setLoyaltyStampsRequired] = useState(10);
+  const [loyaltyPointsPerVisit, setLoyaltyPointsPerVisit] = useState(1);
   
   // Estados para informações do negócio
   const [businessName, setBusinessName] = useState("");
@@ -90,8 +94,6 @@ const Configuracoes = () => {
     },
     enabled: !!user,
   });
-
-  // Buscar horários de funcionamento
   const { data: businessHours } = useQuery({
     queryKey: ["business-hours", user?.id],
     queryFn: async () => {
@@ -108,10 +110,8 @@ const Configuracoes = () => {
 
   // Atualizar estado quando os dados forem carregados
   useEffect(() => {
-    if (loyaltySettings?.stamps_required) {
-      setStampsRequired(loyaltySettings.stamps_required);
-    }
-  }, [loyaltySettings]);
+    // Não precisamos mais deste useEffect pois as configs vêm do business_settings
+  }, []);
 
   // Atualizar estados com dados das configurações
   useEffect(() => {
@@ -126,6 +126,9 @@ const Configuracoes = () => {
       setInstagramLink(settings.instagram_link || "");
       setDefaultSlotDuration(settings.default_slot_duration || 60);
       setBufferTime(settings.buffer_time || 0);
+      setLoyaltyEnabled(settings.loyalty_enabled ?? true);
+      setLoyaltyStampsRequired(settings.loyalty_stamps_required || 10);
+      setLoyaltyPointsPerVisit(settings.loyalty_points_per_visit || 1);
     }
   }, [settings]);
 
@@ -210,6 +213,9 @@ const Configuracoes = () => {
           instagram_link: instagramLink,
           default_slot_duration: defaultSlotDuration,
           buffer_time: bufferTime,
+          loyalty_enabled: loyaltyEnabled,
+          loyalty_stamps_required: loyaltyStampsRequired,
+          loyalty_points_per_visit: loyaltyPointsPerVisit,
           profile_image_url: settings?.profile_image_url,
         }, {
           onConflict: "user_id"
@@ -217,10 +223,10 @@ const Configuracoes = () => {
 
       if (settingsError) throw settingsError;
 
-      // Atualizar todas as loyalty cards do usuário
+      // Atualizar todas as loyalty cards do usuário com as novas configurações
       const { error: loyaltyError } = await supabase
         .from("loyalty_cards")
-        .update({ stamps_required: stampsRequired })
+        .update({ stamps_required: loyaltyStampsRequired })
         .eq("user_id", user.id);
 
       if (loyaltyError) throw loyaltyError;
@@ -659,34 +665,80 @@ const Configuracoes = () => {
           </CardTitle>
           <CardDescription>Configure a carteirinha fidelidade do seu negócio</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="stamps-required">Número de carimbos necessários</Label>
-            <Input 
-              id="stamps-required" 
-              type="number" 
-              value={stampsRequired}
-              onChange={(e) => setStampsRequired(Number(e.target.value))}
-              min="2"
-              max="20"
+        <CardContent className="space-y-6">
+          {/* Toggle para ativar/desativar fidelidade */}
+          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+            <div className="space-y-0.5">
+              <Label htmlFor="loyalty-enabled" className="text-base font-medium">Ativar Programa de Fidelidade</Label>
+              <p className="text-sm text-muted-foreground">
+                Recompense seus clientes por cada atendimento finalizado
+              </p>
+            </div>
+            <Switch
+              id="loyalty-enabled"
+              checked={loyaltyEnabled}
+              onCheckedChange={setLoyaltyEnabled}
             />
-            <p className="text-xs text-muted-foreground">
-              Quantos serviços o cliente precisa realizar para ganhar uma recompensa (padrão: 5)
-            </p>
           </div>
 
-          <div className="pt-4 border-t">
-            <div className="flex items-start gap-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
-              <Gift className="w-5 h-5 text-primary mt-0.5" />
-              <div className="text-sm">
-                <strong className="text-foreground">Como funciona:</strong>
-                <p className="mt-1 text-muted-foreground">
-                  A cada serviço concluído, o cliente ganha automaticamente um carimbo no cartão fidelidade.
-                  Quando atingir o número necessário, o cartão é zerado e o cliente tem direito a uma visita grátis! 🎉
-                </p>
+          {loyaltyEnabled && (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="loyalty-stamps">Carimbos necessários</Label>
+                  <Input 
+                    id="loyalty-stamps" 
+                    type="number" 
+                    value={loyaltyStampsRequired}
+                    onChange={(e) => setLoyaltyStampsRequired(Number(e.target.value))}
+                    min="2"
+                    max="20"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Quantos atendimentos para ganhar uma recompensa
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="loyalty-points">Pontos por atendimento</Label>
+                  <Input 
+                    id="loyalty-points" 
+                    type="number" 
+                    value={loyaltyPointsPerVisit}
+                    onChange={(e) => setLoyaltyPointsPerVisit(Number(e.target.value))}
+                    min="1"
+                    max="10"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Pontos ganhos a cada atendimento finalizado
+                  </p>
+                </div>
               </div>
-            </div>
-          </div>
+
+              <div className="pt-4 border-t">
+                <div className="flex items-start gap-3 p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border border-primary/20">
+                  <Gift className="w-6 h-6 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="text-sm space-y-2">
+                    <strong className="text-foreground text-base">Como funciona:</strong>
+                    <ul className="space-y-1.5 text-muted-foreground">
+                      <li className="flex items-start gap-2">
+                        <span className="text-primary mt-0.5">✓</span>
+                        <span>A cada atendimento finalizado, o cliente ganha automaticamente {loyaltyPointsPerVisit} {loyaltyPointsPerVisit === 1 ? 'carimbo' : 'carimbos'}</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-primary mt-0.5">✓</span>
+                        <span>Quando atingir {loyaltyStampsRequired} carimbos, o cartão é zerado e o cliente ganha uma visita grátis! 🎉</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-primary mt-0.5">✓</span>
+                        <span>O sistema notifica você quando um cartão for completado</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

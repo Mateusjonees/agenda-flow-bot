@@ -798,16 +798,20 @@ const Agendamentos = () => {
     ];
 
     return (
-      <div className="overflow-x-auto">
-        <div className="border rounded-lg min-w-[280px]">
-          <div className="grid grid-cols-7 border-b bg-gradient-to-r from-primary/10 to-primary/5">
-            {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
-              <div key={day} className="p-2 text-center text-xs sm:text-sm font-semibold border-l first:border-l-0">
-                {day}
+      <div className="overflow-hidden rounded-lg border">
+        {/* Cabeçalho dos dias da semana - estilo Google */}
+        <div className="grid grid-cols-7 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b">
+          {["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"].map((day) => (
+            <div key={day} className="p-3 text-center border-l first:border-l-0">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                {day.slice(0, 3)}
               </div>
-            ))}
-          </div>
-        <div className="grid grid-cols-7">
+            </div>
+          ))}
+        </div>
+        
+        {/* Grid de dias */}
+        <div className="grid grid-cols-7 bg-background">
           {allDays.map((day, idx) => {
             const isCurrentMonth = day >= start && day <= end;
             const isCurrentDay = isSameDay(day, new Date());
@@ -826,107 +830,42 @@ const Agendamentos = () => {
                 date={day}
                 hour={8}
                 className={cn(
-                  "min-h-[100px] sm:min-h-[130px] p-2 sm:p-3 border-b border-l first:border-l-0 transition-all duration-200",
-                  "hover:shadow-lg hover:scale-[1.02] hover:z-10",
-                  !isCurrentMonth && "opacity-40 bg-muted/30",
-                  isCurrentDay && "ring-2 ring-primary shadow-lg bg-gradient-to-br from-primary/5 to-transparent",
-                  hasAppointments && !isCurrentDay && "bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-950/10 cursor-pointer"
+                  "min-h-[110px] sm:min-h-[140px] p-2 border-b border-l first:border-l-0",
+                  "relative group",
+                  !isCurrentMonth && "bg-muted/20",
+                  isCurrentDay && "bg-blue-50/50 dark:bg-blue-950/20"
                 )}
               >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div
-                      className={cn(
-                        "text-sm sm:text-base font-bold",
-                        isCurrentDay && "bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center shadow-md"
-                      )}
-                    >
-                      {format(day, "d")}
-                    </div>
-                    {dayAppointments.length > 0 && (
-                      <Badge 
-                        variant="secondary" 
-                        className={cn(
-                          "text-xs h-5 font-semibold",
-                          isCurrentDay && "bg-primary/20"
-                        )}
-                      >
-                        {dayAppointments.length}
-                      </Badge>
+                {/* Número do dia - estilo Google Calendar */}
+                <div className="flex items-center justify-center mb-2">
+                  <div
+                    className={cn(
+                      "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-all",
+                      isCurrentDay && "bg-primary text-primary-foreground shadow-sm",
+                      !isCurrentDay && !isCurrentMonth && "text-muted-foreground/50",
+                      !isCurrentDay && isCurrentMonth && "text-foreground hover:bg-muted/50"
                     )}
+                  >
+                    {format(day, "d")}
                   </div>
-                  
-                  {/* Preview dots coloridos - mais limpo */}
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    {dayAppointments.slice(0, 6).map((apt) => {
-                      const colors = getAppointmentColors(apt);
-                      const borderColor = colors.border.replace('border-', 'bg-');
-                      return (
-                        <div
-                          key={apt.id}
-                          className={cn(
-                            "w-2.5 h-2.5 rounded-full shadow-sm",
-                            borderColor,
-                            colors.pulse && "animate-pulse"
-                          )}
-                          title={`${format(parseISO(apt.start_time), "HH:mm")} - ${apt.title}`}
-                        />
-                      );
-                    })}
-                    {dayAppointments.length > 6 && (
-                      <span className="text-[10px] font-medium opacity-70">+{dayAppointments.length - 6}</span>
-                    )}
+                </div>
+                
+                {/* Indicador de agendamentos no topo */}
+                {hasAppointments && (
+                  <div className="absolute top-1.5 right-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                   </div>
-                  
-                  {/* Mobile: Lista de agendamentos */}
-                  <div className="md:hidden space-y-1">
-                    {dayAppointments.slice(0, 2).map((apt) => {
-                      const colors = getAppointmentColors(apt);
-                      const now = new Date();
-                      const timeDiff = (parseISO(apt.start_time).getTime() - now.getTime()) / (1000 * 60);
-                      
-                      return (
-                      <div
-                        key={apt.id}
-                        className={cn(
-                          "border-l-3 p-1.5 rounded-md cursor-pointer transition-all duration-200",
-                          "hover:shadow-sm active:scale-95",
-                          colors.bg,
-                          colors.border,
-                          colors.pulse && "animate-pulse"
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMobileSelectedAppointment(apt);
-                          setMobileMenuOpen(true);
-                        }}
-                      >
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          {getStatusIcon(apt.status, timeDiff)}
-                          <span className="font-bold text-[10px]">{format(parseISO(apt.start_time), "HH:mm")}</span>
-                          <Badge className={cn(colors.badge, "text-white text-[8px] px-1 py-0 h-3")}>
-                            {getStatusLabel(apt.status, timeDiff)}
-                          </Badge>
-                        </div>
-                        <div className="font-semibold text-[10px] truncate pl-5">{apt.title}</div>
-                      </div>
-                      );
-                    })}
-                    {dayAppointments.length > 2 && (
-                      <div className="text-[10px] text-muted-foreground pl-1 font-medium">
-                        +{dayAppointments.length - 2} {dayAppointments.length - 2 === 1 ? 'mais' : 'mais'}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Desktop: Lista detalhada */}
-                  <div className="hidden md:block space-y-1.5">
-                    {dayAppointments.slice(0, 3).map((apt) => {
-                      const colors = getAppointmentColors(apt);
-                      const now = new Date();
-                      const timeDiff = (parseISO(apt.start_time).getTime() - now.getTime()) / (1000 * 60);
-                      
-                      return (
+                )}
+                
+                {/* Lista de agendamentos - estilo Google Calendar */}
+                <div className="space-y-1 overflow-hidden">
+                  {dayAppointments.slice(0, 3).map((apt) => {
+                    const colors = getAppointmentColors(apt);
+                    const now = new Date();
+                    const timeDiff = (parseISO(apt.start_time).getTime() - now.getTime()) / (1000 * 60);
+                    const borderColor = colors.border.replace('border-', 'bg-');
+                    
+                    return (
                       <DraggableAppointment
                         key={apt.id}
                         id={apt.id}
@@ -934,12 +873,13 @@ const Agendamentos = () => {
                         currentStartTime={parseISO(apt.start_time)}
                         currentEndTime={parseISO(apt.end_time)}
                       >
-                        <div 
+                        <div
                           className={cn(
-                            "border-l-3 p-2 rounded-md text-xs transition-all duration-200 cursor-pointer",
-                            "hover:shadow-md hover:scale-105 hover:z-10",
+                            "group/card relative px-2 py-1.5 rounded cursor-pointer",
+                            "transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:z-10",
                             colors.bg,
-                            colors.border,
+                            "border-l-3",
+                            borderColor.replace('bg-', 'border-l-'),
                             colors.pulse && "animate-pulse"
                           )}
                           onClick={(e) => {
@@ -948,38 +888,42 @@ const Agendamentos = () => {
                             setMobileMenuOpen(true);
                           }}
                         >
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1.5">
-                              {getStatusIcon(apt.status, timeDiff)}
-                              <span className="font-bold">{format(parseISO(apt.start_time), "HH:mm")}</span>
-                              <Badge 
-                                className={cn(colors.badge, "text-white text-[9px] px-1.5 py-0 h-4")}
-                              >
-                                {getStatusLabel(apt.status, timeDiff)}
-                              </Badge>
-                            </div>
-                            <div className="font-semibold truncate pl-5">{apt.title}</div>
-                            <div className="text-[10px] opacity-75 truncate pl-5">
-                              <User className="w-3 h-3 inline mr-1" />
-                              {apt.customers?.name}
-                            </div>
+                          {/* Horário e título */}
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-[10px] font-bold shrink-0 mt-0.5">
+                              {format(parseISO(apt.start_time), "HH:mm")}
+                            </span>
+                            <span className="text-[10px] font-medium truncate flex-1">
+                              {apt.title}
+                            </span>
+                          </div>
+                          
+                          {/* Cliente (apenas desktop) */}
+                          <div className="hidden sm:flex items-center gap-1 mt-0.5 text-[9px] opacity-75">
+                            <User className="w-2.5 h-2.5" />
+                            <span className="truncate">{apt.customers?.name}</span>
                           </div>
                         </div>
                       </DraggableAppointment>
-                      );
-                    })}
-                    {dayAppointments.length > 3 && (
-                      <div className="text-xs text-muted-foreground pl-2 font-medium flex items-center gap-1">
-                        <div className="w-1 h-1 bg-muted-foreground/50 rounded-full" />
-                        +{dayAppointments.length - 3} {dayAppointments.length - 3 === 1 ? 'atendimento' : 'atendimentos'}
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })}
+                  
+                  {/* Indicador de mais agendamentos */}
+                  {dayAppointments.length > 3 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Aqui poderia abrir um diálogo com todos os agendamentos do dia
+                      }}
+                      className="w-full text-[10px] text-muted-foreground hover:text-foreground py-1 px-2 rounded hover:bg-muted/50 transition-colors text-left font-medium"
+                    >
+                      +{dayAppointments.length - 3} {dayAppointments.length - 3 === 1 ? 'mais' : 'mais'}
+                    </button>
+                  )}
                 </div>
               </DroppableTimeSlot>
             );
           })}
-        </div>
         </div>
       </div>
     );

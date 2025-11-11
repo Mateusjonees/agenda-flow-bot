@@ -176,6 +176,9 @@ export type Database = {
           id: string
           instagram_link: string | null
           is_maintenance_mode: boolean | null
+          loyalty_enabled: boolean | null
+          loyalty_points_per_visit: number | null
+          loyalty_stamps_required: number | null
           maintenance_estimated_return: string | null
           maintenance_message: string | null
           profile_image_url: string | null
@@ -197,6 +200,9 @@ export type Database = {
           id?: string
           instagram_link?: string | null
           is_maintenance_mode?: boolean | null
+          loyalty_enabled?: boolean | null
+          loyalty_points_per_visit?: number | null
+          loyalty_stamps_required?: number | null
           maintenance_estimated_return?: string | null
           maintenance_message?: string | null
           profile_image_url?: string | null
@@ -218,6 +224,9 @@ export type Database = {
           id?: string
           instagram_link?: string | null
           is_maintenance_mode?: boolean | null
+          loyalty_enabled?: boolean | null
+          loyalty_points_per_visit?: number | null
+          loyalty_stamps_required?: number | null
           maintenance_estimated_return?: string | null
           maintenance_message?: string | null
           profile_image_url?: string | null
