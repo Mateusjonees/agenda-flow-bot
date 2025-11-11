@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TaskItem } from "@/types/task";
+import { Badge } from "@/components/ui/badge";
 
 interface SubTask {
   id: string;
@@ -45,6 +46,7 @@ const Tarefas = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [addSubtaskDialog, setAddSubtaskDialog] = useState<{ open: boolean; taskId: string | null }>({ open: false, taskId: null });
   const [undoStack, setUndoStack] = useState<Array<{ taskId: string; oldStatus: string; newStatus: string }>>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -434,6 +436,7 @@ const Tarefas = () => {
   const pendingTasks = tasks.filter((t) => t.status === "pending");
   const inProgressTasks = tasks.filter((t) => t.status === "in_progress");
   const completedTasks = tasks.filter((t) => t.status === "completed");
+  const historyTasks = tasks.filter((t) => t.status === "completed" || t.status === "cancelled");
 
   const activeTask = tasks.find((t) => t.id === activeId);
 
@@ -592,7 +595,7 @@ const Tarefas = () => {
       )}
 
       {/* Stats Cards */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">A Fazer</CardTitle>
@@ -613,16 +616,6 @@ const Tarefas = () => {
           </CardContent>
         </Card>
         
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.completed}</div>
-          </CardContent>
-        </Card>
-        
         <Card className="border-l-4 border-l-red-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Atrasadas</CardTitle>
@@ -634,9 +627,9 @@ const Tarefas = () => {
         </Card>
       </div>
 
-      {/* Kanban Board */}
+      {/* Kanban Board - Only Active Tasks */}
       <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TaskColumn
             id="pending"
             title="A Fazer"
@@ -700,33 +693,6 @@ const Tarefas = () => {
               </div>
             )}
           </TaskColumn>
-
-          <TaskColumn
-            id="completed"
-            title="Concluído"
-            icon={<CheckCircle2 className="h-5 w-5 text-green-500" />}
-            count={completedTasks.length}
-            accentColor="border-green-500"
-          >
-            {completedTasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={setEditingTask}
-                onDelete={setDeleteTaskId}
-                isReadOnly={isReadOnly}
-                subtasks={subtasks[task.id] || []}
-                onSubtaskToggle={handleSubtaskToggle}
-                onAddSubtask={(taskId) => setAddSubtaskDialog({ open: true, taskId })}
-              />
-            ))}
-            {completedTasks.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <CheckCircle2 className="h-8 w-8 mb-2 opacity-50" />
-                <p className="text-sm">Nenhuma tarefa concluída</p>
-              </div>
-            )}
-          </TaskColumn>
         </div>
 
         <DragOverlay>
@@ -740,6 +706,54 @@ const Tarefas = () => {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {/* History Section */}
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <CardTitle>Histórico de Tarefas</CardTitle>
+              <Badge variant="secondary">{historyTasks.length}</Badge>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+            >
+              {showHistory ? "Ocultar" : "Mostrar"} Histórico
+            </Button>
+          </div>
+          <CardDescription>
+            Tarefas concluídas e canceladas
+          </CardDescription>
+        </CardHeader>
+        {showHistory && (
+          <CardContent>
+            {historyTasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <CheckCircle2 className="h-8 w-8 mb-2 opacity-50" />
+                <p className="text-sm">Nenhuma tarefa no histórico</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {historyTasks.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    onEdit={setEditingTask}
+                    onDelete={setDeleteTaskId}
+                    isReadOnly={isReadOnly}
+                    subtasks={subtasks[task.id] || []}
+                    onSubtaskToggle={handleSubtaskToggle}
+                    onAddSubtask={(taskId) => setAddSubtaskDialog({ open: true, taskId })}
+                  />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        )}
+      </Card>
 
       {/* Edit Dialog */}
       {editingTask && (
