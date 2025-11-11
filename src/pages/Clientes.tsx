@@ -622,9 +622,10 @@ const Clientes = () => {
               </DialogHeader>
 
               <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mt-3 sm:mt-4">
-                <TabsList className="grid w-full grid-cols-4 h-auto p-1">
+                <TabsList className="grid w-full grid-cols-5 h-auto p-1 gap-1">
                   <TabsTrigger value="info" className="text-[10px] sm:text-xs md:text-sm py-2 px-1 sm:px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Info</TabsTrigger>
                   <TabsTrigger value="history" className="text-[10px] sm:text-xs md:text-sm py-2 px-1 sm:px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Histórico</TabsTrigger>
+                  <TabsTrigger value="documents" className="text-[10px] sm:text-xs md:text-sm py-2 px-1 sm:px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Documentos</TabsTrigger>
                   <TabsTrigger value="subscriptions" className="text-[10px] sm:text-xs md:text-sm py-2 px-1 sm:px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Assinaturas</TabsTrigger>
                   <TabsTrigger value="loyalty" className="text-[10px] sm:text-xs md:text-sm py-2 px-1 sm:px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Fidelidade</TabsTrigger>
                 </TabsList>
@@ -840,10 +841,11 @@ const Clientes = () => {
                       )}
                     </CardContent>
                   </Card>
-
-                  {/* Documentos anexados */}
-                  <CustomerDocuments customerId={selectedCustomer.id} />
                 </div>
+                </TabsContent>
+
+                <TabsContent value="documents">
+                  <CustomerDocuments customerId={selectedCustomer.id} />
                 </TabsContent>
 
                 <TabsContent value="history">
