@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Zap, Star, CreditCard, ArrowLeft } from "lucide-react";
+import { Check, Zap, Star, CreditCard, ArrowLeft, QrCode } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PixPaymentDialog } from "@/components/PixPaymentDialog";
 import { parseFunctionsError } from "@/lib/parseFunctionsError";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 
 declare global {
   interface Window {
@@ -34,6 +35,7 @@ interface PricingPlan {
 const Pricing = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { subscription, isTrial, daysRemaining } = useSubscriptionStatus();
   const [loading, setLoading] = useState(false);
   const [mpLoaded, setMpLoaded] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
@@ -266,10 +268,37 @@ const Pricing = () => {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <Badge className="mb-4 bg-warning text-warning-foreground">
-            Trial
-          </Badge>
-          <span className="ml-2 text-muted-foreground">5 dias restantes do período gratuito</span>
+          {isTrial ? (
+            <>
+              <Badge className="mb-4 bg-warning text-warning-foreground">
+                Trial
+              </Badge>
+              <div className="text-muted-foreground mt-2">
+                <p className="text-lg font-semibold">{daysRemaining} dias restantes do período gratuito</p>
+                {subscription?.start_date && (
+                  <p className="text-sm mt-1">
+                    Expira em: {new Date(new Date(subscription.start_date).getTime() + (7 * 24 * 60 * 60 * 1000)).toLocaleDateString('pt-BR')}
+                  </p>
+                )}
+              </div>
+            </>
+          ) : subscription?.status === 'active' ? (
+            <>
+              <Badge className="mb-4 bg-success text-success-foreground">
+                Plano Ativo
+              </Badge>
+              <div className="text-muted-foreground mt-2">
+                {subscription?.next_billing_date && (
+                  <>
+                    <p className="text-lg font-semibold">{daysRemaining} dias até a próxima cobrança</p>
+                    <p className="text-sm mt-1">
+                      Renova em: {new Date(subscription.next_billing_date).toLocaleDateString('pt-BR')}
+                    </p>
+                  </>
+                )}
+              </div>
+            </>
+          ) : null}
         </div>
 
         {/* Payment Method Tabs */}
@@ -284,6 +313,7 @@ const Pricing = () => {
         <div className="grid md:grid-cols-3 gap-6">
           {plans.map((plan) => {
             const Icon = plan.icon;
+            const PaymentIcon = paymentMethod === "pix" ? QrCode : CreditCard;
             return (
               <Card 
                 key={plan.id}
@@ -303,11 +333,17 @@ const Pricing = () => {
                   {/* Icon and Discount Badge */}
                   <div className="flex items-center justify-between mb-4">
                     <Icon className="w-10 h-10 text-primary" />
-                    {plan.discount && (
-                      <Badge className="bg-warning text-warning-foreground">
-                        ECONOMIZE {plan.discount}%
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="gap-1">
+                        <PaymentIcon className="w-3 h-3" />
+                        {paymentMethod === "pix" ? "PIX" : "Cartão"}
                       </Badge>
-                    )}
+                      {plan.discount && (
+                        <Badge className="bg-warning text-warning-foreground">
+                          ECONOMIZE {plan.discount}%
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   {/* Plan Name */}
