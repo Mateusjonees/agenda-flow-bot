@@ -490,7 +490,7 @@ const Tarefas = () => {
     <div className="p-4 md:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          <h1 className="text-2xl md:text-4xl font-bold text-foreground">
             Tarefas+
           </h1>
           <p className="text-sm md:text-base text-muted-foreground mt-2">
