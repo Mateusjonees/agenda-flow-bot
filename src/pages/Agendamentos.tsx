@@ -27,6 +27,7 @@ import { useDragDropAppointment } from "@/hooks/use-drag-drop-appointment";
 import { DraggableAppointment } from "@/components/DraggableAppointment";
 import { DroppableTimeSlot } from "@/components/DroppableTimeSlot";
 import { useReadOnly, ReadOnlyWrapper } from "@/components/SubscriptionGuard";
+import { DayAppointmentsDialog } from "@/components/DayAppointmentsDialog";
 
 type Customer = {
   id: string;
@@ -160,6 +161,9 @@ const Agendamentos = () => {
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSelectedAppointment, setMobileSelectedAppointment] = useState<Appointment | null>(null);
+  const [dayDialogOpen, setDayDialogOpen] = useState(false);
+  const [selectedDayDate, setSelectedDayDate] = useState<Date>(new Date());
+  const [selectedDayAppointments, setSelectedDayAppointments] = useState<Appointment[]>([]);
   
   // Filtros
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -617,13 +621,16 @@ const Agendamentos = () => {
     const start = startOfWeek(currentDate, { weekStartsOn: 0 });
     const end = endOfWeek(currentDate, { weekStartsOn: 0 });
     const days = eachDayOfInterval({ start, end });
-    const hours = Array.from({ length: 14 }, (_, i) => i + 8);
+    const hours = Array.from({ length: 13 }, (_, i) => i + 8); // 8h às 20h
 
     return (
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
         <div className="overflow-x-auto">
-          <div className="grid grid-cols-8 border-b min-w-[600px] sm:min-w-[700px] lg:min-w-[800px]">
-            <div className="p-2 sm:p-3"></div>
+          {/* Cabeçalho dos dias */}
+          <div className="grid grid-cols-8 border-b bg-muted/50 min-w-[700px] lg:min-w-[900px] sticky top-0 z-10">
+            <div className="p-4 border-r">
+              <div className="text-xs text-muted-foreground uppercase tracking-wider">Horário</div>
+            </div>
             {days.map((day) => {
               const isCurrentDay = isSameDay(day, new Date());
               const dayAppointmentsCount = appointments.filter(apt => 
@@ -631,41 +638,45 @@ const Agendamentos = () => {
               ).length;
               
               return (
-              <div
-                key={day.toISOString()}
-                className={cn(
-                  "p-3 border-l font-semibold text-center transition-colors",
-                  isCurrentDay && "bg-primary text-primary-foreground",
-                  !isCurrentDay && "bg-muted"
-                )}
-              >
-                <div className="text-xs uppercase tracking-wide opacity-75">
-                  {format(day, "EEE", { locale: ptBR })}
-                </div>
-                <div className={cn(
-                  "text-2xl mt-1",
-                  isCurrentDay && "font-bold"
-                )}>
-                  {format(day, "dd")}
-                </div>
-                <div className="text-xs mt-1 opacity-90">
+                <div
+                  key={day.toISOString()}
+                  className={cn(
+                    "p-4 border-l text-center transition-all",
+                    isCurrentDay ? "bg-primary/10" : "hover:bg-accent/5"
+                  )}
+                >
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                    {format(day, "EEE", { locale: ptBR })}
+                  </div>
+                  <div className={cn(
+                    "flex items-center justify-center gap-2"
+                  )}>
+                    <div className={cn(
+                      "text-2xl font-bold",
+                      isCurrentDay && "w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                    )}>
+                      {format(day, "dd")}
+                    </div>
+                  </div>
                   {dayAppointmentsCount > 0 && (
-                    <Badge variant={isCurrentDay ? "secondary" : "default"} className="text-xs h-5">
-                      {dayAppointmentsCount}
+                    <Badge variant="secondary" className="text-xs h-5 mt-2">
+                      {dayAppointmentsCount} {dayAppointmentsCount === 1 ? 'evento' : 'eventos'}
                     </Badge>
                   )}
                 </div>
-              </div>
               );
             })}
           </div>
-          <div className="divide-y min-w-[600px] sm:min-w-[700px] lg:min-w-[800px]">
+          
+          {/* Grid de horários */}
+          <div className="divide-y min-w-[700px] lg:min-w-[900px]">
             {hours.map((hour) => (
-              <div key={hour} className="grid grid-cols-8">
-                <div className="p-2 sm:p-3 text-xs sm:text-sm text-muted-foreground border-r font-medium">
+              <div key={hour} className="grid grid-cols-8 min-h-[80px]">
+                <div className="p-3 text-sm text-muted-foreground border-r font-medium flex items-start bg-muted/20">
                   {String(hour).padStart(2, "0")}:00
                 </div>
                 {days.map((day) => {
+                  const isCurrentDay = isSameDay(day, new Date());
                   const dayHourAppointments = appointments.filter(apt => {
                     const aptDate = parseISO(apt.start_time);
                     return isSameDay(aptDate, day) && aptDate.getHours() === hour;
@@ -677,102 +688,62 @@ const Agendamentos = () => {
                       id={`week-${format(day, 'yyyy-MM-dd')}-${hour}`}
                       date={day}
                       hour={hour}
-                      className="p-1.5 sm:p-2 border-l hover:bg-muted/50 transition-colors min-h-[50px] sm:min-h-[60px]"
+                      className={cn(
+                        "p-2 border-l hover:bg-accent/5 transition-colors relative",
+                        isCurrentDay && "bg-primary/5"
+                      )}
                     >
-                       {dayHourAppointments.map((apt) => {
-                         const colors = getAppointmentColors(apt);
-                         const now = new Date();
-                         const timeDiff = (parseISO(apt.start_time).getTime() - now.getTime()) / (1000 * 60);
-                         
-                         return (
-                        <DraggableAppointment
-                          key={apt.id}
-                          id={apt.id}
-                          type="appointment"
-                          currentStartTime={parseISO(apt.start_time)}
-                          currentEndTime={parseISO(apt.end_time)}
-                        >
-                          <div 
-                            className={cn(
-                              "border-l-2 p-1 sm:p-1.5 rounded mb-1 text-xs group cursor-pointer transition-all duration-200",
-                              "hover:shadow-sm hover:scale-105",
-                              colors.bg,
-                              colors.border,
-                              colors.pulse && "animate-pulse"
-                            )}
-                            onClick={() => {
-                              if (window.innerWidth < 640) {
-                                setMobileSelectedAppointment(apt);
-                                setMobileMenuOpen(true);
-                              }
-                            }}
+                      {dayHourAppointments.map((apt) => {
+                        const statusColors = {
+                          confirmed: "hsl(142 71% 45%)",
+                          pending: "hsl(48 96% 53%)",
+                          cancelled: "hsl(0 84% 60%)",
+                          completed: "hsl(271 81% 56%)"
+                        };
+                        
+                        const borderColor = statusColors[apt.status as keyof typeof statusColors] || statusColors.completed;
+                        
+                        return (
+                          <DraggableAppointment
+                            key={apt.id}
+                            id={apt.id}
+                            type="appointment"
+                            currentStartTime={parseISO(apt.start_time)}
+                            currentEndTime={parseISO(apt.end_time)}
                           >
-                            <div className="flex flex-col gap-0.5">
-                              <div className="flex items-center gap-1">
-                                {getStatusIcon(apt.status, timeDiff)}
-                                <div className="font-semibold truncate text-[11px] sm:text-xs leading-tight flex-1">
+                            <div 
+                              className={cn(
+                                "p-2 rounded-md mb-2 text-xs cursor-pointer transition-all border-l-[3px]",
+                                "hover:shadow-md hover:scale-[1.02] bg-card/80 backdrop-blur-sm"
+                              )}
+                              style={{ borderLeftColor: borderColor }}
+                              onClick={() => {
+                                if (window.innerWidth < 640) {
+                                  setMobileSelectedAppointment(apt);
+                                  setMobileMenuOpen(true);
+                                } else {
+                                  setEditAppointmentId(apt.id);
+                                  setEditDialogOpen(true);
+                                }
+                              }}
+                            >
+                              <div className="space-y-1">
+                                <div className="font-bold text-foreground text-sm">
+                                  {format(parseISO(apt.start_time), "HH:mm")}
+                                </div>
+                                <div className="font-semibold text-foreground truncate">
                                   {apt.title}
                                 </div>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Badge 
-                                  className={cn(colors.badge, "text-white text-[9px] sm:text-[10px] px-1 py-0 h-3.5")}
-                                >
-                                  {getStatusLabel(apt.status, timeDiff)}
-                                </Badge>
-                                <div className="truncate text-[10px] sm:text-xs flex-1 opacity-90">
-                                  {apt.customers?.name}
-                                </div>
-                              </div>
-                              
-                              {/* Botões apenas no desktop */}
-                              <div className="hidden sm:flex gap-1 mt-1">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 opacity-70 hover:opacity-100 transition-opacity"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditAppointmentId(apt.id);
-                                    setEditDialogOpen(true);
-                                  }}
-                                  title="Editar"
-                                >
-                                  <Pencil className="w-2.5 h-2.5" />
-                                </Button>
-                                {apt.status !== "completed" && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0 opacity-70 hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedAppointment({ id: apt.id, title: apt.title });
-                                      setFinishDialogOpen(true);
-                                    }}
-                                    title="Finalizar"
-                                  >
-                                    <CheckCircle className="w-2.5 h-2.5" />
-                                  </Button>
+                                {apt.customers && (
+                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                    <User className="w-3 h-3" />
+                                    <span className="truncate text-xs">{apt.customers.name}</span>
+                                  </div>
                                 )}
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 opacity-70 hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeleteAppointmentId(apt.id);
-                                    setDeleteDialogOpen(true);
-                                  }}
-                                  title="Excluir"
-                                >
-                                  <Trash2 className="w-2.5 h-2.5" />
-                                </Button>
                               </div>
-                             </div>
-                          </div>
-                        </DraggableAppointment>
-                      );
+                            </div>
+                          </DraggableAppointment>
+                        );
                       })}
                     </DroppableTimeSlot>
                   );
@@ -915,7 +886,9 @@ const Agendamentos = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Aqui poderia abrir um diálogo com todos os agendamentos do dia
+                        setSelectedDayDate(day);
+                        setSelectedDayAppointments(dayAppointments);
+                        setDayDialogOpen(true);
                       }}
                       className="w-full text-[10px] text-primary font-semibold py-1 px-2 rounded bg-primary/10 hover:bg-primary/20 transition-colors text-center"
                     >
@@ -1408,6 +1381,29 @@ const Agendamentos = () => {
           </div>
         </SheetContent>
       </Sheet>
+      
+      {/* Dialog para ver todos os agendamentos do dia */}
+      <DayAppointmentsDialog
+        open={dayDialogOpen}
+        onOpenChange={setDayDialogOpen}
+        date={selectedDayDate}
+        appointments={selectedDayAppointments}
+        onEdit={(appointmentId) => {
+          setEditAppointmentId(appointmentId);
+          setEditDialogOpen(true);
+          setDayDialogOpen(false);
+        }}
+        onFinish={(appointment) => {
+          setSelectedAppointment(appointment);
+          setFinishDialogOpen(true);
+          setDayDialogOpen(false);
+        }}
+        onDelete={(appointmentId) => {
+          setDeleteAppointmentId(appointmentId);
+          setDeleteDialogOpen(true);
+          setDayDialogOpen(false);
+        }}
+      />
     </div>
     
     <DragOverlay>
