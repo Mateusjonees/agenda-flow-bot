@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,6 +76,8 @@ const Agendamentos = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteAppointmentId, setDeleteAppointmentId] = useState<string>("");
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSelectedAppointment, setMobileSelectedAppointment] = useState<Appointment | null>(null);
   
   // Filtros
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -528,10 +531,9 @@ const Agendamentos = () => {
                             className="bg-primary/10 border-l-2 border-primary p-1 sm:p-1.5 rounded mb-1 text-xs group cursor-pointer hover:bg-primary/20 transition-colors"
                             onClick={() => {
                               if (window.innerWidth < 640) {
-                                // Mobile: abrir dialog com opções
-                                setSelectedAppointment({ id: apt.id, title: apt.title });
-                                setEditAppointmentId(apt.id);
-                                setEditDialogOpen(true);
+                                // Mobile: abrir menu de opções
+                                setMobileSelectedAppointment(apt);
+                                setMobileMenuOpen(true);
                               }
                             }}
                           >
@@ -660,10 +662,7 @@ const Agendamentos = () => {
               >
                 <div
                   onClick={() => {
-                    if (hasAppointments && window.innerWidth < 768) {
-                      setCurrentDate(day);
-                      setViewType("day");
-                    }
+                    // Não fazer nada no mobile, os agendamentos individuais já são clicáveis
                   }}
                 >
                   <div
@@ -674,23 +673,29 @@ const Agendamentos = () => {
                     {format(day, "d")}
                   </div>
                   
-                  {/* Mobile: Indicadores simples */}
+                  {/* Mobile: Lista de agendamentos */}
                   <div className="md:hidden">
-                    {hasAppointments && (
-                      <div className="flex flex-wrap gap-1">
-                        {completedCount > 0 && (
-                          <div className="flex items-center gap-0.5 text-[10px]">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span className="text-green-700 dark:text-green-400">{completedCount}</span>
-                          </div>
-                        )}
-                        {pendingCount > 0 && (
-                          <div className="flex items-center gap-0.5 text-[10px]">
-                            <div className="w-2 h-2 rounded-full bg-primary"></div>
-                            <span className="text-primary">{pendingCount}</span>
-                          </div>
-                        )}
+                    {dayAppointments.slice(0, 2).map((apt) => (
+                      <div
+                        key={apt.id}
+                        className="bg-primary/10 border-l-2 border-primary p-1 rounded text-[10px] mb-1 cursor-pointer hover:bg-primary/20 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMobileSelectedAppointment(apt);
+                          setMobileMenuOpen(true);
+                        }}
+                      >
+                        <div className="font-semibold truncate">{format(parseISO(apt.start_time), "HH:mm")} - {apt.title}</div>
+                        <Badge 
+                          variant={apt.status === "completed" ? "default" : "secondary"} 
+                          className={`text-[9px] px-1 py-0 h-3 mt-0.5 ${apt.status === "completed" ? "bg-green-500" : ""}`}
+                        >
+                          {apt.status === "completed" ? "✓" : "○"}
+                        </Badge>
                       </div>
+                    ))}
+                    {dayAppointments.length > 2 && (
+                      <div className="text-[10px] text-muted-foreground">+{dayAppointments.length - 2}</div>
                     )}
                   </div>
                   
@@ -1091,6 +1096,82 @@ const Agendamentos = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Menu mobile para agendamentos */}
+      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetContent side="bottom" className="h-auto">
+          <SheetHeader>
+            <SheetTitle>{mobileSelectedAppointment?.title}</SheetTitle>
+            <SheetDescription>
+              {mobileSelectedAppointment?.customers?.name && (
+                <div className="text-sm mt-1">Cliente: {mobileSelectedAppointment.customers.name}</div>
+              )}
+              {mobileSelectedAppointment && (
+                <div className="text-sm">
+                  {format(parseISO(mobileSelectedAppointment.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  {' - '}
+                  {format(parseISO(mobileSelectedAppointment.end_time), "HH:mm")}
+                </div>
+              )}
+            </SheetDescription>
+          </SheetHeader>
+          
+          <div className="flex flex-col gap-3 mt-6 mb-4">
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2 h-12"
+              onClick={() => {
+                if (mobileSelectedAppointment) {
+                  setEditAppointmentId(mobileSelectedAppointment.id);
+                  setEditDialogOpen(true);
+                  setMobileMenuOpen(false);
+                }
+              }}
+              disabled={isReadOnly}
+            >
+              <Pencil className="w-4 h-4" />
+              Editar agendamento
+            </Button>
+            
+            {mobileSelectedAppointment?.status !== "completed" && (
+              <Button
+                variant="default"
+                className="w-full justify-start gap-2 h-12"
+                onClick={() => {
+                  if (mobileSelectedAppointment) {
+                    setSelectedAppointment({ 
+                      id: mobileSelectedAppointment.id, 
+                      title: mobileSelectedAppointment.title 
+                    });
+                    setFinishDialogOpen(true);
+                    setMobileMenuOpen(false);
+                  }
+                }}
+                disabled={isReadOnly}
+              >
+                <CheckCircle className="w-4 h-4" />
+                Finalizar agendamento
+              </Button>
+            )}
+            
+            <Button
+              variant="destructive"
+              className="w-full justify-start gap-2 h-12"
+              onClick={() => {
+                if (mobileSelectedAppointment) {
+                  setDeleteAppointmentId(mobileSelectedAppointment.id);
+                  setDeleteDialogOpen(true);
+                  setMobileMenuOpen(false);
+                }
+              }}
+              disabled={isReadOnly}
+            >
+              <Trash2 className="w-4 h-4" />
+              Excluir agendamento
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
     
     <DragOverlay>
