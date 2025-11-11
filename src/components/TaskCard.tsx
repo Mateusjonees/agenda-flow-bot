@@ -1,21 +1,42 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Trash2, Edit, User } from "lucide-react";
+import { Calendar, Trash2, Edit, User, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskItem } from "@/types/task";
+import { useState } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface TaskCardProps {
   task: TaskItem;
   onEdit: (task: TaskItem) => void;
   onDelete: (id: string) => void;
   isReadOnly?: boolean;
+  subtasks?: SubTask[];
+  onSubtaskToggle?: (taskId: string, subtaskId: string) => void;
+  onAddSubtask?: (taskId: string) => void;
 }
 
-export const TaskCard = ({ task, onEdit, onDelete, isReadOnly }: TaskCardProps) => {
+interface SubTask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
+export const TaskCard = ({ 
+  task, 
+  onEdit, 
+  onDelete, 
+  isReadOnly,
+  subtasks = [],
+  onSubtaskToggle,
+  onAddSubtask,
+}: TaskCardProps) => {
+  const [isOpen, setIsOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
     data: {
@@ -70,6 +91,8 @@ export const TaskCard = ({ task, onEdit, onDelete, isReadOnly }: TaskCardProps) 
   };
 
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "completed";
+  const completedSubtasks = subtasks.filter(st => st.completed).length;
+  const hasSubtasks = subtasks.length > 0;
 
   return (
     <div
@@ -82,6 +105,11 @@ export const TaskCard = ({ task, onEdit, onDelete, isReadOnly }: TaskCardProps) 
       <Card className="hover:shadow-md transition-all duration-200 border-l-4 border-l-primary">
         <CardHeader className="p-3 pb-2">
           <CardTitle className="text-sm font-medium line-clamp-2">{task.title}</CardTitle>
+          {hasSubtasks && (
+            <div className="text-xs text-muted-foreground mt-1">
+              {completedSubtasks}/{subtasks.length} subtarefas concluídas
+            </div>
+          )}
         </CardHeader>
         <CardContent className="p-3 pt-0 space-y-3">
           {task.description && (
@@ -109,6 +137,52 @@ export const TaskCard = ({ task, onEdit, onDelete, isReadOnly }: TaskCardProps) 
               <User className="h-3 w-3" />
               <span className="truncate">{task.metadata.customer_name}</span>
             </div>
+          )}
+
+          {/* Subtasks Section */}
+          {(hasSubtasks || task.status !== "completed") && (
+            <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-full justify-between px-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="text-xs">Subtarefas</span>
+                  {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 mt-2">
+                {subtasks.map((subtask) => (
+                  <div key={subtask.id} className="flex items-center gap-2 pl-2">
+                    <Checkbox
+                      checked={subtask.completed}
+                      onCheckedChange={() => onSubtaskToggle?.(task.id, subtask.id)}
+                      disabled={isReadOnly}
+                      className="h-3 w-3"
+                    />
+                    <span className={`text-xs ${subtask.completed ? "line-through text-muted-foreground" : ""}`}>
+                      {subtask.title}
+                    </span>
+                  </div>
+                ))}
+                {task.status !== "completed" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-full text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddSubtask?.(task.id);
+                    }}
+                    disabled={isReadOnly}
+                  >
+                    + Adicionar subtarefa
+                  </Button>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
           )}
 
           {task.status !== "completed" && (
