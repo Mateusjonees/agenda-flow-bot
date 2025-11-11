@@ -406,7 +406,9 @@ const Planos = () => {
                   <div className="bg-background/50 rounded-lg p-3 border">
                     <div className="flex items-center gap-2 mb-1">
                       <TrendingUp className="w-4 h-4 text-primary" />
-                      <span className="text-xs text-muted-foreground">Renovação</span>
+                      <span className="text-xs text-muted-foreground">
+                        {subscription.status === "trial" ? "Fim do Teste" : "Renovação"}
+                      </span>
                     </div>
                     <p className="text-sm font-semibold">
                       {subscription.next_billing_date 
@@ -414,6 +416,11 @@ const Planos = () => {
                         : "N/A"
                       }
                     </p>
+                    {subscription.status === "trial" && subscription.next_billing_date && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                        {Math.max(0, Math.ceil((new Date(subscription.next_billing_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} dias restantes
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -455,18 +462,48 @@ const Planos = () => {
       {subscription && subscription.status === "trial" && (
         <Card className="border-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent">
           <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
-                  Período de Teste Ativo
-                </p>
-                <p className="text-sm text-amber-700 dark:text-amber-200">
-                  Você está no período de teste gratuito até {subscription.next_billing_date 
-                    ? format(new Date(subscription.next_billing_date), "dd 'de' MMMM", { locale: ptBR })
-                    : "breve"
-                  }. Escolha um plano abaixo para continuar usando após o período.
-                </p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-amber-500/10 border-2 border-amber-500/20 flex-shrink-0">
+                <div className="text-center">
+                  <p className="text-2xl sm:text-3xl font-bold text-amber-600">
+                    {subscription.next_billing_date 
+                      ? Math.max(0, Math.ceil((new Date(subscription.next_billing_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+                      : 0
+                    }
+                  </p>
+                  <p className="text-xs text-amber-600">dias</p>
+                </div>
+              </div>
+              
+              <div className="flex-1">
+                <div className="flex items-start gap-2 mb-2">
+                  <Sparkles className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                      Período de Teste Ativo - Aproveite Gratuitamente!
+                    </p>
+                    <p className="text-sm text-amber-700 dark:text-amber-200">
+                      Seu teste gratuito termina em {subscription.next_billing_date 
+                        ? format(new Date(subscription.next_billing_date), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })
+                        : "breve"
+                      }. Escolha um plano abaixo para continuar usando todos os recursos após o período de teste.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="mt-3">
+                  <Button 
+                    size="sm"
+                    onClick={() => {
+                      const plansSection = document.getElementById('plans-section');
+                      plansSection?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="w-full sm:w-auto"
+                  >
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Escolher Plano Agora
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
