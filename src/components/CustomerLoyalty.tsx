@@ -29,12 +29,29 @@ interface CustomerLoyaltyProps {
 export function CustomerLoyalty({ customerId }: CustomerLoyaltyProps) {
   const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loyaltyEnabled, setLoyaltyEnabled] = useState(true);
   const { toast } = useToast();
   const { isReadOnly } = useReadOnly();
 
   useEffect(() => {
     fetchLoyaltyCard();
+    checkLoyaltySettings();
   }, [customerId]);
+
+  const checkLoyaltySettings = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: settings } = await supabase
+      .from("business_settings")
+      .select("loyalty_enabled")
+      .eq("user_id", user.id)
+      .single();
+
+    if (settings) {
+      setLoyaltyEnabled(settings.loyalty_enabled ?? true);
+    }
+  };
 
   const fetchLoyaltyCard = async () => {
     setLoading(true);
@@ -127,8 +144,8 @@ export function CustomerLoyalty({ customerId }: CustomerLoyaltyProps) {
       });
     } else {
       toast({
-        title: "Selo adicionado!",
-        description: `Cliente agora tem ${newStamps} de ${loyaltyCard.stamps_required} selos.`,
+        title: "Carimbo adicionado!",
+        description: `Cliente agora tem ${newStamps} de ${loyaltyCard.stamps_required} carimbos.`,
       });
     }
 
@@ -155,8 +172,8 @@ export function CustomerLoyalty({ customerId }: CustomerLoyaltyProps) {
     }
 
     toast({
-      title: "Selo removido",
-      description: "Um selo foi removido do cartão.",
+      title: "Carimbo removido",
+      description: "Um carimbo foi removido do cartão.",
     });
 
     fetchLoyaltyCard();
@@ -182,13 +199,34 @@ export function CustomerLoyalty({ customerId }: CustomerLoyaltyProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Este cliente ainda não possui um cartão fidelidade.
-          </p>
-          <Button onClick={createLoyaltyCard} className="w-full" disabled={isReadOnly}>
-            <Gift className="w-4 h-4 mr-2" />
-            Criar Cartão Fidelidade
-          </Button>
+          {!loyaltyEnabled ? (
+            <div className="text-center py-6">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <Award className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground mb-2">
+                O programa de fidelidade está desativado.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Ative nas configurações para começar a recompensar seus clientes.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="text-center py-4">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Gift className="w-8 h-8 text-primary" />
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Este cliente ainda não possui um cartão fidelidade.
+                </p>
+              </div>
+              <Button onClick={createLoyaltyCard} className="w-full" disabled={isReadOnly}>
+                <Gift className="w-4 h-4 mr-2" />
+                Criar Cartão Fidelidade
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
     );
@@ -199,41 +237,66 @@ export function CustomerLoyalty({ customerId }: CustomerLoyaltyProps) {
   return (
     <div className="space-y-4">
       {/* Cartão Principal */}
-      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20">
+      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20 shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Award className="w-5 h-5 text-primary" />
-            Cartão Fidelidade
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Award className="w-5 h-5 text-primary" />
+              Cartão Fidelidade
+            </CardTitle>
+            {!loyaltyEnabled && (
+              <Badge variant="secondary" className="text-xs">
+                Programa Desativado
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Progresso dos Selos */}
+          {/* Progresso dos Carimbos */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Progresso</span>
               <span className="font-semibold">
-                {loyaltyCard.current_stamps} / {loyaltyCard.stamps_required} selos
+                {loyaltyCard.current_stamps} / {loyaltyCard.stamps_required} carimbos
               </span>
             </div>
             <Progress value={progress} className="h-3" />
           </div>
 
-          {/* Visual dos Selos */}
-          <div className="grid grid-cols-5 gap-2">
-            {Array.from({ length: loyaltyCard.stamps_required }).map((_, index) => (
-              <div
-                key={index}
-                className={`aspect-square rounded-lg border-2 flex items-center justify-center transition-all ${
-                  index < loyaltyCard.current_stamps
-                    ? "bg-primary border-primary text-primary-foreground"
-                    : "border-border bg-muted/30"
-                }`}
-              >
-                {index < loyaltyCard.current_stamps && (
-                  <Award className="w-4 h-4" />
-                )}
+          {/* Visual dos Carimbos */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-muted-foreground">Carimbos Coletados</h4>
+              <Badge variant={loyaltyCard.current_stamps === loyaltyCard.stamps_required ? "default" : "secondary"}>
+                {loyaltyCard.current_stamps === loyaltyCard.stamps_required ? "Completo! 🎉" : `${loyaltyCard.current_stamps}/${loyaltyCard.stamps_required}`}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-5 gap-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+              {Array.from({ length: loyaltyCard.stamps_required }).map((_, index) => (
+                <div
+                  key={index}
+                  className={`aspect-square rounded-xl border-2 flex items-center justify-center transition-all duration-300 ${
+                    index < loyaltyCard.current_stamps
+                      ? "bg-gradient-to-br from-primary to-primary/80 border-primary shadow-lg shadow-primary/20 scale-105"
+                      : "border-dashed border-border/50 bg-background/50 hover:border-primary/30"
+                  }`}
+                >
+                  {index < loyaltyCard.current_stamps ? (
+                    <Award className="w-5 h-5 text-primary-foreground" />
+                  ) : (
+                    <div className="w-3 h-3 rounded-full bg-muted-foreground/20" />
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {loyaltyCard.current_stamps === loyaltyCard.stamps_required && (
+              <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                <p className="text-sm font-medium text-primary text-center">
+                  🎁 Cartão completo! Cliente pode resgatar sua recompensa grátis!
+                </p>
               </div>
-            ))}
+            )}
           </div>
 
           {/* Botões de Ação */}
@@ -241,19 +304,27 @@ export function CustomerLoyalty({ customerId }: CustomerLoyaltyProps) {
             <Button
               onClick={addStamp}
               className="flex-1"
-              disabled={isReadOnly}
+              disabled={isReadOnly || !loyaltyEnabled}
             >
               <Gift className="w-4 h-4 mr-2" />
-              Adicionar Selo
+              Adicionar Carimbo
             </Button>
             <Button
               onClick={removeStamp}
               variant="outline"
-              disabled={isReadOnly || loyaltyCard.current_stamps === 0}
+              disabled={isReadOnly || !loyaltyEnabled || loyaltyCard.current_stamps === 0}
             >
               Remover
             </Button>
           </div>
+
+          {!loyaltyEnabled && (
+            <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <p className="text-xs text-yellow-800 dark:text-yellow-200 text-center">
+                ⚠️ O programa de fidelidade está desativado. Ative nas configurações para adicionar novos carimbos.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
