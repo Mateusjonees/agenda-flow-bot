@@ -58,74 +58,122 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Payment status:", status);
     console.log("Payment metadata:", metadata);
 
-    if (status === "approved" && metadata?.userId) {
-      // Check if subscription already exists
-      const { data: existingSub } = await supabaseClient
-        .from("subscriptions")
-        .select("*")
-        .eq("user_id", metadata.userId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    if (status === "approved") {
+      // Verificar se é uma reativação de assinatura
+      if (metadata?.type === "subscription_reactivation" && metadata?.subscription_id) {
+        console.log("Processing subscription reactivation for:", metadata.subscription_id);
+        
+        // Calcular próxima data de cobrança
+        const nextBillingDate = new Date();
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
 
-      const startDate = new Date();
-      const nextBillingDate = new Date(startDate);
-      nextBillingDate.setMonth(nextBillingDate.getMonth() + (metadata.months || 1));
-
-      if (existingSub) {
-        // Update existing subscription
-        const { error: updateError } = await supabaseClient
+        // Reativar a assinatura
+        const { error: reactivateError } = await supabaseClient
           .from("subscriptions")
           .update({
             status: "active",
-            plan_id: metadata.planId || existingSub.plan_id,
-            start_date: startDate.toISOString(),
             next_billing_date: nextBillingDate.toISOString(),
-            last_billing_date: startDate.toISOString(),
+            last_billing_date: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
             failed_payments_count: 0,
           })
-          .eq("id", existingSub.id);
+          .eq("id", metadata.subscription_id)
+          .eq("user_id", metadata.user_id);
 
-        if (updateError) {
-          console.error("Error updating subscription:", updateError);
-        } else {
-          console.log("Subscription updated successfully");
+        if (reactivateError) {
+          console.error("Error reactivating subscription:", reactivateError);
+          throw reactivateError;
         }
-      } else {
-        // Create new subscription
-        const { error: createError } = await supabaseClient
-          .from("subscriptions")
+
+        console.log("Subscription reactivated successfully:", metadata.subscription_id);
+
+        // Criar transação financeira para o pagamento de reativação
+        const { error: transError } = await supabaseClient
+          .from("financial_transactions")
           .insert({
-            user_id: metadata.userId,
-            plan_id: metadata.planId,
-            status: "active",
-            start_date: startDate.toISOString(),
-            next_billing_date: nextBillingDate.toISOString(),
-            last_billing_date: startDate.toISOString(),
+            user_id: metadata.user_id,
+            type: "income",
+            amount: payment.transaction_amount,
+            description: "Pagamento de reativação de assinatura",
+            payment_method: payment.payment_type_id,
+            status: "completed",
+            transaction_date: new Date().toISOString(),
           });
 
-        if (createError) {
-          console.error("Error creating subscription:", createError);
-        } else {
-          console.log("Subscription created successfully");
+        if (transError) {
+          console.error("Error creating reactivation transaction:", transError);
         }
-      }
+      } 
+      // Pagamento de assinatura normal
+      else if (metadata?.userId) {
+        // Check if subscription already exists
+        const { data: existingSub } = await supabaseClient
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", metadata.userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      // Create financial transaction
-      const { error: transError } = await supabaseClient
-        .from("financial_transactions")
-        .insert({
-          user_id: metadata.userId,
-          type: "income",
-          amount: payment.transaction_amount,
-          description: `Assinatura ${metadata.billingFrequency || 'Renovação'}`,
-          payment_method: payment.payment_type_id,
-          status: "completed",
-          transaction_date: new Date().toISOString(),
-        });
+        const startDate = new Date();
+        const nextBillingDate = new Date(startDate);
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + (metadata.months || 1));
 
-      if (transError) {
-        console.error("Error creating transaction:", transError);
+        if (existingSub) {
+          // Update existing subscription
+          const { error: updateError } = await supabaseClient
+            .from("subscriptions")
+            .update({
+              status: "active",
+              plan_id: metadata.planId || existingSub.plan_id,
+              start_date: startDate.toISOString(),
+              next_billing_date: nextBillingDate.toISOString(),
+              last_billing_date: startDate.toISOString(),
+              failed_payments_count: 0,
+            })
+            .eq("id", existingSub.id);
+
+          if (updateError) {
+            console.error("Error updating subscription:", updateError);
+          } else {
+            console.log("Subscription updated successfully");
+          }
+        } else {
+          // Create new subscription
+          const { error: createError } = await supabaseClient
+            .from("subscriptions")
+            .insert({
+              user_id: metadata.userId,
+              plan_id: metadata.planId,
+              status: "active",
+              start_date: startDate.toISOString(),
+              next_billing_date: nextBillingDate.toISOString(),
+              last_billing_date: startDate.toISOString(),
+            });
+
+          if (createError) {
+            console.error("Error creating subscription:", createError);
+          } else {
+            console.log("Subscription created successfully");
+          }
+        }
+
+        // Create financial transaction
+        const { error: transError } = await supabaseClient
+          .from("financial_transactions")
+          .insert({
+            user_id: metadata.userId,
+            type: "income",
+            amount: payment.transaction_amount,
+            description: `Assinatura ${metadata.billingFrequency || 'Renovação'}`,
+            payment_method: payment.payment_type_id,
+            status: "completed",
+            transaction_date: new Date().toISOString(),
+          });
+
+        if (transError) {
+          console.error("Error creating transaction:", transError);
+        }
       }
     }
 

@@ -10,6 +10,14 @@ interface ReactivateRequest {
   subscriptionId: string;
 }
 
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  billing_frequency: string;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -35,12 +43,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { subscriptionId }: ReactivateRequest = await req.json();
 
-    console.log(`Reactivating subscription ${subscriptionId} for user ${user.id}`);
+    console.log(`Creating payment for subscription reactivation ${subscriptionId} for user ${user.id}`);
 
     // Buscar assinatura para garantir que pertence ao usuário
     const { data: subscription, error: subError } = await supabaseClient
       .from("subscriptions")
-      .select("*")
+      .select(`
+        *,
+        subscription_plans:plan_id (
+          id,
+          name,
+          description,
+          price,
+          billing_frequency
+        )
+      `)
       .eq("id", subscriptionId)
       .eq("user_id", user.id)
       .single();
@@ -51,43 +68,92 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Verificar se a assinatura está cancelada
     if (subscription.status !== "cancelled") {
-      throw new Error("Subscription is not cancelled");
+      throw new Error("A assinatura não está cancelada");
     }
 
-    // Calcular próxima data de cobrança (1 mês a partir de agora)
-    const nextBillingDate = new Date();
-    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
-
-    // Atualizar status da assinatura no banco
-    const { error: updateError } = await supabaseClient
-      .from("subscriptions")
-      .update({
-        status: "active",
-        next_billing_date: nextBillingDate.toISOString(),
-        updated_at: new Date().toISOString(),
-        failed_payments_count: 0,
-      })
-      .eq("id", subscriptionId);
-
-    if (updateError) {
-      throw updateError;
+    const plan = subscription.subscription_plans as unknown as SubscriptionPlan;
+    if (!plan) {
+      throw new Error("Plano da assinatura não encontrado");
     }
 
-    // Nota: Se houver um ID de assinatura do Mercado Pago armazenado,
-    // você pode adicionar aqui a lógica para reativar também no MP:
-    // const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
-    // await fetch(`https://api.mercadopago.com/preapproval/${mpSubscriptionId}`, {
-    //   method: 'PUT',
-    //   headers: { 'Authorization': `Bearer ${accessToken}` },
-    //   body: JSON.stringify({ status: 'authorized' })
-    // });
+    // Buscar dados do cliente
+    const { data: customer, error: customerError } = await supabaseClient
+      .from("customers")
+      .select("*")
+      .eq("id", subscription.customer_id)
+      .single();
 
-    console.log(`Subscription ${subscriptionId} reactivated successfully`);
+    if (customerError || !customer) {
+      throw new Error("Cliente não encontrado");
+    }
 
+    // Criar preferência de pagamento no Mercado Pago
+    const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
+    if (!accessToken) {
+      throw new Error("Mercado Pago access token not configured");
+    }
+
+    const preference = {
+      items: [
+        {
+          title: `Reativação - ${plan.name}`,
+          description: plan.description || `Pagamento para reativar assinatura ${plan.name}`,
+          quantity: 1,
+          unit_price: Number(plan.price),
+          currency_id: "BRL",
+        },
+      ],
+      payer: {
+        name: customer.name,
+        email: customer.email || "",
+        phone: {
+          number: customer.phone || "",
+        },
+      },
+      back_urls: {
+        success: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mp-webhook`,
+        failure: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mp-webhook`,
+        pending: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mp-webhook`,
+      },
+      auto_return: "approved",
+      external_reference: subscriptionId,
+      notification_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mp-webhook`,
+      metadata: {
+        subscription_id: subscriptionId,
+        customer_id: subscription.customer_id,
+        user_id: user.id,
+        type: "subscription_reactivation",
+      },
+    };
+
+    console.log("Creating Mercado Pago preference:", JSON.stringify(preference, null, 2));
+
+    const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(preference),
+    });
+
+    if (!mpResponse.ok) {
+      const errorText = await mpResponse.text();
+      console.error("Mercado Pago API error:", errorText);
+      throw new Error(`Erro ao criar preferência no Mercado Pago: ${errorText}`);
+    }
+
+    const mpData = await mpResponse.json();
+    console.log("Mercado Pago preference created:", mpData.id);
+
+    // Retornar o link de pagamento para o usuário
+    // A assinatura será reativada automaticamente quando o webhook confirmar o pagamento
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: "Assinatura reativada com sucesso" 
+        paymentUrl: mpData.init_point,
+        preferenceId: mpData.id,
+        message: "Link de pagamento gerado. Complete o pagamento para reativar a assinatura." 
       }),
       {
         status: 200,

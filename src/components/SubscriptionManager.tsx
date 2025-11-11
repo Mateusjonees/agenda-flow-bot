@@ -143,15 +143,22 @@ export function SubscriptionManager() {
     mutationFn: async () => {
       if (!subscription?.id) throw new Error("Assinatura não encontrada");
 
-      const { error } = await supabase.functions.invoke("reactivate-subscription", {
+      const { data, error } = await supabase.functions.invoke("reactivate-subscription", {
         body: { subscriptionId: subscription.id },
       });
 
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
-      toast.success("Assinatura reativada com sucesso");
-      queryClient.invalidateQueries({ queryKey: ["current-subscription"] });
+    onSuccess: (data: any) => {
+      if (data?.paymentUrl) {
+        toast.success("Redirecionando para o pagamento...");
+        // Redirecionar para o Mercado Pago
+        window.location.href = data.paymentUrl;
+      } else {
+        toast.success("Assinatura reativada com sucesso");
+        queryClient.invalidateQueries({ queryKey: ["current-subscription"] });
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erro ao reativar assinatura");

@@ -104,11 +104,8 @@ const Clientes = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    console.log('🔍 Search Effect Triggered:', { searchTerm, customersCount: customers.length });
-    
     // Aplicar filtros de busca
     if (!searchTerm || searchTerm.trim() === "") {
-      console.log('📋 Showing all customers');
       setFilteredCustomers(customers);
       return;
     }
@@ -125,7 +122,6 @@ const Clientes = () => {
       return matchName || matchPhone || matchEmail || matchCpf;
     });
 
-    console.log('✅ Filtered Results:', filtered.length);
     setFilteredCustomers(filtered);
   }, [customers, searchTerm]);
 
@@ -473,10 +469,7 @@ const Clientes = () => {
         <Input
           placeholder="Buscar por nome, telefone, email ou CPF..."
           value={searchTerm}
-          onChange={(e) => {
-            console.log('🔤 Input Changed:', e.target.value);
-            setSearchTerm(e.target.value);
-          }}
+          onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10 h-10 sm:h-11 text-sm sm:text-base"
         />
       </div>

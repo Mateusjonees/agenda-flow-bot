@@ -494,13 +494,25 @@ const Assinaturas = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Assinatura reativada",
-        description: "Sua assinatura foi reativada com sucesso.",
-      });
+      if (data?.paymentUrl) {
+        toast({
+          title: "Redirecionando para pagamento",
+          description: "Você será redirecionado para completar o pagamento da reativação.",
+        });
+        
+        // Redirecionar para o Mercado Pago após um breve delay
+        setTimeout(() => {
+          window.location.href = data.paymentUrl;
+        }, 1500);
+      } else {
+        toast({
+          title: "Assinatura reativada",
+          description: "Sua assinatura foi reativada com sucesso.",
+        });
 
-      setReactivateUserSubscription(false);
-      await fetchUserSubscription();
+        setReactivateUserSubscription(false);
+        await fetchUserSubscription();
+      }
     } catch (error: any) {
       toast({
         title: "Erro ao reativar assinatura",
