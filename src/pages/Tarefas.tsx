@@ -543,7 +543,7 @@ const Tarefas = () => {
       <Tabs defaultValue="today" className="space-y-4">
         <TabsList>
           <TabsTrigger value="today">Hoje</TabsTrigger>
-          <TabsTrigger value="all">Todas</TabsTrigger>
+          <TabsTrigger value="week">Semana</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
 
@@ -574,21 +574,21 @@ const Tarefas = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="all" className="space-y-4">
+        <TabsContent value="week" className="space-y-4">
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <ListTodo className="h-5 w-5" />
-                <CardTitle>Todas as Tarefas</CardTitle>
+                <CardTitle>Tarefas da Semana</CardTitle>
               </div>
               <CardDescription>
-                Todas as tarefas pendentes e em progresso
+                Tarefas com vencimento até o final desta semana
               </CardDescription>
             </CardHeader>
             <CardContent>
               <TaskList 
-                key={`all-${selectedType}-${selectedStatus}-${selectedPriority}-${startDate?.toISOString()}-${endDate?.toISOString()}`}
-                showAll={true} 
+                key={`week-${selectedType}-${selectedStatus}-${selectedPriority}-${startDate?.toISOString()}-${endDate?.toISOString()}`}
+                showWeek={true} 
                 maxItems={100} 
                 searchQuery={searchQuery} 
                 selectedType={selectedType} 

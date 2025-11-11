@@ -47,6 +47,7 @@ interface TaskWithCustomer extends Task {
 
 interface TaskListProps {
   showAll?: boolean;
+  showWeek?: boolean;
   showCompleted?: boolean;
   maxItems?: number;
   searchQuery?: string;
@@ -58,7 +59,8 @@ interface TaskListProps {
 }
 
 export const TaskList = ({ 
-  showAll = false, 
+  showAll = false,
+  showWeek = false, 
   showCompleted = false, 
   maxItems = 10,
   searchQuery = "",
@@ -99,7 +101,7 @@ export const TaskList = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [showAll, showCompleted, searchQuery, selectedType, selectedPriority, selectedStatus, startDate, endDate]);
+  }, [showAll, showWeek, showCompleted, searchQuery, selectedType, selectedPriority, selectedStatus, startDate, endDate]);
 
   const fetchTasks = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -140,10 +142,23 @@ export const TaskList = ({
         // Aba de histórico: apenas completed e cancelled
         query = query.in("status", ["completed", "cancelled"]).order("completed_at", { ascending: false });
       } else {
-        // Abas "Hoje" e "Todas": apenas pending e in_progress
+        // Abas "Hoje", "Semana": apenas pending e in_progress
         query = query.in("status", ["pending", "in_progress"]).order("due_date", { ascending: true });
         
-        if (!showAll) {
+        if (showWeek) {
+          // Semana: tarefas de hoje até o final da semana (domingo)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const endOfWeek = new Date(today);
+          const dayOfWeek = today.getDay();
+          const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+          endOfWeek.setDate(today.getDate() + daysUntilSunday);
+          endOfWeek.setHours(23, 59, 59, 999);
+          
+          query = query.gte("due_date", today.toISOString()).lte("due_date", endOfWeek.toISOString());
+        } else if (!showAll) {
+          // Hoje: apenas tarefas de hoje
           const today = new Date();
           today.setHours(23, 59, 59, 999);
           query = query.lte("due_date", today.toISOString());
@@ -384,9 +399,11 @@ export const TaskList = ({
           <p className="text-muted-foreground">
             {showCompleted 
               ? "Nenhuma tarefa no histórico" 
-              : showAll 
-                ? "Nenhuma tarefa pendente" 
-                : "Nenhuma tarefa para hoje"}
+              : showWeek
+                ? "Nenhuma tarefa para esta semana"
+                : showAll 
+                  ? "Nenhuma tarefa pendente" 
+                  : "Nenhuma tarefa para hoje"}
           </p>
         </CardContent>
       </Card>
