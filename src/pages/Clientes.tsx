@@ -25,6 +25,7 @@ interface Customer {
   email: string | null;
   cpf: string | null;
   notes: string | null;
+  source: string | null;
   created_at: string;
 }
 
@@ -42,6 +43,7 @@ const Clientes = () => {
     email: "",
     cpf: "",
     notes: "",
+    source: "",
   });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -57,6 +59,7 @@ const Clientes = () => {
     email: "",
     cpf: "",
     notes: "",
+    source: "",
   });
   const [taskForm, setTaskForm] = useState({
     title: "",
@@ -243,6 +246,7 @@ const Clientes = () => {
       email: newCustomer.email || null,
       cpf: newCustomer.cpf || null,
       notes: newCustomer.notes || null,
+      source: newCustomer.source || null,
     });
 
     if (error) {
@@ -257,7 +261,7 @@ const Clientes = () => {
         description: "O cliente foi cadastrado com sucesso.",
       });
       setDialogOpen(false);
-      setNewCustomer({ name: "", phone: "", email: "", cpf: "", notes: "" });
+      setNewCustomer({ name: "", phone: "", email: "", cpf: "", notes: "", source: "" });
       await fetchCustomers();
     }
   };
@@ -388,6 +392,7 @@ const Clientes = () => {
         email: editCustomer.email || null,
         cpf: editCustomer.cpf || null,
         notes: editCustomer.notes || null,
+        source: editCustomer.source || null,
       })
       .eq("id", editCustomer.id);
 
@@ -413,6 +418,7 @@ const Clientes = () => {
           email: editCustomer.email || null,
           cpf: editCustomer.cpf || null,
           notes: editCustomer.notes || null,
+          source: editCustomer.source || null,
         });
       }
     }
@@ -512,6 +518,26 @@ const Clientes = () => {
                   onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
                   placeholder="email@exemplo.com"
                 />
+              </div>
+              <div>
+                <Label htmlFor="source">De onde veio o cliente?</Label>
+                <Select value={newCustomer.source} onValueChange={(value) => setNewCustomer({ ...newCustomer, source: value })}>
+                  <SelectTrigger id="source">
+                    <SelectValue placeholder="Selecione a origem" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="indicacao">Indicação</SelectItem>
+                    <SelectItem value="facebook">Facebook</SelectItem>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    <SelectItem value="google">Google</SelectItem>
+                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                    <SelectItem value="site">Site</SelectItem>
+                    <SelectItem value="outdoor">Outdoor/Placa</SelectItem>
+                    <SelectItem value="panfleto">Panfleto</SelectItem>
+                    <SelectItem value="radio">Rádio</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="notes">Observações</Label>
@@ -635,6 +661,7 @@ const Clientes = () => {
                           email: selectedCustomer.email || "",
                           cpf: selectedCustomer.cpf || "",
                           notes: selectedCustomer.notes || "",
+                          source: selectedCustomer.source || "",
                         });
                         setEditDialogOpen(true);
                       }}
@@ -822,6 +849,25 @@ const Clientes = () => {
                           <span className="break-all">{selectedCustomer.email}</span>
                         </div>
                       )}
+                      {selectedCustomer.source && (
+                        <div className="flex items-center gap-2 text-xs sm:text-sm">
+                          <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                          <span>
+                            Origem: <span className="font-medium">
+                              {selectedCustomer.source === 'indicacao' && 'Indicação'}
+                              {selectedCustomer.source === 'facebook' && 'Facebook'}
+                              {selectedCustomer.source === 'instagram' && 'Instagram'}
+                              {selectedCustomer.source === 'google' && 'Google'}
+                              {selectedCustomer.source === 'whatsapp' && 'WhatsApp'}
+                              {selectedCustomer.source === 'site' && 'Site'}
+                              {selectedCustomer.source === 'outdoor' && 'Outdoor/Placa'}
+                              {selectedCustomer.source === 'panfleto' && 'Panfleto'}
+                              {selectedCustomer.source === 'radio' && 'Rádio'}
+                              {selectedCustomer.source === 'outro' && 'Outro'}
+                            </span>
+                          </span>
+                        </div>
+                      )}
                       {selectedCustomer.notes && (
                         <div className="pt-2 border-t">
                           <p className="text-xs sm:text-sm text-muted-foreground">{selectedCustomer.notes}</p>
@@ -908,6 +954,26 @@ const Clientes = () => {
                 onChange={(e) => setEditCustomer({ ...editCustomer, email: e.target.value })}
                 placeholder="email@exemplo.com"
               />
+            </div>
+            <div>
+              <Label htmlFor="edit-source">De onde veio o cliente?</Label>
+              <Select value={editCustomer.source} onValueChange={(value) => setEditCustomer({ ...editCustomer, source: value })}>
+                <SelectTrigger id="edit-source">
+                  <SelectValue placeholder="Selecione a origem" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="indicacao">Indicação</SelectItem>
+                  <SelectItem value="facebook">Facebook</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="google">Google</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  <SelectItem value="site">Site</SelectItem>
+                  <SelectItem value="outdoor">Outdoor/Placa</SelectItem>
+                  <SelectItem value="panfleto">Panfleto</SelectItem>
+                  <SelectItem value="radio">Rádio</SelectItem>
+                  <SelectItem value="outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="edit-notes">Observações</Label>
