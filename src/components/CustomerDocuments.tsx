@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { FileText, Download, Trash2, Upload, Plus, Eye, X, FileSpreadsheet, Calendar, LayoutGrid, List } from "lucide-react";
+import { FileText, Download, Trash2, Upload, Plus, Eye, X, FileSpreadsheet, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -66,8 +66,6 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
   const [viewingDocument, setViewingDocument] = useState<CustomerDocument | null>(null);
   const [documentUrl, setDocumentUrl] = useState<string>("");
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -90,33 +88,8 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
 
     if (!error && data) {
       setDocuments(data);
-      // Load thumbnails for image files
-      loadThumbnails(data);
     }
     setLoading(false);
-  };
-
-  const loadThumbnails = async (docs: CustomerDocument[]) => {
-    const newThumbnails: Record<string, string> = {};
-    
-    for (const doc of docs) {
-      if (isImageFile(doc.file_name)) {
-        try {
-          const { data } = await supabase.storage
-            .from("customer-documents")
-            .download(doc.file_path);
-          
-          if (data) {
-            const url = URL.createObjectURL(data);
-            newThumbnails[doc.id] = url;
-          }
-        } catch (error) {
-          console.error('Error loading thumbnail:', error);
-        }
-      }
-    }
-    
-    setThumbnails(newThumbnails);
   };
 
   const fetchProposals = async () => {
@@ -487,254 +460,133 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
             </TabsList>
 
             {/* Documentos Anexados */}
-            <TabsContent value="attached" className="mt-3 sm:mt-4">
-              <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
+            <TabsContent value="attached" className="mt-4">
+              <div className="flex items-center justify-between mb-4">
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button size="sm" variant="outline" className="gap-2 flex-1 sm:flex-initial">
+                    <Button size="sm" variant="outline" className="gap-2">
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Adicionar</span>
+                      <span className="hidden sm:inline">Adicionar</span>
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-                    <DialogHeader>
-                      <DialogTitle className="text-base sm:text-lg">Adicionar Documento</DialogTitle>
-                      <DialogDescription className="text-xs sm:text-sm">
-                        Anexe contratos, documentos ou outros arquivos relevantes
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-3 sm:space-y-4">
-                      <div>
-                        <Label htmlFor="file-upload" className="text-xs sm:text-sm">Arquivo *</Label>
-                        <div className="mt-2">
-                          <Input
-                            id="file-upload"
-                            type="file"
-                            onChange={handleFileSelect}
-                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                            className="text-xs sm:text-sm"
-                          />
-                          {selectedFile && (
-                            <p className="text-xs text-muted-foreground mt-2 truncate">
-                              {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                            </p>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Máximo 10MB. Formatos: PDF, DOC, DOCX, JPG, PNG
-                        </p>
-                      </div>
-                      <div>
-                        <Label htmlFor="description" className="text-xs sm:text-sm">Descrição</Label>
-                        <Textarea
-                          id="description"
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          placeholder="Descreva o documento..."
-                          rows={3}
-                          className="text-xs sm:text-sm"
-                        />
-                      </div>
-                      <Button 
-                        onClick={handleUpload} 
-                        disabled={!selectedFile || uploading}
-                        className="w-full"
-                      >
-                        {uploading ? (
-                          <>
-                            <Upload className="w-4 h-4 mr-2 animate-spin" />
-                            Enviando...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="w-4 h-4 mr-2" />
-                            Enviar Documento
-                          </>
-                        )}
-                      </Button>
-                    </div>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Adicionar Documento</DialogTitle>
+                <DialogDescription>
+                  Anexe contratos, documentos ou outros arquivos relevantes
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="file-upload">Arquivo *</Label>
+                  <div className="mt-2">
+                    <Input
+                      id="file-upload"
+                      type="file"
+                      onChange={handleFileSelect}
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    />
+                    {selectedFile && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Máximo 10MB. Formatos: PDF, DOC, DOCX, JPG, PNG
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="description">Descrição</Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Descreva o documento..."
+                    rows={3}
+                  />
+                </div>
+                <Button 
+                  onClick={handleUpload} 
+                  disabled={!selectedFile || uploading}
+                  className="w-full"
+                >
+                  {uploading ? (
+                    <>
+                      <Upload className="w-4 h-4 mr-2 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Enviar Documento
+                    </>
+                  )}
+                </Button>
+              </div>
                   </DialogContent>
                 </Dialog>
-                
-                <div className="flex items-center gap-1 border rounded-lg p-0.5">
-                  <Button
-                    size="sm"
-                    variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                    onClick={() => setViewMode('list')}
-                    className="h-7 px-2"
-                  >
-                    <List className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                    onClick={() => setViewMode('grid')}
-                    className="h-7 px-2"
-                  >
-                    <LayoutGrid className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
               </div>
               
               {loading ? (
-                <p className="text-xs sm:text-sm text-muted-foreground text-center py-6">
+                <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">
                   Carregando documentos...
                 </p>
               ) : documents.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Nenhum documento anexado ainda.
-                  </p>
-                </div>
-              ) : viewMode === 'list' ? (
+                <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">
+                  Nenhum documento anexado ainda.
+                </p>
+              ) : (
                 <div className="space-y-2">
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                      className="flex items-center justify-between p-2 sm:p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                     >
-                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center mt-0.5">
-                          <FileText className="w-4 h-4 text-primary" />
-                        </div>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium break-words line-clamp-2 mb-0.5">
+                          <p className="text-xs sm:text-sm font-medium truncate">
                             {doc.file_name}
                           </p>
                           {doc.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-1 mb-1">
+                            <p className="text-xs text-muted-foreground truncate">
                               {doc.description}
                             </p>
                           )}
-                          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                            <span className="font-medium">{formatFileSize(doc.file_size)}</span>
-                            <span>•</span>
-                            <span>{format(new Date(doc.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
-                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {formatFileSize(doc.file_size)} • {new Date(doc.created_at).toLocaleDateString()}
+                          </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 self-end sm:self-center flex-shrink-0">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleView(doc)}
-                          className="h-8 px-2 gap-1.5"
+                          className="h-8 w-8 p-0"
                           title="Visualizar"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          <span className="text-xs hidden sm:inline">Ver</span>
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDownload(doc)}
-                          className="h-8 px-2 gap-1.5"
+                          className="h-8 w-8 p-0"
                           title="Baixar"
                         >
                           <Download className="w-3.5 h-3.5" />
-                          <span className="text-xs hidden sm:inline">Baixar</span>
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDelete(doc)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                           title="Excluir"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="group relative flex flex-col rounded-lg border bg-card overflow-hidden hover:shadow-md transition-all"
-                    >
-                      {/* Thumbnail */}
-                      <div 
-                        className="aspect-square bg-muted/30 flex items-center justify-center cursor-pointer relative overflow-hidden"
-                        onClick={() => handleView(doc)}
-                      >
-                        {thumbnails[doc.id] ? (
-                          <img 
-                            src={thumbnails[doc.id]} 
-                            alt={doc.file_name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : isPdfFile(doc.file_name) ? (
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <FileText className="w-10 h-10 text-destructive" />
-                            <span className="text-[10px] text-muted-foreground font-medium">PDF</span>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <FileText className="w-10 h-10 text-primary" />
-                            <span className="text-[10px] text-muted-foreground font-medium uppercase">
-                              {doc.file_name.split('.').pop()?.slice(0, 4)}
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* Hover overlay */}
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleView(doc);
-                            }}
-                            className="h-7 w-7 p-0"
-                            title="Visualizar"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload(doc);
-                            }}
-                            className="h-7 w-7 p-0"
-                            title="Baixar"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(doc);
-                            }}
-                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                            title="Excluir"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      {/* Info */}
-                      <div className="p-2 space-y-1">
-                        <p className="text-xs font-medium truncate" title={doc.file_name}>
-                          {doc.file_name}
-                        </p>
-                        {doc.description && (
-                          <p className="text-[10px] text-muted-foreground line-clamp-1" title={doc.description}>
-                            {doc.description}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                          <span>{formatFileSize(doc.file_size)}</span>
-                          <span>{format(new Date(doc.created_at), "dd/MM/yy", { locale: ptBR })}</span>
-                        </div>
                       </div>
                     </div>
                   ))}
