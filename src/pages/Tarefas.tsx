@@ -12,11 +12,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TaskCard } from "@/components/TaskCard";
 import { TaskColumn } from "@/components/TaskColumn";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
-import { ListTodo, CheckCircle2, Clock, XCircle, Plus, Loader2, AlertCircle, CircleDot } from "lucide-react";
+import { AddSubtaskDialog } from "@/components/AddSubtaskDialog";
+import { ListTodo, CheckCircle2, Clock, XCircle, Plus, Loader2, AlertCircle, CircleDot, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TaskItem } from "@/types/task";
+
+interface SubTask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
 
 const Tarefas = () => {
   const navigate = useNavigate();
@@ -29,12 +36,15 @@ const Tarefas = () => {
     overdue: 0,
   });
   const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [subtasks, setSubtasks] = useState<Record<string, SubTask[]>>({});
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
   const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [addSubtaskDialog, setAddSubtaskDialog] = useState<{ open: boolean; taskId: string | null }>({ open: false, taskId: null });
+  const [undoStack, setUndoStack] = useState<Array<{ taskId: string; oldStatus: string; newStatus: string }>>([]);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -49,6 +59,7 @@ const Tarefas = () => {
     checkAuth();
     fetchTasks();
     fetchCustomers();
+    fetchSubtasks();
   }, []);
 
   const checkAuth = async () => {
@@ -119,6 +130,34 @@ const Tarefas = () => {
     
     if (data) {
       setCustomers(data);
+    }
+  };
+
+  const fetchSubtasks = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("subtasks")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Erro ao buscar subtarefas:", error);
+    } else if (data) {
+      const subtasksByTask: Record<string, SubTask[]> = {};
+      data.forEach((subtask: any) => {
+        if (!subtasksByTask[subtask.task_id]) {
+          subtasksByTask[subtask.task_id] = [];
+        }
+        subtasksByTask[subtask.task_id].push({
+          id: subtask.id,
+          title: subtask.title,
+          completed: subtask.completed,
+        });
+      });
+      setSubtasks(subtasksByTask);
     }
   };
 
@@ -205,6 +244,15 @@ const Tarefas = () => {
 
     const taskId = active.id as string;
     const newStatus = over.id as string;
+    
+    // Find the task to get its old status
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    const oldStatus = task.status;
+
+    // Add to undo stack
+    setUndoStack(prev => [...prev, { taskId, oldStatus, newStatus }]);
 
     // Update local state immediately for smooth UX
     setTasks((prevTasks) =>
@@ -239,6 +287,59 @@ const Tarefas = () => {
       toast({
         title: "Tarefa movida!",
         description: "Status atualizado com sucesso",
+        action: undoStack.length > 0 ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleUndo()}
+          >
+            <Undo2 className="h-3 w-3 mr-1" />
+            Desfazer
+          </Button>
+        ) : undefined,
+      });
+      fetchTasks();
+    }
+  };
+
+  const handleUndo = async () => {
+    if (undoStack.length === 0) return;
+
+    const lastAction = undoStack[undoStack.length - 1];
+    setUndoStack(prev => prev.slice(0, -1));
+
+    // Update local state
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === lastAction.taskId ? { ...task, status: lastAction.oldStatus } : task
+      )
+    );
+
+    // Update in database
+    const updateData: any = { status: lastAction.oldStatus };
+    if (lastAction.oldStatus === "completed") {
+      updateData.completed_at = new Date().toISOString();
+    } else {
+      updateData.completed_at = null;
+    }
+
+    const { error } = await supabase
+      .from("tasks")
+      .update(updateData)
+      .eq("id", lastAction.taskId);
+
+    if (error) {
+      console.error("Erro ao desfazer:", error);
+      toast({
+        title: "Erro ao desfazer",
+        description: error.message,
+        variant: "destructive",
+      });
+      fetchTasks();
+    } else {
+      toast({
+        title: "Ação desfeita!",
+        description: "Status restaurado",
       });
       fetchTasks();
     }
@@ -263,8 +364,71 @@ const Tarefas = () => {
         title: "Tarefa excluída com sucesso!",
       });
       fetchTasks();
+      fetchSubtasks();
     }
     setDeleteTaskId(null);
+  };
+
+  const handleAddSubtask = async (title: string) => {
+    if (!addSubtaskDialog.taskId) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("subtasks")
+      .insert({
+        task_id: addSubtaskDialog.taskId,
+        user_id: user.id,
+        title,
+        completed: false,
+      });
+
+    if (error) {
+      toast({
+        title: "Erro ao adicionar subtarefa",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Subtarefa adicionada!",
+      });
+      fetchSubtasks();
+    }
+  };
+
+  const handleSubtaskToggle = async (taskId: string, subtaskId: string) => {
+    const taskSubtasks = subtasks[taskId] || [];
+    const subtask = taskSubtasks.find(st => st.id === subtaskId);
+    if (!subtask) return;
+
+    const newCompleted = !subtask.completed;
+
+    const updateData: any = {
+      completed: newCompleted,
+    };
+
+    if (newCompleted) {
+      updateData.completed_at = new Date().toISOString();
+    } else {
+      updateData.completed_at = null;
+    }
+
+    const { error } = await supabase
+      .from("subtasks")
+      .update(updateData)
+      .eq("id", subtaskId);
+
+    if (error) {
+      toast({
+        title: "Erro ao atualizar subtarefa",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      fetchSubtasks();
+    }
   };
 
   const pendingTasks = tasks.filter((t) => t.status === "pending");
@@ -413,6 +577,20 @@ const Tarefas = () => {
         </Dialog>
       </div>
 
+      {/* Undo Button */}
+      {undoStack.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            onClick={handleUndo}
+            className="shadow-lg hover:shadow-xl transition-all"
+            size="lg"
+          >
+            <Undo2 className="h-4 w-4 mr-2" />
+            Desfazer última ação
+          </Button>
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card className="border-l-4 border-l-blue-500">
@@ -478,6 +656,9 @@ const Tarefas = () => {
                 onEdit={setEditingTask}
                 onDelete={setDeleteTaskId}
                 isReadOnly={isReadOnly}
+                subtasks={subtasks[task.id] || []}
+                onSubtaskToggle={handleSubtaskToggle}
+                onAddSubtask={(taskId) => setAddSubtaskDialog({ open: true, taskId })}
               />
             ))}
             {pendingTasks.length === 0 && (
@@ -507,6 +688,9 @@ const Tarefas = () => {
                 onEdit={setEditingTask}
                 onDelete={setDeleteTaskId}
                 isReadOnly={isReadOnly}
+                subtasks={subtasks[task.id] || []}
+                onSubtaskToggle={handleSubtaskToggle}
+                onAddSubtask={(taskId) => setAddSubtaskDialog({ open: true, taskId })}
               />
             ))}
             {inProgressTasks.length === 0 && (
@@ -531,6 +715,9 @@ const Tarefas = () => {
                 onEdit={setEditingTask}
                 onDelete={setDeleteTaskId}
                 isReadOnly={isReadOnly}
+                subtasks={subtasks[task.id] || []}
+                onSubtaskToggle={handleSubtaskToggle}
+                onAddSubtask={(taskId) => setAddSubtaskDialog({ open: true, taskId })}
               />
             ))}
             {completedTasks.length === 0 && (
@@ -575,7 +762,7 @@ const Tarefas = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Tarefa?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. A tarefa será permanentemente removida.
+              Esta ação não pode ser desfeita. A tarefa e todas as suas subtarefas serão permanentemente removidas.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -586,6 +773,13 @@ const Tarefas = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Subtask Dialog */}
+      <AddSubtaskDialog
+        open={addSubtaskDialog.open}
+        onOpenChange={(open) => setAddSubtaskDialog({ open, taskId: null })}
+        onAdd={handleAddSubtask}
+      />
     </div>
   );
 };
