@@ -71,7 +71,8 @@ export function AppointmentQuickSearch({ open, onOpenChange, onSelectAppointment
       if (error) throw error;
       return data as Appointment[];
     },
-    staleTime: 1000 * 60 * 5, // Cache por 5 minutos
+    enabled: open,
+    refetchOnMount: 'always',
   });
 
   // Filtrar agendamentos por nome, email ou telefone do cliente
