@@ -31,6 +31,7 @@ export const EditTaskDialog = ({ task, open, onOpenChange, onTaskUpdated }: Edit
   const [type, setType] = useState("");
   const [priority, setPriority] = useState("");
   const [status, setStatus] = useState("");
+  const [color, setColor] = useState("#FF6B35");
   const [dueDate, setDueDate] = useState<Date>();
   const [loading, setLoading] = useState(false);
 
@@ -41,6 +42,7 @@ export const EditTaskDialog = ({ task, open, onOpenChange, onTaskUpdated }: Edit
       setType(task.type);
       setPriority(task.priority);
       setStatus(task.status);
+      setColor(task.color || "#FF6B35");
       if (task.due_date) {
         setDueDate(new Date(task.due_date));
       }
@@ -59,6 +61,7 @@ export const EditTaskDialog = ({ task, open, onOpenChange, onTaskUpdated }: Edit
       type,
       priority,
       status,
+      color,
       due_date: dueDate.toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -193,6 +196,31 @@ export const EditTaskDialog = ({ task, open, onOpenChange, onTaskUpdated }: Edit
                     />
                   </PopoverContent>
                 </Popover>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="color">Cor do Card</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="color"
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="h-10 w-20"
+                />
+                <div className="flex-1 flex items-center gap-2">
+                  {['#FF6B35', '#4ECDC4', '#A78BFA', '#FB923C', '#10B981', '#3B82F6', '#EC4899', '#F59E0B'].map((presetColor) => (
+                    <button
+                      key={presetColor}
+                      type="button"
+                      onClick={() => setColor(presetColor)}
+                      className="w-8 h-8 rounded-full border-2 border-border hover:scale-110 transition-transform"
+                      style={{ backgroundColor: presetColor }}
+                      title={presetColor}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
 

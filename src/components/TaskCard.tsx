@@ -100,7 +100,7 @@ export const TaskCard = ({
       style={style}
       className={isDragging ? "opacity-50" : ""}
     >
-      <Card className="hover:shadow-md transition-all duration-200 border-l-4 border-l-primary">
+      <Card className="hover:shadow-md transition-all duration-200 border-l-4" style={{ borderLeftColor: task.color || '#FF6B35' }}>
         <CardHeader className="p-3 pb-2">
           <div className="flex items-start gap-2">
             <div

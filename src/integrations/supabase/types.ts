@@ -1185,6 +1185,7 @@ export type Database = {
       }
       tasks: {
         Row: {
+          color: string | null
           completed_at: string | null
           created_at: string | null
           customer_id: string | null
@@ -1202,6 +1203,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          color?: string | null
           completed_at?: string | null
           created_at?: string | null
           customer_id?: string | null
@@ -1219,6 +1221,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          color?: string | null
           completed_at?: string | null
           created_at?: string | null
           customer_id?: string | null

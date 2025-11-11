@@ -55,6 +55,7 @@ const Tarefas = () => {
     priority: "medium",
     status: "pending",
     type: "general",
+    color: "#FF6B35",
   });
 
   useEffect(() => {
@@ -196,6 +197,7 @@ const Tarefas = () => {
           priority: formData.priority,
           status: formData.status,
           type: formData.type,
+          color: formData.color,
           related_entity_type: formData.related_entity_id ? "customer" : null,
           related_entity_id: formData.related_entity_id || null,
           customer_id: formData.related_entity_id || null,
@@ -221,6 +223,7 @@ const Tarefas = () => {
           priority: "medium",
           status: "pending",
           type: "general",
+          color: "#FF6B35",
         });
         fetchTasks();
       }
@@ -556,6 +559,30 @@ const Tarefas = () => {
                     <SelectItem value="in_progress">Em Progresso</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="color">Cor do Card</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="color"
+                    type="color"
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    className="h-10 w-20"
+                  />
+                  <div className="flex-1 flex items-center gap-2">
+                    {['#FF6B35', '#4ECDC4', '#A78BFA', '#FB923C', '#10B981', '#3B82F6', '#EC4899', '#F59E0B'].map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, color })}
+                        className="w-8 h-8 rounded-full border-2 border-border hover:scale-110 transition-transform"
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>

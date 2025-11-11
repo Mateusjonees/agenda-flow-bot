@@ -6,6 +6,7 @@ export interface TaskItem {
   priority: string;
   type: string;
   status: string;
+  color?: string;
   metadata?: {
     customer_name?: string;
   };
