@@ -800,9 +800,9 @@ const Agendamentos = () => {
     return (
       <div className="overflow-hidden rounded-lg border">
         {/* Cabeçalho dos dias da semana - estilo Google */}
-        <div className="grid grid-cols-7 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b">
+        <div className="grid grid-cols-7 bg-muted/50 border-b">
           {["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"].map((day) => (
-            <div key={day} className="p-3 text-center border-l first:border-l-0">
+            <div key={day} className="p-3 text-center border-l first:border-l-0 border-border">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 {day.slice(0, 3)}
               </div>
@@ -831,9 +831,9 @@ const Agendamentos = () => {
                 hour={8}
                 className={cn(
                   "min-h-[110px] sm:min-h-[140px] p-2 border-b border-l first:border-l-0",
-                  "relative group",
-                  !isCurrentMonth && "bg-muted/20",
-                  isCurrentDay && "bg-blue-50/50 dark:bg-blue-950/20"
+                  "relative group bg-card hover:bg-accent/5 transition-colors",
+                  !isCurrentMonth && "bg-muted/30 opacity-60",
+                  isCurrentDay && "bg-primary/5 ring-2 ring-primary/30"
                 )}
               >
                 {/* Número do dia - estilo Google Calendar */}
@@ -852,18 +852,22 @@ const Agendamentos = () => {
                 
                 {/* Indicador de agendamentos no topo */}
                 {hasAppointments && (
-                  <div className="absolute top-1.5 right-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  <div className="absolute top-2 right-2">
+                    <div className="w-2 h-2 rounded-full bg-primary shadow-sm" />
                   </div>
                 )}
                 
                 {/* Lista de agendamentos - estilo Google Calendar */}
                 <div className="space-y-1 overflow-hidden">
                   {dayAppointments.slice(0, 3).map((apt) => {
-                    const colors = getAppointmentColors(apt);
-                    const now = new Date();
-                    const timeDiff = (parseISO(apt.start_time).getTime() - now.getTime()) / (1000 * 60);
-                    const borderColor = colors.border.replace('border-', 'bg-');
+                    const statusColors = {
+                      confirmed: "hsl(142 71% 45%)",
+                      pending: "hsl(48 96% 53%)",
+                      cancelled: "hsl(0 84% 60%)",
+                      completed: "hsl(271 81% 56%)"
+                    };
+                    
+                    const borderColor = statusColors[apt.status as keyof typeof statusColors] || statusColors.completed;
                     
                     return (
                       <DraggableAppointment
@@ -875,13 +879,11 @@ const Agendamentos = () => {
                       >
                         <div
                           className={cn(
-                            "group/card relative px-2 py-1.5 rounded cursor-pointer",
+                            "group/card relative px-2 py-1.5 rounded-md cursor-pointer border-l-[3px]",
                             "transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:z-10",
-                            colors.bg,
-                            "border-l-3",
-                            borderColor.replace('bg-', 'border-l-'),
-                            colors.pulse && "animate-pulse"
+                            "bg-card/80 hover:bg-accent/20 backdrop-blur-sm"
                           )}
+                          style={{ borderLeftColor: borderColor }}
                           onClick={(e) => {
                             e.stopPropagation();
                             setMobileSelectedAppointment(apt);
@@ -890,16 +892,16 @@ const Agendamentos = () => {
                         >
                           {/* Horário e título */}
                           <div className="flex items-start gap-1.5">
-                            <span className="text-[10px] font-bold shrink-0 mt-0.5">
+                            <span className="text-[10px] sm:text-xs font-bold shrink-0 mt-0.5 text-foreground">
                               {format(parseISO(apt.start_time), "HH:mm")}
                             </span>
-                            <span className="text-[10px] font-medium truncate flex-1">
+                            <span className="text-[10px] sm:text-xs font-medium truncate flex-1 text-foreground/90">
                               {apt.title}
                             </span>
                           </div>
                           
                           {/* Cliente (apenas desktop) */}
-                          <div className="hidden sm:flex items-center gap-1 mt-0.5 text-[9px] opacity-75">
+                          <div className="hidden sm:flex items-center gap-1 mt-0.5 text-[9px] text-muted-foreground">
                             <User className="w-2.5 h-2.5" />
                             <span className="truncate">{apt.customers?.name}</span>
                           </div>
@@ -915,7 +917,7 @@ const Agendamentos = () => {
                         e.stopPropagation();
                         // Aqui poderia abrir um diálogo com todos os agendamentos do dia
                       }}
-                      className="w-full text-[10px] text-muted-foreground hover:text-foreground py-1 px-2 rounded hover:bg-muted/50 transition-colors text-left font-medium"
+                      className="w-full text-[10px] text-primary font-semibold py-1 px-2 rounded bg-primary/10 hover:bg-primary/20 transition-colors text-center"
                     >
                       +{dayAppointments.length - 3} {dayAppointments.length - 3 === 1 ? 'mais' : 'mais'}
                     </button>
