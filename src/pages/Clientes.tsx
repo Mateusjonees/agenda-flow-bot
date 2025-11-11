@@ -558,7 +558,7 @@ const Clientes = () => {
                   <TabsTrigger value="info" className="text-xs sm:text-sm py-2">Informações</TabsTrigger>
                   <TabsTrigger value="history" className="text-xs sm:text-sm py-2">Histórico</TabsTrigger>
                   <TabsTrigger value="loyalty" className="text-xs sm:text-sm py-2">Assinaturas</TabsTrigger>
-                  <TabsTrigger value="coupons" className="text-xs sm:text-sm py-2">Documentos</TabsTrigger>
+                  <TabsTrigger value="coupons" className="text-xs sm:text-sm py-2">Fidelidade</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="info" className="space-y-3 sm:space-y-4">
