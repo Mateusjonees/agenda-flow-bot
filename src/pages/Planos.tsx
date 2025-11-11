@@ -338,6 +338,8 @@ const Planos = () => {
 
   const getCurrentPlanId = () => {
     if (!subscription?.subscription_plans?.billing_frequency) return null;
+    // Só retorna o plano se a assinatura estiver ativa ou em trial
+    if (subscription.status === "cancelled" || subscription.status === "expired") return null;
     return subscription.subscription_plans.billing_frequency;
   };
 
@@ -355,8 +357,37 @@ const Planos = () => {
         </p>
       </div>
 
+      {/* Cancelled Subscription Info */}
+      {subscription && subscription.status === "cancelled" && (
+        <Card className="border-destructive bg-destructive/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="w-5 h-5" />
+              Assinatura Cancelada
+            </CardTitle>
+            <CardDescription>
+              Sua assinatura foi cancelada em {format(new Date(subscription.updated_at), "dd/MM/yyyy", { locale: ptBR })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Para continuar usando todos os recursos do sistema, escolha um novo plano abaixo.
+            </p>
+            <Button 
+              onClick={() => {
+                const plansSection = document.getElementById('plans-section');
+                plansSection?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="w-full"
+            >
+              Ver Planos Disponíveis
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Current Subscription Info */}
-      {subscription && subscription.status !== "cancelled" && (
+      {subscription && subscription.status !== "cancelled" && subscription.status !== "expired" && (
         <Card className="border-primary bg-gradient-to-br from-primary/5 to-transparent">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
