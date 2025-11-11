@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle, Pencil, Filter, Trash2, Check, ChevronsUpDown, List, CalendarDays, Clock, User, XCircle, AlertTriangle } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle, Pencil, Filter, Trash2, Check, ChevronsUpDown, List, CalendarDays, Clock, User, XCircle, AlertTriangle, Maximize2, Minimize2, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { format, addDays, addWeeks, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -170,6 +171,16 @@ const Agendamentos = () => {
   const [selectedDayAppointments, setSelectedDayAppointments] = useState<Appointment[]>([]);
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   
+  // Estados para recursos novos
+  const [compactView, setCompactView] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Refs para swipe e pull-to-refresh
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const pullStartY = useRef(0);
+  const calendarRef = useRef<HTMLDivElement>(null);
+  
   // Ctrl+K para busca rápida
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -182,6 +193,57 @@ const Agendamentos = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+  
+  // Swipe para navegar no calendário
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    pullStartY.current = e.touches[0].clientY;
+  };
+  
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isRefreshing) return;
+    
+    const deltaY = e.touches[0].clientY - pullStartY.current;
+    
+    // Pull-to-refresh (só funciona quando já está no topo)
+    if (deltaY > 100 && window.scrollY === 0) {
+      e.preventDefault();
+    }
+  };
+  
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaX = touchEndX - touchStartX.current;
+    const deltaY = touchEndY - touchStartY.current;
+    
+    // Pull-to-refresh
+    if (deltaY > 100 && Math.abs(deltaX) < 50 && window.scrollY === 0) {
+      handleRefresh();
+      return;
+    }
+    
+    // Swipe horizontal no calendário
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaY) < 50) {
+      if (deltaX > 0) {
+        // Swipe para direita = voltar
+        handlePrevious();
+      } else {
+        // Swipe para esquerda = avançar
+        handleNext();
+      }
+    }
+  };
+  
+  // Refresh manual
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    await queryClient.invalidateQueries({ queryKey: ["tasks-calendar"] });
+    toast.success("Agendamentos atualizados!");
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
   
   // Filtros
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -586,96 +648,101 @@ const Agendamentos = () => {
                            const timeDiff = (parseISO(apt.start_time).getTime() - now.getTime()) / (1000 * 60);
                            
                            return (
-                         <DraggableAppointment
-                           key={apt.id}
-                           id={apt.id}
-                           type="appointment"
-                           currentStartTime={parseISO(apt.start_time)}
-                           currentEndTime={parseISO(apt.end_time)}
-                         >
-                           <div className={cn(
-                             "group relative overflow-hidden rounded-lg border-l-4 p-3 sm:p-4 transition-all duration-300",
-                             "hover:shadow-md hover:scale-[1.02]",
-                             colors.bg,
-                             colors.border,
-                             colors.pulse && "animate-pulse"
-                           )}>
-                            <div className="flex flex-col gap-3">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                  {getStatusIcon(apt.status, timeDiff)}
-                                  <div className="flex-1">
-                                    <div className="font-semibold text-base sm:text-lg truncate">{apt.title}</div>
-                                    <div className="text-xs sm:text-sm opacity-75 mt-0.5">
-                                      {format(parseISO(apt.start_time), "HH:mm")} - {format(parseISO(apt.end_time), "HH:mm")}
-                                      <span className="ml-2">
-                                        ({Math.floor((parseISO(apt.end_time).getTime() - parseISO(apt.start_time).getTime()) / 60000)}min)
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <Badge className={cn(colors.badge, "text-white")}>
-                                  {getStatusLabel(apt.status, timeDiff)}
-                                </Badge>
-                              </div>
+                          <DraggableAppointment
+                            key={apt.id}
+                            id={apt.id}
+                            type="appointment"
+                            currentStartTime={parseISO(apt.start_time)}
+                            currentEndTime={parseISO(apt.end_time)}
+                          >
+                            <div className={cn(
+                              "group relative overflow-hidden rounded-lg border-l-4 transition-all duration-300",
+                              "hover:shadow-md hover:scale-[1.02]",
+                              compactView ? "p-2 sm:p-3" : "p-3 sm:p-4",
+                              colors.bg,
+                              colors.border,
+                              colors.pulse && "animate-pulse"
+                            )}>
+                             <div className={cn("flex flex-col", compactView ? "gap-2" : "gap-3")}>
+                               <div className="flex items-start justify-between gap-2">
+                                 <div className="flex items-center gap-2 flex-1 min-w-0">
+                                   {getStatusIcon(apt.status, timeDiff)}
+                                   <div className="flex-1">
+                                     <div className={cn("font-semibold truncate", compactView ? "text-sm" : "text-base sm:text-lg")}>{apt.title}</div>
+                                     <div className={cn("opacity-75 mt-0.5", compactView ? "text-[10px]" : "text-xs sm:text-sm")}>
+                                       {format(parseISO(apt.start_time), "HH:mm")} - {format(parseISO(apt.end_time), "HH:mm")}
+                                       {!compactView && (
+                                         <span className="ml-2">
+                                           ({Math.floor((parseISO(apt.end_time).getTime() - parseISO(apt.start_time).getTime()) / 60000)}min)
+                                         </span>
+                                       )}
+                                     </div>
+                                   </div>
+                                 </div>
+                                 <Badge className={cn(colors.badge, "text-white", compactView && "text-[10px] px-1.5 py-0.5")}>
+                                   {getStatusLabel(apt.status, timeDiff)}
+                                 </Badge>
+                               </div>
+                               
+                               {!compactView && (
+                                 <div className="flex items-center gap-2 text-sm">
+                                   <User className="w-4 h-4 opacity-60" />
+                                   <span className="font-medium">{apt.customers?.name}</span>
+                                 </div>
+                               )}
                               
-                              <div className="flex items-center gap-2 text-sm">
-                                <User className="w-4 h-4 opacity-60" />
-                                <span className="font-medium">{apt.customers?.name}</span>
-                              </div>
-                              
-                              {timeDiff >= 0 && timeDiff <= 30 && apt.status === "scheduled" && (
-                                <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-md">
-                                  <div className="flex items-center gap-2 text-xs font-medium text-yellow-900 dark:text-yellow-100">
-                                    <Clock className="w-3 h-3" />
-                                    Faltam {Math.floor(timeDiff)} minutos
-                                  </div>
-                                </div>
-                              )}
-                              
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm"
-                                    onClick={() => {
-                                      setEditAppointmentId(apt.id);
-                                      setEditDialogOpen(true);
-                                    }}
-                                    disabled={isReadOnly}
-                                  >
-                                    <Pencil className="w-3 h-3" />
-                                    <span>Editar</span>
-                                  </Button>
-                                  {apt.status !== "completed" && (
-                                    <Button
-                                      size="sm"
-                                      variant="default"
-                                      className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm"
-                                      onClick={() => {
-                                        setSelectedAppointment({ id: apt.id, title: apt.title });
-                                        setFinishDialogOpen(true);
-                                      }}
-                                      disabled={isReadOnly}
-                                    >
-                                      <CheckCircle className="w-3 h-3" />
-                                      <span>Finalizar</span>
-                                    </Button>
-                                  )}
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-8 sm:h-9 gap-1 flex-1 sm:flex-none text-xs sm:text-sm text-destructive hover:text-destructive hover:bg-destructive/10"
-                                    onClick={() => {
-                                      setDeleteAppointmentId(apt.id);
-                                      setDeleteDialogOpen(true);
-                                    }}
-                                    disabled={isReadOnly}
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                    <span>Excluir</span>
-                                  </Button>
-                                </div>
+                               {!compactView && timeDiff >= 0 && timeDiff <= 30 && apt.status === "scheduled" && (
+                                 <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-md">
+                                   <div className="flex items-center gap-2 text-xs font-medium text-yellow-900 dark:text-yellow-100">
+                                     <Clock className="w-3 h-3" />
+                                     Faltam {Math.floor(timeDiff)} minutos
+                                   </div>
+                                 </div>
+                               )}
+                               
+                                 <div className="flex gap-2">
+                                   <Button
+                                     size="sm"
+                                     variant="ghost"
+                                     className={cn("gap-1 flex-1 sm:flex-none", compactView ? "h-7 text-[10px] px-2" : "h-8 sm:h-9 text-xs sm:text-sm")}
+                                     onClick={() => {
+                                       setEditAppointmentId(apt.id);
+                                       setEditDialogOpen(true);
+                                     }}
+                                     disabled={isReadOnly}
+                                   >
+                                     <Pencil className="w-3 h-3" />
+                                     {!compactView && <span>Editar</span>}
+                                   </Button>
+                                   {apt.status !== "completed" && (
+                                     <Button
+                                       size="sm"
+                                       variant="default"
+                                       className={cn("gap-1 flex-1 sm:flex-none", compactView ? "h-7 text-[10px] px-2" : "h-8 sm:h-9 text-xs sm:text-sm")}
+                                       onClick={() => {
+                                         setSelectedAppointment({ id: apt.id, title: apt.title });
+                                         setFinishDialogOpen(true);
+                                       }}
+                                       disabled={isReadOnly}
+                                     >
+                                       <CheckCircle className="w-3 h-3" />
+                                       {!compactView && <span>Finalizar</span>}
+                                     </Button>
+                                   )}
+                                   <Button
+                                     size="sm"
+                                     variant="ghost"
+                                     className={cn("gap-1 flex-1 sm:flex-none text-destructive hover:text-destructive hover:bg-destructive/10", compactView ? "h-7 text-[10px] px-2" : "h-8 sm:h-9 text-xs sm:text-sm")}
+                                     onClick={() => {
+                                       setDeleteAppointmentId(apt.id);
+                                       setDeleteDialogOpen(true);
+                                     }}
+                                     disabled={isReadOnly}
+                                   >
+                                     <Trash2 className="w-3 h-3" />
+                                     {!compactView && <span>Excluir</span>}
+                                   </Button>
+                                 </div>
                             </div>
                            </div>
                          </DraggableAppointment>
@@ -1680,6 +1747,37 @@ const Agendamentos = () => {
                   </TabsList>
                 </Tabs>
               </div>
+              
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="gap-2 h-10 min-h-[44px]"
+                >
+                  <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+                  <span className="text-xs sm:text-sm">Atualizar</span>
+                </Button>
+                
+                {viewMode === "calendar" && (
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="compact-mode" className="text-xs sm:text-sm cursor-pointer whitespace-nowrap">
+                      Compacto
+                    </Label>
+                    <Switch
+                      id="compact-mode"
+                      checked={compactView}
+                      onCheckedChange={setCompactView}
+                    />
+                    {compactView ? (
+                      <Minimize2 className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <Maximize2 className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             
             {viewMode === "calendar" && (
@@ -1727,7 +1825,13 @@ const Agendamentos = () => {
               <div className="text-muted-foreground">Carregando atendimentos...</div>
             </div>
           ) : (
-            <>
+            <div
+              ref={calendarRef}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              className="touch-pan-y"
+            >
               {viewMode === "list" && renderListView()}
               {viewMode === "calendar" && (
                 <>
@@ -1736,7 +1840,7 @@ const Agendamentos = () => {
                   {viewType === "month" && renderMonthView()}
                 </>
               )}
-            </>
+            </div>
           )}
         </CardContent>
       </Card>
