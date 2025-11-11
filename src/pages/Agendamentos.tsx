@@ -1644,19 +1644,26 @@ const Agendamentos = () => {
         <SheetContent side="bottom" className="h-auto">
           <SheetHeader>
             <SheetTitle>{mobileSelectedAppointment?.title}</SheetTitle>
-            <SheetDescription>
-              {mobileSelectedAppointment?.customers?.name && (
-                <div className="text-sm mt-1">Cliente: {mobileSelectedAppointment.customers.name}</div>
-              )}
-              {mobileSelectedAppointment && (
-                <div className="text-sm">
+          </SheetHeader>
+          
+          <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+            {mobileSelectedAppointment?.customers?.name && (
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                <span>Cliente: {mobileSelectedAppointment.customers.name}</span>
+              </div>
+            )}
+            {mobileSelectedAppointment && (
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                <span>
                   {format(parseISO(mobileSelectedAppointment.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                   {' - '}
                   {format(parseISO(mobileSelectedAppointment.end_time), "HH:mm")}
-                </div>
-              )}
-            </SheetDescription>
-          </SheetHeader>
+                </span>
+              </div>
+            )}
+          </div>
           
           <div className="flex flex-col gap-3 mt-6 mb-4">
             <Button

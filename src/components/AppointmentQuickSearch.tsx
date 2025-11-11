@@ -56,7 +56,7 @@ const getStatusLabel = (status: string) => {
 export function AppointmentQuickSearch({ open, onOpenChange, onSelectAppointment }: AppointmentQuickSearchProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: appointments = [] } = useQuery({
+  const { data: appointments = [], isLoading } = useQuery({
     queryKey: ["appointments-search"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -71,7 +71,7 @@ export function AppointmentQuickSearch({ open, onOpenChange, onSelectAppointment
       if (error) throw error;
       return data as Appointment[];
     },
-    enabled: open,
+    staleTime: 1000 * 60 * 5, // Cache por 5 minutos
   });
 
   // Filtrar agendamentos por nome, email ou telefone do cliente
@@ -106,12 +106,18 @@ export function AppointmentQuickSearch({ open, onOpenChange, onSelectAppointment
             onValueChange={setSearchTerm}
           />
           <CommandList>
-            <CommandEmpty>
-              {searchTerm ? "Nenhum agendamento encontrado." : "Digite para buscar..."}
-            </CommandEmpty>
-            {filteredAppointments.length > 0 && (
-              <CommandGroup heading={`${filteredAppointments.length} agendamento(s) encontrado(s)`}>
-                {filteredAppointments.map((apt) => (
+            {isLoading ? (
+              <div className="p-4 text-center text-sm text-muted-foreground">
+                Carregando...
+              </div>
+            ) : (
+              <>
+                <CommandEmpty>
+                  {searchTerm ? "Nenhum agendamento encontrado." : "Digite para buscar..."}
+                </CommandEmpty>
+                {filteredAppointments.length > 0 && (
+                  <CommandGroup heading={`${filteredAppointments.length} agendamento(s) encontrado(s)`}>
+                    {filteredAppointments.map((apt) => (
                   <CommandItem
                     key={apt.id}
                     value={apt.id}
@@ -160,8 +166,10 @@ export function AppointmentQuickSearch({ open, onOpenChange, onSelectAppointment
                       </div>
                     )}
                   </CommandItem>
-                ))}
-              </CommandGroup>
+                    ))}
+                  </CommandGroup>
+                )}
+              </>
             )}
           </CommandList>
         </Command>
