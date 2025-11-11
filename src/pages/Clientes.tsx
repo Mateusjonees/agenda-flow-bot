@@ -16,6 +16,7 @@ import { CustomerSubscriptions } from "@/components/CustomerSubscriptions";
 import { CustomerCoupons } from "@/components/CustomerCoupons";
 import { CustomerHistory } from "@/components/CustomerHistory";
 import { CustomerDocuments } from "@/components/CustomerDocuments";
+import { CustomerLoyalty } from "@/components/CustomerLoyalty";
 import { useReadOnly, ReadOnlyWrapper } from "@/components/SubscriptionGuard";
 
 interface Customer {
@@ -465,22 +466,12 @@ const Clientes = () => {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por título ou cliente..."
+          placeholder="Buscar por nome, telefone, email ou CPF..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10 h-10 sm:h-11 text-sm sm:text-base"
         />
       </div>
-
-      {/* Filtro adicional - Select de todos os clientes */}
-      <Select value="all">
-        <SelectTrigger className="w-full h-10 sm:h-11 text-sm sm:text-base">
-          <SelectValue placeholder="Todos os Clientes" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos os Clientes</SelectItem>
-        </SelectContent>
-      </Select>
 
       {loading ? (
         <Card>
@@ -554,11 +545,12 @@ const Clientes = () => {
               </DialogHeader>
 
               <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mt-3 sm:mt-4">
-                <TabsList className="grid w-full grid-cols-4 h-auto">
-                  <TabsTrigger value="info" className="text-xs sm:text-sm py-2">Informações</TabsTrigger>
-                  <TabsTrigger value="history" className="text-xs sm:text-sm py-2">Histórico</TabsTrigger>
-                  <TabsTrigger value="loyalty" className="text-xs sm:text-sm py-2">Assinaturas</TabsTrigger>
-                  <TabsTrigger value="coupons" className="text-xs sm:text-sm py-2">Fidelidade</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-5 h-auto">
+                  <TabsTrigger value="info" className="text-xs sm:text-sm py-2 px-2">Info</TabsTrigger>
+                  <TabsTrigger value="history" className="text-xs sm:text-sm py-2 px-2">Histórico</TabsTrigger>
+                  <TabsTrigger value="subscriptions" className="text-xs sm:text-sm py-2 px-2">Assinaturas</TabsTrigger>
+                  <TabsTrigger value="loyalty" className="text-xs sm:text-sm py-2 px-2">Fidelidade</TabsTrigger>
+                  <TabsTrigger value="coupons" className="text-xs sm:text-sm py-2 px-2">Cupons</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="info" className="space-y-3 sm:space-y-4">
@@ -779,8 +771,12 @@ const Clientes = () => {
                   <CustomerHistory customerId={selectedCustomer.id} />
                 </TabsContent>
 
-                <TabsContent value="loyalty">
+                <TabsContent value="subscriptions">
                   <CustomerSubscriptions customerId={selectedCustomer.id} />
+                </TabsContent>
+
+                <TabsContent value="loyalty">
+                  <CustomerLoyalty customerId={selectedCustomer.id} />
                 </TabsContent>
 
                 <TabsContent value="coupons">
