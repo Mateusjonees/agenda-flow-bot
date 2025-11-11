@@ -453,10 +453,10 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
         </CardHeader>
         <CardContent className="p-3 sm:p-4 pt-0">
           <Tabs defaultValue="attached" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="attached">Anexados</TabsTrigger>
-              <TabsTrigger value="proposals">Orçamentos</TabsTrigger>
-              <TabsTrigger value="services">Serviços</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 h-9">
+              <TabsTrigger value="attached" className="text-xs sm:text-sm">Anexados</TabsTrigger>
+              <TabsTrigger value="proposals" className="text-xs sm:text-sm">Orçamentos</TabsTrigger>
+              <TabsTrigger value="services" className="text-xs sm:text-sm">Serviços</TabsTrigger>
             </TabsList>
 
             {/* Documentos Anexados */}
@@ -541,30 +541,34 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="flex items-center justify-between p-2 sm:p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                      className="p-2 sm:p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                     >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <div className="flex items-start gap-2 mb-2">
+                        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-primary/10 flex items-center justify-center mt-0.5">
+                          <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+                        </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs sm:text-sm font-medium truncate">
+                          <p className="text-xs sm:text-sm font-medium break-all line-clamp-2 mb-0.5">
                             {doc.file_name}
                           </p>
-                          {doc.description && (
-                            <p className="text-xs text-muted-foreground truncate">
-                              {doc.description}
-                            </p>
-                          )}
-                          <p className="text-xs text-muted-foreground">
-                            {formatFileSize(doc.file_size)} • {new Date(doc.created_at).toLocaleDateString()}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
+                            <span className="font-medium">{formatFileSize(doc.file_size)}</span>
+                            <span>•</span>
+                            <span>{format(new Date(doc.created_at), "dd/MM/yy", { locale: ptBR })}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
+                      {doc.description && (
+                        <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 mb-2 px-9 sm:px-11">
+                          {doc.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-1 justify-end">
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleView(doc)}
-                          className="h-8 w-8 p-0"
+                          className="h-7 sm:h-8 w-7 sm:w-8 p-0"
                           title="Visualizar"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -573,7 +577,7 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDownload(doc)}
-                          className="h-8 w-8 p-0"
+                          className="h-7 sm:h-8 w-7 sm:w-8 p-0"
                           title="Baixar"
                         >
                           <Download className="w-3.5 h-3.5" />
@@ -582,7 +586,7 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDelete(doc)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          className="h-7 sm:h-8 w-7 sm:w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                           title="Excluir"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -611,32 +615,32 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
                     return (
                       <div
                         key={proposal.id}
-                        className="flex items-start justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                        className="p-2 sm:p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                       >
-                        <div className="flex items-start gap-3 min-w-0 flex-1">
-                          <FileSpreadsheet className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                        <div className="flex items-start gap-2 mb-2">
+                          <FileSpreadsheet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0 mt-0.5" />
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-sm font-medium truncate">
+                            <div className="flex items-start gap-1.5 mb-1 flex-wrap">
+                              <p className="text-xs sm:text-sm font-medium break-words flex-1 min-w-0">
                                 {proposal.title}
                               </p>
-                              <Badge variant={statusInfo.variant} className="text-xs">
+                              <Badge variant={statusInfo.variant} className="text-[10px] sm:text-xs flex-shrink-0">
                                 {statusInfo.label}
                               </Badge>
                             </div>
                             {proposal.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                              <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 mb-2">
                                 {proposal.description}
                               </p>
                             )}
-                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                              <span>Valor: R$ {proposal.final_amount.toFixed(2)}</span>
+                            <div className="flex flex-wrap gap-1 text-[10px] sm:text-xs text-muted-foreground mb-2">
+                              <span className="font-medium">R$ {proposal.final_amount.toFixed(2)}</span>
                               <span>•</span>
-                              <span>{format(new Date(proposal.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+                              <span>{format(new Date(proposal.created_at), "dd/MM/yy", { locale: ptBR })}</span>
                               {proposal.valid_until && (
                                 <>
                                   <span>•</span>
-                                  <span>Válido até: {format(new Date(proposal.valid_until), "dd/MM/yyyy", { locale: ptBR })}</span>
+                                  <span>Válido: {format(new Date(proposal.valid_until), "dd/MM/yy", { locale: ptBR })}</span>
                                 </>
                               )}
                             </div>
@@ -647,10 +651,10 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
                           variant="outline"
                           onClick={() => handleGenerateProposalPdf(proposal.id)}
                           disabled={generatingPdf === proposal.id}
-                          className="gap-2 flex-shrink-0"
+                          className="h-7 sm:h-8 w-full text-xs gap-1.5"
                         >
-                          <Download className="w-3.5 h-3.5" />
-                          {generatingPdf === proposal.id ? "Gerando..." : "PDF"}
+                          <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          {generatingPdf === proposal.id ? "Gerando..." : "Baixar PDF"}
                         </Button>
                       </div>
                     );
@@ -676,28 +680,28 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
                     return (
                       <div
                         key={appointment.id}
-                        className="flex items-start justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                        className="p-2 sm:p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                       >
-                        <div className="flex items-start gap-3 min-w-0 flex-1">
-                          <Calendar className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                        <div className="flex items-start gap-2 mb-2">
+                          <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0 mt-0.5" />
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-sm font-medium truncate">
+                            <div className="flex items-start gap-1.5 mb-1 flex-wrap">
+                              <p className="text-xs sm:text-sm font-medium break-words flex-1 min-w-0">
                                 {appointment.title}
                               </p>
-                              <Badge variant={paymentInfo.variant} className="text-xs">
+                              <Badge variant={paymentInfo.variant} className="text-[10px] sm:text-xs flex-shrink-0">
                                 {paymentInfo.label}
                               </Badge>
                             </div>
                             {appointment.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                              <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 mb-2">
                                 {appointment.description}
                               </p>
                             )}
-                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                              <span>Valor: R$ {appointment.price.toFixed(2)}</span>
+                            <div className="flex flex-wrap gap-1 text-[10px] sm:text-xs text-muted-foreground mb-2">
+                              <span className="font-medium">R$ {appointment.price.toFixed(2)}</span>
                               <span>•</span>
-                              <span>{format(new Date(appointment.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                              <span>{format(new Date(appointment.start_time), "dd/MM/yy HH:mm", { locale: ptBR })}</span>
                               {appointment.payment_method && (
                                 <>
                                   <span>•</span>
@@ -712,10 +716,10 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
                           variant="outline"
                           onClick={() => handleGenerateServiceDocument(appointment.id)}
                           disabled={generatingPdf === appointment.id}
-                          className="gap-2 flex-shrink-0"
+                          className="h-7 sm:h-8 w-full text-xs gap-1.5"
                         >
-                          <Download className="w-3.5 h-3.5" />
-                          {generatingPdf === appointment.id ? "Gerando..." : "Comprovante"}
+                          <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          {generatingPdf === appointment.id ? "Gerando..." : "Baixar Comprovante"}
                         </Button>
                       </div>
                     );
