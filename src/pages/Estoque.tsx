@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Package, AlertTriangle, TrendingDown, TrendingUp, History, DollarSign, Minus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Package, AlertTriangle, TrendingDown, TrendingUp, History, DollarSign, Pencil, Trash2, Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -361,69 +361,6 @@ const Estoque = () => {
   // Obter categorias únicas
   const categories = Array.from(new Set(items.map(item => item.category).filter(Boolean)));
 
-  const quickAddStock = async (item: InventoryItem, amount: number) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { error } = await supabase.rpc("update_inventory_stock", {
-      p_item_id: item.id,
-      p_quantity: amount,
-      p_type: "in",
-      p_reason: "Adição rápida",
-      p_reference_type: "manual",
-    });
-
-    if (error) {
-      toast({
-        title: "Erro ao atualizar estoque",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Estoque atualizado!",
-        description: `${amount > 0 ? '+' : ''}${amount} ${item.unit} adicionado(s)`,
-      });
-      fetchItems();
-    }
-  };
-
-  const quickRemoveStock = async (item: InventoryItem, amount: number) => {
-    if (item.current_stock < amount) {
-      toast({
-        title: "Estoque insuficiente",
-        description: "Não há estoque suficiente para remover essa quantidade.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { error } = await supabase.rpc("update_inventory_stock", {
-      p_item_id: item.id,
-      p_quantity: amount,
-      p_type: "out",
-      p_reason: "Remoção rápida",
-      p_reference_type: "manual",
-    });
-
-    if (error) {
-      toast({
-        title: "Erro ao atualizar estoque",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Estoque atualizado!",
-        description: `-${amount} ${item.unit} removido(s)`,
-      });
-      fetchItems();
-    }
-  };
-
   const handleEditItem = (item: InventoryItem) => {
     setNewItem({
       name: item.name,
@@ -515,7 +452,7 @@ const Estoque = () => {
   const stats = {
     total: items.length,
     lowStock: items.filter(isLowStock).length,
-    totalValue: items.reduce((sum, item) => sum + (item.current_stock * (item.unit_price || 0)), 0),
+    totalValue: items.reduce((sum, item) => sum + (item.current_stock * (item.cost_price || 0)), 0),
   };
 
   if (loading) {
@@ -735,9 +672,26 @@ const Estoque = () => {
                     />
                   </div>
                   <div className="flex items-end">
-                    {newItem.cost_price && newItem.unit_price && (
-                      <div className="text-sm text-muted-foreground">
-                        Margem: {(((parseFloat(newItem.unit_price) - parseFloat(newItem.cost_price)) / parseFloat(newItem.cost_price)) * 100).toFixed(1)}%
+                    {newItem.cost_price && newItem.unit_price && parseFloat(newItem.unit_price) > 0 && parseFloat(newItem.cost_price) > 0 && (
+                      <div className="text-sm space-y-1">
+                        {(() => {
+                          const custo = parseFloat(newItem.cost_price);
+                          const venda = parseFloat(newItem.unit_price);
+                          const margem = ((venda - custo) / venda) * 100;
+                          const markup = ((venda - custo) / custo) * 100;
+                          
+                          return (
+                            <>
+                              <div className="text-muted-foreground">
+                                <span className="font-medium">Margem:</span> {margem.toFixed(1)}%
+                                {margem < 0 && <span className="text-destructive ml-1">(Prejuízo!)</span>}
+                              </div>
+                              <div className="text-muted-foreground text-xs">
+                                <span className="font-medium">Markup:</span> {markup.toFixed(1)}%
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
@@ -900,36 +854,15 @@ const Estoque = () => {
                           {item.current_stock} {item.unit}
                         </span>
                       </div>
-
-                      {/* Botões de ajuste rápido */}
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 gap-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            quickRemoveStock(item, 1);
-                          }}
-                          disabled={isReadOnly || item.current_stock < 1}
-                        >
-                          <Minus className="h-3.5 w-3.5" />
-                          Remover
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 gap-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            quickAddStock(item, 1);
-                          }}
-                          disabled={isReadOnly}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                          Adicionar
-                        </Button>
-                      </div>
+                      
+                      {item.cost_price > 0 && (
+                        <div className="flex justify-between items-center text-sm bg-muted/50 rounded px-2 py-1.5">
+                          <span className="text-muted-foreground">Valor em estoque:</span>
+                          <span className="font-semibold">
+                            {formatCurrency(item.current_stock * item.cost_price)}
+                          </span>
+                        </div>
+                      )}
 
                       {item.min_quantity > 0 && (
                         <div className="flex justify-between text-sm">
@@ -952,8 +885,9 @@ const Estoque = () => {
                       {item.cost_price > 0 && item.unit_price > 0 && (
                         <div className="flex justify-between text-sm border-t pt-2">
                           <span className="text-muted-foreground font-medium">Margem:</span>
-                          <span className="font-bold text-primary">
-                            {(((item.unit_price - item.cost_price) / item.cost_price) * 100).toFixed(1)}%
+                          <span className={`font-bold ${((item.unit_price - item.cost_price) / item.unit_price) * 100 < 0 ? 'text-destructive' : 'text-primary'}`}>
+                            {(((item.unit_price - item.cost_price) / item.unit_price) * 100).toFixed(1)}%
+                            {((item.unit_price - item.cost_price) / item.unit_price) * 100 < 0 && ' ⚠️'}
                           </span>
                         </div>
                       )}
@@ -1041,36 +975,15 @@ const Estoque = () => {
                             {item.current_stock} {item.unit}
                           </span>
                         </div>
-
-                        {/* Botões de ajuste rápido */}
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1 gap-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              quickRemoveStock(item, 1);
-                            }}
-                            disabled={isReadOnly || item.current_stock < 1}
-                          >
-                            <Minus className="h-3.5 w-3.5" />
-                            Remover
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="flex-1 gap-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              quickAddStock(item, 1);
-                            }}
-                            disabled={isReadOnly}
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                            Adicionar
-                          </Button>
-                        </div>
+                        
+                        {item.cost_price > 0 && (
+                          <div className="flex justify-between items-center text-sm bg-muted/50 rounded px-2 py-1.5">
+                            <span className="text-muted-foreground">Valor em estoque:</span>
+                            <span className="font-semibold">
+                              {formatCurrency(item.current_stock * item.cost_price)}
+                            </span>
+                          </div>
+                        )}
 
                         {item.min_quantity > 0 && (
                           <div className="flex justify-between text-sm">
@@ -1093,8 +1006,9 @@ const Estoque = () => {
                         {item.cost_price > 0 && item.unit_price > 0 && (
                           <div className="flex justify-between text-sm border-t pt-2">
                             <span className="text-muted-foreground font-medium">Margem:</span>
-                            <span className="font-bold text-primary">
-                              {(((item.unit_price - item.cost_price) / item.cost_price) * 100).toFixed(1)}%
+                            <span className={`font-bold ${((item.unit_price - item.cost_price) / item.unit_price) * 100 < 0 ? 'text-destructive' : 'text-primary'}`}>
+                              {(((item.unit_price - item.cost_price) / item.unit_price) * 100).toFixed(1)}%
+                              {((item.unit_price - item.cost_price) / item.unit_price) * 100 < 0 && ' ⚠️'}
                             </span>
                           </div>
                         )}
@@ -1237,11 +1151,26 @@ const Estoque = () => {
                 />
               </div>
             </div>
-            {newItem.cost_price && newItem.unit_price && (
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-sm font-medium">
-                  Margem: {(((parseFloat(newItem.unit_price) - parseFloat(newItem.cost_price)) / parseFloat(newItem.cost_price)) * 100).toFixed(1)}%
-                </p>
+            {newItem.cost_price && newItem.unit_price && parseFloat(newItem.unit_price) > 0 && parseFloat(newItem.cost_price) > 0 && (
+              <div className="p-3 bg-muted rounded-lg space-y-1">
+                {(() => {
+                  const custo = parseFloat(newItem.cost_price);
+                  const venda = parseFloat(newItem.unit_price);
+                  const margem = ((venda - custo) / venda) * 100;
+                  const markup = ((venda - custo) / custo) * 100;
+                  
+                  return (
+                    <>
+                      <p className="text-sm font-medium">
+                        Margem: {margem.toFixed(1)}%
+                        {margem < 0 && <span className="text-destructive ml-1">(Prejuízo!)</span>}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Markup: {markup.toFixed(1)}%
+                      </p>
+                    </>
+                  );
+                })()}
               </div>
             )}
             <Button onClick={handleUpdateItem} className="w-full">
