@@ -105,7 +105,11 @@ const Clientes = () => {
 
   // Aplicar filtro quando searchTerm mudar
   useEffect(() => {
+    console.log('🔍 Pesquisando:', searchTerm);
+    console.log('📋 Total de clientes:', customers.length);
+    
     if (!searchTerm || searchTerm.trim() === "") {
+      console.log('✅ Sem filtro - mostrando todos');
       setFilteredCustomers(customers);
       return;
     }
@@ -116,31 +120,46 @@ const Clientes = () => {
     const filtered = customers.filter(customer => {
       // Buscar no nome
       if (customer.name && customer.name.toLowerCase().includes(searchLower)) {
+        console.log('✓ Encontrado no nome:', customer.name);
         return true;
       }
       
       // Buscar no telefone (com e sem formatação)
       if (customer.phone) {
-        if (customer.phone.includes(searchTerm)) return true;
+        if (customer.phone.includes(searchTerm)) {
+          console.log('✓ Encontrado no telefone:', customer.phone);
+          return true;
+        }
         const phoneClean = customer.phone.replace(/\D/g, '');
-        if (phoneClean.includes(searchClean)) return true;
+        if (phoneClean.includes(searchClean)) {
+          console.log('✓ Encontrado no telefone (sem formatação):', customer.phone);
+          return true;
+        }
       }
       
       // Buscar no email
       if (customer.email && customer.email.toLowerCase().includes(searchLower)) {
+        console.log('✓ Encontrado no email:', customer.email);
         return true;
       }
       
       // Buscar no CPF (com e sem formatação)
       if (customer.cpf) {
-        if (customer.cpf.includes(searchTerm)) return true;
+        if (customer.cpf.includes(searchTerm)) {
+          console.log('✓ Encontrado no CPF:', customer.cpf);
+          return true;
+        }
         const cpfClean = customer.cpf.replace(/\D/g, '');
-        if (cpfClean.includes(searchClean)) return true;
+        if (cpfClean.includes(searchClean)) {
+          console.log('✓ Encontrado no CPF (sem formatação):', customer.cpf);
+          return true;
+        }
       }
       
       return false;
     });
 
+    console.log('🎯 Clientes filtrados:', filtered.length);
     setFilteredCustomers(filtered);
   }, [customers, searchTerm]);
 
@@ -158,6 +177,8 @@ const Clientes = () => {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
+    console.log('📥 Clientes carregados:', data?.length || 0);
+    
     if (!error && data) {
       setCustomers(data);
       setFilteredCustomers(data);
