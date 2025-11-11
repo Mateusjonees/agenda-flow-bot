@@ -105,11 +105,13 @@ const Clientes = () => {
 
   // Aplicar filtro quando searchTerm mudar
   useEffect(() => {
-    console.log('🔍 Pesquisando:', searchTerm);
-    console.log('📋 Total de clientes:', customers.length);
+    console.log('🔍 ========== INICIANDO PESQUISA ==========');
+    console.log('🔍 Termo pesquisado:', searchTerm);
+    console.log('📋 Total de clientes no sistema:', customers.length);
+    console.log('📋 Lista de todos os clientes:', customers.map(c => ({ id: c.id, name: c.name })));
     
     if (!searchTerm || searchTerm.trim() === "") {
-      console.log('✅ Sem filtro - mostrando todos');
+      console.log('✅ Sem filtro - mostrando todos os clientes');
       setFilteredCustomers(customers);
       return;
     }
@@ -117,49 +119,67 @@ const Clientes = () => {
     const searchLower = searchTerm.toLowerCase().trim();
     const searchClean = searchTerm.replace(/\D/g, '');
     
-    const filtered = customers.filter(customer => {
+    console.log('🔍 Termo normalizado (minúsculas):', searchLower);
+    console.log('🔍 Termo sem formatação (apenas números):', searchClean);
+    
+    const filtered = customers.filter((customer, index) => {
+      console.log(`\n--- Verificando cliente ${index + 1}/${customers.length} ---`);
+      console.log('ID:', customer.id);
+      console.log('Nome:', customer.name);
+      console.log('Telefone:', customer.phone);
+      console.log('Email:', customer.email);
+      console.log('CPF:', customer.cpf);
+      
       // Buscar no nome
       if (customer.name && customer.name.toLowerCase().includes(searchLower)) {
-        console.log('✓ Encontrado no nome:', customer.name);
+        console.log('✅ MATCH no nome!');
         return true;
       }
       
       // Buscar no telefone (com e sem formatação)
       if (customer.phone) {
         if (customer.phone.includes(searchTerm)) {
-          console.log('✓ Encontrado no telefone:', customer.phone);
+          console.log('✅ MATCH no telefone (com formatação)!');
           return true;
         }
         const phoneClean = customer.phone.replace(/\D/g, '');
         if (phoneClean.includes(searchClean)) {
-          console.log('✓ Encontrado no telefone (sem formatação):', customer.phone);
+          console.log('✅ MATCH no telefone (sem formatação)!');
           return true;
         }
       }
       
       // Buscar no email
       if (customer.email && customer.email.toLowerCase().includes(searchLower)) {
-        console.log('✓ Encontrado no email:', customer.email);
+        console.log('✅ MATCH no email!');
         return true;
       }
       
       // Buscar no CPF (com e sem formatação)
       if (customer.cpf) {
         if (customer.cpf.includes(searchTerm)) {
-          console.log('✓ Encontrado no CPF:', customer.cpf);
+          console.log('✅ MATCH no CPF (com formatação)!');
           return true;
         }
         const cpfClean = customer.cpf.replace(/\D/g, '');
         if (cpfClean.includes(searchClean)) {
-          console.log('✓ Encontrado no CPF (sem formatação):', customer.cpf);
+          console.log('✅ MATCH no CPF (sem formatação)!');
           return true;
         }
       }
       
+      console.log('❌ SEM MATCH - cliente não passou no filtro');
       return false;
     });
 
-    console.log('🎯 Clientes filtrados:', filtered.length);
+    console.log('\n🎯 ========== RESULTADO DO FILTRO ==========');
+    console.log('🎯 Total de clientes filtrados:', filtered.length);
+    console.log('🎯 IDs e nomes dos clientes filtrados:');
+    filtered.forEach((c, i) => {
+      console.log(`  ${i + 1}. ID: ${c.id} | Nome: ${c.name}`);
+    });
+    console.log('🎯 ==========================================\n');
+    
     setFilteredCustomers(filtered);
   }, [customers, searchTerm]);
 
