@@ -27,10 +27,18 @@ import {
   CalendarIcon,
   Download,
   FileSpreadsheet,
-  FileText
+  FileText,
+  Activity,
+  Star,
+  CheckCircle,
+  XCircle,
+  ArrowUpRight,
+  ArrowDownRight,
+  Percent,
+  Sparkles
 } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Area, AreaChart } from "recharts";
+import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 
@@ -90,6 +98,31 @@ interface InventoryChartData {
   cost: number;
 }
 
+interface ServiceStats {
+  service_name: string;
+  total_appointments: number;
+  total_revenue: number;
+  avg_rating: number;
+}
+
+interface AppointmentStats {
+  total_appointments: number;
+  completed: number;
+  canceled: number;
+  pending: number;
+  completion_rate: number;
+  cancellation_rate: number;
+}
+
+interface ComparisonData {
+  current_revenue: number;
+  previous_revenue: number;
+  revenue_growth: number;
+  current_appointments: number;
+  previous_appointments: number;
+  appointments_growth: number;
+}
+
 const Relatorios = () => {
   const navigate = useNavigate();
   const [inactiveCustomers, setInactiveCustomers] = useState<InactiveCustomer[]>([]);
@@ -103,6 +136,9 @@ const Relatorios = () => {
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all");
+  const [serviceStats, setServiceStats] = useState<ServiceStats[]>([]);
+  const [appointmentStats, setAppointmentStats] = useState<AppointmentStats | null>(null);
+  const [comparisonData, setComparisonData] = useState<ComparisonData | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -309,6 +345,101 @@ const Relatorios = () => {
       if (inventory) {
         setInventoryData(inventory);
       }
+
+      // Buscar estatísticas de serviços
+      const { data: services } = await supabase
+        .from("appointments")
+        .select("title, price")
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .gte("start_time", filterStartDate.toISOString())
+        .lte("start_time", filterEndDate.toISOString());
+
+      if (services) {
+        const serviceMap = new Map<string, { count: number; revenue: number; ratings: number[] }>();
+        
+        services.forEach(apt => {
+          const serviceName = apt.title || "Sem título";
+          const current = serviceMap.get(serviceName) || { count: 0, revenue: 0, ratings: [] };
+          
+          current.count += 1;
+          current.revenue += Number(apt.price || 0);
+          
+          serviceMap.set(serviceName, current);
+        });
+
+        const stats: ServiceStats[] = [];
+        serviceMap.forEach((value, key) => {
+          stats.push({
+            service_name: key,
+            total_appointments: value.count,
+            total_revenue: value.revenue,
+            avg_rating: 0, // Rating não está disponível na tabela appointments
+          });
+        });
+
+        setServiceStats(stats.sort((a, b) => b.total_revenue - a.total_revenue));
+      }
+
+      // Buscar estatísticas de agendamentos
+      const { data: allApts } = await supabase
+        .from("appointments")
+        .select("status")
+        .eq("user_id", user.id)
+        .gte("start_time", filterStartDate.toISOString())
+        .lte("start_time", filterEndDate.toISOString());
+
+      if (allApts) {
+        const total = allApts.length;
+        const completed = allApts.filter(a => a.status === "completed").length;
+        const canceled = allApts.filter(a => a.status === "canceled").length;
+        const pending = allApts.filter(a => a.status === "pending").length;
+
+        setAppointmentStats({
+          total_appointments: total,
+          completed,
+          canceled,
+          pending,
+          completion_rate: total > 0 ? (completed / total) * 100 : 0,
+          cancellation_rate: total > 0 ? (canceled / total) * 100 : 0,
+        });
+      }
+
+      // Comparação com período anterior
+      const daysDiff = differenceInDays(filterEndDate, filterStartDate);
+      const previousStartDate = subDays(filterStartDate, daysDiff);
+      const previousEndDate = filterStartDate;
+
+      const { data: previousIncome } = await supabase
+        .from("financial_transactions")
+        .select("amount")
+        .eq("user_id", user.id)
+        .eq("type", "income")
+        .eq("status", "completed")
+        .gte("transaction_date", previousStartDate.toISOString())
+        .lte("transaction_date", previousEndDate.toISOString());
+
+      const { data: previousApts } = await supabase
+        .from("appointments")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .gte("start_time", previousStartDate.toISOString())
+        .lte("start_time", previousEndDate.toISOString());
+
+      const previousRevenue = previousIncome?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+      const previousAppointmentsCount = previousApts?.length || 0;
+
+      setComparisonData({
+        current_revenue: totalRevenue,
+        previous_revenue: previousRevenue,
+        revenue_growth: previousRevenue > 0 ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 : 0,
+        current_appointments: appointmentStats?.completed || 0,
+        previous_appointments: previousAppointmentsCount,
+        appointments_growth: previousAppointmentsCount > 0 
+          ? (((appointmentStats?.completed || 0) - previousAppointmentsCount) / previousAppointmentsCount) * 100 
+          : 0,
+      });
 
     } catch (error) {
       console.error("Erro ao carregar relatórios:", error);
@@ -579,13 +710,351 @@ const Relatorios = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="financial" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="financial">Financeiro</TabsTrigger>
+          <TabsTrigger value="services">Serviços</TabsTrigger>
           <TabsTrigger value="inventory">Estoque</TabsTrigger>
-          <TabsTrigger value="inactive">Clientes Inativos</TabsTrigger>
+          <TabsTrigger value="inactive">Clientes</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
         </TabsList>
+
+        {/* Visão Geral */}
+        <TabsContent value="overview" className="space-y-4">
+          {/* Comparação com Período Anterior */}
+          {comparisonData && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="border-l-4 border-l-primary">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-primary" />
+                      Receita vs Período Anterior
+                    </span>
+                    {comparisonData.revenue_growth >= 0 ? (
+                      <ArrowUpRight className="w-5 h-5 text-accent" />
+                    ) : (
+                      <ArrowDownRight className="w-5 h-5 text-destructive" />
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Período Atual</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {formatCurrency(comparisonData.current_revenue)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">Período Anterior</p>
+                      <p className="text-lg font-semibold text-muted-foreground">
+                        {formatCurrency(comparisonData.previous_revenue)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-2 p-3 rounded-lg ${
+                    comparisonData.revenue_growth >= 0 
+                      ? 'bg-accent/10 text-accent' 
+                      : 'bg-destructive/10 text-destructive'
+                  }`}>
+                    <Percent className="w-4 h-4" />
+                    <span className="font-bold text-lg">
+                      {comparisonData.revenue_growth >= 0 ? '+' : ''}
+                      {comparisonData.revenue_growth.toFixed(1)}%
+                    </span>
+                    <span className="text-sm">
+                      {comparisonData.revenue_growth >= 0 ? 'de crescimento' : 'de queda'}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-accent">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-accent" />
+                      Agendamentos Concluídos
+                    </span>
+                    {comparisonData.appointments_growth >= 0 ? (
+                      <ArrowUpRight className="w-5 h-5 text-accent" />
+                    ) : (
+                      <ArrowDownRight className="w-5 h-5 text-destructive" />
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Período Atual</p>
+                      <p className="text-2xl font-bold text-accent">
+                        {comparisonData.current_appointments}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">Período Anterior</p>
+                      <p className="text-lg font-semibold text-muted-foreground">
+                        {comparisonData.previous_appointments}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-2 p-3 rounded-lg ${
+                    comparisonData.appointments_growth >= 0 
+                      ? 'bg-accent/10 text-accent' 
+                      : 'bg-destructive/10 text-destructive'
+                  }`}>
+                    <Percent className="w-4 h-4" />
+                    <span className="font-bold text-lg">
+                      {comparisonData.appointments_growth >= 0 ? '+' : ''}
+                      {comparisonData.appointments_growth.toFixed(1)}%
+                    </span>
+                    <span className="text-sm">
+                      {comparisonData.appointments_growth >= 0 ? 'de crescimento' : 'de queda'}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Cards de Resumo */}
+          {financialSummary && appointmentStats && (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Agendamentos</CardTitle>
+                  <Calendar className="w-4 h-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{appointmentStats.total_appointments}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {appointmentStats.completed} concluídos
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Taxa de Conclusão</CardTitle>
+                  <Activity className="w-4 h-4 text-accent" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-accent">
+                    {appointmentStats.completion_rate.toFixed(1)}%
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {appointmentStats.completed} de {appointmentStats.total_appointments}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Taxa de Cancelamento</CardTitle>
+                  <XCircle className="w-4 h-4 text-destructive" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-destructive">
+                    {appointmentStats.cancellation_rate.toFixed(1)}%
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {appointmentStats.canceled} cancelados
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
+                  <Sparkles className="w-4 h-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-primary">
+                    {appointmentStats.completed > 0
+                      ? formatCurrency(financialSummary.total_revenue / appointmentStats.completed)
+                      : formatCurrency(0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Por agendamento concluído
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Insights e Recomendações */}
+          {financialSummary && appointmentStats && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" />
+                  Insights e Recomendações
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {appointmentStats.cancellation_rate > 20 && (
+                    <div className="flex items-start gap-3 p-4 bg-destructive/5 rounded-lg border border-destructive/20">
+                      <AlertCircle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Alta Taxa de Cancelamento</p>
+                        <p className="text-sm text-muted-foreground">
+                          {appointmentStats.cancellation_rate.toFixed(1)}% dos agendamentos estão sendo cancelados. 
+                          Configure lembretes automáticos para reduzir este número.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {comparisonData && comparisonData.revenue_growth < -10 && (
+                    <div className="flex items-start gap-3 p-4 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                      <TrendingDown className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Queda na Receita</p>
+                        <p className="text-sm text-muted-foreground">
+                          Sua receita caiu {Math.abs(comparisonData.revenue_growth).toFixed(1)}% comparado ao período anterior. 
+                          Revise sua estratégia de preços e considere campanhas promocionais.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {comparisonData && comparisonData.revenue_growth >= 10 && (
+                    <div className="flex items-start gap-3 p-4 bg-accent/5 rounded-lg border border-accent/20">
+                      <TrendingUp className="w-5 h-5 text-accent mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Excelente Crescimento!</p>
+                        <p className="text-sm text-muted-foreground">
+                          Parabéns! Sua receita cresceu {comparisonData.revenue_growth.toFixed(1)}% comparado ao período anterior. 
+                          Continue investindo nas estratégias que estão funcionando.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {financialSummary.pending_payments > 0 && (
+                    <div className="flex items-start gap-3 p-4 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                      <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Pagamentos Pendentes</p>
+                        <p className="text-sm text-muted-foreground">
+                          Você tem {formatCurrency(financialSummary.pending_payments)} em pagamentos pendentes. 
+                          Envie lembretes aos clientes para melhorar seu fluxo de caixa.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {inactiveCustomers.length > 0 && (
+                    <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <Users className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Clientes Inativos</p>
+                        <p className="text-sm text-muted-foreground">
+                          Você tem {inactiveCustomers.length} clientes inativos há mais de 60 dias. 
+                          Envie mensagens personalizadas para reativá-los.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Serviços */}
+        <TabsContent value="services" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-primary" />
+                Ranking de Serviços
+              </CardTitle>
+              <CardDescription>
+                Serviços mais solicitados e rentáveis no período selecionado
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {serviceStats.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Nenhum serviço encontrado no período selecionado.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {serviceStats.map((service, index) => (
+                    <div
+                      key={service.service_name}
+                      className="flex items-center gap-4 p-4 bg-card rounded-lg border hover:shadow-md transition-shadow"
+                    >
+                      <div className={`flex items-center justify-center w-12 h-12 rounded-full text-lg font-bold ${
+                        index === 0 ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600' :
+                        index === 1 ? 'bg-gray-100 dark:bg-gray-800 text-gray-600' :
+                        index === 2 ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-600' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        {index + 1}º
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-lg truncate">{service.service_name}</p>
+                        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {service.total_appointments} agendamentos
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-primary">
+                          {formatCurrency(service.total_revenue)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatCurrency(service.total_revenue / service.total_appointments)}/serviço
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Gráfico de Serviços */}
+          {serviceStats.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Distribuição de Receita por Serviço</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={serviceStats.slice(0, 10)}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="service_name" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        interval={0}
+                      />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value: any) => formatCurrency(Number(value))}
+                        contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                      />
+                      <Bar dataKey="total_revenue" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
         {/* Resumo Financeiro */}
         <TabsContent value="financial" className="space-y-4">
