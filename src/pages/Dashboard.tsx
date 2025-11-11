@@ -304,7 +304,7 @@ const Dashboard = () => {
     <div className="space-y-8 animate-fade-in">
       {/* Header Premium com gradiente */}
       <div className="relative rounded-2xl overflow-hidden">
-        <div className="absolute inset-0 bg-red-50 dark:bg-gradient-to-r dark:from-primary/10 dark:via-secondary/10 dark:to-accent/10" />
+        <div className="absolute inset-0 bg-red-50 dark:bg-muted/30" />
         <div className="relative p-4 sm:p-6">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-xl bg-red-500 dark:bg-gradient-to-br dark:from-primary dark:via-secondary dark:to-accent shadow-lg">
