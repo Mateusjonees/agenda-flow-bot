@@ -42,6 +42,7 @@ const Planos = () => {
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
   const [pixDialogOpen, setPixDialogOpen] = useState(false);
   const [downgradeDialogOpen, setDowngradeDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
   const [pixData, setPixData] = useState<{
     qrCode: string;
@@ -206,6 +207,33 @@ const Planos = () => {
     } catch (error: any) {
       console.error("Error downgrading:", error);
       toast.error(error.message || "Erro ao alterar plano");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!subscription) return;
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-subscription", {
+        body: {
+          subscriptionId: subscription.id
+        }
+      });
+
+      if (error) {
+        const { message } = await parseFunctionsError(error);
+        throw new Error(message);
+      }
+
+      toast.success("Assinatura cancelada com sucesso. Você ainda tem acesso até o fim do período pago.");
+      refetchSubscription();
+      setCancelDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error canceling subscription:", error);
+      toast.error(error.message || "Erro ao cancelar assinatura");
     } finally {
       setLoading(false);
     }
@@ -441,17 +469,31 @@ const Planos = () => {
                   </div>
                 </div>
 
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => {
-                    const plansSection = document.getElementById('plans-section');
-                    plansSection?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  <Gift className="w-4 h-4 mr-2" />
-                  Ver Outros Planos
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => {
+                      const plansSection = document.getElementById('plans-section');
+                      plansSection?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    <Gift className="w-4 h-4 mr-2" />
+                    Ver Outros Planos
+                  </Button>
+
+                  {subscription.status !== "trial" && (
+                    <Button 
+                      variant="outline" 
+                      className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setCancelDialogOpen(true)}
+                      disabled={loading}
+                    >
+                      <AlertCircle className="w-4 h-4 mr-2" />
+                      Cancelar Assinatura
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -819,6 +861,55 @@ const Planos = () => {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDowngrade}>
               Confirmar Alteração
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Subscription Dialog */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              Cancelar Assinatura?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3 pt-2">
+              <p>
+                Tem certeza que deseja cancelar sua assinatura? 
+              </p>
+              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                <p className="text-sm font-medium text-foreground">
+                  ⚠️ O que acontece após o cancelamento:
+                </p>
+                <ul className="text-sm space-y-1.5 ml-4">
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary mt-0.5">•</span>
+                    <span>Você mantém acesso até {subscription?.next_billing_date ? format(new Date(subscription.next_billing_date), "dd/MM/yyyy") : "o fim do período pago"}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary mt-0.5">•</span>
+                    <span>Não haverá cobrança automática após essa data</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary mt-0.5">•</span>
+                    <span>Você pode reativar sua assinatura a qualquer momento</span>
+                  </li>
+                </ul>
+              </div>
+              <p className="text-sm font-medium">
+                Sentiremos sua falta! Tem certeza?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Não, manter assinatura</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleCancelSubscription} 
+              disabled={loading}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {loading ? "Cancelando..." : "Sim, cancelar assinatura"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
