@@ -114,38 +114,50 @@ const Clientes = () => {
   const fetchCustomers = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    let query = supabase
-      .from("customers")
-      .select("*")
-      .eq("user_id", user.id);
-
-    // Se há termo de pesquisa, adicionar filtros
-    if (searchTerm && searchTerm.trim() !== "") {
-      const searchLower = searchTerm.toLowerCase().trim();
-      const cpfClean = searchTerm.replace(/\D/g, '');
-      
-      // Buscar em múltiplos campos usando OR
-      query = query.or(
-        `name.ilike.%${searchLower}%,` +
-        `phone.ilike.%${searchTerm}%,` +
-        `phone.ilike.%${cpfClean}%,` +
-        `email.ilike.%${searchLower}%,` +
-        `cpf.ilike.%${cpfClean}%`
-      );
+    if (!user) {
+      setLoading(false);
+      return;
     }
 
-    query = query.order("created_at", { ascending: false });
+    try {
+      let query = supabase
+        .from("customers")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
-    const { data, error } = await query;
+      // Se há termo de pesquisa, filtrar no resultado
+      let { data, error } = await query;
 
-    if (!error && data) {
-      setFilteredCustomers(data);
-    } else if (error) {
+      if (error) {
+        console.error("Erro ao buscar clientes:", error);
+        setFilteredCustomers([]);
+        setLoading(false);
+        return;
+      }
+
+      // Aplicar filtro de busca
+      if (searchTerm && searchTerm.trim() !== "" && data) {
+        const searchLower = searchTerm.toLowerCase().trim();
+        const cpfClean = searchTerm.replace(/\D/g, '');
+        
+        data = data.filter(customer => {
+          const matchName = customer.name?.toLowerCase().includes(searchLower);
+          const matchPhone = customer.phone?.includes(searchTerm) || 
+                           customer.phone?.replace(/\D/g, '').includes(cpfClean);
+          const matchEmail = customer.email?.toLowerCase().includes(searchLower);
+          const matchCpf = customer.cpf?.replace(/\D/g, '').includes(cpfClean);
+          
+          return matchName || matchPhone || matchEmail || matchCpf;
+        });
+      }
+
+      setFilteredCustomers(data || []);
+    } catch (error) {
       console.error("Erro ao buscar clientes:", error);
       setFilteredCustomers([]);
     }
+    
     setLoading(false);
   };
 
