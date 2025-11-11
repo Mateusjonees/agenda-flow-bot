@@ -94,17 +94,19 @@ const handler = async (req: Request): Promise<Response> => {
             user_id: metadata.user_id,
             type: "income",
             amount: payment.transaction_amount,
-            description: "Pagamento de reativação de assinatura",
-            payment_method: payment.payment_type_id,
+            description: "Pagamento de reativação de assinatura - Mercado Pago",
+            payment_method: "credit_card",
             status: "completed",
             transaction_date: new Date().toISOString(),
           });
 
         if (transError) {
           console.error("Error creating reactivation transaction:", transError);
+        } else {
+          console.log("Financial transaction created for reactivation");
         }
       } 
-      // Pagamento de assinatura normal
+      // Pagamento de assinatura normal da plataforma
       else if (metadata?.userId) {
         // Check if subscription already exists
         const { data: existingSub } = await supabaseClient
@@ -165,14 +167,16 @@ const handler = async (req: Request): Promise<Response> => {
             user_id: metadata.userId,
             type: "income",
             amount: payment.transaction_amount,
-            description: `Assinatura ${metadata.billingFrequency || 'Renovação'}`,
-            payment_method: payment.payment_type_id,
+            description: `Assinatura ${metadata.billingFrequency || 'Renovação'} - Mercado Pago`,
+            payment_method: "credit_card",
             status: "completed",
             transaction_date: new Date().toISOString(),
           });
 
         if (transError) {
           console.error("Error creating transaction:", transError);
+        } else {
+          console.log("Financial transaction created successfully");
         }
       }
     }

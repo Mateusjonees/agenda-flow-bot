@@ -75,8 +75,9 @@ const handler = async (req: Request): Promise<Response> => {
         ? JSON.parse(pixCharge.metadata) 
         : pixCharge.metadata;
 
+      // Pagamento de assinatura da plataforma (Planos do sistema)
       if (metadata?.userId && metadata?.planId) {
-        console.log("Processing subscription payment for user:", metadata.userId);
+        console.log("Processing platform subscription payment for user:", metadata.userId);
 
         // Check if subscription exists
         const { data: existingSub } = await supabaseClient
@@ -130,7 +131,7 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
 
-        // Create financial transaction for subscription
+        // Create financial transaction for platform subscription
         const { error: transError } = await supabaseClient
           .from("financial_transactions")
           .insert({
@@ -145,6 +146,56 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (transError) {
           console.error("Error creating financial transaction:", transError);
+        }
+      }
+      
+      // Pagamento de assinatura de cliente (Assinaturas da aba Assinaturas)
+      else if (metadata?.subscription_id) {
+        console.log("Processing customer subscription payment, subscription_id:", metadata.subscription_id);
+
+        // Get subscription details
+        const { data: subscription } = await supabaseClient
+          .from("subscriptions")
+          .select(`
+            *,
+            subscription_plans (name, price),
+            customers (name)
+          `)
+          .eq("id", metadata.subscription_id)
+          .single();
+
+        if (subscription) {
+          // Update subscription as paid
+          const { error: subUpdateError } = await supabaseClient
+            .from("subscriptions")
+            .update({
+              last_billing_date: new Date().toISOString(),
+              failed_payments_count: 0,
+            })
+            .eq("id", metadata.subscription_id);
+
+          if (subUpdateError) {
+            console.error("Error updating customer subscription:", subUpdateError);
+          }
+
+          // Create financial transaction for customer subscription
+          const { error: transError } = await supabaseClient
+            .from("financial_transactions")
+            .insert({
+              user_id: subscription.user_id,
+              type: "income",
+              amount: payload.amount,
+              description: `Pagamento Assinatura - ${subscription.customers?.name || 'Cliente'} - ${subscription.subscription_plans?.name || 'Plano'}`,
+              payment_method: "pix",
+              status: "completed",
+              transaction_date: new Date().toISOString(),
+            });
+
+          if (transError) {
+            console.error("Error creating financial transaction for customer subscription:", transError);
+          } else {
+            console.log("Financial transaction created successfully for customer subscription");
+          }
         }
       }
     }

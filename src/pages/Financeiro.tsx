@@ -50,6 +50,7 @@ const Financeiro = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
   const [newCategory, setNewCategory] = useState({
     name: "",
     type: "expense",
@@ -63,7 +64,25 @@ const Financeiro = () => {
 
   useEffect(() => {
     fetchFinancialData();
+    fetchCategories();
   }, [filters]);
+
+  const fetchCategories = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("financial_categories")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("name");
+
+    if (error) {
+      console.error("Error fetching categories:", error);
+    } else {
+      setCategories(data || []);
+    }
+  };
 
   const fetchFinancialData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -268,6 +287,7 @@ const Financeiro = () => {
       });
       setCategoryDialogOpen(false);
       setNewCategory({ name: "", type: "expense" });
+      fetchCategories();
     }
   };
 
@@ -533,40 +553,54 @@ const Financeiro = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-accent" />
-                    Receitas
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <span className="font-medium">Serviços</span>
-                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#10b981' }} />
+              {categories.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10">
+                  <p className="text-muted-foreground mb-4">Nenhuma categoria criada ainda</p>
+                  <Button onClick={() => setCategoryDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Criar Primeira Categoria
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-accent" />
+                      Receitas
+                    </h3>
+                    <div className="space-y-2">
+                      {categories.filter(c => c.type === "income").length === 0 ? (
+                        <p className="text-sm text-muted-foreground p-3">Nenhuma categoria de receita</p>
+                      ) : (
+                        categories.filter(c => c.type === "income").map((category) => (
+                          <div key={category.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                            <span className="font-medium">{category.name}</span>
+                            <div className="w-4 h-4 rounded-full bg-accent" />
+                          </div>
+                        ))
+                      )}
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <span className="font-medium">Produtos</span>
-                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#3b82f6' }} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <TrendingDown className="w-5 h-5 text-destructive" />
+                      Despesas
+                    </h3>
+                    <div className="space-y-2">
+                      {categories.filter(c => c.type === "expense").length === 0 ? (
+                        <p className="text-sm text-muted-foreground p-3">Nenhuma categoria de despesa</p>
+                      ) : (
+                        categories.filter(c => c.type === "expense").map((category) => (
+                          <div key={category.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                            <span className="font-medium">{category.name}</span>
+                            <div className="w-4 h-4 rounded-full bg-destructive" />
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <TrendingDown className="w-5 h-5 text-destructive" />
-                    Despesas
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <span className="font-medium">Aluguel</span>
-                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#ef4444' }} />
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <span className="font-medium">Salários</span>
-                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#f59e0b' }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
