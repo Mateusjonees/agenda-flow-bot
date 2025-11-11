@@ -89,7 +89,7 @@ interface InventoryItem {
   category: string;
   current_stock: number;
   min_quantity: number;
-  unit_price: number;
+  cost_price: number;
 }
 
 interface InventoryChartData {
@@ -338,7 +338,7 @@ const Relatorios = () => {
       // Buscar dados do estoque
       const { data: inventory } = await supabase
         .from("inventory_items")
-        .select("id, name, category, current_stock, min_quantity, unit_price")
+        .select("id, name, category, current_stock, min_quantity, cost_price")
         .eq("user_id", user.id)
         .order("current_stock", { ascending: false });
 
@@ -1335,11 +1335,11 @@ const Relatorios = () => {
                               const categoryMap = new Map<string, { value: number; cost: number }>();
                               inventoryData.forEach(item => {
                                 const category = item.category || "Sem categoria";
-                                const current = categoryMap.get(category) || { value: 0, cost: 0 };
-                                categoryMap.set(category, {
-                                  value: current.value + item.current_stock,
-                                  cost: current.cost + (item.current_stock * (item.unit_price || 0))
-                                });
+                              const current = categoryMap.get(category) || { value: 0, cost: 0 };
+                              categoryMap.set(category, {
+                                value: current.value + item.current_stock,
+                                cost: current.cost + (item.current_stock * (item.cost_price || 0))
+                              });
                               });
                               return Array.from(categoryMap.entries()).map(([name, data]) => ({
                                 name,
@@ -1363,7 +1363,7 @@ const Relatorios = () => {
                                 const current = categoryMap.get(category) || { value: 0, cost: 0 };
                                 categoryMap.set(category, {
                                   value: current.value + item.current_stock,
-                                  cost: current.cost + (item.current_stock * (item.unit_price || 0))
+                                  cost: current.cost + (item.current_stock * (item.cost_price || 0))
                                 });
                               });
                               return Array.from(categoryMap.entries()).map((_, index) => (
@@ -1390,7 +1390,7 @@ const Relatorios = () => {
                               const current = categoryMap.get(category) || { value: 0, cost: 0 };
                               categoryMap.set(category, {
                                 value: current.value + item.current_stock,
-                                cost: current.cost + (item.current_stock * (item.unit_price || 0))
+                                cost: current.cost + (item.current_stock * (item.cost_price || 0))
                               });
                             });
                             return Array.from(categoryMap.entries()).map(([name, data]) => ({
@@ -1443,7 +1443,7 @@ const Relatorios = () => {
                         <div className="text-2xl font-bold">
                           {formatCurrency(
                             inventoryData.reduce((sum, item) => 
-                              sum + (item.current_stock * (item.unit_price || 0)), 0
+                              sum + (item.current_stock * (item.cost_price || 0)), 0
                             )
                           )}
                         </div>
