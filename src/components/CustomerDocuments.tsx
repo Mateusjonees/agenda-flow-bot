@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { FileText, Download, Trash2, Upload, Plus, Eye, X, FileSpreadsheet, Calendar } from "lucide-react";
+import { FileText, Download, Trash2, Upload, Plus, Eye, X, FileSpreadsheet, Calendar, LayoutGrid, List } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -66,6 +66,8 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
   const [viewingDocument, setViewingDocument] = useState<CustomerDocument | null>(null);
   const [documentUrl, setDocumentUrl] = useState<string>("");
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -88,8 +90,33 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
 
     if (!error && data) {
       setDocuments(data);
+      // Load thumbnails for image files
+      loadThumbnails(data);
     }
     setLoading(false);
+  };
+
+  const loadThumbnails = async (docs: CustomerDocument[]) => {
+    const newThumbnails: Record<string, string> = {};
+    
+    for (const doc of docs) {
+      if (isImageFile(doc.file_name)) {
+        try {
+          const { data } = await supabase.storage
+            .from("customer-documents")
+            .download(doc.file_path);
+          
+          if (data) {
+            const url = URL.createObjectURL(data);
+            newThumbnails[doc.id] = url;
+          }
+        } catch (error) {
+          console.error('Error loading thumbnail:', error);
+        }
+      }
+    }
+    
+    setThumbnails(newThumbnails);
   };
 
   const fetchProposals = async () => {
@@ -461,12 +488,12 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
 
             {/* Documentos Anexados */}
             <TabsContent value="attached" className="mt-3 sm:mt-4">
-              <div className="mb-3 sm:mb-4">
+              <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button size="sm" variant="outline" className="w-full sm:w-auto gap-2">
+                    <Button size="sm" variant="outline" className="gap-2 flex-1 sm:flex-initial">
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Adicionar Documento</span>
+                      <span>Adicionar</span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
@@ -528,6 +555,25 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
                     </div>
                   </DialogContent>
                 </Dialog>
+                
+                <div className="flex items-center gap-1 border rounded-lg p-0.5">
+                  <Button
+                    size="sm"
+                    variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                    onClick={() => setViewMode('list')}
+                    className="h-7 px-2"
+                  >
+                    <List className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                    onClick={() => setViewMode('grid')}
+                    className="h-7 px-2"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               </div>
               
               {loading ? (
@@ -541,7 +587,7 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
                     Nenhum documento anexado ainda.
                   </p>
                 </div>
-              ) : (
+              ) : viewMode === 'list' ? (
                 <div className="space-y-2">
                   {documents.map((doc) => (
                     <div
@@ -598,6 +644,97 @@ export const CustomerDocuments = ({ customerId }: CustomerDocumentsProps) => {
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {documents.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="group relative flex flex-col rounded-lg border bg-card overflow-hidden hover:shadow-md transition-all"
+                    >
+                      {/* Thumbnail */}
+                      <div 
+                        className="aspect-square bg-muted/30 flex items-center justify-center cursor-pointer relative overflow-hidden"
+                        onClick={() => handleView(doc)}
+                      >
+                        {thumbnails[doc.id] ? (
+                          <img 
+                            src={thumbnails[doc.id]} 
+                            alt={doc.file_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : isPdfFile(doc.file_name) ? (
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <FileText className="w-10 h-10 text-destructive" />
+                            <span className="text-[10px] text-muted-foreground font-medium">PDF</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <FileText className="w-10 h-10 text-primary" />
+                            <span className="text-[10px] text-muted-foreground font-medium uppercase">
+                              {doc.file_name.split('.').pop()?.slice(0, 4)}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Hover overlay */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleView(doc);
+                            }}
+                            className="h-7 w-7 p-0"
+                            title="Visualizar"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(doc);
+                            }}
+                            className="h-7 w-7 p-0"
+                            title="Baixar"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(doc);
+                            }}
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Info */}
+                      <div className="p-2 space-y-1">
+                        <p className="text-xs font-medium truncate" title={doc.file_name}>
+                          {doc.file_name}
+                        </p>
+                        {doc.description && (
+                          <p className="text-[10px] text-muted-foreground line-clamp-1" title={doc.description}>
+                            {doc.description}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                          <span>{formatFileSize(doc.file_size)}</span>
+                          <span>{format(new Date(doc.created_at), "dd/MM/yy", { locale: ptBR })}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
