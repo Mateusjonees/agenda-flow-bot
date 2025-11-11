@@ -316,13 +316,13 @@ const Planos = () => {
   const currentPlanId = getCurrentPlanId();
 
   return (
-    <div className="space-y-8 p-6 max-w-7xl mx-auto">
+    <div className="space-y-4 sm:space-y-8 p-3 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="text-center space-y-3">
-        <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+      <div className="text-center space-y-2 sm:space-y-3">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           Escolha o Melhor Plano
         </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
           Gerencie seu negócio com eficiência. Escolha o plano ideal e economize até 17%!
         </p>
       </div>
@@ -337,27 +337,27 @@ const Planos = () => {
             </CardTitle>
             <CardDescription>Gerenciamento completo da sua conta</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-6">
+          <CardContent className="p-4 sm:p-6">
+            <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
               {/* Plano Atual */}
               <div className="space-y-3">
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-xl">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-lg sm:text-xl">
                         {subscription.subscription_plans?.name || "Plano Atual"}
                       </p>
                       <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
                         Ativo
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {subscription.subscription_plans?.description || ""}
                     </p>
                   </div>
                   {subscription.subscription_plans?.price && (
-                    <div className="text-right">
-                      <p className="text-3xl font-bold text-primary">
+                    <div className="text-left sm:text-right">
+                      <p className="text-2xl sm:text-3xl font-bold text-primary">
                         {new Intl.NumberFormat("pt-BR", {
                           style: "currency",
                           currency: "BRL",
@@ -452,20 +452,20 @@ const Planos = () => {
       )}
 
       {/* Payment Method Tabs */}
-      <div id="plans-section" className="space-y-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Escolha a Forma de Pagamento</h2>
-          <p className="text-sm text-muted-foreground">Selecione como prefere pagar sua assinatura</p>
+      <div id="plans-section" className="space-y-4 sm:space-y-6">
+        <div className="text-center px-4">
+          <h2 className="text-xl sm:text-2xl font-bold mb-2">Escolha a Forma de Pagamento</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">Selecione como prefere pagar sua assinatura</p>
         </div>
         
         <Tabs defaultValue="pix" className="w-full" onValueChange={(value) => setPaymentMethod(value as "pix" | "card")}>
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 h-14 p-1">
-            <TabsTrigger value="pix" className="text-base font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <CreditCard className="w-4 h-4 mr-2" />
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 h-12 sm:h-14 p-1">
+            <TabsTrigger value="pix" className="text-sm sm:text-base font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               PIX
             </TabsTrigger>
-            <TabsTrigger value="card" className="text-base font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <CreditCard className="w-4 h-4 mr-2" />
+            <TabsTrigger value="card" className="text-sm sm:text-base font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               Cartão de Crédito
             </TabsTrigger>
           </TabsList>
@@ -473,7 +473,7 @@ const Planos = () => {
       </div>
 
       {/* Pricing Cards */}
-      <div className="grid md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
         {plans.map((plan) => {
           const Icon = plan.icon;
           const isCurrentPlan = currentPlanId === plan.billingFrequency;
