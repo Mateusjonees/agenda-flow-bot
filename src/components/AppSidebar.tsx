@@ -24,6 +24,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import logo from "@/assets/logo.png";
 
@@ -44,6 +45,13 @@ const navItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const { setOpen, isMobile } = useSidebar();
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpen(false);
+    }
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r relative z-40">
@@ -70,7 +78,7 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                      <NavLink to={item.path}>
+                      <NavLink to={item.path} onClick={handleNavClick}>
                         <Icon className="w-5 h-5" />
                         <span>{item.label}</span>
                       </NavLink>
@@ -87,6 +95,7 @@ export function AppSidebar() {
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center gap-3"
+                    onClick={handleNavClick}
                   >
                     <MessageCircle className="w-5 h-5" />
                     <span>Suporte WhatsApp</span>
