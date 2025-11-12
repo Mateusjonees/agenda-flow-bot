@@ -49,14 +49,14 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Mercado Pago access token not configured");
     }
 
-    // Processar webhooks de assinatura (preapproval)
-    if (topic === "subscription_preapproval" || topic === "subscription_authorized_payment" || action === "payment.created") {
+    // Processar webhooks de assinatura recorrente (com preapproval)
+    if (topic === "subscription_preapproval" || topic === "subscription_authorized_payment") {
       console.log("🔄 Processando webhook de assinatura recorrente");
       
       // Para subscription_authorized_payment, o id é do payment, precisamos buscar o preapproval
       let preapprovalId = id;
       
-      if (topic === "subscription_authorized_payment" || action === "payment.created") {
+      if (topic === "subscription_authorized_payment") {
         // Buscar payment para obter o preapproval_id
         const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
           headers: {
@@ -72,7 +72,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       if (!preapprovalId) {
-        console.error("Missing preapproval ID");
+        console.error("Missing preapproval ID for subscription webhook");
         return new Response(
           JSON.stringify({ error: "Missing preapproval ID" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -192,7 +192,150 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Processar pagamentos tradicionais (payments)
+    // Processar webhooks de pagamento único (payment.created)
+    if (action === "payment.created" && id) {
+      console.log("💳 Processando pagamento único (payment.created)");
+      
+      // Buscar informações do pagamento
+      const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!paymentResponse.ok) {
+        console.error("Erro ao buscar payment:", await paymentResponse.text());
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch payment" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const payment = await paymentResponse.json();
+      console.log("💳 Payment data:", payment);
+
+      // Se tem preapproval_id, deve ser processado como assinatura recorrente (não chegaria aqui)
+      if (payment.preapproval_id) {
+        console.log("⚠️ Payment tem preapproval_id, redirecionando para fluxo de assinatura");
+        // Processar como assinatura recorrente
+      } else if (payment.status === "approved" && payment.metadata?.type === "platform_subscription") {
+        // Pagamento PIX único aprovado para plano da plataforma
+        const metadata = payment.metadata;
+        const userId = metadata.userId;
+
+        if (!userId) {
+          console.error("Missing userId in payment metadata");
+          return new Response(
+            JSON.stringify({ error: "Missing userId" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        console.log(`✅ Processando pagamento PIX da plataforma para user ${userId}`);
+
+        const startDate = new Date();
+        const months = parseInt(metadata.months || "1");
+        const nextBillingDate = new Date(startDate);
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + months);
+
+        // Verificar subscription existente da plataforma
+        const { data: existingSub } = await supabaseClient
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", userId)
+          .is("customer_id", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingSub) {
+          // Atualizar subscription existente
+          const { error: subError } = await supabaseClient
+            .from("subscriptions")
+            .update({
+              status: "active",
+              start_date: startDate.toISOString(),
+              next_billing_date: nextBillingDate.toISOString(),
+              last_billing_date: startDate.toISOString(),
+              failed_payments_count: 0,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", existingSub.id);
+
+          if (subError) {
+            console.error("❌ Erro ao atualizar subscription:", subError);
+          } else {
+            console.log(`✅ Subscription ${existingSub.id} atualizada para active`);
+          }
+        } else {
+          // Criar nova subscription da plataforma
+          const { error: subError } = await supabaseClient
+            .from("subscriptions")
+            .insert({
+              user_id: userId,
+              status: "active",
+              start_date: startDate.toISOString(),
+              next_billing_date: nextBillingDate.toISOString(),
+              last_billing_date: startDate.toISOString(),
+              failed_payments_count: 0
+            });
+
+          if (subError) {
+            console.error("❌ Erro ao criar subscription:", subError);
+          } else {
+            console.log("✅ Nova subscription da plataforma criada");
+          }
+        }
+
+        // Criar transação financeira
+        const { error: transError } = await supabaseClient
+          .from("financial_transactions")
+          .insert({
+            user_id: userId,
+            type: "income",
+            amount: payment.transaction_amount,
+            description: `Assinatura ${metadata.billingFrequency || metadata.planId} - Plano Foguetinho`,
+            payment_method: "pix",
+            status: "completed",
+            transaction_date: new Date().toISOString()
+          });
+
+        if (transError) {
+          console.error("❌ Erro ao criar transação:", transError);
+        }
+
+        // Atualizar pix_charge se existir
+        if (payment.external_reference) {
+          const { error: pixError } = await supabaseClient
+            .from("pix_charges")
+            .update({
+              status: "paid",
+              paid_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq("txid", payment.external_reference)
+            .eq("user_id", userId);
+
+          if (pixError) {
+            console.error("❌ Erro ao atualizar pix_charge:", pixError);
+          } else {
+            console.log("✅ PIX charge atualizado");
+          }
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, message: "Platform PIX payment processed" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: "Payment processed" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Processar pagamentos tradicionais (fallback para outros webhooks)
     if (!id) {
       console.log("No payment ID to process");
       return new Response(
