@@ -350,7 +350,7 @@ const Planos = () => {
       {/* Header */}
       <div className="text-center space-y-2 sm:space-y-3">
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          Meu Plano
+          Plano Foguetinho
         </h1>
         <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
           Gerencie seu plano e aproveite todos os recursos. Economize até 17%!
