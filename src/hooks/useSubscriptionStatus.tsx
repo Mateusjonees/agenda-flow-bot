@@ -30,9 +30,10 @@ export function useSubscriptionStatus() {
         .from("subscriptions")
         .select("*")
         .eq("user_id", user.id)
+        .is("customer_id", null)
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("Error fetching subscription:", error);
