@@ -90,10 +90,21 @@ const handler = async (req: Request): Promise<Response> => {
         transaction_amount: selectedPlan.price,
         currency_id: "BRL",
         start_date: startDate.toISOString(),
+        free_trial: {
+          frequency: 7,
+          frequency_type: "days"
+        }
       },
       back_url: `${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovableproject.com") || ""}/configuracoes`,
       payer_email: user.email,
       external_reference: user.id,
+      metadata: {
+        userId: user.id,
+        planId: planType,
+        billingFrequency: planType,
+        months: selectedPlan.frequency,
+        type: "platform_subscription"
+      }
     };
 
     console.log("Creating Mercado Pago subscription preference with data:", preferenceData);

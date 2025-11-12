@@ -18,14 +18,25 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     const url = new URL(req.url);
-    const topic = url.searchParams.get("topic");
-    const id = url.searchParams.get("id");
+    let topic = url.searchParams.get("topic");
+    let id = url.searchParams.get("id");
+    let action = url.searchParams.get("action");
 
-    console.log("Mercado Pago webhook received:", { topic, id });
+    // Tentar obter do body se não vier por query params
+    try {
+      const body = await req.json();
+      topic = topic || body.topic;
+      id = id || body.id || body.data?.id;
+      action = action || body.action;
+      
+      console.log("📥 Webhook received:", { topic, id, action, body });
+    } catch (e) {
+      console.log("📥 Webhook received (query params only):", { topic, id, action });
+    }
 
-    if (!topic || !id) {
+    if (!topic && !action) {
       return new Response(
-        JSON.stringify({ error: "Missing topic or id" }),
+        JSON.stringify({ error: "Missing topic or action" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -36,6 +47,158 @@ const handler = async (req: Request): Promise<Response> => {
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
     if (!accessToken) {
       throw new Error("Mercado Pago access token not configured");
+    }
+
+    // Processar webhooks de assinatura (preapproval)
+    if (topic === "subscription_preapproval" || topic === "subscription_authorized_payment" || action === "payment.created") {
+      console.log("🔄 Processando webhook de assinatura recorrente");
+      
+      // Para subscription_authorized_payment, o id é do payment, precisamos buscar o preapproval
+      let preapprovalId = id;
+      
+      if (topic === "subscription_authorized_payment" || action === "payment.created") {
+        // Buscar payment para obter o preapproval_id
+        const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+          },
+        });
+
+        if (paymentResponse.ok) {
+          const paymentData = await paymentResponse.json();
+          preapprovalId = paymentData.preapproval_id;
+          console.log("📋 Found preapproval_id:", preapprovalId);
+        }
+      }
+
+      if (!preapprovalId) {
+        console.error("Missing preapproval ID");
+        return new Response(
+          JSON.stringify({ error: "Missing preapproval ID" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const mpResponse = await fetch(
+        `https://api.mercadopago.com/preapproval/${preapprovalId}`,
+        {
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!mpResponse.ok) {
+        console.error("Erro ao buscar preapproval:", await mpResponse.text());
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch preapproval" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const preapprovalData = await mpResponse.json();
+      console.log("📋 Preapproval data:", preapprovalData);
+
+      const metadata = preapprovalData.metadata || {};
+      const userId = metadata.userId || preapprovalData.external_reference;
+      
+      if (!userId) {
+        console.error("Missing userId in metadata");
+        return new Response(
+          JSON.stringify({ error: "Missing userId" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Verificar se é assinatura da plataforma
+      if (metadata.type === "platform_subscription" && preapprovalData.status === "authorized") {
+        console.log(`✅ Ativando assinatura da plataforma para user ${userId}`);
+
+        const startDate = new Date();
+        const months = parseInt(metadata.months || "1");
+        const nextBillingDate = new Date(startDate);
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + months);
+
+        // Verificar subscription existente
+        const { data: existingSub } = await supabaseClient
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", userId)
+          .is("customer_id", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingSub) {
+          // Atualizar subscription existente
+          const { error: subError } = await supabaseClient
+            .from("subscriptions")
+            .update({
+              status: "active",
+              start_date: startDate.toISOString(),
+              next_billing_date: nextBillingDate.toISOString(),
+              last_billing_date: startDate.toISOString(),
+              failed_payments_count: 0,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", existingSub.id);
+
+          if (subError) {
+            console.error("❌ Erro ao atualizar subscription:", subError);
+          } else {
+            console.log(`✅ Subscription ${existingSub.id} atualizada para active`);
+          }
+        } else {
+          // Criar nova subscription da plataforma
+          const { error: subError } = await supabaseClient
+            .from("subscriptions")
+            .insert({
+              user_id: userId,
+              status: "active",
+              start_date: startDate.toISOString(),
+              next_billing_date: nextBillingDate.toISOString(),
+              last_billing_date: startDate.toISOString(),
+              failed_payments_count: 0
+            });
+
+          if (subError) {
+            console.error("❌ Erro ao criar subscription:", subError);
+          } else {
+            console.log("✅ Nova subscription da plataforma criada");
+          }
+        }
+
+        // Criar transação financeira
+        const { error: transError } = await supabaseClient
+          .from("financial_transactions")
+          .insert({
+            user_id: userId,
+            type: "income",
+            amount: preapprovalData.auto_recurring?.transaction_amount || 0,
+            description: `Assinatura ${metadata.billingFrequency || metadata.planId} - Plano Foguetinho`,
+            payment_method: "mercado_pago",
+            status: "completed",
+            transaction_date: new Date().toISOString()
+          });
+
+        if (transError) {
+          console.error("❌ Erro ao criar transação:", transError);
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, message: "Platform subscription activated" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // Processar pagamentos tradicionais (payments)
+    if (!id) {
+      console.log("No payment ID to process");
+      return new Response(
+        JSON.stringify({ message: "No payment to process" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Get payment information from Mercado Pago
