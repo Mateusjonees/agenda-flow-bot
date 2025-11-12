@@ -32,12 +32,12 @@ const navItems = [
   { path: "/agendamentos", label: "Agenda", icon: Calendar },
   { path: "/clientes", label: "Clientes", icon: Users },
   { path: "/propostas", label: "Propostas", icon: FileText },
-  { path: "/assinaturas", label: "Assinaturas", icon: Repeat },
+  { path: "/assinaturas", label: "Contratos Recorrentes", icon: Repeat },
   { path: "/estoque", label: "Estoque", icon: Package },
   { path: "/financeiro", label: "Financeiro", icon: DollarSign },
   { path: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { path: "/configuracoes", label: "Configurações", icon: Settings },
-  { path: "/planos", label: "Minha Assinatura", icon: CreditCard },
+  { path: "/planos", label: "Meu Plano", icon: CreditCard },
 ];
 
 export function AppSidebar() {
