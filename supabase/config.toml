@@ -155,3 +155,9 @@ verify_jwt = false
 
 [functions.check-subscription-reminders]
 verify_jwt = false
+
+[functions.check-pending-pix]
+verify_jwt = false
+
+[functions.check-pending-platform-payments]
+verify_jwt = false
