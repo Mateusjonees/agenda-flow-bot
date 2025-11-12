@@ -980,6 +980,12 @@ const Clientes = () => {
                         <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
                         <span className="break-all">{selectedCustomer.phone}</span>
                       </div>
+                      {selectedCustomer.cpf && (
+                        <div className="flex items-center gap-2 text-xs sm:text-sm">
+                          <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                          <span className="break-all">CPF: {selectedCustomer.cpf}</span>
+                        </div>
+                      )}
                       {selectedCustomer.email && (
                         <div className="flex items-center gap-2 text-xs sm:text-sm">
                           <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
