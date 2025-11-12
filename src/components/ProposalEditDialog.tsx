@@ -21,6 +21,7 @@ interface ProposalEditDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   customers: any[];
+  defaultCustomerId?: string;
 }
 
 export const ProposalEditDialog = ({
@@ -29,6 +30,7 @@ export const ProposalEditDialog = ({
   onOpenChange,
   onSuccess,
   customers,
+  defaultCustomerId,
 }: ProposalEditDialogProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
@@ -58,8 +60,32 @@ export const ProposalEditDialog = ({
         valid_days: diffDays > 0 ? diffDays : 7,
         status: proposal.status || "pending",
       });
+    } else if (defaultCustomerId) {
+      // Reset form for new proposal with pre-selected customer
+      setFormData({
+        customer_id: defaultCustomerId,
+        title: "",
+        description: "",
+        services: [{ description: "", quantity: 1, unit_price: 0 }],
+        discount_percentage: 0,
+        deposit_percentage: 50,
+        valid_days: 7,
+        status: "pending",
+      });
+    } else {
+      // Reset form for new proposal
+      setFormData({
+        customer_id: "",
+        title: "",
+        description: "",
+        services: [{ description: "", quantity: 1, unit_price: 0 }],
+        discount_percentage: 0,
+        deposit_percentage: 50,
+        valid_days: 7,
+        status: "pending",
+      });
     }
-  }, [proposal]);
+  }, [proposal, defaultCustomerId, open]);
 
   const calculateTotal = () => {
     const subtotal = formData.services.reduce((sum, s) => sum + s.quantity * s.unit_price, 0);
@@ -77,37 +103,61 @@ export const ProposalEditDialog = ({
       return;
     }
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({
+        title: "Erro",
+        description: "Usuário não autenticado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const totalAmount = calculateTotal();
     const depositAmount = (totalAmount * formData.deposit_percentage) / 100;
     const validUntil = new Date();
     validUntil.setDate(validUntil.getDate() + formData.valid_days);
 
-    const { error } = await supabase
-      .from("proposals")
-      .update({
-        customer_id: formData.customer_id,
-        title: formData.title,
-        description: formData.description || null,
-        services: formData.services as any,
-        total_amount: totalAmount,
-        discount_percentage: formData.discount_percentage,
-        final_amount: totalAmount,
-        deposit_percentage: formData.deposit_percentage,
-        deposit_amount: depositAmount,
-        valid_until: validUntil.toISOString(),
-        status: formData.status,
-      })
-      .eq("id", proposal.id);
+    const proposalData = {
+      user_id: user.id,
+      customer_id: formData.customer_id,
+      title: formData.title,
+      description: formData.description || null,
+      services: formData.services as any,
+      total_amount: totalAmount,
+      discount_percentage: formData.discount_percentage,
+      final_amount: totalAmount,
+      deposit_percentage: formData.deposit_percentage,
+      deposit_amount: depositAmount,
+      valid_until: validUntil.toISOString(),
+      status: formData.status,
+    };
+
+    let error;
+    if (proposal) {
+      // Update existing proposal
+      const result = await supabase
+        .from("proposals")
+        .update(proposalData)
+        .eq("id", proposal.id);
+      error = result.error;
+    } else {
+      // Create new proposal
+      const result = await supabase
+        .from("proposals")
+        .insert(proposalData);
+      error = result.error;
+    }
 
     if (error) {
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar a proposta.",
+        description: proposal ? "Não foi possível atualizar a proposta." : "Não foi possível criar a proposta.",
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Proposta atualizada!",
+        title: proposal ? "Proposta atualizada!" : "Proposta criada!",
       });
       onSuccess();
       onOpenChange(false);
@@ -147,7 +197,7 @@ export const ProposalEditDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Editar Proposta</DialogTitle>
+          <DialogTitle>{proposal ? "Editar Proposta" : "Nova Proposta"}</DialogTitle>
           <DialogDescription>Atualize os detalhes da proposta</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">

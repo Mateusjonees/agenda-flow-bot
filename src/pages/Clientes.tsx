@@ -17,6 +17,8 @@ import { CustomerHistory } from "@/components/CustomerHistory";
 import { CustomerDocuments } from "@/components/CustomerDocuments";
 import { CustomerLoyalty } from "@/components/CustomerLoyalty";
 import { useReadOnly, ReadOnlyWrapper } from "@/components/SubscriptionGuard";
+import { ProposalEditDialog } from "@/components/ProposalEditDialog";
+import { FileText, CreditCard } from "lucide-react";
 
 interface Customer {
   id: string;
@@ -49,9 +51,12 @@ const Clientes = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
+  const [proposalDialogOpen, setProposalDialogOpen] = useState(false);
+  const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [subscriptionPlans, setSubscriptionPlans] = useState<any[]>([]);
   const [editCustomer, setEditCustomer] = useState({
     id: "",
     name: "",
@@ -75,11 +80,16 @@ const Clientes = () => {
     duration: "60",
     notes: "",
   });
+  const [subscriptionForm, setSubscriptionForm] = useState({
+    plan_id: "",
+    payment_method: "pix",
+  });
   const { toast } = useToast();
   const { isReadOnly } = useReadOnly();
 
   useEffect(() => {
     fetchCustomers();
+    fetchSubscriptionPlans();
     
     // Verificar se há parâmetros de URL para abrir cliente específico
     const customerId = searchParams.get('customer');
@@ -104,6 +114,15 @@ const Clientes = () => {
       fetchSpecificCustomer();
     }
   }, [searchParams]);
+
+  const fetchSubscriptionPlans = async () => {
+    const { data } = await supabase
+      .from("subscription_plans")
+      .select("*")
+      .eq("is_active", true)
+      .order("name");
+    setSubscriptionPlans(data || []);
+  };
 
   // Aplicar filtro quando searchTerm mudar
   useEffect(() => {
@@ -357,6 +376,65 @@ const Clientes = () => {
         time: "",
         duration: "60",
         notes: "",
+      });
+    }
+  };
+
+  const handleAddSubscription = async () => {
+    if (!selectedCustomer || !subscriptionForm.plan_id) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, selecione um plano",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const selectedPlan = subscriptionPlans.find(p => p.id === subscriptionForm.plan_id);
+      if (!selectedPlan) throw new Error("Plano não encontrado");
+
+      // Calcular próxima data de cobrança
+      const nextBillingDate = new Date();
+      if (selectedPlan.billing_frequency === "monthly") {
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+      } else if (selectedPlan.billing_frequency === "quarterly") {
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + 3);
+      } else if (selectedPlan.billing_frequency === "semiannual") {
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + 6);
+      } else if (selectedPlan.billing_frequency === "annual") {
+        nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
+      }
+
+      const { error } = await supabase.from("subscriptions").insert({
+        user_id: user.id,
+        customer_id: selectedCustomer.id,
+        plan_id: subscriptionForm.plan_id,
+        status: "active",
+        next_billing_date: nextBillingDate.toISOString(),
+        start_date: new Date().toISOString(),
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Assinatura criada",
+        description: "A assinatura foi criada com sucesso",
+      });
+
+      setSubscriptionDialogOpen(false);
+      setSubscriptionForm({ plan_id: "", payment_method: "pix" });
+      
+      // Atualizar tab para mostrar a nova assinatura
+      setSelectedTab("subscriptions");
+    } catch (error: any) {
+      toast({
+        title: "Erro ao criar assinatura",
+        description: error.message,
+        variant: "destructive",
       });
     }
   };
@@ -830,6 +908,65 @@ const Clientes = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
+
+                  <Dialog open={proposalDialogOpen} onOpenChange={setProposalDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm" disabled={isReadOnly}>
+                        <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        Nova Proposta
+                      </Button>
+                    </DialogTrigger>
+                  </Dialog>
+
+                  <Dialog open={subscriptionDialogOpen} onOpenChange={setSubscriptionDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm" disabled={isReadOnly}>
+                        <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        Nova Assinatura
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Nova Assinatura para {selectedCustomer.name}</DialogTitle>
+                        <DialogDescription>
+                          Crie uma assinatura para este cliente
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="subscription-plan">Plano *</Label>
+                          <Select value={subscriptionForm.plan_id} onValueChange={(value) => setSubscriptionForm({ ...subscriptionForm, plan_id: value })}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um plano" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {subscriptionPlans.map((plan) => (
+                                <SelectItem key={plan.id} value={plan.id}>
+                                  {plan.name} - R$ {Number(plan.price).toFixed(2)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="subscription-payment">Método de Pagamento</Label>
+                          <Select value={subscriptionForm.payment_method} onValueChange={(value) => setSubscriptionForm({ ...subscriptionForm, payment_method: value })}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pix">PIX</SelectItem>
+                              <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                              <SelectItem value="boleto">Boleto</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button onClick={handleAddSubscription} className="w-full" disabled={isReadOnly}>
+                          Criar Assinatura
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
                 
                 <div className="space-y-3 sm:space-y-4">
@@ -1014,6 +1151,22 @@ const Clientes = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ProposalEditDialog
+        proposal={null}
+        open={proposalDialogOpen}
+        onOpenChange={setProposalDialogOpen}
+        onSuccess={() => {
+          fetchCustomers();
+          setProposalDialogOpen(false);
+          toast({
+            title: "Proposta criada",
+            description: "A proposta foi criada com sucesso",
+          });
+        }}
+        customers={customers}
+        defaultCustomerId={selectedCustomer?.id}
+      />
     </div>
   );
 };
