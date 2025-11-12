@@ -225,7 +225,7 @@ export const ProposalEditDialog = ({
             <Input
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Ex: Reforma de Banheiro"
+              placeholder="Ex: Pacote de Serviços Premium"
             />
           </div>
 
