@@ -556,29 +556,29 @@ _${businessName}_
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header Premium */}
-      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10" />
-        <div className="relative p-4 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="space-y-2 flex-1 w-full">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 shadow-lg sm:shadow-xl flex-shrink-0">
-                <FileText className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight">
-                  Propostas
-                </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 truncate">Crie e gerencie propostas profissionais</p>
-              </div>
+      {/* Header */}
+      <div className="relative rounded-2xl overflow-hidden">
+        <div className="absolute inset-0 bg-red-50 dark:bg-muted/30" />
+        <div className="relative p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-red-500 dark:bg-gradient-to-br dark:from-primary dark:via-secondary dark:to-accent shadow-lg">
+              <FileText className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
+                Propostas
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Crie e gerencie propostas profissionais
+              </p>
             </div>
           </div>
           
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-xl hover:scale-105 transition-all w-full sm:w-auto flex-shrink-0 text-sm sm:text-base" disabled={isReadOnly}>
+              <Button className="gap-2 w-full sm:w-auto" disabled={isReadOnly}>
                 <Plus className="w-4 h-4" />
-                <span className="sm:inline">Nova Proposta</span>
+                Nova Proposta
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
