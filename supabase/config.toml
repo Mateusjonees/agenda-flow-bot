@@ -149,3 +149,9 @@ verify_jwt = true
 
 [functions.check-expired-subscriptions]
 verify_jwt = false
+
+[functions.send-subscription-reminder]
+verify_jwt = false
+
+[functions.check-subscription-reminders]
+verify_jwt = false
