@@ -25,7 +25,8 @@ const routeMap: Record<string, RouteConfig> = {
   "/tarefas": { label: "Tarefas", icon: ListTodo },
   "/relatorios": { label: "Relatórios", icon: BarChart3 },
   "/configuracoes": { label: "Configurações", icon: Settings },
-  "/assinaturas": { label: "Assinaturas", icon: CreditCard },
+  "/assinaturas": { label: "Contratos Recorrentes", icon: CreditCard },
+  "/planos": { label: "Meu Plano", icon: CreditCard },
   "/pricing": { label: "Planos", icon: CreditCard },
 };
 
