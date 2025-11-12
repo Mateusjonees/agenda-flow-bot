@@ -263,7 +263,13 @@ const Tarefas = () => {
     // Update local state immediately for smooth UX
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
-        task.id === taskId ? { ...task, status: newStatus } : task
+        task.id === taskId 
+          ? { 
+              ...task, 
+              status: newStatus,
+              completed_at: newStatus === "completed" ? new Date().toISOString() : null
+            } 
+          : task
       )
     );
 
