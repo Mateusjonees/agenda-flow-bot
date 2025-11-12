@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
 export function useSubscriptionStatus() {
   const [user, setUser] = useState<User | null>(null);
+  const queryClient = useQueryClient();
 
   // Escutar mudanças de autenticação
   useEffect(() => {
@@ -43,6 +44,33 @@ export function useSubscriptionStatus() {
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 5, // Cache por 5 minutos
   });
+
+  // Escutar mudanças em tempo real na assinatura
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('user-subscription-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'subscriptions',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('User subscription updated in real-time:', payload);
+          // Invalidar cache para recarregar dados
+          queryClient.invalidateQueries({ queryKey: ["user-subscription", user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
 
   // Estados derivados
   const isActive = subscription?.status === "active" || subscription?.status === "trial";

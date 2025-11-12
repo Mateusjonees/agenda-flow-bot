@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -96,6 +96,49 @@ export function SubscriptionManager() {
       return data;
     },
   });
+
+  // Escutar mudanças em tempo real na assinatura
+  useEffect(() => {
+    const getUserAndSubscribe = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const channel = supabase
+        .channel('subscription-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'subscriptions',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Subscription updated in real-time:', payload);
+            
+            // Invalidar cache para recarregar dados
+            queryClient.invalidateQueries({ queryKey: ["current-subscription"] });
+            
+            // Mostrar notificação se o status mudou para "active"
+            if (payload.new && 'status' in payload.new) {
+              const newStatus = (payload.new as any).status;
+              if (newStatus === 'active' && payload.eventType === 'UPDATE') {
+                toast.success('🎉 Pagamento confirmado! Sua assinatura está ativa.', {
+                  duration: 5000,
+                });
+              }
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+
+    getUserAndSubscribe();
+  }, [queryClient]);
 
   // Criar assinatura
   const createSubscriptionMutation = useMutation({
