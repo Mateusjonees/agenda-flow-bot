@@ -350,10 +350,10 @@ const Planos = () => {
       {/* Header */}
       <div className="text-center space-y-2 sm:space-y-3">
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          Escolha o Melhor Plano
+          Meu Plano
         </h1>
         <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
-          Gerencie seu negócio com eficiência. Escolha o plano ideal e economize até 17%!
+          Gerencie seu plano e aproveite todos os recursos. Economize até 17%!
         </p>
       </div>
 
@@ -399,7 +399,7 @@ const Planos = () => {
               ) : (
                 <>
                   <Shield className="w-5 h-5 text-primary" />
-                  Sua Assinatura Ativa
+                  Seu Plano Ativo
                 </>
               )}
             </CardTitle>
