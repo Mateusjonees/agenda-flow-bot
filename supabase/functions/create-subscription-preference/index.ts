@@ -96,6 +96,8 @@ const handler = async (req: Request): Promise<Response> => {
       external_reference: user.id,
     };
 
+    console.log("Creating Mercado Pago subscription preference with data:", preferenceData);
+
     const mpResponse = await fetch("https://api.mercadopago.com/preapproval", {
       method: "POST",
       headers: {
