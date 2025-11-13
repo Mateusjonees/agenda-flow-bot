@@ -60,11 +60,11 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Canceling ${validation.subscriptionType} subscription ${subscriptionId}`);
 
     // Atualizar status da assinatura no banco
+    // Mantém next_billing_date para que o usuário tenha acesso até o fim do período pago
     const { error: updateError } = await supabaseClient
       .from("subscriptions")
       .update({
         status: "cancelled",
-        next_billing_date: null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", subscriptionId);

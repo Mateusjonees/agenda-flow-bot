@@ -113,6 +113,11 @@ const handler = async (req: Request): Promise<Response> => {
             const startDate = new Date();
             const nextBillingDate = new Date(startDate);
             nextBillingDate.setMonth(nextBillingDate.getMonth() + (metadata.months || 1));
+            
+            // Adicionar 7 dias de trial
+            nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+            
+            console.log(`📅 Next billing date: ${nextBillingDate.toISOString()} (${metadata.months || 1} months + 7 days trial)`);
 
             if (existingSub) {
               // Atualizar

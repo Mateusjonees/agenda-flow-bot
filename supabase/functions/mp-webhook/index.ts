@@ -137,10 +137,16 @@ const handler = async (req: Request): Promise<Response> => {
       if (metadata.type === "platform_subscription" && preapprovalData.status === "authorized") {
         console.log(`✅ Ativando assinatura da plataforma para user ${userId}`);
 
-        const startDate = new Date();
+        // Usar data de criação do MP ao invés de data atual
+        const startDate = new Date(preapprovalData.date_created || preapprovalData.auto_recurring?.start_date || new Date());
         const months = parseInt(metadata.months || "1");
         const nextBillingDate = new Date(startDate);
         nextBillingDate.setMonth(nextBillingDate.getMonth() + months);
+        
+        // Adicionar 7 dias de trial
+        nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+        
+        console.log(`📅 Next billing date calculated: ${nextBillingDate.toISOString()} (start: ${startDate.toISOString()} + ${months} months + 7 days trial)`);
 
         // Verificar subscription existente
         const { data: existingSub } = await supabaseClient
@@ -311,11 +317,15 @@ const handler = async (req: Request): Promise<Response> => {
         const months = parseInt(metadata.months || "1");
         const nextBillingDate = new Date(startDate);
         nextBillingDate.setMonth(nextBillingDate.getMonth() + months);
+        
+        // Adicionar 7 dias de trial
+        nextBillingDate.setDate(nextBillingDate.getDate() + 7);
 
         console.log("🔍 STEP 13: Calculando datas da assinatura:", {
           startDate: startDate.toISOString(),
           months,
-          nextBillingDate: nextBillingDate.toISOString()
+          nextBillingDate: nextBillingDate.toISOString(),
+          trialDays: 7
         });
 
         // Verificar subscription existente da plataforma (assinatura do sistema, não de cliente)
@@ -518,9 +528,10 @@ const handler = async (req: Request): Promise<Response> => {
       if (metadata?.type === "subscription_reactivation" && metadata?.subscription_id) {
         console.log("Processing subscription reactivation for:", metadata.subscription_id);
         
-        // Calcular próxima data de cobrança
+        // Calcular próxima data de cobrança (1 mês + 7 dias de trial)
         const nextBillingDate = new Date();
         nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+        nextBillingDate.setDate(nextBillingDate.getDate() + 7);
 
         // Reativar a assinatura
         const { error: reactivateError } = await supabaseClient
@@ -575,6 +586,9 @@ const handler = async (req: Request): Promise<Response> => {
         const startDate = new Date();
         const nextBillingDate = new Date(startDate);
         nextBillingDate.setMonth(nextBillingDate.getMonth() + (metadata.months || 1));
+        
+        // Adicionar 7 dias de trial
+        nextBillingDate.setDate(nextBillingDate.getDate() + 7);
 
         if (existingSub) {
           // Update existing subscription
