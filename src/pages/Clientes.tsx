@@ -704,28 +704,28 @@ const Clientes = () => {
 
       {/* Dialog de detalhes do cliente */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-4xl h-[85vh] p-4 sm:p-6 overflow-hidden flex flex-col">
+        <DialogContent className="max-w-4xl h-[90vh] p-3 sm:p-4 overflow-hidden flex flex-col">
           {selectedCustomer && (
             <>
-              <DialogHeader className="space-y-2">
-                <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                  <User className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
+              <DialogHeader className="space-y-1 flex-shrink-0">
+                <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
                   <span className="truncate">{selectedCustomer.name}</span>
                 </DialogTitle>
-                <DialogDescription className="text-xs sm:text-sm">
+                <DialogDescription className="text-xs">
                   Informações completas do cliente
                 </DialogDescription>
               </DialogHeader>
 
-              <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mt-3 sm:mt-4 flex-1 flex flex-col min-h-0">
-                <TabsList className="grid w-full grid-cols-4 h-auto flex-shrink-0">
-                  <TabsTrigger value="info" className="text-xs sm:text-sm py-2 px-2">Info</TabsTrigger>
-                  <TabsTrigger value="history" className="text-xs sm:text-sm py-2 px-2">Histórico</TabsTrigger>
-                  <TabsTrigger value="subscriptions" className="text-xs sm:text-sm py-2 px-2">Assinaturas</TabsTrigger>
-                  <TabsTrigger value="loyalty" className="text-xs sm:text-sm py-2 px-2">Fidelidade</TabsTrigger>
+              <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mt-1.5 flex-1 flex flex-col min-h-0">
+                <TabsList className="grid w-full grid-cols-4 h-8 flex-shrink-0">
+                  <TabsTrigger value="info" className="text-xs py-1 px-1.5">Info</TabsTrigger>
+                  <TabsTrigger value="history" className="text-xs py-1 px-1.5">Histórico</TabsTrigger>
+                  <TabsTrigger value="subscriptions" className="text-xs py-1 px-1.5">Assinaturas</TabsTrigger>
+                  <TabsTrigger value="loyalty" className="text-xs py-1 px-1.5">Fidelidade</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="info" className="space-y-3 sm:space-y-4 flex-1 overflow-y-auto mt-3">
+                <TabsContent value="info" className="space-y-2 flex-1 overflow-y-auto mt-2 pr-1 pb-0">
                   {/* Botões de ação rápida */}
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Button 
@@ -1024,15 +1024,15 @@ const Clientes = () => {
                 </div>
                 </TabsContent>
 
-                <TabsContent value="history" className="flex-1 overflow-y-auto mt-3">
+                <TabsContent value="history" className="flex-1 overflow-y-auto mt-2 pr-1 pb-0">
                   <CustomerHistory customerId={selectedCustomer.id} />
                 </TabsContent>
 
-                <TabsContent value="subscriptions" className="flex-1 overflow-y-auto mt-3">
+                <TabsContent value="subscriptions" className="flex-1 overflow-y-auto mt-2 pr-1 pb-0">
                   <CustomerSubscriptions customerId={selectedCustomer.id} />
                 </TabsContent>
 
-                <TabsContent value="loyalty" className="flex-1 overflow-y-auto mt-3">
+                <TabsContent value="loyalty" className="flex-1 overflow-y-auto mt-2 pr-1 pb-0">
                   <CustomerLoyalty customerId={selectedCustomer.id} />
                 </TabsContent>
               </Tabs>
