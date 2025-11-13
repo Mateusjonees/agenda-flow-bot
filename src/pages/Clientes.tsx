@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Phone, Mail, User, CalendarPlus, ListTodo, Search, Filter, Pencil, Trash2, Maximize2, Minimize2 } from "lucide-react";
+import { Plus, Phone, Mail, User, CalendarPlus, ListTodo, Search, Filter, Pencil, Trash2, Maximize2, Minimize2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CustomerSubscriptions } from "@/components/CustomerSubscriptions";
@@ -705,7 +705,10 @@ const Clientes = () => {
 
       {/* Dialog de detalhes do cliente */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className={`${isModalExpanded ? 'max-w-[95vw] h-[95vh]' : 'max-w-4xl h-[90vh]'} p-3 sm:p-4 overflow-hidden flex flex-col transition-all duration-300`}>
+        <DialogContent 
+          className={`${isModalExpanded ? 'max-w-[95vw] h-[95vh]' : 'max-w-4xl h-[90vh]'} p-3 sm:p-4 overflow-hidden flex flex-col transition-all duration-300`}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
           {selectedCustomer && (
             <>
               <DialogHeader className="space-y-1 flex-shrink-0">
@@ -714,19 +717,37 @@ const Clientes = () => {
                     <User className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
                     <span className="truncate">{selectedCustomer.name}</span>
                   </DialogTitle>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsModalExpanded(!isModalExpanded)}
-                    className="h-8 w-8 p-0 flex-shrink-0"
-                    title={isModalExpanded ? "Minimizar" : "Expandir"}
-                  >
-                    {isModalExpanded ? (
-                      <Minimize2 className="w-4 h-4" />
-                    ) : (
-                      <Maximize2 className="w-4 h-4" />
-                    )}
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsModalExpanded(false)}
+                      className="h-7 w-7 p-0 flex-shrink-0"
+                      title="Minimizar"
+                      disabled={!isModalExpanded}
+                    >
+                      <Minimize2 className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsModalExpanded(true)}
+                      className="h-7 w-7 p-0 flex-shrink-0"
+                      title="Maximizar"
+                      disabled={isModalExpanded}
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDetailsOpen(false)}
+                      className="h-7 w-7 p-0 flex-shrink-0"
+                      title="Fechar"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
                 <DialogDescription className="text-xs">
                   Informações completas do cliente
