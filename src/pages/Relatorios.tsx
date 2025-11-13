@@ -173,51 +173,80 @@ const Relatorios = () => {
     try {
       const { startDate: filterStartDate, endDate: filterEndDate } = getDateRange();
       
-      // Buscar clientes inativos
+      // Buscar clientes inativos (otimizado - uma única query)
       const sixtyDaysAgo = subDays(new Date(), 60);
       
-      const { data: allCustomers } = await supabase
-        .from("customers")
-        .select("*")
-        .eq("user_id", user.id);
+      // Buscar todos os appointments completados com customer info em uma query
+      const { data: completedAppointments } = await supabase
+        .from("appointments")
+        .select(`
+          customer_id,
+          end_time,
+          price,
+          customers!inner (
+            id,
+            name,
+            phone,
+            email
+          )
+        `)
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .order("end_time", { ascending: false });
 
-      if (allCustomers) {
-        const inactiveList: InactiveCustomer[] = [];
-        
-        for (const customer of allCustomers) {
-          const { data: lastAppointment } = await supabase
-            .from("appointments")
-            .select("end_time")
-            .eq("user_id", user.id)
-            .eq("customer_id", customer.id)
-            .eq("status", "completed")
-            .order("end_time", { ascending: false })
-            .limit(1)
-            .single();
+      if (completedAppointments) {
+        // Agrupar dados por cliente
+        const customerMap = new Map<string, {
+          customer: any;
+          lastVisit: string;
+          totalVisits: number;
+          totalSpent: number;
+        }>();
 
-          if (lastAppointment && new Date(lastAppointment.end_time) < sixtyDaysAgo) {
-            const { data: customerAppointments } = await supabase
-              .from("appointments")
-              .select("price")
-              .eq("customer_id", customer.id)
-              .eq("status", "completed");
+        completedAppointments.forEach(apt => {
+          const customerId = apt.customer_id;
+          if (!customerId || !apt.customers) return;
 
-            const totalVisits = customerAppointments?.length || 0;
-            const totalSpent = customerAppointments?.reduce((sum, apt) => sum + Number(apt.price || 0), 0) || 0;
-            const daysInactive = Math.floor((Date.now() - new Date(lastAppointment.end_time).getTime()) / (1000 * 60 * 60 * 24));
+          const existing = customerMap.get(customerId);
+          const visitDate = apt.end_time;
+          const price = Number(apt.price || 0);
 
-            inactiveList.push({
-              id: customer.id,
-              name: customer.name,
-              phone: customer.phone,
-              email: customer.email,
-              last_visit: lastAppointment.end_time,
-              days_inactive: daysInactive,
-              total_visits: totalVisits,
-              total_spent: totalSpent,
+          if (existing) {
+            existing.totalVisits++;
+            existing.totalSpent += price;
+            // Manter a visita mais recente
+            if (new Date(visitDate) > new Date(existing.lastVisit)) {
+              existing.lastVisit = visitDate;
+            }
+          } else {
+            customerMap.set(customerId, {
+              customer: apt.customers,
+              lastVisit: visitDate,
+              totalVisits: 1,
+              totalSpent: price,
             });
           }
-        }
+        });
+
+        // Filtrar apenas clientes inativos há mais de 60 dias
+        const inactiveList: InactiveCustomer[] = [];
+        customerMap.forEach((data, customerId) => {
+          const lastVisitDate = new Date(data.lastVisit);
+          if (lastVisitDate < sixtyDaysAgo) {
+            const daysInactive = Math.floor((Date.now() - lastVisitDate.getTime()) / (1000 * 60 * 60 * 24));
+            
+            inactiveList.push({
+              id: customerId,
+              name: data.customer.name,
+              phone: data.customer.phone,
+              email: data.customer.email,
+              last_visit: data.lastVisit,
+              days_inactive: daysInactive,
+              total_visits: data.totalVisits,
+              total_spent: data.totalSpent,
+            });
+          }
+        });
 
         setInactiveCustomers(inactiveList.sort((a, b) => b.total_spent - a.total_spent));
       }
