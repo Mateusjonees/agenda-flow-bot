@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,7 @@ const Planos = () => {
     ticketUrl?: string;
     amount: number;
   } | null>(null);
+  const previousPendingPixRef = useRef<any>(null);
 
   const plans: PricingPlan[] = [
     {
@@ -166,6 +167,61 @@ const Planos = () => {
   useEffect(() => {
     loadMercadoPagoScript();
   }, []);
+
+  // Monitorar confirmação automática de PIX
+  useEffect(() => {
+    // Se havia um PIX pendente antes e agora não há mais, significa que foi confirmado
+    if (previousPendingPixRef.current && !pendingPix) {
+      toast.success("🎉 Pagamento Confirmado!", {
+        description: "Seu plano foi ativado com sucesso. Bem-vindo!",
+        duration: 5000,
+      });
+      
+      // Atualizar a subscription
+      refetchSubscription();
+    }
+    
+    // Atualizar referência
+    previousPendingPixRef.current = pendingPix;
+  }, [pendingPix, refetchSubscription]);
+
+  // Realtime: Monitorar mudanças na subscription
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('subscription-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'subscriptions',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Subscription changed:', payload);
+          
+          // Se foi uma inserção ou atualização, refetch
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            refetchSubscription();
+            
+            // Se status mudou para active
+            if (payload.new && (payload.new as any).status === 'active') {
+              toast.success("✅ Plano Ativado!", {
+                description: "Seu plano está ativo e pronto para uso!",
+                duration: 5000,
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, refetchSubscription]);
 
   const loadMercadoPagoScript = () => {
     if (window.MercadoPago) {
