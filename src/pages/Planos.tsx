@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useConfetti } from "@/hooks/useConfetti";
 
 declare global {
   interface Window {
@@ -51,6 +52,7 @@ const Planos = () => {
     amount: number;
   } | null>(null);
   const previousPendingPixRef = useRef<any>(null);
+  const { fireCelebration } = useConfetti();
 
   const plans: PricingPlan[] = [
     {
@@ -172,6 +174,11 @@ const Planos = () => {
   useEffect(() => {
     // Se havia um PIX pendente antes e agora não há mais, significa que foi confirmado
     if (previousPendingPixRef.current && !pendingPix) {
+      // Disparar confete
+      setTimeout(() => {
+        fireCelebration();
+      }, 500);
+      
       toast.success("🎉 Pagamento Confirmado!", {
         description: "Seu plano foi ativado com sucesso. Bem-vindo!",
         duration: 5000,
@@ -183,7 +190,7 @@ const Planos = () => {
     
     // Atualizar referência
     previousPendingPixRef.current = pendingPix;
-  }, [pendingPix, refetchSubscription]);
+  }, [pendingPix, refetchSubscription, fireCelebration]);
 
   // Realtime: Monitorar mudanças na subscription
   useEffect(() => {
@@ -208,6 +215,11 @@ const Planos = () => {
             
             // Se status mudou para active
             if (payload.new && (payload.new as any).status === 'active') {
+              // Disparar confete
+              setTimeout(() => {
+                fireCelebration();
+              }, 500);
+              
               toast.success("✅ Plano Ativado!", {
                 description: "Seu plano está ativo e pronto para uso!",
                 duration: 5000,
@@ -221,7 +233,7 @@ const Planos = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, refetchSubscription]);
+  }, [user?.id, refetchSubscription, fireCelebration]);
 
   const loadMercadoPagoScript = () => {
     if (window.MercadoPago) {
@@ -430,6 +442,30 @@ const Planos = () => {
 
   const currentPlanId = getCurrentPlanId();
 
+  const handleVerifyPayment = async () => {
+    const previousPix = pendingPix;
+    await refetchPendingPix();
+    
+    // Aguardar um pouco para dar tempo da query atualizar
+    setTimeout(async () => {
+      await refetchPendingPix();
+      
+      // Se tinha PIX pendente antes e agora não tem mais, foi confirmado!
+      if (previousPix && !pendingPix) {
+        fireCelebration();
+        toast.success("🎉 Pagamento Confirmado!", {
+          description: "Seu plano foi ativado com sucesso!",
+          duration: 5000,
+        });
+        refetchSubscription();
+      } else if (pendingPix) {
+        toast.info("Pagamento ainda pendente", {
+          description: "Aguardando confirmação do PIX...",
+        });
+      }
+    }, 1000);
+  };
+
   return (
     <div className="space-y-4 sm:space-y-8 p-3 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -477,7 +513,7 @@ const Planos = () => {
                 Assim que o pagamento for confirmado, seu plano será ativado automaticamente e você receberá um e-mail de confirmação.
               </p>
               <Button 
-                onClick={() => refetchPendingPix()}
+                onClick={handleVerifyPayment}
                 variant="outline"
                 className="w-full"
               >
