@@ -704,7 +704,7 @@ const Clientes = () => {
 
       {/* Dialog de detalhes do cliente */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="max-w-4xl h-[85vh] p-4 sm:p-6 overflow-hidden flex flex-col">
           {selectedCustomer && (
             <>
               <DialogHeader className="space-y-2">
@@ -717,15 +717,15 @@ const Clientes = () => {
                 </DialogDescription>
               </DialogHeader>
 
-              <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mt-3 sm:mt-4">
-                <TabsList className="grid w-full grid-cols-4 h-auto">
+              <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mt-3 sm:mt-4 flex-1 flex flex-col min-h-0">
+                <TabsList className="grid w-full grid-cols-4 h-auto flex-shrink-0">
                   <TabsTrigger value="info" className="text-xs sm:text-sm py-2 px-2">Info</TabsTrigger>
                   <TabsTrigger value="history" className="text-xs sm:text-sm py-2 px-2">Histórico</TabsTrigger>
                   <TabsTrigger value="subscriptions" className="text-xs sm:text-sm py-2 px-2">Assinaturas</TabsTrigger>
                   <TabsTrigger value="loyalty" className="text-xs sm:text-sm py-2 px-2">Fidelidade</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="info" className="space-y-3 sm:space-y-4">
+                <TabsContent value="info" className="space-y-3 sm:space-y-4 flex-1 overflow-y-auto mt-3">
                   {/* Botões de ação rápida */}
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Button 
@@ -1024,15 +1024,15 @@ const Clientes = () => {
                 </div>
                 </TabsContent>
 
-                <TabsContent value="history">
+                <TabsContent value="history" className="flex-1 overflow-y-auto mt-3">
                   <CustomerHistory customerId={selectedCustomer.id} />
                 </TabsContent>
 
-                <TabsContent value="subscriptions">
+                <TabsContent value="subscriptions" className="flex-1 overflow-y-auto mt-3">
                   <CustomerSubscriptions customerId={selectedCustomer.id} />
                 </TabsContent>
 
-                <TabsContent value="loyalty">
+                <TabsContent value="loyalty" className="flex-1 overflow-y-auto mt-3">
                   <CustomerLoyalty customerId={selectedCustomer.id} />
                 </TabsContent>
               </Tabs>
