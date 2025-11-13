@@ -1,16 +1,20 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Smartphone, Monitor, Download as DownloadIcon, Check, Apple, Chrome } from "lucide-react";
+import { Smartphone, Monitor, Download as DownloadIcon, Check, Apple, Chrome, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useConfetti } from "@/hooks/useConfetti";
+import { InstallPrompt } from "@/components/InstallPrompt";
+import { useNavigate } from "react-router-dom";
 
 const Download = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [deviceType, setDeviceType] = useState<"mobile" | "desktop">("desktop");
+  const [showPrompt, setShowPrompt] = useState(false);
   const { fireCelebration } = useConfetti();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Detectar tipo de dispositivo
@@ -27,6 +31,7 @@ const Download = () => {
       e.preventDefault();
       setDeferredPrompt(e);
       setIsInstallable(true);
+      setShowPrompt(true);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
@@ -34,17 +39,23 @@ const Download = () => {
     // Listener para quando o app for instalado
     window.addEventListener('appinstalled', () => {
       setIsInstalled(true);
+      setShowPrompt(false);
       fireCelebration();
       toast.success("🎉 App Instalado com Sucesso!", {
         description: "O Foguete foi instalado no seu dispositivo!",
         duration: 5000,
       });
+      
+      // Redirecionar para dashboard após instalação
+      setTimeout(() => {
+        navigate("/");
+      }, 3000);
     });
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
     };
-  }, [fireCelebration]);
+  }, [fireCelebration, navigate]);
 
   const handleInstallPWA = async () => {
     if (!deferredPrompt) {
@@ -68,36 +79,79 @@ const Download = () => {
   };
 
   const handleDownloadAPK = () => {
-    // TODO: Substitua esta URL pela URL real do seu APK quando gerar
-    // Siga os passos em MOBILE_BUILD.md para gerar o APK
-    // Depois hospede o APK (ex: GitHub Releases, seu servidor, etc)
-    // e coloque a URL abaixo:
-    const apkUrl = "/foguete-app.apk"; // Substitua pela URL real do APK
-    
-    toast.info("Gerando Download", {
-      description: "Siga as instruções no MOBILE_BUILD.md para gerar o APK primeiro!",
+    toast.info("APK Nativo", {
+      description: "O PWA (instalação direta) já oferece todas as funcionalidades! O APK nativo só é necessário para publicar na Google Play Store.",
       duration: 6000,
     });
-    
-    // Quando você tiver o APK hospedado, descomente as linhas abaixo:
-    // window.open(apkUrl, '_blank');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 p-4 sm:p-6 lg:p-8">
+      {/* Install Prompt Automático */}
+      {showPrompt && (
+        <InstallPrompt 
+          onInstall={handleInstallPWA} 
+          isInstallable={isInstallable}
+        />
+      )}
+
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4 pt-8">
           <div className="flex items-center justify-center mb-6">
-            <img src="/logo.png" alt="Foguete" className="w-24 h-24 sm:w-32 sm:h-32" />
+            <img src="/logo.png" alt="Foguete" className="w-24 h-24 sm:w-32 sm:h-32 animate-scale-in" />
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent animate-fade-in">
             Baixe o Foguete
           </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in">
             Instale nosso app e tenha acesso rápido ao melhor sistema de gestão empresarial
           </p>
         </div>
+
+        {/* CTA Destacado Mobile */}
+        {deviceType === "mobile" && !isInstalled && (
+          <Card className="border-primary bg-primary/5 shadow-lg animate-fade-in">
+            <CardContent className="pt-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-8 h-8 text-primary" />
+                <div>
+                  <h2 className="text-xl font-bold">Instale Agora - É Rápido!</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Funciona offline e carrega na velocidade da luz ⚡
+                  </p>
+                </div>
+              </div>
+              {isInstallable ? (
+                <Button 
+                  onClick={handleInstallPWA}
+                  className="w-full"
+                  size="lg"
+                >
+                  <DownloadIcon className="w-5 h-5 mr-2" />
+                  Instalar App Agora
+                </Button>
+              ) : (
+                <div className="bg-background p-4 rounded-lg space-y-3">
+                  <p className="text-sm font-medium">📱 Como instalar:</p>
+                  {/iPhone|iPad|iPod/i.test(navigator.userAgent) ? (
+                    <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
+                      <li>Toque em <Apple className="inline w-4 h-4 mx-1" /> (Compartilhar) na parte inferior</li>
+                      <li>Role e toque em "Adicionar à Tela Inicial"</li>
+                      <li>Toque em "Adicionar"</li>
+                    </ol>
+                  ) : (
+                    <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
+                      <li>Toque no menu <Chrome className="inline w-4 h-4 mx-1" /> (⋮) do navegador</li>
+                      <li>Selecione "Instalar app"</li>
+                      <li>Confirme a instalação</li>
+                    </ol>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Status Card */}
         {isInstalled && (
@@ -164,23 +218,25 @@ const Download = () => {
                 )}
               </div>
 
-              <div className="pt-4 border-t space-y-2">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <DownloadIcon className="w-4 h-4" />
-                  Download APK Nativo
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Para gerar o APK, siga as instruções no arquivo <code className="bg-muted px-1 rounded">MOBILE_BUILD.md</code>
-                </p>
-                <Button 
-                  onClick={handleDownloadAPK}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <DownloadIcon className="w-5 h-5 mr-2" />
-                  Instruções APK
-                </Button>
-              </div>
+              {deviceType === "desktop" && (
+                <div className="pt-4 border-t space-y-2">
+                  <h3 className="font-semibold flex items-center gap-2 text-muted-foreground">
+                    <DownloadIcon className="w-4 h-4" />
+                    APK Nativo (Opcional)
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    O PWA já oferece todas as funcionalidades. O APK só é necessário para Google Play Store.
+                  </p>
+                  <Button 
+                    onClick={handleDownloadAPK}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                  >
+                    Mais informações
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -254,17 +310,18 @@ const Download = () => {
           </Card>
         </div>
 
-        {/* APK Generation Guide */}
-        <Card className="border-amber-500/50 bg-amber-500/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DownloadIcon className="w-5 h-5" />
-              Como Gerar o APK Nativo para Android
-            </CardTitle>
-            <CardDescription>
-              Siga estes passos para criar o arquivo APK e disponibilizá-lo para download
-            </CardDescription>
-          </CardHeader>
+        {/* APK Generation Guide - Apenas Desktop */}
+        {deviceType === "desktop" && (
+          <Card className="border-muted bg-muted/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-muted-foreground">
+                <DownloadIcon className="w-5 h-5" />
+                APK Nativo (Avançado - Apenas para Google Play Store)
+              </CardTitle>
+              <CardDescription>
+                O PWA já funciona perfeitamente como app. Esta seção é apenas para quem deseja publicar na Play Store.
+              </CardDescription>
+            </CardHeader>
           <CardContent className="space-y-4">
             <ol className="space-y-3 text-sm">
               <li className="flex gap-3">
@@ -327,14 +384,17 @@ const Download = () => {
                 </div>
               </li>
             </ol>
-            <div className="bg-muted p-4 rounded-lg space-y-2">
-              <p className="text-sm font-semibold">📄 Consulte o arquivo MOBILE_BUILD.md para instruções detalhadas</p>
+            <div className="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+              <p className="text-sm font-medium text-primary mb-2">
+                ⚠️ Recomendação: Use o PWA
+              </p>
               <p className="text-xs text-muted-foreground">
-                Inclui: requisitos, troubleshooting, build de produção para Google Play, e mais
+                O PWA (Progressive Web App) já instalado oferece a mesma experiência de um app nativo, funciona offline, recebe atualizações automáticas e não requer todo esse processo técnico. O APK nativo só é realmente necessário se você planeja publicar o app na Google Play Store.
               </p>
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Features */}
         <Card>
