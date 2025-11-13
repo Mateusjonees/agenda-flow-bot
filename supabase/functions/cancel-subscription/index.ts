@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateSubscriptionIntegrity } from "../_shared/subscription-validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,6 +49,15 @@ const handler = async (req: Request): Promise<Response> => {
     if (subError || !subscription) {
       throw new Error("Subscription not found or unauthorized");
     }
+
+    // ✅ VALIDAÇÃO: Verificar integridade dos dados
+    const validation = validateSubscriptionIntegrity(subscription);
+    if (!validation.valid) {
+      console.error(validation.error);
+      throw new Error(validation.error);
+    }
+
+    console.log(`Canceling ${validation.subscriptionType} subscription ${subscriptionId}`);
 
     // Atualizar status da assinatura no banco
     const { error: updateError } = await supabaseClient

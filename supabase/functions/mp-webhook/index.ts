@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateSubscriptionIntegrity } from "../_shared/subscription-validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -153,6 +154,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (existingSub) {
           // Atualizar subscription existente
+          console.log(`Updating existing PLATFORM subscription ${existingSub.id} (customer_id=${existingSub.customer_id}, plan_id=${existingSub.plan_id})`);
           const { error: subError } = await supabaseClient
             .from("subscriptions")
             .update({
@@ -172,16 +174,30 @@ const handler = async (req: Request): Promise<Response> => {
           }
         } else {
           // Criar nova subscription da plataforma
+          console.log("Creating/updating PLATFORM subscription (customer_id=NULL, plan_id=NULL)");
+          
+          // Preparar dados da subscription
+          const subscriptionData = {
+            user_id: userId,
+            customer_id: null,  // ✅ EXPLÍCITO: Assinatura de plataforma
+            plan_id: null,      // ✅ EXPLÍCITO: Assinatura de plataforma
+            status: "active",
+            start_date: startDate.toISOString(),
+            next_billing_date: nextBillingDate.toISOString(),
+            last_billing_date: startDate.toISOString(),
+            failed_payments_count: 0
+          };
+
+          // ✅ VALIDAÇÃO: Verificar integridade antes de inserir
+          const validation = validateSubscriptionIntegrity(subscriptionData as any);
+          if (!validation.valid) {
+            console.error("❌ Validation failed:", validation.error);
+            throw new Error(validation.error);
+          }
+
           const { error: subError } = await supabaseClient
             .from("subscriptions")
-            .insert({
-              user_id: userId,
-              status: "active",
-              start_date: startDate.toISOString(),
-              next_billing_date: nextBillingDate.toISOString(),
-              last_billing_date: startDate.toISOString(),
-              failed_payments_count: 0
-            });
+            .insert(subscriptionData);
 
           if (subError) {
             console.error("❌ Erro ao criar subscription:", subError);
@@ -349,6 +365,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (existingSub) {
           // Atualizar subscription existente
+          console.log(`Updating existing PLATFORM subscription ${existingSub.id} (customer_id=${existingSub.customer_id}, plan_id=${existingSub.plan_id})`);
           console.log("🔍 STEP 16: Atualizando subscription existente ID:", existingSub.id);
           const { error: subError } = await supabaseClient
             .from("subscriptions")
@@ -372,21 +389,35 @@ const handler = async (req: Request): Promise<Response> => {
           }
         } else {
           // Criar nova subscription da plataforma
+          console.log("Creating/updating PLATFORM subscription (customer_id=NULL, plan_id=NULL)");
           console.log("🔍 STEP 16: Criando nova subscription da plataforma");
+          
+          // Preparar dados da subscription
+          const subscriptionData = {
+            user_id: userId,
+            customer_id: null,  // ✅ EXPLÍCITO: Assinatura de plataforma
+            plan_id: null,      // ✅ EXPLÍCITO: Assinatura de plataforma
+            type: "platform",
+            status: "active",
+            billing_frequency: metadata.billingFrequency || metadata.planId,
+            payment_method: "card",
+            plan_name: metadata.planName,
+            start_date: startDate.toISOString(),
+            next_billing_date: nextBillingDate.toISOString(),
+            last_billing_date: startDate.toISOString(),
+            failed_payments_count: 0
+          };
+
+          // ✅ VALIDAÇÃO: Verificar integridade antes de inserir
+          const validation = validateSubscriptionIntegrity(subscriptionData as any);
+          if (!validation.valid) {
+            console.error("❌ STEP 16b: Validation failed:", validation.error);
+            throw new Error(validation.error);
+          }
+
           const { data: newSub, error: subError } = await supabaseClient
             .from("subscriptions")
-            .insert({
-              user_id: userId,
-              type: "platform",
-              status: "active",
-              billing_frequency: metadata.billingFrequency || metadata.planId,
-              payment_method: "card",
-              plan_name: metadata.planName,
-              start_date: startDate.toISOString(),
-              next_billing_date: nextBillingDate.toISOString(),
-              last_billing_date: startDate.toISOString(),
-              failed_payments_count: 0
-            })
+            .insert(subscriptionData)
             .select()
             .single();
 
