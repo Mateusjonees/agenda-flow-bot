@@ -49,7 +49,8 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import logo from "@/assets/foguetinho.png";
+import foguetinho from "@/assets/foguetinho.png";
+import logoAntigo from "@/assets/logo.png";
 import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
@@ -389,7 +390,16 @@ const Landing = () => {
       <header className="border-b bg-card/95 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="Foguete" className="h-10 w-auto" />
+            <img 
+              src={foguetinho} 
+              alt="Foguete" 
+              className="h-10 w-auto dark:hidden transition-transform duration-300 hover:scale-110 hover:rotate-6" 
+            />
+            <img 
+              src={logoAntigo} 
+              alt="Foguete" 
+              className="h-10 w-auto hidden dark:block" 
+            />
             <span className="text-xl font-bold text-foreground">Foguete</span>
           </div>
           
@@ -1304,7 +1314,16 @@ const Landing = () => {
             {/* Logo and Description */}
             <div className="md:col-span-1">
               <div className="flex items-center gap-3 mb-4">
-                <img src={logo} alt="Foguete" className="h-10 w-auto" />
+                <img 
+                  src={foguetinho} 
+                  alt="Foguete" 
+                  className="h-10 w-auto dark:hidden transition-transform duration-300 hover:scale-110 hover:rotate-6" 
+                />
+                <img 
+                  src={logoAntigo} 
+                  alt="Foguete" 
+                  className="h-10 w-auto hidden dark:block" 
+                />
                 <span className="text-xl font-bold text-foreground">Foguete</span>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
