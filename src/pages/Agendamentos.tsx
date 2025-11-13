@@ -1239,13 +1239,13 @@ const Agendamentos = () => {
           <div className="space-y-3">
         {sortedAppointments.map((apt) => {
           const statusColors = {
-            confirmed: "border-green-500 bg-green-50/50 dark:bg-green-950/20",
+            scheduled: "border-blue-500 bg-blue-50/50 dark:bg-blue-950/20",
             pending: "border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20",
             cancelled: "border-red-500 bg-red-50/50 dark:bg-red-950/20",
-            completed: "border-primary bg-primary/5 dark:bg-primary/10"
+            completed: "border-green-500 bg-green-50/50 dark:bg-green-950/20"
           };
           
-          const borderColor = statusColors[apt.status as keyof typeof statusColors] || statusColors.completed;
+          const borderColor = statusColors[apt.status as keyof typeof statusColors] || statusColors.scheduled;
           
           return (
             <Card key={apt.id} className={cn("border-l-4 hover:shadow-md transition-all", borderColor)}>
