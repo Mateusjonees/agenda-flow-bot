@@ -27,7 +27,6 @@ import Pricing from "./pages/Pricing";
 import Planos from "./pages/Planos";
 import Maintenance from "./pages/Maintenance";
 import NotFound from "./pages/NotFound";
-import Download from "./pages/Download";
 import HistoricoPagamentos from "./pages/HistoricoPagamentos";
 
 const queryClient = new QueryClient();
@@ -48,7 +47,6 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/manutencao" element={<Maintenance />} />
                 <Route path="/pricing" element={<Pricing />} />
-                <Route path="/download" element={<Download />} />
                 
                 {/* Página de configurações (fora do guard para permitir renovação) */}
                 <Route path="/configuracoes" element={<Layout><Configuracoes /></Layout>} />

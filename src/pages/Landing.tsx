@@ -276,13 +276,6 @@ const Landing = () => {
               FAQ
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
             </button>
-            <button 
-              onClick={() => navigate('/download')} 
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative group"
-            >
-              📱 Baixar App
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
-            </button>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -344,9 +337,6 @@ const Landing = () => {
               </button>
               <button onClick={() => scrollToSection('faq')} className="text-left text-sm font-medium text-muted-foreground hover:text-primary transition-colors py-2">
                 FAQ
-              </button>
-              <button onClick={() => navigate('/download')} className="text-left text-sm font-medium text-muted-foreground hover:text-primary transition-colors py-2">
-                📱 Baixar App
               </button>
               <div className="pt-2 border-t space-y-2">
                 {!isAuthenticated ? (
@@ -413,15 +403,6 @@ const Landing = () => {
             >
               {isAuthenticated ? "Acessar Dashboard" : "Começar Teste Grátis"}
               <Rocket className="w-5 h-5" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              onClick={() => navigate('/download')}
-              className="h-14 px-8 text-base gap-2"
-            >
-              📱 Baixar App
-              <ArrowRight className="w-5 h-5" />
             </Button>
           </div>
 
