@@ -706,7 +706,7 @@ const Clientes = () => {
       {/* Dialog de detalhes do cliente */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent 
-          className={`${isModalExpanded ? 'max-w-[95vw] h-[95vh]' : 'max-w-4xl h-[90vh]'} p-3 sm:p-4 overflow-hidden flex flex-col transition-all duration-300`}
+          className={`${isModalExpanded ? 'max-w-[95vw] h-[95vh]' : 'max-w-4xl h-[90vh]'} p-3 sm:p-4 overflow-hidden flex flex-col transition-all duration-300 [&>button]:hidden`}
           onPointerDownOutside={(e) => e.preventDefault()}
         >
           {selectedCustomer && (
