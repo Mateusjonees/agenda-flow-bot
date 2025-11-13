@@ -659,7 +659,11 @@ const Landing = () => {
             <p className="text-muted-foreground mb-4">
               Ainda tem dúvidas?
             </p>
-            <Button variant="outline" className="gap-2">
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => window.open('https://wa.me/5548990751889?text=Olá,%20preciso%20de%20suporte', '_blank')}
+            >
               <MessageCircle className="w-4 h-4" />
               Falar com Suporte
             </Button>
