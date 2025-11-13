@@ -68,10 +68,19 @@ const Download = () => {
   };
 
   const handleDownloadAPK = () => {
-    toast.info("APK em Desenvolvimento", {
-      description: "A versão APK nativa estará disponível em breve. Por enquanto, use a instalação pelo navegador!",
-      duration: 5000,
+    // TODO: Substitua esta URL pela URL real do seu APK quando gerar
+    // Siga os passos em MOBILE_BUILD.md para gerar o APK
+    // Depois hospede o APK (ex: GitHub Releases, seu servidor, etc)
+    // e coloque a URL abaixo:
+    const apkUrl = "/foguete-app.apk"; // Substitua pela URL real do APK
+    
+    toast.info("Gerando Download", {
+      description: "Siga as instruções no MOBILE_BUILD.md para gerar o APK primeiro!",
+      duration: 6000,
     });
+    
+    // Quando você tiver o APK hospedado, descomente as linhas abaixo:
+    // window.open(apkUrl, '_blank');
   };
 
   return (
@@ -158,19 +167,18 @@ const Download = () => {
               <div className="pt-4 border-t space-y-2">
                 <h3 className="font-semibold flex items-center gap-2">
                   <DownloadIcon className="w-4 h-4" />
-                  Download APK (Em breve)
+                  Download APK Nativo
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Arquivo APK para instalação direta no Android
+                  Para gerar o APK, siga as instruções no arquivo <code className="bg-muted px-1 rounded">MOBILE_BUILD.md</code>
                 </p>
                 <Button 
                   onClick={handleDownloadAPK}
                   variant="outline"
                   className="w-full"
-                  disabled
                 >
                   <DownloadIcon className="w-5 h-5 mr-2" />
-                  Baixar APK (Em desenvolvimento)
+                  Instruções APK
                 </Button>
               </div>
             </CardContent>
@@ -245,6 +253,88 @@ const Download = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* APK Generation Guide */}
+        <Card className="border-amber-500/50 bg-amber-500/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DownloadIcon className="w-5 h-5" />
+              Como Gerar o APK Nativo para Android
+            </CardTitle>
+            <CardDescription>
+              Siga estes passos para criar o arquivo APK e disponibilizá-lo para download
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ol className="space-y-3 text-sm">
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</span>
+                <div>
+                  <strong>Exporte o projeto para Github</strong>
+                  <p className="text-muted-foreground">Use o botão "Export to Github" e faça git clone</p>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">2</span>
+                <div>
+                  <strong>Instale as dependências</strong>
+                  <code className="block mt-1 bg-muted p-2 rounded text-xs">npm install</code>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</span>
+                <div>
+                  <strong>Adicione a plataforma Android</strong>
+                  <code className="block mt-1 bg-muted p-2 rounded text-xs">npx cap add android</code>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">4</span>
+                <div>
+                  <strong>Faça o build e sincronize</strong>
+                  <code className="block mt-1 bg-muted p-2 rounded text-xs">npm run build && npx cap sync android</code>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">5</span>
+                <div>
+                  <strong>Abra no Android Studio</strong>
+                  <code className="block mt-1 bg-muted p-2 rounded text-xs">npx cap open android</code>
+                  <p className="text-muted-foreground mt-1">No Android Studio: Build → Build Bundle(s) / APK(s) → Build APK(s)</p>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">6</span>
+                <div>
+                  <strong>Disponibilize o APK</strong>
+                  <p className="text-muted-foreground">
+                    O APK estará em <code className="bg-muted px-1 rounded text-xs">android/app/build/outputs/apk/debug/app-debug.apk</code>
+                  </p>
+                  <p className="text-muted-foreground mt-1">
+                    Hospede em: GitHub Releases, Google Drive, Dropbox, ou seu próprio servidor
+                  </p>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">7</span>
+                <div>
+                  <strong>Atualize o link de download</strong>
+                  <p className="text-muted-foreground">
+                    No arquivo <code className="bg-muted px-1 rounded text-xs">src/pages/Download.tsx</code>, 
+                    substitua a URL na função <code className="bg-muted px-1 rounded text-xs">handleDownloadAPK</code> 
+                    pela URL do seu APK hospedado
+                  </p>
+                </div>
+              </li>
+            </ol>
+            <div className="bg-muted p-4 rounded-lg space-y-2">
+              <p className="text-sm font-semibold">📄 Consulte o arquivo MOBILE_BUILD.md para instruções detalhadas</p>
+              <p className="text-xs text-muted-foreground">
+                Inclui: requisitos, troubleshooting, build de produção para Google Play, e mais
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Features */}
         <Card>
