@@ -99,6 +99,9 @@ const handler = async (req: Request): Promise<Response> => {
             .update({
               status: "active",
               plan_id: metadata.planId || existingSub.plan_id,
+              billing_frequency: metadata.billingFrequency,
+              payment_method: "pix",
+              plan_name: metadata.planName,
               start_date: startDate.toISOString(),
               next_billing_date: nextBillingDate.toISOString(),
               last_billing_date: startDate.toISOString(),
@@ -118,6 +121,10 @@ const handler = async (req: Request): Promise<Response> => {
             .insert({
               user_id: metadata.userId,
               plan_id: metadata.planId,
+              billing_frequency: metadata.billingFrequency,
+              payment_method: "pix",
+              plan_name: metadata.planName,
+              type: "platform",
               status: "active",
               start_date: startDate.toISOString(),
               next_billing_date: nextBillingDate.toISOString(),

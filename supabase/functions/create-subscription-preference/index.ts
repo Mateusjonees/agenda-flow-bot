@@ -102,6 +102,7 @@ const handler = async (req: Request): Promise<Response> => {
         userId: user.id,
         planId: planType,
         billingFrequency: planType,
+        planName: selectedPlan.title,
         months: selectedPlan.frequency,
         type: "platform_subscription"
       }

@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { SubscriptionStatusCard } from "@/components/SubscriptionStatusCard";
 
 
 const Configuracoes = () => {
@@ -105,6 +106,24 @@ const Configuracoes = () => {
         .eq("user_id", user.id)
         .order("day_of_week");
       return data || [];
+    },
+    enabled: !!user,
+  });
+
+  // Buscar assinatura do usuário
+  const { data: subscription } = useQuery({
+    queryKey: ["user-subscription", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("type", "platform")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      return data;
     },
     enabled: !!user,
   });
@@ -406,6 +425,12 @@ const Configuracoes = () => {
         </CardContent>
       </Card>
 
+      {/* Seção de Assinatura */}
+      <div className="space-y-4">
+        <Separator />
+        <h2 className="text-xl font-bold">Minha Assinatura</h2>
+        <SubscriptionStatusCard subscription={subscription} compact={false} />
+      </div>
 
       <Card>
         <CardHeader className="p-3 sm:p-6">
