@@ -286,13 +286,13 @@ const Dashboard = () => {
     },
   ];
 
-  // Dados para gráfico de serviços com cores em tons de vermelho para light mode
+  // Dados para gráfico de serviços com cores variadas e bonitas
   const colors = [
-    "#ef4444", // red-500
-    "#dc2626", // red-600
-    "#b91c1c", // red-700
-    "#991b1b", // red-800
-    "#f87171", // red-400
+    "hsl(var(--primary))",
+    "hsl(var(--secondary))",
+    "hsl(var(--accent))",
+    "hsl(142.1 76.2% 36.3%)", // green
+    "hsl(217.2 91.2% 59.8%)", // blue
   ];
 
   const serviceData = popularServices.map((service, index) => ({

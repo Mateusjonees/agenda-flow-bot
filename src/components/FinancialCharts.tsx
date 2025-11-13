@@ -25,12 +25,12 @@ interface FinancialChartsProps {
 }
 
 const COLORS = [
-  "#ef4444", // red-500
-  "#dc2626", // red-600
-  "#b91c1c", // red-700
-  "#991b1b", // red-800
-  "#f87171", // red-400
-  "#fca5a5", // red-300
+  "hsl(262.1 83.3% 57.8%)", // primary
+  "hsl(346.8 77.2% 49.8%)", // secondary
+  "hsl(24.6 95% 53.1%)",    // accent
+  "hsl(142.1 76.2% 36.3%)", // green
+  "hsl(217.2 91.2% 59.8%)", // blue
+  "hsl(280.4 89.1% 65.5%)", // purple
 ];
 
 export const FinancialCharts = ({ 
