@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Package, AlertTriangle, TrendingDown, TrendingUp, History, DollarSign, Pencil, Trash2, Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { QuickStockAdjuster } from "@/components/QuickStockAdjuster";
 
 interface InventoryItem {
   id: string;
@@ -347,6 +348,84 @@ const Estoque = () => {
 
   const isLowStock = (item: InventoryItem) => {
     return item.current_stock <= item.min_quantity && item.min_quantity > 0;
+  };
+
+  const handleQuickAdjust = async (item: InventoryItem, quantity: number, type: "in" | "out") => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    console.log("🔄 Ajuste rápido:", { item: item.name, quantity, type });
+
+    // Atualizar estoque usando a função do banco
+    const { error: stockError } = await supabase.rpc("update_inventory_stock", {
+      p_item_id: item.id,
+      p_quantity: quantity,
+      p_type: type,
+      p_reason: type === "in" ? "Entrada rápida" : "Saída rápida",
+      p_reference_type: "quick_adjust",
+    });
+
+    if (stockError) {
+      console.error("❌ Erro ao ajustar estoque:", stockError);
+      toast({
+        title: "Erro ao ajustar estoque",
+        description: stockError.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Calcular valor da transação
+    const transactionAmount = quantity * item.cost_price;
+    const transactionType = type === "in" ? "expense" : "income";
+    const description = type === "in" 
+      ? `Entrada de estoque: ${item.name} (${quantity} ${item.unit})`
+      : `Saída de estoque: ${item.name} (${quantity} ${item.unit})`;
+
+    // Registrar transação financeira se houver custo definido
+    if (item.cost_price > 0) {
+      console.log("💰 Criando transação financeira...", {
+        type: transactionType,
+        amount: transactionAmount
+      });
+
+      const { error: transactionError } = await supabase
+        .from("financial_transactions")
+        .insert({
+          user_id: user.id,
+          type: transactionType,
+          amount: transactionAmount,
+          description,
+          payment_method: "cash",
+          status: "completed",
+          transaction_date: new Date().toISOString(),
+        });
+
+      if (transactionError) {
+        console.error("❌ Erro ao criar transação:", transactionError);
+        toast({
+          title: "Estoque ajustado",
+          description: `${type === "in" ? "Entrada" : "Saída"} registrada, mas erro ao atualizar financeiro: ${transactionError.message}`,
+          variant: "destructive",
+        });
+      } else {
+        console.log("✅ Transação criada com sucesso!");
+        toast({
+          title: "✅ Estoque e financeiro atualizados!",
+          description: `${type === "in" ? "Entrada" : "Saída"} de ${quantity} ${item.unit} registrada. ${type === "in" ? "Despesa" : "Receita"} de ${formatCurrency(transactionAmount)} adicionada ao financeiro.`,
+        });
+      }
+    } else {
+      console.log("ℹ️ Sem custo definido, apenas ajustando estoque");
+      toast({
+        title: "Estoque ajustado!",
+        description: `${type === "in" ? "Entrada" : "Saída"} de ${quantity} ${item.unit} registrada.`,
+      });
+    }
+
+    // Recarregar dados
+    fetchItems();
+    fetchMovements();
   };
 
   // Filtrar itens
@@ -853,6 +932,15 @@ const Estoque = () => {
                         <span className={`font-bold ${isLowStock(item) ? "text-destructive" : ""}`}>
                           {item.current_stock} {item.unit}
                         </span>
+                      </div>
+
+                      {/* Ajuste rápido de estoque */}
+                      <div className="flex justify-center pt-1 pb-2 border-b">
+                        <QuickStockAdjuster
+                          onAdjust={(quantity, type) => handleQuickAdjust(item, quantity, type)}
+                          disabled={isReadOnly}
+                          unit={item.unit}
+                        />
                       </div>
                       
                       {item.cost_price > 0 && (
