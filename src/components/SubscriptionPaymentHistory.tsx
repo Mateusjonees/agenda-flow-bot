@@ -107,10 +107,62 @@ export function SubscriptionPaymentHistory() {
   const handleDownloadInvoice = async (chargeId: string) => {
     setDownloadingInvoice(chargeId);
     try {
-      // Aqui você pode implementar a geração de fatura/recibo
-      toast.info("Funcionalidade em desenvolvimento");
-    } catch (error) {
-      toast.error("Erro ao gerar fatura");
+      const payment = allPayments.find(p => p.id === chargeId);
+      if (!payment) {
+        toast.error("Pagamento não encontrado");
+        return;
+      }
+
+      // Chamar edge function para gerar o recibo
+      const { data, error } = await supabase.functions.invoke('generate-payment-receipt', {
+        body: { 
+          paymentId: chargeId,
+          paymentType: payment.type
+        }
+      });
+
+      if (error) throw error;
+
+      if (!data.html) {
+        throw new Error("Erro ao gerar recibo");
+      }
+
+      // Criar um iframe oculto para renderizar e imprimir o HTML
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = 'none';
+      document.body.appendChild(iframe);
+
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) {
+        throw new Error("Erro ao criar documento");
+      }
+
+      iframeDoc.open();
+      iframeDoc.write(data.html);
+      iframeDoc.close();
+
+      // Aguardar o carregamento e imprimir
+      iframe.onload = () => {
+        setTimeout(() => {
+          iframe.contentWindow?.print();
+          
+          // Remover iframe após alguns segundos
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+          }, 1000);
+          
+          toast.success("Recibo gerado! Use Ctrl+P ou Cmd+P para salvar como PDF");
+        }, 500);
+      };
+
+    } catch (error: any) {
+      console.error("Error downloading invoice:", error);
+      toast.error(error.message || "Erro ao gerar recibo");
     } finally {
       setDownloadingInvoice(null);
     }
