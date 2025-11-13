@@ -122,9 +122,9 @@ const Planos = () => {
 
   const { data: subscription, refetch: refetchSubscription } = useQuery({
     queryKey: ["user-subscription", user?.id],
-    queryFn: async (): Promise<any> => {
+    queryFn: async () => {
       if (!user) return null;
-      // @ts-ignore - Supabase type inference issue
+      // @ts-ignore
       const { data } = await supabase
         .from("subscriptions")
         .select("*, subscription_plans(*)")
@@ -133,7 +133,7 @@ const Planos = () => {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      return data;
+      return data as any;
     },
     enabled: !!user,
   });
@@ -141,7 +141,7 @@ const Planos = () => {
   // Buscar PIX pendente
   const { data: pendingPix, refetch: refetchPendingPix } = useQuery({
     queryKey: ["pending-platform-pix", user?.id],
-    queryFn: async (): Promise<any> => {
+    queryFn: async () => {
       if (!user) return null;
       const { data } = await supabase
         .from("pix_charges")
@@ -155,7 +155,7 @@ const Planos = () => {
       
       // Filtrar por metadata.type = platform_subscription
       if (data && data.metadata && (data.metadata as any).type === "platform_subscription") {
-        return data;
+        return data as any;
       }
       return null;
     },
