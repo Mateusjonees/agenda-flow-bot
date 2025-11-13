@@ -149,20 +149,30 @@ export function SubscriptionStatusCard({ subscription, compact = false }: Subscr
         )}
 
         {!compact && (
-          <div className="flex gap-2 pt-2">
+          <div className="space-y-2 pt-2">
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => navigate("/planos")} 
+                variant="outline"
+                className="flex-1"
+              >
+                Alterar Plano
+              </Button>
+              <Button 
+                onClick={() => navigate("/planos")} 
+                variant="default"
+                className="flex-1"
+              >
+                Gerenciar
+              </Button>
+            </div>
             <Button 
-              onClick={() => navigate("/planos")} 
-              variant="outline"
-              className="flex-1"
+              onClick={() => navigate("/historico-pagamentos")} 
+              variant="ghost"
+              size="sm"
+              className="w-full text-xs"
             >
-              Alterar Plano
-            </Button>
-            <Button 
-              onClick={() => navigate("/planos")} 
-              variant="default"
-              className="flex-1"
-            >
-              Gerenciar
+              Ver Histórico de Pagamentos
             </Button>
           </div>
         )}
