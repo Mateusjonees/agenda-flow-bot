@@ -283,15 +283,145 @@ const handler = async (req: Request): Promise<Response> => {
 
       console.log("✅ STEP 9: Pagamento APROVADO - processando...");
 
-      // Se tem preapproval_id, deve ser processado como assinatura recorrente
+      // Se tem preapproval_id, é um pagamento de RENOVAÇÃO
       if (payment.preapproval_id) {
-        console.log("⚠️ STEP 10: Payment tem preapproval_id, é uma assinatura recorrente");
-        // Processar como assinatura recorrente (não implementado neste fluxo)
-        return new Response(
-          JSON.stringify({ success: true, message: "Subscription payment noted" }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      } 
+        console.log("🔄 STEP 10: Processando pagamento de RENOVAÇÃO de assinatura");
+        console.log(`Preapproval ID: ${payment.preapproval_id}`);
+        
+        try {
+          // Buscar dados do preapproval para obter metadata com userId
+          const preapprovalResponse = await fetch(
+            `https://api.mercadopago.com/preapproval/${payment.preapproval_id}`,
+            {
+              headers: {
+                "Authorization": `Bearer ${accessToken}`,
+                "Content-Type": "application/json"
+              }
+            }
+          );
+
+          if (!preapprovalResponse.ok) {
+            console.error("❌ Erro ao buscar preapproval:", preapprovalResponse.status);
+            return new Response(
+              JSON.stringify({ error: "Failed to fetch preapproval" }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          const preapprovalData = await preapprovalResponse.json();
+          console.log("📋 Preapproval data:", JSON.stringify(preapprovalData, null, 2));
+          
+          const metadata = preapprovalData.metadata || {};
+          const userId = metadata.userId || metadata.user_id;
+          const months = parseInt(metadata.months || "1");
+
+          if (!userId) {
+            console.error("❌ Missing userId in preapproval metadata");
+            return new Response(
+              JSON.stringify({ error: "Missing userId in preapproval" }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          console.log(`✅ STEP 11: Processando renovação para user ${userId}, ${months} mês(es)`);
+
+          // Buscar subscription da plataforma (customer_id = null e plan_id = null)
+          const { data: subscription, error: findError } = await supabaseClient
+            .from("subscriptions")
+            .select("*")
+            .eq("user_id", userId)
+            .is("customer_id", null)
+            .is("plan_id", null)
+            .single();
+
+          if (findError || !subscription) {
+            console.error("❌ STEP 12: Platform subscription not found for renewal:", findError);
+            return new Response(
+              JSON.stringify({ error: "Subscription not found" }),
+              { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          console.log("✅ STEP 12: Subscription encontrada:", subscription.id);
+
+          // Validar integridade da subscription
+          const validation = validateSubscriptionIntegrity(subscription);
+          if (!validation.valid) {
+            console.error("❌ STEP 13: Subscription validation failed:", validation.error);
+            return new Response(
+              JSON.stringify({ error: validation.error }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          console.log(`✅ STEP 13: Subscription validada como ${validation.subscriptionType}`);
+
+          // Calcular nova data de renovação: adicionar months à data atual de next_billing_date
+          const currentBillingDate = new Date(subscription.next_billing_date);
+          const newBillingDate = new Date(currentBillingDate);
+          newBillingDate.setMonth(newBillingDate.getMonth() + months);
+
+          console.log(`📅 STEP 14: Renovação calculada:`, {
+            currentBillingDate: currentBillingDate.toISOString(),
+            newBillingDate: newBillingDate.toISOString(),
+            months
+          });
+
+          // Atualizar subscription com nova data de renovação
+          const { error: updateError } = await supabaseClient
+            .from("subscriptions")
+            .update({
+              next_billing_date: newBillingDate.toISOString(),
+              last_billing_date: new Date().toISOString(),
+              failed_payments_count: 0,
+              status: "active",
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", subscription.id);
+
+          if (updateError) {
+            console.error("❌ STEP 15: Erro ao atualizar subscription:", updateError);
+            throw updateError;
+          }
+
+          console.log("✅ STEP 15: Assinatura renovada com sucesso!");
+
+          // Registrar transação financeira da renovação
+          const { error: transactionError } = await supabaseClient
+            .from("financial_transactions")
+            .insert({
+              user_id: userId,
+              type: "income",
+              description: `Renovação de assinatura da plataforma - ${months} mês(es)`,
+              amount: payment.transaction_amount,
+              status: "completed",
+              payment_method: "mercadopago_subscription",
+              transaction_date: new Date().toISOString()
+            });
+
+          if (transactionError) {
+            console.error("⚠️ STEP 16: Erro ao criar transação (não crítico):", transactionError);
+          } else {
+            console.log("✅ STEP 16: Transação financeira registrada");
+          }
+
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: "Subscription renewed successfully",
+              next_billing_date: newBillingDate.toISOString()
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+
+        } catch (error) {
+          console.error("❌ Erro ao processar renovação:", error);
+          return new Response(
+            JSON.stringify({ error: "Failed to process renewal" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
       
       // Verificar se é pagamento de assinatura da plataforma
       const metadata = payment.metadata || {};
