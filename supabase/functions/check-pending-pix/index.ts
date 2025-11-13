@@ -158,21 +158,38 @@ const handler = async (req: Request): Promise<Response> => {
               }
             }
 
-            // Criar transação financeira
-            const { error: transError } = await supabaseClient
+            // Criar transação financeira (verificar duplicação)
+            const description = `Assinatura ${metadata.billingFrequency || 'Renovação'} - PIX`;
+            const { data: existingTrans } = await supabaseClient
               .from("financial_transactions")
-              .insert({
-                user_id: metadata.userId,
-                type: "income",
-                amount: charge.amount,
-                description: `Assinatura ${metadata.billingFrequency || 'Renovação'} - PIX`,
-                payment_method: "pix",
-                status: "completed",
-                transaction_date: new Date().toISOString(),
-              });
+              .select("id")
+              .eq("user_id", metadata.userId)
+              .eq("amount", charge.amount)
+              .eq("description", description)
+              .eq("payment_method", "pix")
+              .eq("status", "completed")
+              .maybeSingle();
 
-            if (transError) {
-              console.error("❌ Erro ao criar transação:", transError);
+            if (!existingTrans) {
+              const { error: transError } = await supabaseClient
+                .from("financial_transactions")
+                .insert({
+                  user_id: metadata.userId,
+                  type: "income",
+                  amount: charge.amount,
+                  description: description,
+                  payment_method: "pix",
+                  status: "completed",
+                  transaction_date: new Date().toISOString(),
+                });
+
+              if (transError) {
+                console.error("❌ Erro ao criar transação:", transError);
+              } else {
+                console.log("✅ Transaction criada");
+              }
+            } else {
+              console.log("ℹ️ Transaction já existe, pulando");
             }
           }
 
@@ -215,21 +232,37 @@ const handler = async (req: Request): Promise<Response> => {
                 console.log(`✅ Client subscription ${charge.subscription_id} updated!`);
               }
 
-              // Criar transação financeira
-              const { error: transError } = await supabaseClient
+              // Criar transação financeira (verificar duplicação)
+              const { data: existingTrans } = await supabaseClient
                 .from("financial_transactions")
-                .insert({
-                  user_id: subscription.user_id,
-                  type: "income",
-                  amount: charge.amount,
-                  description: `Assinatura de Cliente - PIX`,
-                  payment_method: "pix",
-                  status: "completed",
-                  transaction_date: new Date().toISOString(),
-                });
+                .select("id")
+                .eq("user_id", subscription.user_id)
+                .eq("amount", charge.amount)
+                .eq("description", "Assinatura de Cliente - PIX")
+                .eq("payment_method", "pix")
+                .eq("status", "completed")
+                .maybeSingle();
 
-              if (transError) {
-                console.error("❌ Erro ao criar transação:", transError);
+              if (!existingTrans) {
+                const { error: transError } = await supabaseClient
+                  .from("financial_transactions")
+                  .insert({
+                    user_id: subscription.user_id,
+                    type: "income",
+                    amount: charge.amount,
+                    description: `Assinatura de Cliente - PIX`,
+                    payment_method: "pix",
+                    status: "completed",
+                    transaction_date: new Date().toISOString(),
+                  });
+
+                if (transError) {
+                  console.error("❌ Erro ao criar transação de cliente:", transError);
+                } else {
+                  console.log("✅ Transaction de cliente criada");
+                }
+              } else {
+                console.log("ℹ️ Transaction de cliente já existe, pulando");
               }
             }
           }

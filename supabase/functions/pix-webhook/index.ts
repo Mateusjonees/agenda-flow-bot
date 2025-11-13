@@ -138,21 +138,37 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
 
-        // Create financial transaction for platform subscription
-        const { error: transError } = await supabaseClient
+        // Create financial transaction for platform subscription (verificar duplicação)
+        const { data: existingTrans } = await supabaseClient
           .from("financial_transactions")
-          .insert({
-            user_id: metadata.userId,
-            type: "income",
-            amount: payload.amount,
-            description: `Assinatura ${metadata.billingFrequency || 'Renovação'} - PIX`,
-            payment_method: "pix",
-            status: "completed",
-            transaction_date: new Date().toISOString(),
-          });
+          .select("id")
+          .eq("user_id", metadata.userId)
+          .eq("amount", payload.amount)
+          .eq("description", `Assinatura ${metadata.billingFrequency || 'Renovação'} - PIX`)
+          .eq("payment_method", "pix")
+          .eq("status", "completed")
+          .maybeSingle();
 
-        if (transError) {
-          console.error("Error creating financial transaction:", transError);
+        if (!existingTrans) {
+          const { error: transError } = await supabaseClient
+            .from("financial_transactions")
+            .insert({
+              user_id: metadata.userId,
+              type: "income",
+              amount: payload.amount,
+              description: `Assinatura ${metadata.billingFrequency || 'Renovação'} - PIX`,
+              payment_method: "pix",
+              status: "completed",
+              transaction_date: new Date().toISOString(),
+            });
+
+          if (transError) {
+            console.error("Error creating financial transaction:", transError);
+          } else {
+            console.log("✅ Financial transaction created");
+          }
+        } else {
+          console.log("ℹ️ Financial transaction already exists, skipping");
         }
       }
       
@@ -185,23 +201,38 @@ const handler = async (req: Request): Promise<Response> => {
             console.error("Error updating customer subscription:", subUpdateError);
           }
 
-          // Create financial transaction for customer subscription
-          const { error: transError } = await supabaseClient
+          // Create financial transaction for customer subscription (verificar duplicação)
+          const description = `Pagamento Assinatura - ${subscription.customers?.name || 'Cliente'} - ${subscription.subscription_plans?.name || 'Plano'}`;
+          const { data: existingTrans } = await supabaseClient
             .from("financial_transactions")
-            .insert({
-              user_id: subscription.user_id,
-              type: "income",
-              amount: payload.amount,
-              description: `Pagamento Assinatura - ${subscription.customers?.name || 'Cliente'} - ${subscription.subscription_plans?.name || 'Plano'}`,
-              payment_method: "pix",
-              status: "completed",
-              transaction_date: new Date().toISOString(),
-            });
+            .select("id")
+            .eq("user_id", subscription.user_id)
+            .eq("amount", payload.amount)
+            .eq("description", description)
+            .eq("payment_method", "pix")
+            .eq("status", "completed")
+            .maybeSingle();
 
-          if (transError) {
-            console.error("Error creating financial transaction for customer subscription:", transError);
+          if (!existingTrans) {
+            const { error: transError } = await supabaseClient
+              .from("financial_transactions")
+              .insert({
+                user_id: subscription.user_id,
+                type: "income",
+                amount: payload.amount,
+                description: description,
+                payment_method: "pix",
+                status: "completed",
+                transaction_date: new Date().toISOString(),
+              });
+
+            if (transError) {
+              console.error("Error creating financial transaction for customer subscription:", transError);
+            } else {
+              console.log("Financial transaction created successfully for customer subscription");
+            }
           } else {
-            console.log("Financial transaction created successfully for customer subscription");
+            console.log("ℹ️ Financial transaction already exists for customer subscription, skipping");
           }
         }
       }

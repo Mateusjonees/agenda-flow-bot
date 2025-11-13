@@ -212,21 +212,40 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
 
-        // Criar transação financeira
-        const { error: transError } = await supabaseClient
+        // Criar transação financeira (verificar duplicação)
+        const description = `Assinatura ${metadata.billingFrequency || metadata.planId} - Plano Foguetinho`;
+        const amount = preapprovalData.auto_recurring?.transaction_amount || 0;
+        
+        const { data: existingTrans } = await supabaseClient
           .from("financial_transactions")
-          .insert({
-            user_id: userId,
-            type: "income",
-            amount: preapprovalData.auto_recurring?.transaction_amount || 0,
-            description: `Assinatura ${metadata.billingFrequency || metadata.planId} - Plano Foguetinho`,
-            payment_method: "mercado_pago",
-            status: "completed",
-            transaction_date: new Date().toISOString()
-          });
+          .select("id")
+          .eq("user_id", userId)
+          .eq("amount", amount)
+          .eq("description", description)
+          .eq("payment_method", "mercado_pago")
+          .eq("status", "completed")
+          .maybeSingle();
 
-        if (transError) {
-          console.error("❌ Erro ao criar transação:", transError);
+        if (!existingTrans) {
+          const { error: transError } = await supabaseClient
+            .from("financial_transactions")
+            .insert({
+              user_id: userId,
+              type: "income",
+              amount: amount,
+              description: description,
+              payment_method: "mercado_pago",
+              status: "completed",
+              transaction_date: new Date().toISOString()
+            });
+
+          if (transError) {
+            console.error("❌ Erro ao criar transação:", transError);
+          } else {
+            console.log("✅ Transaction criada");
+          }
+        } else {
+          console.log("ℹ️ Transaction já existe, pulando");
         }
 
         return new Response(
