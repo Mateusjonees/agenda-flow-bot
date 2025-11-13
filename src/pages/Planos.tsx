@@ -536,29 +536,59 @@ const Planos = () => {
 
       {/* Cancelled Subscription Info */}
       {subscription && subscription.status === "cancelled" && (
-        <Card className="border-destructive bg-destructive/5">
+        <Card className="border-amber-500 bg-amber-500/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
+            <CardTitle className="flex items-center gap-2 text-amber-600">
               <AlertCircle className="w-5 h-5" />
               Assinatura Cancelada
             </CardTitle>
             <CardDescription>
-              Sua assinatura foi cancelada em {format(new Date(subscription.updated_at), "dd/MM/yyyy", { locale: ptBR })}
+              {subscription.next_billing_date ? (
+                <>
+                  Você ainda tem acesso até{" "}
+                  <span className="font-semibold text-foreground">
+                    {format(new Date(subscription.next_billing_date), "dd/MM/yyyy", { locale: ptBR })}
+                  </span>
+                </>
+              ) : (
+                "Sua assinatura foi cancelada"
+              )}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Para continuar usando todos os recursos do sistema, escolha um novo plano abaixo.
-            </p>
-            <Button 
-              onClick={() => {
-                const plansSection = document.getElementById('plans-section');
-                plansSection?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="w-full"
-            >
-              Ver Planos Disponíveis
-            </Button>
+          <CardContent className="space-y-3">
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
+                    Renove sua assinatura
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-200">
+                    Escolha um plano abaixo para renovar seu acesso e continuar usando todos os recursos da plataforma.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button 
+                onClick={() => {
+                  const plansSection = document.getElementById('plans-section');
+                  plansSection?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="flex-1"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Renovar Assinatura
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => navigate("/dashboard")}
+                className="flex-1"
+              >
+                Voltar ao Dashboard
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
