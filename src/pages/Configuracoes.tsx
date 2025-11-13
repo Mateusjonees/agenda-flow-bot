@@ -122,7 +122,7 @@ const Configuracoes = () => {
         .eq("type", "platform")
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
       return data;
     },
     enabled: !!user,

@@ -823,14 +823,14 @@ const Assinaturas = () => {
 
       {/* Métricas */}
       <div className="grid gap-6 md:grid-cols-4">
-        <Card>
+          <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">MRR</CardTitle>
+            <CardTitle className="text-sm font-medium">Receita Recorrente Mensal</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(metrics.mrr)}</div>
-            <p className="text-xs text-muted-foreground">Receita recorrente mensal</p>
+            <p className="text-xs text-muted-foreground">MRR calculada mensalmente</p>
           </CardContent>
         </Card>
         <Card>
