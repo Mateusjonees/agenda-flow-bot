@@ -67,6 +67,11 @@ const handler = async (req: Request): Promise<Response> => {
           const startDate = new Date(charge.paid_at || charge.created_at);
           const nextBillingDate = new Date(startDate);
           nextBillingDate.setMonth(nextBillingDate.getMonth() + (months || 1));
+          
+          // Adicionar 7 dias de trial
+          nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+          
+          console.log(`📅 Next billing date: ${nextBillingDate.toISOString()} (start: ${startDate.toISOString()} + ${months || 1} months + 7 days trial)`);
 
           // Criar subscription da plataforma
           const { error: subError } = await supabaseClient

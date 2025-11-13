@@ -37,7 +37,20 @@ const getMonthlyValue = (frequency: string | null | undefined) => {
   return values[frequency as keyof typeof values] || 97;
 };
 
-const getStatusBadge = (status: string) => {
+const getStatusBadge = (status: string, nextBillingDate?: string | null) => {
+  // Se cancelado mas ainda tem acesso (next_billing_date no futuro)
+  if (status === 'cancelled' && nextBillingDate) {
+    const accessUntil = new Date(nextBillingDate);
+    if (accessUntil > new Date()) {
+      return (
+        <Badge variant="outline" className="gap-1 bg-amber-500/10 text-amber-700 border-amber-300">
+          <Clock className="h-3 w-3" />
+          Acesso até {format(accessUntil, "dd/MM/yy", { locale: ptBR })}
+        </Badge>
+      );
+    }
+  }
+
   const config = {
     active: { label: "Ativo", variant: "default" as const, icon: CheckCircle2 },
     trial: { label: "Trial", variant: "secondary" as const, icon: Clock },
@@ -100,7 +113,7 @@ export function SubscriptionStatusCard({ subscription, compact = false }: Subscr
           <CardTitle className={compact ? "text-lg" : "text-xl"}>
             Meu Plano Atual
           </CardTitle>
-          {getStatusBadge(subscription.status)}
+          {getStatusBadge(subscription.status, subscription.next_billing_date)}
         </div>
       </CardHeader>
       <CardContent className={`space-y-3 ${compact ? "pt-0" : ""}`}>
