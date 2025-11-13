@@ -191,21 +191,38 @@ const handler = async (req: Request): Promise<Response> => {
       throw pixError;
     }
 
-    // Create pending financial transaction
-    const { error: transactionError } = await adminClient
+    // Create pending financial transaction (verificar duplicação primeiro)
+    const { data: existingTransaction } = await adminClient
       .from("financial_transactions")
-      .insert({
-        user_id: user.id,
-        appointment_id: appointmentId || null,
-        type: "income",
-        amount: amount,
-        description: `Cobrança Pix - ${customerName}`,
-        payment_method: "pix",
-        status: "pending"
-      });
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("amount", amount)
+      .eq("description", `Cobrança Pix - ${customerName}`)
+      .eq("payment_method", "pix")
+      .eq("status", "pending")
+      .gte("created_at", new Date(Date.now() - 60000).toISOString()) // Últimos 60 segundos
+      .maybeSingle();
 
-    if (transactionError) {
-      console.error("⚠️ Erro ao criar transaction:", transactionError);
+    if (!existingTransaction) {
+      const { error: transactionError } = await adminClient
+        .from("financial_transactions")
+        .insert({
+          user_id: user.id,
+          appointment_id: appointmentId || null,
+          type: "income",
+          amount: amount,
+          description: `Cobrança Pix - ${customerName}`,
+          payment_method: "pix",
+          status: "pending"
+        });
+
+      if (transactionError) {
+        console.error("⚠️ Erro ao criar transaction:", transactionError);
+      } else {
+        console.log("✅ Transaction pendente criada");
+      }
+    } else {
+      console.log("ℹ️ Transaction pendente já existe, pulando duplicação");
     }
 
     return new Response(
