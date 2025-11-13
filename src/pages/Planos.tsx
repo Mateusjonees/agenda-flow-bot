@@ -122,18 +122,45 @@ const Planos = () => {
 
   const { data: subscription, refetch: refetchSubscription } = useQuery({
     queryKey: ["user-subscription", user?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<any> => {
       if (!user) return null;
+      // @ts-ignore - Supabase type inference issue
       const { data } = await supabase
         .from("subscriptions")
         .select("*, subscription_plans(*)")
         .eq("user_id", user.id)
+        .eq("type", "platform")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       return data;
     },
     enabled: !!user,
+  });
+
+  // Buscar PIX pendente
+  const { data: pendingPix, refetch: refetchPendingPix } = useQuery({
+    queryKey: ["pending-platform-pix", user?.id],
+    queryFn: async (): Promise<any> => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("pix_charges")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+        .is("subscription_id", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      // Filtrar por metadata.type = platform_subscription
+      if (data && data.metadata && (data.metadata as any).type === "platform_subscription") {
+        return data;
+      }
+      return null;
+    },
+    enabled: !!user,
+    refetchInterval: 30000, // Atualiza a cada 30 segundos
   });
 
   useEffect(() => {
@@ -359,6 +386,52 @@ const Planos = () => {
         </p>
       </div>
 
+      {/* Pending PIX Payment */}
+      {pendingPix && !subscription && (
+        <Card className="border-amber-500 bg-amber-500/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-600">
+              <AlertCircle className="w-5 h-5" />
+              Pagamento PIX Pendente
+            </CardTitle>
+            <CardDescription>
+              Aguardando confirmação do pagamento criado em {format(new Date(pendingPix.created_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="bg-background/50 rounded-lg p-4 border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Valor</span>
+                  <span className="text-xl font-bold text-primary">
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(pendingPix.amount)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Status</span>
+                  <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+                    Aguardando Pagamento
+                  </Badge>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Assim que o pagamento for confirmado, seu plano será ativado automaticamente e você receberá um e-mail de confirmação.
+              </p>
+              <Button 
+                onClick={() => refetchPendingPix()}
+                variant="outline"
+                className="w-full"
+              >
+                Verificar Pagamento
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Cancelled Subscription Info */}
       {subscription && subscription.status === "cancelled" && (
         <Card className="border-destructive bg-destructive/5">
@@ -477,9 +550,13 @@ const Planos = () => {
                         : "N/A"
                       }
                     </p>
-                    {subscription.status === "trial" && subscription.next_billing_date && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                        {Math.max(0, Math.ceil((new Date(subscription.next_billing_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} dias restantes
+                    {subscription.next_billing_date && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-semibold">
+                        {subscription.status === "trial" && (
+                          <>
+                            {Math.max(0, Math.ceil((new Date(subscription.next_billing_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} dias gratuitos restantes
+                          </>
+                        )}
                       </p>
                     )}
                   </div>
@@ -503,28 +580,39 @@ const Planos = () => {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => {
-                      const plansSection = document.getElementById('plans-section');
-                      plansSection?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                  >
-                    <Gift className="w-4 h-4 mr-2" />
-                    Ver Outros Planos
-                  </Button>
-
-                  {subscription.status !== "trial" && (
+                  {subscription.status === "trial" ? (
                     <Button 
-                      variant="outline" 
-                      className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => setCancelDialogOpen(true)}
-                      disabled={loading}
+                      className="w-full"
+                      onClick={() => {
+                        const plansSection = document.getElementById('plans-section');
+                        plansSection?.scrollIntoView({ behavior: 'smooth' });
+                      }}
                     >
-                      <AlertCircle className="w-4 h-4 mr-2" />
-                      Cancelar Assinatura
+                      <Gift className="w-4 h-4 mr-2" />
+                      Escolher Plano e Renovar
                     </Button>
+                  ) : (
+                    <>
+                      <Button 
+                        className="w-full"
+                        onClick={() => {
+                          const plansSection = document.getElementById('plans-section');
+                          plansSection?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                      >
+                        <ArrowUpCircle className="w-4 h-4 mr-2" />
+                        Renovar ou Trocar Plano
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setCancelDialogOpen(true)}
+                        disabled={loading}
+                      >
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        Cancelar Assinatura
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -548,12 +636,14 @@ const Planos = () => {
           <Card className="border-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent">
             <CardContent className="pt-6 space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-amber-500/10 border-2 border-amber-500/20 flex-shrink-0">
+                <div className="flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 border-4 border-amber-500/30 flex-shrink-0 shadow-lg">
                   <div className="text-center">
-                    <p className="text-2xl sm:text-3xl font-bold text-amber-600">
+                    <p className="text-3xl sm:text-4xl font-bold text-amber-600 dark:text-amber-400">
                       {daysRemaining}
                     </p>
-                    <p className="text-xs text-amber-600">dias</p>
+                    <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                      {daysRemaining === 1 ? 'dia' : 'dias'}
+                    </p>
                   </div>
                 </div>
                 
