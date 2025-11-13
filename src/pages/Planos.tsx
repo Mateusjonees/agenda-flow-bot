@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Check, Zap, Star, CreditCard, ArrowUpCircle, ArrowDownCircle, Sparkles, Calendar, AlertCircle, Shield, TrendingUp, Gift } from "lucide-react";
+import { Check, Zap, Star, CreditCard, ArrowUpCircle, ArrowDownCircle, Sparkles, Calendar, AlertCircle, Shield, TrendingUp, Gift, QrCode } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PixPaymentDialog } from "@/components/PixPaymentDialog";
 import { parseFunctionsError } from "@/lib/parseFunctionsError";
@@ -14,6 +14,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useConfetti } from "@/hooks/useConfetti";
+import { SubscriptionStatusCard } from "@/components/SubscriptionStatusCard";
+import { PaymentMethodBadge } from "@/components/PaymentMethodBadge";
 
 declare global {
   interface Window {
@@ -359,9 +361,10 @@ const Planos = () => {
             description: `Assinatura ${plan.name} - Foguete Gestão`,
             metadata: {
               type: "platform_subscription",
-              user_id: session.user.id,
+              userId: session.user.id,
               planId: plan.id,
               billingFrequency: plan.billingFrequency,
+              planName: `Plano ${plan.name}`,
               months: plan.months
             }
           }
@@ -522,6 +525,13 @@ const Planos = () => {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Current Subscription Status Card */}
+      {subscription && subscription.status !== "trial" && (
+        <div className="mb-8">
+          <SubscriptionStatusCard subscription={subscription} />
+        </div>
       )}
 
       {/* Cancelled Subscription Info */}
@@ -800,14 +810,26 @@ const Planos = () => {
         </div>
         
         <Tabs defaultValue="pix" className="w-full" onValueChange={(value) => setPaymentMethod(value as "pix" | "card")}>
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 h-12 sm:h-14 p-1">
-            <TabsTrigger value="pix" className="text-sm sm:text-base font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              PIX
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 h-auto p-1">
+            <TabsTrigger 
+              value="pix" 
+              className="flex-col items-center gap-2 py-3 text-sm sm:text-base font-medium data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-600 data-[state=active]:border-orange-500/30"
+            >
+              <div className="flex items-center gap-2">
+                <QrCode className="w-4 h-4" />
+                <span className="font-bold">PIX</span>
+              </div>
+              <PaymentMethodBadge method="pix" variant="detailed" />
             </TabsTrigger>
-            <TabsTrigger value="card" className="text-sm sm:text-base font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              Cartão de Crédito
+            <TabsTrigger 
+              value="card" 
+              className="flex-col items-center gap-2 py-3 text-sm sm:text-base font-medium data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 data-[state=active]:border-blue-500/30"
+            >
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                <span className="font-bold">Cartão</span>
+              </div>
+              <PaymentMethodBadge method="card" variant="detailed" />
             </TabsTrigger>
           </TabsList>
         </Tabs>
