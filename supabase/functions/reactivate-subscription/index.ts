@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateOperation } from "../_shared/subscription-validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,6 +66,20 @@ const handler = async (req: Request): Promise<Response> => {
     if (subError || !subscription) {
       throw new Error("Subscription not found or unauthorized");
     }
+
+    // ✅ VALIDAÇÃO: Verificar que é subscription de cliente
+    const validation = validateOperation(subscription, 'reactivate', 'client');
+    if (!validation.valid) {
+      console.error(validation.error);
+      throw new Error(validation.error);
+    }
+
+    // Verificar que tem customer_id (redundante mas explícito)
+    if (!subscription.customer_id) {
+      throw new Error("Cannot reactivate: This is a platform subscription. Platform subscriptions must be reactivated through /planos page.");
+    }
+
+    console.log(`Reactivating CLIENT subscription ${subscriptionId} for customer ${subscription.customer_id}`);
 
     // Verificar se a assinatura está cancelada
     if (subscription.status !== "cancelled") {

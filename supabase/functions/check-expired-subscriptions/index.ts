@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateSubscriptionIntegrity } from "../_shared/subscription-validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,24 +22,52 @@ const handler = async (req: Request): Promise<Response> => {
 
     const now = new Date();
     
-    // Buscar assinaturas ativas que já passaram da data de renovação
-    const { data: expiredSubs, error: fetchError } = await supabaseClient
+    // Buscar assinaturas de PLATAFORMA expiradas
+    const { data: expiredPlatformSubs } = await supabaseClient
       .from("subscriptions")
       .select("*")
       .in("status", ["active", "trial"])
-      .lt("next_billing_date", now.toISOString());
+      .lt("next_billing_date", now.toISOString())
+      .is("customer_id", null)
+      .is("plan_id", null);
 
-    if (fetchError) {
-      console.error("Error fetching subscriptions:", fetchError);
-      throw fetchError;
-    }
+    // Buscar assinaturas de CLIENTE expiradas
+    const { data: expiredClientSubs } = await supabaseClient
+      .from("subscriptions")
+      .select("*")
+      .in("status", ["active", "trial"])
+      .lt("next_billing_date", now.toISOString())
+      .not("customer_id", "is", null)
+      .not("plan_id", "is", null);
 
-    console.log(`Found ${expiredSubs?.length || 0} expired subscriptions`);
+    console.log(`Found ${expiredPlatformSubs?.length || 0} expired PLATFORM subscriptions`);
+    console.log(`Found ${expiredClientSubs?.length || 0} expired CLIENT subscriptions`);
+
+    // Combinar ambas as listas
+    const subscriptions = [
+      ...(expiredPlatformSubs || []),
+      ...(expiredClientSubs || [])
+    ];
 
     const results = [];
 
-    for (const sub of expiredSubs || []) {
+    for (const sub of subscriptions) {
       try {
+        // ✅ VALIDAÇÃO: Verificar integridade dos dados
+        const validation = validateSubscriptionIntegrity(sub);
+        if (!validation.valid) {
+          console.error(validation.error);
+          results.push({
+            subscriptionId: sub.id,
+            userId: sub.user_id,
+            success: false,
+            error: validation.error,
+          });
+          continue;
+        }
+
+        console.log(`Processing expired ${validation.subscriptionType} subscription ${sub.id}`);
+
         // Atualizar status para expirado
         const { error: updateError } = await supabaseClient
           .from("subscriptions")

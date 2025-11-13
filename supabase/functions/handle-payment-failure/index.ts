@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { validateSubscriptionIntegrity } from "../_shared/subscription-validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,7 +52,29 @@ const handler = async (req: Request): Promise<Response> => {
           .eq("id", subscriptionId)
           .single();
 
-        if (subError) throw subError;
+        if (subError || !subscription) {
+          console.error(`Subscription ${subscriptionId} not found:`, subError);
+          results.push({
+            subscription_id: subscriptionId,
+            action: "error",
+            error: "Subscription not found"
+          });
+          continue;
+        }
+
+        // ✅ VALIDAÇÃO: Verificar integridade
+        const validation = validateSubscriptionIntegrity(subscription);
+        if (!validation.valid) {
+          console.error(validation.error);
+          results.push({
+            subscription_id: subscriptionId,
+            action: "validation_error",
+            error: validation.error
+          });
+          continue;
+        }
+
+        console.log(`Processing payment failure for ${validation.subscriptionType} subscription ${subscriptionId}, failed_payments: ${subscription.failed_payments_count}`);
 
         const failedCount = subscription.failed_payments_count + 1;
 

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isPlatformSubscription, isClientSubscription } from "../_shared/subscription-validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -96,13 +97,15 @@ const handler = async (req: Request): Promise<Response> => {
 
           // Processar assinatura se for pagamento de plano
           if (metadata?.userId && metadata?.planId) {
-            console.log(`💳 Processando assinatura para user ${metadata.userId}`);
+            console.log(`💳 Processing PLATFORM subscription payment for user ${metadata.userId}`);
 
-            // Verificar assinatura existente
+            // Buscar a assinatura de PLATAFORMA do usuário
             const { data: existingSub } = await supabaseClient
               .from("subscriptions")
               .select("*")
               .eq("user_id", metadata.userId)
+              .is("customer_id", null)  // ✅ FILTRO: Apenas plataforma
+              .is("plan_id", null)      // ✅ FILTRO: Apenas plataforma
               .order("created_at", { ascending: false })
               .limit(1)
               .maybeSingle();
@@ -165,6 +168,64 @@ const handler = async (req: Request): Promise<Response> => {
 
             if (transError) {
               console.error("❌ Erro ao criar transação:", transError);
+            }
+          }
+
+          // Se é uma assinatura de cliente (subscription_id presente no charge)
+          if (charge.subscription_id) {
+            console.log(`💳 Processing CLIENT subscription payment for subscription ${charge.subscription_id}`);
+            
+            // Buscar e validar a subscription
+            const { data: subscription } = await supabaseClient
+              .from("subscriptions")
+              .select("*")
+              .eq("id", charge.subscription_id)
+              .single();
+            
+            if (subscription && !isClientSubscription(subscription)) {
+              console.error(`ERROR: Expected client subscription but got platform subscription for ${charge.subscription_id}`);
+              results.push({
+                charge_id: charge.id,
+                status: "error",
+                error: "Invalid subscription type"
+              });
+              continue;
+            }
+            
+            if (subscription) {
+              console.log(`Updating CLIENT subscription ${charge.subscription_id} to active`);
+              
+              const { error: subUpdateError } = await supabaseClient
+                .from("subscriptions")
+                .update({
+                  status: "active",
+                  last_billing_date: new Date().toISOString(),
+                  failed_payments_count: 0,
+                })
+                .eq("id", charge.subscription_id);
+
+              if (subUpdateError) {
+                console.error(`❌ Erro ao atualizar subscription de cliente:`, subUpdateError);
+              } else {
+                console.log(`✅ Client subscription ${charge.subscription_id} updated!`);
+              }
+
+              // Criar transação financeira
+              const { error: transError } = await supabaseClient
+                .from("financial_transactions")
+                .insert({
+                  user_id: subscription.user_id,
+                  type: "income",
+                  amount: charge.amount,
+                  description: `Assinatura de Cliente - PIX`,
+                  payment_method: "pix",
+                  status: "completed",
+                  transaction_date: new Date().toISOString(),
+                });
+
+              if (transError) {
+                console.error("❌ Erro ao criar transação:", transError);
+              }
             }
           }
 

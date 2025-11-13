@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { validateOperation } from "../_shared/subscription-validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,25 +42,40 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Starting recurring payment processing...");
 
-    // Fetch subscriptions that are due for billing
+    // Buscar assinaturas ativas de CLIENTE que devem ser cobradas hoje
     const today = new Date().toISOString();
     const { data: subscriptions, error: subsError } = await supabase
       .from("subscriptions")
       .select("*")
       .eq("status", "active")
-      .lte("next_billing_date", today);
+      .lte("next_billing_date", today)
+      .not("customer_id", "is", null)  // ✅ FILTRO: Apenas assinaturas de cliente
+      .not("plan_id", "is", null);     // ✅ FILTRO: Apenas assinaturas de cliente
 
     if (subsError) {
       console.error("Error fetching subscriptions:", subsError);
       throw subsError;
     }
 
-    console.log(`Found ${subscriptions?.length || 0} subscriptions to process`);
+    console.log(`Found ${subscriptions?.length || 0} CLIENT subscriptions to process`);
 
     const results = [];
 
     for (const subscription of subscriptions || []) {
       try {
+        // ✅ VALIDAÇÃO: Verificar que é subscription de cliente
+        const validation = validateOperation(subscription, 'process-payment', 'client');
+        if (!validation.valid) {
+          console.error(validation.error);
+          results.push({
+            subscription_id: subscription.id,
+            success: false,
+            error: validation.error
+          });
+          continue;
+        }
+
+        console.log(`Processing CLIENT subscription ${subscription.id}`);
         // Fetch plan details
         const { data: plan, error: planError } = await supabase
           .from("subscription_plans")
