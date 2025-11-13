@@ -28,6 +28,7 @@ import Planos from "./pages/Planos";
 import Maintenance from "./pages/Maintenance";
 import NotFound from "./pages/NotFound";
 import Download from "./pages/Download";
+import HistoricoPagamentos from "./pages/HistoricoPagamentos";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => (
                 
                 {/* Página de configurações (fora do guard para permitir renovação) */}
                 <Route path="/configuracoes" element={<Layout><Configuracoes /></Layout>} />
+                <Route path="/historico-pagamentos" element={<Layout><HistoricoPagamentos /></Layout>} />
                 
                 {/* Rotas protegidas (com guard) */}
                 <Route path="/dashboard" element={<Layout><SubscriptionGuard><Dashboard /></SubscriptionGuard></Layout>} />

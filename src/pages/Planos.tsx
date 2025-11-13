@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Check, Zap, Star, CreditCard, ArrowUpCircle, ArrowDownCircle, Sparkles, Calendar, AlertCircle, Shield, TrendingUp, Gift, QrCode } from "lucide-react";
+import { Check, Zap, Star, CreditCard, ArrowUpCircle, ArrowDownCircle, Sparkles, Calendar, AlertCircle, Shield, TrendingUp, Gift, QrCode, Receipt } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PixPaymentDialog } from "@/components/PixPaymentDialog";
 import { parseFunctionsError } from "@/lib/parseFunctionsError";
@@ -743,6 +743,14 @@ const Planos = () => {
                       >
                         <AlertCircle className="w-4 h-4 mr-2" />
                         Cancelar Assinatura
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full text-xs"
+                        onClick={() => navigate("/historico-pagamentos")}
+                      >
+                        <Receipt className="w-3 h-3 mr-2" />
+                        Ver Histórico de Pagamentos
                       </Button>
                     </>
                   )}
