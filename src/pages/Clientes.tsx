@@ -704,7 +704,7 @@ const Clientes = () => {
 
       {/* Dialog de detalhes do cliente */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           {selectedCustomer && (
             <>
               <DialogHeader className="space-y-2">
