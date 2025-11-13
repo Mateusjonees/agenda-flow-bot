@@ -82,6 +82,7 @@ const Assinaturas = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [planFilter, setPlanFilter] = useState("all");
+  const [subscriptionView, setSubscriptionView] = useState<"active" | "history">("active");
   
   // Estados para edição/exclusão de planos
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
@@ -659,8 +660,12 @@ const Assinaturas = () => {
       const matchesStatus = statusFilter === "all" || subscription.status === statusFilter;
       
       const matchesPlan = planFilter === "all" || subscription.plan_id === planFilter;
+      
+      // Filtrar por view (ativo ou histórico)
+      const isHistoryStatus = subscription.status === "cancelled" || subscription.status === "expired";
+      const matchesView = subscriptionView === "active" ? !isHistoryStatus : isHistoryStatus;
 
-      return matchesSearch && matchesStatus && matchesPlan;
+      return matchesSearch && matchesStatus && matchesPlan && matchesView;
     });
   };
 
@@ -871,6 +876,35 @@ const Assinaturas = () => {
         </TabsList>
 
         <TabsContent value="subscriptions" className="space-y-4">
+          {/* Sub-tabs para Ativos e Histórico */}
+          <div className="flex gap-2 mb-4">
+            <Button
+              variant={subscriptionView === "active" ? "default" : "outline"}
+              onClick={() => {
+                setSubscriptionView("active");
+                setStatusFilter("all");
+              }}
+            >
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Ativos
+              <Badge variant="secondary" className="ml-2">
+                {subscriptions.filter(s => s.status !== "cancelled" && s.status !== "expired").length}
+              </Badge>
+            </Button>
+            <Button
+              variant={subscriptionView === "history" ? "default" : "outline"}
+              onClick={() => {
+                setSubscriptionView("history");
+                setStatusFilter("all");
+              }}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Histórico
+              <Badge variant="secondary" className="ml-2">
+                {subscriptions.filter(s => s.status === "cancelled" || s.status === "expired").length}
+              </Badge>
+            </Button>
+          </div>
           {/* Filtros */}
           <Card className="mb-4">
             <CardContent className="pt-6">
@@ -890,10 +924,18 @@ const Assinaturas = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os Status</SelectItem>
-                    <SelectItem value="active">Ativo</SelectItem>
-                    <SelectItem value="suspended">Suspenso</SelectItem>
-                    <SelectItem value="cancelled">Cancelado</SelectItem>
-                    <SelectItem value="payment_failed">Pagamento Falhou</SelectItem>
+                    {subscriptionView === "active" ? (
+                      <>
+                        <SelectItem value="active">Ativo</SelectItem>
+                        <SelectItem value="suspended">Suspenso</SelectItem>
+                        <SelectItem value="payment_failed">Pagamento Falhou</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="cancelled">Cancelado</SelectItem>
+                        <SelectItem value="expired">Expirado</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
                 <Select value={planFilter} onValueChange={setPlanFilter}>
@@ -922,7 +964,11 @@ const Assinaturas = () => {
                 </Button>
               </div>
               <div className="mt-2 text-sm text-muted-foreground">
-                Mostrando {getFilteredSubscriptions().length} de {subscriptions.length} assinatura(s)
+                Mostrando {getFilteredSubscriptions().length} de{" "}
+                {subscriptionView === "active" 
+                  ? subscriptions.filter(s => s.status !== "cancelled" && s.status !== "expired").length
+                  : subscriptions.filter(s => s.status === "cancelled" || s.status === "expired").length
+                } assinatura(s) {subscriptionView === "active" ? "ativas" : "no histórico"}
               </div>
             </CardContent>
           </Card>
@@ -930,7 +976,7 @@ const Assinaturas = () => {
           {subscriptions.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-10">
-                <p className="text-muted-foreground mb-4">Nenhuma assinatura ativa ainda</p>
+                <p className="text-muted-foreground mb-4">Nenhuma assinatura cadastrada ainda</p>
                 <Button onClick={() => setIsSubscribeDialogOpen(true)} disabled={isReadOnly}>
                   <Plus className="mr-2 h-4 w-4" />
                   Vincular Primeiro Cliente
@@ -940,17 +986,33 @@ const Assinaturas = () => {
           ) : getFilteredSubscriptions().length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-10">
-                <p className="text-muted-foreground mb-4">Nenhuma assinatura encontrada com os filtros aplicados</p>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setStatusFilter("all");
-                    setPlanFilter("all");
-                  }}
-                >
-                  Limpar Filtros
-                </Button>
+                {subscriptionView === "history" ? (
+                  <>
+                    <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground mb-2 font-semibold">Nenhuma assinatura no histórico</p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Assinaturas canceladas ou expiradas aparecerão aqui
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-muted-foreground mb-4">
+                      Nenhuma assinatura {statusFilter !== "all" || planFilter !== "all" || searchTerm ? "encontrada com os filtros aplicados" : "ativa no momento"}
+                    </p>
+                    {(statusFilter !== "all" || planFilter !== "all" || searchTerm) && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setStatusFilter("all");
+                          setPlanFilter("all");
+                        }}
+                      >
+                        Limpar Filtros
+                      </Button>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
           ) : (
