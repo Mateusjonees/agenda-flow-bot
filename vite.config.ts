@@ -21,24 +21,32 @@ export default defineConfig(({ mode }) => ({
         short_name: "Foguete",
         description: "Sistema completo de gestão empresarial com automação inteligente",
         theme_color: "#E31837",
-        background_color: "#FAFAFA",
+        background_color: "#0A0A0A",
         display: "standalone",
         orientation: "portrait",
         scope: "/",
         start_url: "/",
         icons: [
           {
-            src: "/logo.png",
+            src: "/icon-192.png",
             sizes: "192x192",
             type: "image/png",
             purpose: "any maskable",
           },
           {
-            src: "/logo.png",
+            src: "/icon-512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any maskable",
           },
+        ],
+        categories: ["business", "productivity"],
+        screenshots: [
+          {
+            src: "/logo.png",
+            sizes: "540x720",
+            type: "image/png",
+          }
         ],
       },
       workbox: {
