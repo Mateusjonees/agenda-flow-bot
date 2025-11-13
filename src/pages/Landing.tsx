@@ -25,8 +25,30 @@ import {
   Check,
   Quote,
   Menu,
-  X
+  X,
+  Scissors,
+  Dumbbell,
+  Heart,
+  Stethoscope,
+  PawPrint,
+  Building2,
+  Smartphone,
+  CreditCard,
+  Wallet,
+  CalendarCheck,
+  XCircle,
+  Package,
+  FileText,
+  TrendingDown,
+  Target
 } from "lucide-react";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import logo from "@/assets/logo.png";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -215,6 +237,138 @@ const Landing = () => {
     { value: "24/7", label: "Disponibilidade" }
   ];
 
+  const useCases = [
+    {
+      icon: Scissors,
+      title: "Salões de Beleza",
+      description: "Gestão completa de agenda, clientes e serviços para seu salão"
+    },
+    {
+      icon: Scissors,
+      title: "Barbearias",
+      description: "Controle de fila, comissões e agendamentos para barbeiros"
+    },
+    {
+      icon: Heart,
+      title: "Clínicas de Estética",
+      description: "Prontuários digitais e histórico de tratamentos organizados"
+    },
+    {
+      icon: Stethoscope,
+      title: "Consultórios",
+      description: "Agendamento médico e controle financeiro profissional"
+    },
+    {
+      icon: Dumbbell,
+      title: "Academias",
+      description: "Gestão de planos, mensalidades e controle de acesso"
+    },
+    {
+      icon: PawPrint,
+      title: "Pet Shops",
+      description: "Controle de serviços, produtos e histórico dos pets"
+    }
+  ];
+
+  const integrations = [
+    {
+      name: "WhatsApp Business",
+      description: "Envio automático de lembretes, confirmações e mensagens personalizadas",
+      icon: MessageCircle
+    },
+    {
+      name: "PIX",
+      description: "Cobranças e pagamentos instantâneos integrados ao sistema",
+      icon: Smartphone
+    },
+    {
+      name: "Mercado Pago",
+      description: "Gateway de pagamento completo com link de pagamento",
+      icon: CreditCard
+    },
+    {
+      name: "Google Calendar",
+      description: "Sincronização automática de agendamentos com sua agenda",
+      icon: CalendarCheck
+    }
+  ];
+
+  const roiStats = [
+    {
+      value: "15h",
+      label: "Economizadas por semana",
+      description: "em tarefas administrativas",
+      icon: Clock
+    },
+    {
+      value: "40%",
+      label: "Redução de faltas",
+      description: "com lembretes automáticos",
+      icon: TrendingDown
+    },
+    {
+      value: "25%",
+      label: "Aumento na receita",
+      description: "com gestão eficiente",
+      icon: TrendingUp
+    },
+    {
+      value: "100%",
+      label: "Eliminação de papel",
+      description: "processos digitalizados",
+      icon: FileText
+    }
+  ];
+
+  const guaranteeBadges = [
+    { icon: Shield, text: "7 Dias Grátis" },
+    { icon: XCircle, text: "Cancele Quando Quiser" },
+    { icon: Lock, text: "Dados Criptografados" },
+    { icon: HeadphonesIcon, text: "Suporte 24/7" }
+  ];
+
+  const moreTestimonials = [
+    {
+      name: "Pedro Oliveira",
+      role: "Proprietário - Academia Forma Fitness",
+      content: "Triplicamos o controle sobre as mensalidades e reduzimos inadimplência em 60%. O sistema é perfeito!",
+      rating: 5
+    },
+    {
+      name: "Carla Mendes",
+      role: "Dona - Clínica Estética Beleza",
+      content: "Os prontuários digitais e o histórico de clientes facilitaram muito nosso trabalho. Recomendo!",
+      rating: 5
+    },
+    {
+      name: "Ricardo Lima",
+      role: "Gerente - Consultório Dr. Lima",
+      content: "A agenda médica ficou muito mais organizada. Os lembretes automáticos reduziram faltas drasticamente.",
+      rating: 5
+    }
+  ];
+
+  const allTestimonials = [...testimonials, ...moreTestimonials];
+
+  const screenshots = [
+    {
+      title: "Dashboard Intuitivo",
+      description: "Visão completa do seu negócio em um só lugar"
+    },
+    {
+      title: "Agenda Visual",
+      description: "Gerencie horários de forma fácil e rápida"
+    },
+    {
+      title: "Gestão de Clientes",
+      description: "Histórico completo e comunicação integrada"
+    },
+    {
+      title: "Relatórios Detalhados",
+      description: "Analytics completo para decisões inteligentes"
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
       {/* WhatsApp Floating Button */}
@@ -375,50 +529,107 @@ const Landing = () => {
       <section id="home" className="container mx-auto px-4 py-20 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-50" />
         
-        <div className="max-w-4xl mx-auto text-center space-y-8 relative">
-          <div className="inline-block animate-fade-in">
-            <Badge className="px-4 py-2 text-sm font-medium bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Sistema de Gestão Completo e Profissional
-            </Badge>
-          </div>
-          
-          <h1 className="text-5xl md:text-7xl font-bold text-foreground leading-tight animate-fade-in">
-            Decole seu negócio com
-            <span className="block bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mt-2">
-              gestão profissional
-            </span>
-          </h1>
-          
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto animate-fade-in">
-            Sistema completo para salões, clínicas, barbearias e prestadores de serviço. 
-            Gerencie agendamentos, clientes, finanças e muito mais em um só lugar.
-          </p>
+        <div className="max-w-6xl mx-auto relative">
+          <div className="text-center space-y-8 mb-16">
+            <div className="inline-block animate-fade-in">
+              <Badge className="px-4 py-2 text-sm font-medium bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Sistema de Gestão Completo e Profissional
+              </Badge>
+            </div>
+            
+            <h1 className="text-5xl md:text-7xl font-bold text-foreground leading-tight animate-fade-in">
+              Decole seu negócio com
+              <span className="block bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mt-2">
+                gestão profissional
+              </span>
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto animate-fade-in">
+              Sistema completo para salões, clínicas, barbearias e prestadores de serviço. 
+              Gerencie agendamentos, clientes, finanças e muito mais em um só lugar.
+            </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6 animate-fade-in">
-            <Button 
-              size="lg" 
-              onClick={handleGetStarted}
-              className="h-14 px-8 text-base gap-2 shadow-lg hover:shadow-xl transition-all"
-            >
-              {isAuthenticated ? "Acessar Dashboard" : "Começar Teste Grátis"}
-              <Rocket className="w-5 h-5" />
-            </Button>
+            {/* Guarantee Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-6">
+              {guaranteeBadges.map((badge, index) => {
+                const Icon = badge.icon;
+                return (
+                  <div key={index} className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-full shadow-sm">
+                    <Icon className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-foreground">{badge.text}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4 animate-fade-in">
+              <Button 
+                size="lg" 
+                onClick={handleGetStarted}
+                className="h-14 px-8 text-base gap-2 shadow-lg hover:shadow-xl transition-all bg-[#E31E24] hover:bg-[#C41A1F] text-white"
+              >
+                {isAuthenticated ? "Acessar Dashboard" : "Começar Teste Grátis"}
+                <Rocket className="w-5 h-5" />
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                onClick={() => window.open('https://wa.me/5548988430812?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão', '_blank')}
+                className="h-14 px-8 text-base gap-2"
+              >
+                <MessageCircle className="w-5 h-5" />
+                Falar com Vendas
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                Sem cartão de crédito
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                7 dias grátis
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                Cancele quando quiser
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-6 pt-8 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-primary" />
-              Sem cartão de crédito
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-primary" />
-              7 dias grátis
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-primary" />
-              Cancele quando quiser
-            </div>
+          {/* Screenshots Carousel */}
+          <div className="max-w-4xl mx-auto mt-16">
+            <Carousel className="w-full">
+              <CarouselContent>
+                {screenshots.map((screenshot, index) => (
+                  <CarouselItem key={index}>
+                    <div className="p-1">
+                      <Card className="border-2">
+                        <CardContent className="flex aspect-video items-center justify-center p-6 bg-gradient-to-br from-muted/50 to-muted/20">
+                          <div className="text-center space-y-4">
+                            <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                              <Rocket className="w-10 h-10 text-primary" />
+                            </div>
+                            <div>
+                              <h3 className="text-2xl font-bold text-foreground mb-2">
+                                {screenshot.title}
+                              </h3>
+                              <p className="text-muted-foreground">
+                                {screenshot.description}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
           </div>
         </div>
       </section>
@@ -437,6 +648,41 @@ const Landing = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Use Cases Section */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Perfeito para seu segmento
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Funcionalidades personalizadas para cada tipo de negócio
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {useCases.map((useCase, index) => {
+              const Icon = useCase.icon;
+              return (
+                <Card key={index} className="border-2 hover:border-primary/50 transition-all hover:shadow-lg group">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform">
+                      <Icon className="w-8 h-8 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-bold text-foreground mb-2">
+                      {useCase.title}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {useCase.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -516,6 +762,132 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* ROI Section */}
+      <section className="container mx-auto px-4 py-20 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <Badge className="px-4 py-2 text-sm font-medium bg-primary/10 text-primary border-primary/20 mb-6 inline-block">
+              <Target className="w-4 h-4 mr-2 inline" />
+              Resultados Comprovados
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Transforme seu negócio com dados reais
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Veja o impacto que o Foguete pode ter na sua empresa
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {roiStats.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <Card key={index} className="border-2 hover:border-primary/50 transition-all hover:shadow-xl group">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-primary/10 to-accent/10 rounded-full flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform">
+                      <Icon className="w-8 h-8 text-primary" />
+                    </div>
+                    <div className="text-4xl font-bold text-primary mb-2">
+                      {stat.value}
+                    </div>
+                    <div className="text-sm font-semibold text-foreground mb-1">
+                      {stat.label}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {stat.description}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Press & Recognition Section */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h3 className="text-2xl font-bold text-foreground mb-6">
+              Confiança e Segurança Garantidas
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border">
+              <Shield className="w-12 h-12 text-primary" />
+              <div className="text-center">
+                <div className="font-semibold text-foreground">SSL Certificado</div>
+                <p className="text-xs text-muted-foreground">Conexão Segura</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border">
+              <Lock className="w-12 h-12 text-primary" />
+              <div className="text-center">
+                <div className="font-semibold text-foreground">LGPD</div>
+                <p className="text-xs text-muted-foreground">Compliance Total</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border">
+              <Zap className="w-12 h-12 text-primary" />
+              <div className="text-center">
+                <div className="font-semibold text-foreground">99.9% Uptime</div>
+                <p className="text-xs text-muted-foreground">Sempre Disponível</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border">
+              <Award className="w-12 h-12 text-primary" />
+              <div className="text-center">
+                <div className="font-semibold text-foreground">Criptografia</div>
+                <p className="text-xs text-muted-foreground">Dados Protegidos</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Mid-page CTA */}
+      <section className="container mx-auto px-4 py-20 bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/10">
+        <div className="max-w-4xl mx-auto text-center">
+          <Badge className="px-4 py-2 text-sm font-medium bg-primary/20 text-primary border-primary/30 mb-6 inline-block">
+            <Sparkles className="w-4 h-4 mr-2 inline" />
+            Comece Agora Mesmo
+          </Badge>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
+            Pronto para transformar seu negócio?
+          </h2>
+          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Junte-se a mais de 5.000 empresas que já usam o Foguete para gerenciar seus negócios com eficiência
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              size="lg" 
+              onClick={handleGetStarted}
+              className="h-14 px-8 text-base gap-2 shadow-lg hover:shadow-xl transition-all bg-[#E31E24] hover:bg-[#C41A1F] text-white"
+            >
+              {isAuthenticated ? "Ir para Dashboard" : "Começar Teste Grátis de 7 Dias"}
+              <Rocket className="w-5 h-5" />
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline"
+              onClick={() => window.open('https://wa.me/5548988430812?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão', '_blank')}
+              className="h-14 px-8 text-base gap-2"
+            >
+              <MessageCircle className="w-5 h-5" />
+              Falar com Especialista
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground mt-6">
+            <CheckCircle2 className="w-4 h-4 text-primary inline mr-2" />
+            Sem cartão de crédito • Cancele quando quiser • Suporte incluído
+          </p>
+        </div>
+      </section>
+
       {/* Testimonials Section */}
       <section id="testimonials" className="container mx-auto px-4 py-20 bg-muted/30">
         <div className="max-w-6xl mx-auto">
@@ -529,7 +901,7 @@ const Landing = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, index) => (
+            {allTestimonials.map((testimonial, index) => (
               <Card key={index} className="border-2 hover:border-primary/50 transition-all hover:shadow-lg">
                 <CardContent className="p-6">
                   <Quote className="w-8 h-8 text-primary/30 mb-4" />
@@ -552,6 +924,207 @@ const Landing = () => {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Integrations Section */}
+      <section className="container mx-auto px-4 py-20 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Integrações Poderosas
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Conecte o Foguete com as ferramentas que você já usa
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {integrations.map((integration, index) => {
+              const Icon = integration.icon;
+              return (
+                <Card key={index} className="border-2 hover:border-primary/50 transition-all hover:shadow-lg group">
+                  <CardContent className="p-6 flex gap-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                      <Icon className="w-8 h-8 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-foreground mb-2">
+                        {integration.name}
+                      </h3>
+                      <p className="text-muted-foreground">
+                        {integration.description}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Why Choose Foguete Section */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <Badge className="px-4 py-2 text-sm font-medium bg-primary/10 text-primary border-primary/20 mb-6 inline-block">
+              <Award className="w-4 h-4 mr-2 inline" />
+              Diferenciais Competitivos
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Por que escolher o Foguete?
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Veja como nos destacamos das soluções genéricas
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card className="border-2 border-primary/50 bg-card/50">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-1">100% na Nuvem</h4>
+                    <p className="text-sm text-muted-foreground">Acesse de qualquer lugar, sem instalação ou manutenção</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <XCircle className="w-6 h-6 text-muted-foreground flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-semibold text-muted-foreground mb-1">Instalação Local</h4>
+                    <p className="text-sm text-muted-foreground">Sistemas antigos que precisam de manutenção constante</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-primary/50 bg-card/50">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-1">Suporte Humanizado</h4>
+                    <p className="text-sm text-muted-foreground">Time dedicado pronto para te ajudar quando precisar</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <XCircle className="w-6 h-6 text-muted-foreground flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-semibold text-muted-foreground mb-1">Chatbot Automático</h4>
+                    <p className="text-sm text-muted-foreground">Respostas genéricas que não resolvem seus problemas</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-primary/50 bg-card/50">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-1">Atualizações Automáticas</h4>
+                    <p className="text-sm text-muted-foreground">Novas funcionalidades sem custo adicional</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <XCircle className="w-6 h-6 text-muted-foreground flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-semibold text-muted-foreground mb-1">Versões Pagas</h4>
+                    <p className="text-sm text-muted-foreground">Pagar para ter acesso às melhorias do sistema</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-primary/50 bg-card/50">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-1">Multi-dispositivo</h4>
+                    <p className="text-sm text-muted-foreground">Funciona em computador, tablet e smartphone</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <XCircle className="w-6 h-6 text-muted-foreground flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-semibold text-muted-foreground mb-1">Apenas Desktop</h4>
+                    <p className="text-sm text-muted-foreground">Limitado a um único computador ou dispositivo</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-primary/50 bg-card/50">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-1">Integração WhatsApp</h4>
+                    <p className="text-sm text-muted-foreground">Comunicação automática com seus clientes</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <XCircle className="w-6 h-6 text-muted-foreground flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-semibold text-muted-foreground mb-1">Sem Integrações</h4>
+                    <p className="text-sm text-muted-foreground">Processos manuais que tomam seu tempo</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-primary/50 bg-card/50">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-1">Backup Automático</h4>
+                    <p className="text-sm text-muted-foreground">Seus dados seguros e protegidos sempre</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <XCircle className="w-6 h-6 text-muted-foreground flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-semibold text-muted-foreground mb-1">Risco de Perda</h4>
+                    <p className="text-sm text-muted-foreground">Dados vulneráveis sem proteção adequada</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -592,6 +1165,22 @@ const Landing = () => {
                   <p className="text-sm text-muted-foreground mb-6">
                     {plan.description}
                   </p>
+                  {plan.name === "Professional" && (
+                    <div className="mb-4">
+                      <Badge className="bg-accent/20 text-accent-foreground border-accent/30">
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                        Economize 30%
+                      </Badge>
+                    </div>
+                  )}
+                  {plan.name === "Enterprise" && (
+                    <div className="mb-4">
+                      <Badge className="bg-secondary/20 text-secondary-foreground border-secondary/30">
+                        <Award className="w-3 h-3 mr-1" />
+                        Melhor Custo-Benefício
+                      </Badge>
+                    </div>
+                  )}
                   <div className="mb-6">
                     <span className="text-4xl font-bold text-foreground">
                       {plan.price}
@@ -742,14 +1331,14 @@ const Landing = () => {
                   </button>
                 </li>
                 <li>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Atualizações
-                  </a>
+                  <button onClick={() => scrollToSection('testimonials')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Depoimentos
+                  </button>
                 </li>
                 <li>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Roadmap
-                  </a>
+                  <button onClick={() => scrollToSection('faq')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    FAQ
+                  </button>
                 </li>
               </ul>
             </div>
@@ -759,14 +1348,9 @@ const Landing = () => {
               <h3 className="font-semibold text-foreground mb-4">Empresa</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Sobre Nós
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Blog
-                  </a>
+                  <button onClick={() => scrollToSection('home')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Início
+                  </button>
                 </li>
                 <li>
                   <button onClick={() => scrollToSection('testimonials')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -774,8 +1358,13 @@ const Landing = () => {
                   </button>
                 </li>
                 <li>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Carreiras
+                  <a 
+                    href="https://wa.me/5548988430812?text=Olá,%20gostaria%20de%20saber%20mais%20sobre%20o%20Foguete" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Contato
                   </a>
                 </li>
               </ul>
@@ -848,16 +1437,19 @@ const Landing = () => {
             <div className="text-sm text-muted-foreground">
               © 2025 Foguete Gestão Empresarial. Todos os direitos reservados.
             </div>
-            <div className="flex gap-6">
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Termos de Uso
-              </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Política de Privacidade
-              </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                LGPD
-              </a>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Shield className="w-4 h-4 text-primary" />
+                <span>SSL Seguro</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Lock className="w-4 h-4 text-primary" />
+                <span>LGPD Compliance</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Award className="w-4 h-4 text-primary" />
+                <span>Dados Criptografados</span>
+              </div>
             </div>
           </div>
         </div>
