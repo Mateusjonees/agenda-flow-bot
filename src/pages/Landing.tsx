@@ -49,7 +49,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/foguetinho.png";
 import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
