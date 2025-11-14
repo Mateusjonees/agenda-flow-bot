@@ -37,6 +37,7 @@ interface Subscription {
   customer_id: string;
   plan_id: string;
   status: string;
+  type?: string;
   next_billing_date: string;
   start_date: string;
   failed_payments_count: number;
@@ -62,7 +63,7 @@ const Assinaturas = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [customers, setCustomers] = useState<any[]>([]);
   const [renewSubscription, setRenewSubscription] = useState<Subscription | null>(null);
-  const [cancelSubscription, setCancelSubscription] = useState<Subscription | null>(null);
+  const [deleteSubscription, setDeleteSubscription] = useState<Subscription | null>(null);
   const [pauseSubscription, setPauseSubscription] = useState<Subscription | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string>("pix");
   const [generatingDocument, setGeneratingDocument] = useState<string>("");
@@ -335,28 +336,68 @@ const Assinaturas = () => {
     }
   };
 
-  const handleCancelSubscription = async () => {
-    if (!cancelSubscription) return;
+  const handleDeleteSubscription = async () => {
+    if (!deleteSubscription) return;
 
-    const { error } = await supabase
-      .from("subscriptions")
-      .update({ status: "cancelled" })
-      .eq("id", cancelSubscription.id);
-
-    if (error) {
+    // Verificar se não é assinatura da plataforma
+    if (deleteSubscription.type === 'platform' || deleteSubscription.type === 'trial') {
       toast({
-        title: "Erro ao cancelar assinatura",
-        description: error.message,
+        title: "Operação não permitida",
+        description: "Não é possível deletar assinaturas da plataforma.",
         variant: "destructive",
       });
-    } else {
+      setDeleteSubscription(null);
+      return;
+    }
+
+    try {
+      // 1. Deletar pix_charges relacionados
+      const { error: pixError } = await supabase
+        .from("pix_charges")
+        .delete()
+        .eq("subscription_id", deleteSubscription.id);
+
+      if (pixError) throw pixError;
+
+      // 2. Deletar financial_transactions relacionados
+      const { data: transactions } = await supabase
+        .from("financial_transactions")
+        .select("id")
+        .or(`appointment_id.eq.${deleteSubscription.id}`);
+
+      if (transactions && transactions.length > 0) {
+        const transactionIds = transactions.map(t => t.id);
+        const { error: txError } = await supabase
+          .from("financial_transactions")
+          .delete()
+          .in("id", transactionIds);
+
+        if (txError) throw txError;
+      }
+
+      // 3. Deletar a subscription
+      const { error: subError } = await supabase
+        .from("subscriptions")
+        .delete()
+        .eq("id", deleteSubscription.id);
+
+      if (subError) throw subError;
+
       toast({
-        title: "Assinatura cancelada!",
-        description: "A assinatura foi cancelada com sucesso.",
+        title: "Assinatura deletada!",
+        description: "A assinatura e todos os dados relacionados foram removidos permanentemente.",
       });
-      setCancelSubscription(null);
+
+      setDeleteSubscription(null);
       fetchSubscriptions();
       calculateMetrics();
+    } catch (error: any) {
+      console.error("Error deleting subscription:", error);
+      toast({
+        title: "Erro ao deletar assinatura",
+        description: error.message || "Não foi possível deletar a assinatura.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -1139,11 +1180,11 @@ const Assinaturas = () => {
                         
                         <Button
                           size="sm"
-                          variant="outline"
-                          onClick={() => setCancelSubscription(subscription)}
+                          variant="destructive"
+                          onClick={() => setDeleteSubscription(subscription)}
                         >
-                          <XCircle className="mr-2 h-4 w-4" />
-                          Cancelar
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Deletar
                         </Button>
                       </div>
                     </div>
@@ -1233,19 +1274,32 @@ const Assinaturas = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Dialog de Cancelamento */}
-      <AlertDialog open={!!cancelSubscription} onOpenChange={() => setCancelSubscription(null)}>
+      {/* Dialog de Deletar Assinatura */}
+      <AlertDialog open={!!deleteSubscription} onOpenChange={() => setDeleteSubscription(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancelar Assinatura</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja cancelar esta assinatura? Esta ação não pode ser desfeita.
+            <AlertDialogTitle className="text-destructive">
+              Deletar Assinatura Permanentemente
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p className="font-semibold">⚠️ ATENÇÃO: Esta ação é irreversível!</p>
+              <p>Ao deletar esta assinatura, os seguintes dados serão removidos permanentemente:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Registro da assinatura</li>
+                <li>Cobranças PIX relacionadas</li>
+                <li>Transações financeiras relacionadas</li>
+              </ul>
+              <p className="font-semibold mt-2">Tem certeza absoluta que deseja continuar?</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Voltar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCancelSubscription}>
-              Confirmar Cancelamento
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteSubscription}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Sim, Deletar Permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
