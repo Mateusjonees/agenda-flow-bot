@@ -665,7 +665,7 @@ Contém TODAS as tabelas, campos, relacionamentos e regras de negócio.
 ### **✅ NOMES DE TABELAS (REGRAS)**
 
 **Padrão adotado:**
-- ✅ **Plural** para tabelas princípais: `products`, `orders`, `customers`
+- ✅ **Plural** para tabelas principais: `products`, `orders`, `customers`
 - ✅ **snake_case**: `product_categories`, `whatsapp_messages`
 - ✅ **Descritivo**: `shopping_carts` (não `carts`), `order_items` (não `items`)
 
