@@ -6,11 +6,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface PixWebhookPayload {
-  txid: string;
-  status: "paid" | "expired" | "cancelled";
-  amount: number;
-  paidAt?: string;
+interface MercadoPagoWebhook {
+  id?: number;
+  live_mode?: boolean;
+  type?: string;
+  date_created?: string;
+  application_id?: number;
+  user_id?: number;
+  version?: number;
+  api_version?: string;
+  action?: string;
+  data?: {
+    id: string;
+  };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -27,20 +35,71 @@ const handler = async (req: Request): Promise<Response> => {
     // TODO: Verify webhook signature from your payment provider
     // This is critical for security!
     
-    const payload: PixWebhookPayload = await req.json();
-    console.log("Received Pix webhook:", payload);
+    const webhook: MercadoPagoWebhook = await req.json();
+    console.log("🔔 Received Mercado Pago webhook:", JSON.stringify(webhook));
+
+    // Validate webhook type
+    if (webhook.type !== "payment" && webhook.action !== "payment.updated") {
+      console.log("ℹ️ Webhook type not 'payment', ignoring:", webhook.type);
+      return new Response(JSON.stringify({ success: true, message: "Webhook type ignored" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Extract payment ID
+    const paymentId = webhook.data?.id;
+    if (!paymentId) {
+      console.error("❌ Payment ID not found in webhook");
+      return new Response(JSON.stringify({ error: "Payment ID not found" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("💳 Processing payment ID:", paymentId);
+
+    // Fetch payment details from Mercado Pago
+    const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
+    if (!accessToken) {
+      throw new Error("MERCADO_PAGO_ACCESS_TOKEN not configured");
+    }
+
+    const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!mpResponse.ok) {
+      const errorText = await mpResponse.text();
+      console.error("❌ Error fetching payment from Mercado Pago:", errorText);
+      throw new Error(`MP API error: ${mpResponse.status}`);
+    }
+
+    const paymentData = await mpResponse.json();
+    console.log("📦 Payment data:", JSON.stringify({
+      id: paymentData.id,
+      status: paymentData.status,
+      external_reference: paymentData.external_reference,
+      transaction_amount: paymentData.transaction_amount
+    }));
+
+    const txid = paymentData.id.toString();
+    const status = paymentData.status; // approved, pending, rejected, etc
+    const amount = paymentData.transaction_amount;
 
     // Find the Pix charge
     const { data: pixCharge, error: findError } = await supabaseClient
       .from("pix_charges")
       .select("*")
-      .eq("txid", payload.txid)
+      .eq("txid", txid)
       .single();
 
     if (findError || !pixCharge) {
-      console.error("Pix charge not found:", payload.txid);
+      console.error("❌ Pix charge not found for txid:", txid);
       return new Response(
-        JSON.stringify({ error: "Pix charge not found" }),
+        JSON.stringify({ error: "Pix charge not found", txid }),
         {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -48,14 +107,26 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    console.log("✅ Pix charge found:", pixCharge.id);
+
+    // Map Mercado Pago status to our status
+    let ourStatus = "pending";
+    if (status === "approved") {
+      ourStatus = "paid";
+    } else if (status === "rejected" || status === "cancelled") {
+      ourStatus = "cancelled";
+    } else if (status === "expired") {
+      ourStatus = "expired";
+    }
+
     // Update Pix charge status
     const updateData: any = {
-      status: payload.status,
+      status: ourStatus,
       updated_at: new Date().toISOString()
     };
 
-    if (payload.status === "paid" && payload.paidAt) {
-      updateData.paid_at = payload.paidAt;
+    if (ourStatus === "paid") {
+      updateData.paid_at = paymentData.date_approved || new Date().toISOString();
     }
 
     const { error: updateError } = await supabaseClient
@@ -67,10 +138,10 @@ const handler = async (req: Request): Promise<Response> => {
       throw updateError;
     }
 
-    console.log("Pix charge updated successfully:", pixCharge.id);
+    console.log("✅ Pix charge updated successfully:", pixCharge.id, "Status:", ourStatus);
 
     // Process subscription if this is a subscription payment
-    if (payload.status === "paid" && pixCharge.metadata) {
+    if (ourStatus === "paid" && pixCharge.metadata) {
       const metadata = typeof pixCharge.metadata === 'string' 
         ? JSON.parse(pixCharge.metadata) 
         : pixCharge.metadata;

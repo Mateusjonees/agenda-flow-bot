@@ -99,6 +99,13 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("MERCADO_PAGO_ACCESS_TOKEN not configured");
     }
 
+    // Generate unique external reference for tracking
+    const externalReference = `pix-${user.id}-${Date.now()}`;
+    const notificationUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/pix-webhook`;
+
+    console.log("🔔 Webhook configurado:", notificationUrl);
+    console.log("📋 External reference:", externalReference);
+
     // Create payment with Mercado Pago
     const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
@@ -111,12 +118,17 @@ const handler = async (req: Request): Promise<Response> => {
         transaction_amount: amount,
         description: description || "Assinatura Foguete Gestão",
         payment_method_id: "pix",
+        external_reference: externalReference,
+        notification_url: notificationUrl,
         payer: {
           email: user.email,
           first_name: customerName.split(" ")[0],
           last_name: customerName.split(" ").slice(1).join(" ") || customerName.split(" ")[0]
         },
-        metadata: metadata || {}
+        metadata: {
+          external_reference: externalReference,
+          ...(metadata || {})
+        }
       })
     });
 
@@ -154,12 +166,22 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const mpData = await mpResponse.json();
-    console.log("Mercado Pago payment created:", mpData.id);
+    console.log("✅ Mercado Pago payment created:", mpData.id);
+    console.log("📊 Payment status:", mpData.status);
+    console.log("🔗 External reference:", mpData.external_reference);
 
     const txid = mpData.id.toString();
     const qrCode = mpData.point_of_interaction?.transaction_data?.qr_code || "";
     const qrCodeBase64 = mpData.point_of_interaction?.transaction_data?.qr_code_base64 || "";
     const ticketUrl = mpData.point_of_interaction?.transaction_data?.ticket_url || "";
+
+    // Log para debug do QR Code
+    if (!qrCode) {
+      console.warn("⚠️ QR Code não retornado pelo Mercado Pago");
+      console.log("📦 Point of interaction:", JSON.stringify(mpData.point_of_interaction));
+    } else {
+      console.log("✅ QR Code gerado com sucesso");
+    }
     
     // Create Pix charge in database
     const { data: pixCharge, error: pixError } = await adminClient
