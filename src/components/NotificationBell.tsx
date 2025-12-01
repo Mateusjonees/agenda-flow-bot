@@ -1,0 +1,397 @@
+import { useState, useEffect } from "react";
+import { Bell, Calendar, ListTodo, Check, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+
+interface Appointment {
+  id: string;
+  title: string;
+  start_time: string;
+  customer_id: string;
+}
+
+interface Task {
+  id: string;
+  title: string;
+  due_date: string;
+  priority: string;
+}
+
+export function NotificationBell() {
+  const [open, setOpen] = useState(false);
+  const [hasViewedPopover, setHasViewedPopover] = useState(false);
+  const [previousCount, setPreviousCount] = useState(0);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  // Buscar notificações não vistas
+  const { data: notifications, isLoading } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { appointments: [], tasks: [], subscription: null };
+
+      // Buscar assinatura do usuário
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("*, subscription_plans(*)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // Buscar visualizações do usuário
+      const { data: viewsData } = await supabase
+        .from("notification_views")
+        .select("notification_id, notification_type")
+        .eq("user_id", user.id);
+
+      const viewedAppointments = new Set(
+        viewsData?.filter(v => v.notification_type === "appointment").map(v => v.notification_id) || []
+      );
+      const viewedTasks = new Set(
+        viewsData?.filter(v => v.notification_type === "task").map(v => v.notification_id) || []
+      );
+      const viewedSubscription = viewsData?.some(v => v.notification_type === "subscription") || false;
+
+      // Buscar atendimentos do dia
+      const { data: appointmentsData } = await supabase
+        .from("appointments")
+        .select("id, title, start_time, customer_id")
+        .eq("user_id", user.id)
+        .gte("start_time", today.toISOString())
+        .lt("start_time", tomorrow.toISOString())
+        .order("start_time", { ascending: true });
+
+      // Buscar tarefas pendentes
+      const { data: tasksData } = await supabase
+        .from("tasks")
+        .select("id, title, due_date, priority")
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+        .lte("due_date", tomorrow.toISOString())
+        .order("due_date", { ascending: true })
+        .limit(10);
+
+      // Filtrar apenas as não visualizadas
+      const unviewedAppointments = (appointmentsData || []).filter(apt => !viewedAppointments.has(apt.id));
+      const unviewedTasks = (tasksData || []).filter(task => !viewedTasks.has(task.id));
+
+      // Verificar se deve mostrar notificação de assinatura
+      let subscriptionNotification = null;
+      if (subscription && !viewedSubscription) {
+        const nextBilling = subscription.next_billing_date ? new Date(subscription.next_billing_date) : null;
+        const daysRemaining = nextBilling ? Math.ceil((nextBilling.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+        
+        // Mostrar se está em trial e faltam 3 dias ou menos, ou se está expirado
+        if ((subscription.status === "trial" && daysRemaining <= 3) || subscription.status === "expired") {
+          subscriptionNotification = {
+            status: subscription.status,
+            daysRemaining,
+            planName: subscription.subscription_plans?.name || "Plano",
+          };
+        }
+      }
+
+      return {
+        appointments: unviewedAppointments,
+        tasks: unviewedTasks,
+        subscription: subscriptionNotification,
+      };
+    },
+    refetchInterval: 30000, // Refetch a cada 30 segundos
+    refetchOnWindowFocus: true,
+  });
+
+  // Mutation para marcar uma notificação como vista
+  const markAsViewed = useMutation({
+    mutationFn: async ({ notificationId, notificationType }: { notificationId: string; notificationType: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("notification_views")
+        .upsert({
+          user_id: user.id,
+          notification_id: notificationId,
+          notification_type: notificationType,
+        }, {
+          onConflict: 'user_id,notification_type,notification_id'
+        });
+      
+      if (error) {
+        console.error("Erro ao marcar notificação como vista:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  // Mutation para marcar todas como vistas
+  const markAllAsViewed = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const allNotifications = [
+        ...(notifications?.appointments || []).map(apt => ({
+          user_id: user.id,
+          notification_id: apt.id,
+          notification_type: "appointment"
+        })),
+        ...(notifications?.tasks || []).map(task => ({
+          user_id: user.id,
+          notification_id: task.id,
+          notification_type: "task"
+        }))
+      ];
+
+      if (allNotifications.length > 0) {
+        const { error } = await supabase
+          .from("notification_views")
+          .upsert(allNotifications, {
+            onConflict: 'user_id,notification_type,notification_id'
+          });
+        
+        if (error) {
+          console.error("Erro ao limpar notificações:", error);
+          throw error;
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const handleNotificationClick = (notificationId: string, notificationType: string, path: string) => {
+    // Marcar como vista
+    markAsViewed.mutate({ notificationId, notificationType });
+    // Navegar para a página relevante
+    navigate(path);
+    // Fechar o popover
+    setOpen(false);
+  };
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (newOpen) {
+      // Quando abrir o popover, marcar que o usuário visualizou (remove o badge)
+      setHasViewedPopover(true);
+    }
+  };
+
+  const handleSubscriptionClick = async () => {
+    // Marcar notificação de assinatura como vista
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from("notification_views")
+        .upsert({
+          user_id: user.id,
+          notification_id: "subscription_warning",
+          notification_type: "subscription",
+        }, {
+          onConflict: 'user_id,notification_type,notification_id'
+        });
+    }
+    navigate("/planos");
+    setOpen(false);
+  };
+
+  const handleClearAll = () => {
+    markAllAsViewed.mutate();
+    setHasViewedPopover(false);
+  };
+
+  const totalNotifications = notifications
+    ? notifications.appointments.length + notifications.tasks.length + (notifications.subscription ? 1 : 0)
+    : 0;
+
+  // Resetar o estado apenas quando NOVAS notificações chegarem
+  useEffect(() => {
+    if (totalNotifications > previousCount) {
+      setHasViewedPopover(false);
+    }
+    setPreviousCount(totalNotifications);
+  }, [totalNotifications]);
+
+  const appointments = notifications?.appointments || [];
+  const tasks = notifications?.tasks || [];
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+        >
+          <Bell className="w-4 h-4" />
+          {totalNotifications > 0 && !hasViewedPopover && (
+            <Badge
+              variant="destructive"
+              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+            >
+              {totalNotifications}
+            </Badge>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-0" align="end">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h4 className="font-semibold">Notificações</h4>
+          <div className="flex items-center gap-2">
+            {totalNotifications > 0 && (
+              <>
+                <Badge variant="secondary">{totalNotifications}</Badge>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleClearAll}
+                  className="h-7 gap-1 text-xs"
+                >
+                  <Check className="w-3 h-3" />
+                  Limpar
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+        
+        <ScrollArea className="h-[400px]">
+          {isLoading ? (
+            <div className="p-4 text-center text-muted-foreground text-sm">
+              Carregando...
+            </div>
+          ) : totalNotifications === 0 ? (
+            <div className="p-4 text-center text-muted-foreground text-sm">
+              Nenhuma notificação nova
+            </div>
+          ) : (
+            <div className="p-2">
+              {/* Notificação de Assinatura */}
+              {notifications?.subscription && (
+                <div className="mb-2">
+                  <div
+                    className={`flex items-start gap-3 p-3 rounded-md cursor-pointer transition-colors ${
+                      notifications.subscription.status === "expired"
+                        ? "bg-destructive/10 hover:bg-destructive/20 border border-destructive/20"
+                        : "bg-yellow-50 dark:bg-yellow-950 hover:bg-yellow-100 dark:hover:bg-yellow-900 border border-yellow-200 dark:border-yellow-800"
+                    }`}
+                    onClick={handleSubscriptionClick}
+                  >
+                    <AlertCircle className={`w-5 h-5 flex-shrink-0 ${
+                      notifications.subscription.status === "expired"
+                        ? "text-destructive"
+                        : "text-yellow-600 dark:text-yellow-400"
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold">
+                        {notifications.subscription.status === "expired"
+                          ? "Assinatura Expirada"
+                          : "Período de teste acabando"}
+                      </p>
+                      <p className="text-xs mt-1 text-muted-foreground">
+                        {notifications.subscription.status === "expired"
+                          ? "Renove agora para continuar usando"
+                          : `Restam ${notifications.subscription.daysRemaining} ${notifications.subscription.daysRemaining === 1 ? 'dia' : 'dias'}`}
+                      </p>
+                      <Button size="sm" className="mt-2 h-7 text-xs">
+                        Ver Planos
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {notifications?.subscription && (appointments.length > 0 || tasks.length > 0) && (
+                <Separator className="my-2" />
+              )}
+
+              {appointments.length > 0 && (
+                <div className="mb-2">
+                  <div className="flex items-center gap-2 px-2 py-1.5">
+                    <Calendar className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium">Atendimentos de Hoje</span>
+                  </div>
+                  <div className="space-y-1">
+                    {appointments.map((apt) => (
+                      <div
+                        key={apt.id}
+                        className="flex items-start gap-3 p-2 rounded-md hover:bg-muted transition-colors cursor-pointer"
+                        onClick={() => handleNotificationClick(apt.id, "appointment", "/agendamentos")}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{apt.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(apt.start_time), "HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {appointments.length > 0 && tasks.length > 0 && (
+                <Separator className="my-2" />
+              )}
+
+              {tasks.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 px-2 py-1.5">
+                    <ListTodo className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium">Tarefas Pendentes</span>
+                  </div>
+                  <div className="space-y-1">
+                    {tasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="flex items-start gap-3 p-2 rounded-md hover:bg-muted transition-colors cursor-pointer"
+                        onClick={() => handleNotificationClick(task.id, "task", "/tarefas")}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{task.title}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(task.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                            </p>
+                            {task.priority === "high" && (
+                              <Badge variant="destructive" className="h-4 text-[10px] px-1">
+                                Alta
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
+  );
+}
