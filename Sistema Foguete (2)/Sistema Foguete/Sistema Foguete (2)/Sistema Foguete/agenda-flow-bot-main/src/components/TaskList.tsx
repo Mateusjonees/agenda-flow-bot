@@ -1,0 +1,552 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
+import { EditTaskDialog } from "@/components/EditTaskDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { TaskItem } from "@/types/task";
+import { 
+  CheckCircle2, 
+  Circle, 
+  Clock, 
+  AlertCircle,
+  MessageSquare,
+  CreditCard,
+  UserX,
+  Package,
+  Calendar,
+  Edit,
+  Trash2
+} from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  type: string;
+  priority: string;
+  status: string;
+  due_date?: string;
+  related_entity_type?: string;
+  related_entity_id?: string;
+  completed_at?: string;
+  updated_at?: string;
+  metadata?: {
+    customer_id?: string;
+    customer_name?: string;
+    [key: string]: any;
+  };
+}
+
+interface TaskWithCustomer extends Task {
+  customer_name?: string;
+}
+
+interface TaskListProps {
+  showAll?: boolean;
+  showWeek?: boolean;
+  showCompleted?: boolean;
+  maxItems?: number;
+  searchQuery?: string;
+  selectedType?: string | null;
+  selectedPriority?: string;
+  selectedStatus?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export const TaskList = ({ 
+  showAll = false,
+  showWeek = false, 
+  showCompleted = false, 
+  maxItems = 10,
+  searchQuery = "",
+  selectedType = null,
+  selectedPriority = "all",
+  selectedStatus = "all",
+  startDate,
+  endDate
+}: TaskListProps) => {
+  const { toast } = useToast();
+  const [tasks, setTasks] = useState<TaskWithCustomer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [taskToComplete, setTaskToComplete] = useState<string | null>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+
+  useEffect(() => {
+    fetchTasks();
+
+    // Configurar realtime para atualizar automaticamente quando tarefas mudarem
+    const channel = supabase
+      .channel('tasks-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks'
+        },
+        () => {
+          console.log('🔄 Tarefa atualizada, recarregando lista...');
+          fetchTasks();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [showAll, showWeek, showCompleted, searchQuery, selectedType, selectedPriority, selectedStatus, startDate, endDate]);
+
+  const fetchTasks = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    let query = supabase
+      .from("tasks")
+      .select("*")
+      .eq("user_id", user.id);
+
+    // Filtrar por tipo/categoria
+    if (selectedType) {
+      query = query.eq("type", selectedType);
+    }
+
+    // Filtrar por prioridade
+    if (selectedPriority && selectedPriority !== "all") {
+      query = query.eq("priority", selectedPriority);
+    }
+
+    // Filtrar por status
+    if (selectedStatus && selectedStatus !== "all") {
+      // Filtro específico de status selecionado
+      query = query.eq("status", selectedStatus);
+      
+      // Ordenar baseado no status
+      if (selectedStatus === "completed" || selectedStatus === "cancelled") {
+        query = query.order("completed_at", { ascending: false });
+      } else {
+        query = query.order("due_date", { ascending: true });
+      }
+    } else if (selectedStatus === "all") {
+      // Quando "Todos os Status" está selecionado, mostrar realmente TODOS
+      query = query.order("due_date", { ascending: false });
+    } else {
+      // Filtro padrão quando não há selectedStatus (caso do dashboard e abas normais)
+      if (showCompleted) {
+        // Aba de histórico: apenas completed e cancelled
+        query = query.in("status", ["completed", "cancelled"]).order("completed_at", { ascending: false });
+      } else {
+        // Abas "Hoje", "Semana": apenas pending e in_progress
+        query = query.in("status", ["pending", "in_progress"]).order("due_date", { ascending: true });
+        
+        if (showWeek) {
+          // Semana: tarefas de hoje até o final da semana (domingo)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const endOfWeek = new Date(today);
+          const dayOfWeek = today.getDay();
+          const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+          endOfWeek.setDate(today.getDate() + daysUntilSunday);
+          endOfWeek.setHours(23, 59, 59, 999);
+          
+          query = query.gte("due_date", today.toISOString()).lte("due_date", endOfWeek.toISOString());
+        } else if (!showAll) {
+          // Hoje: apenas tarefas de hoje
+          const today = new Date();
+          today.setHours(23, 59, 59, 999);
+          query = query.lte("due_date", today.toISOString());
+        }
+      }
+    }
+
+    // Filtrar por data inicial
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      query = query.gte("due_date", start.toISOString());
+    }
+
+    // Filtrar por data final
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      query = query.lte("due_date", end.toISOString());
+    }
+
+    // Filtrar por busca
+    if (searchQuery && searchQuery.length >= 2) {
+      query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+    }
+
+    if (maxItems) {
+      query = query.limit(maxItems);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      toast({
+        title: "Erro ao carregar tarefas",
+        description: error.message,
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Buscar nomes dos clientes para tarefas que têm customer_id
+    const tasksWithCustomers: TaskWithCustomer[] = (data || []).map(task => ({
+      ...task,
+      metadata: task.metadata as any,
+    }));
+    const customerIds = tasksWithCustomers
+      .map(task => {
+        const metadata = task.metadata as { customer_id?: string };
+        return metadata?.customer_id;
+      })
+      .filter((id): id is string => !!id);
+
+    if (customerIds.length > 0) {
+      const { data: customers } = await supabase
+        .from("customers")
+        .select("id, name")
+        .in("id", customerIds);
+
+      if (customers) {
+        const customerMap = new Map(customers.map(c => [c.id, c.name]));
+        tasksWithCustomers.forEach(task => {
+          const metadata = task.metadata as { customer_id?: string };
+          if (metadata?.customer_id) {
+            task.customer_name = customerMap.get(metadata.customer_id);
+          }
+        });
+      }
+    }
+
+    setTasks(tasksWithCustomers);
+    setLoading(false);
+  };
+
+  const handleCheckboxChange = (taskId: string, currentStatus: string) => {
+    if (currentStatus === "completed") {
+      // Se já está concluída, desmarcar diretamente
+      handleUncompleteTask(taskId);
+    } else {
+      // Se não está concluída, pedir confirmação
+      setTaskToComplete(taskId);
+      setConfirmDialogOpen(true);
+    }
+  };
+
+  const handleCompleteTask = async () => {
+    if (!taskToComplete) return;
+    
+    console.log("🔵 Iniciando conclusão da tarefa:", taskToComplete);
+    
+    const { data, error } = await supabase
+      .from("tasks")
+      .update({ 
+        status: "completed",
+        completed_at: new Date().toISOString()
+      })
+      .eq("id", taskToComplete)
+      .select();
+
+    console.log("📊 Resultado da atualização:", { data, error });
+
+    if (error) {
+      console.error("❌ Erro ao completar tarefa:", error);
+      toast({
+        title: "Erro ao completar tarefa",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      console.log("✅ Tarefa concluída com sucesso!");
+      toast({
+        title: "Tarefa concluída!",
+        description: "Verifique a aba 'Histórico' para ver tarefas concluídas.",
+      });
+      // Recarregar para garantir sincronização
+      fetchTasks();
+    }
+    
+    setConfirmDialogOpen(false);
+    setTaskToComplete(null);
+  };
+
+  const handleUncompleteTask = async (taskId: string) => {
+    console.log("🔵 Desmarcando tarefa:", taskId);
+    
+    const { error } = await supabase
+      .from("tasks")
+      .update({ 
+        status: "pending",
+        completed_at: null
+      })
+      .eq("id", taskId);
+
+    if (error) {
+      console.error("❌ Erro ao desmarcar tarefa:", error);
+      toast({
+        title: "Erro ao desmarcar tarefa",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      console.log("✅ Tarefa desmarcada com sucesso!");
+      toast({
+        title: "Tarefa desmarcada!",
+        description: "Tarefa voltou para pendente.",
+      });
+      fetchTasks();
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", taskId);
+
+    if (error) {
+      toast({
+        title: "Erro ao deletar tarefa",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Tarefa deletada!",
+      });
+      fetchTasks();
+    }
+  };
+
+  const getTaskIcon = (type: string) => {
+    const icons: Record<string, any> = {
+      post_sale: MessageSquare,
+      followup: Clock,
+      payment: CreditCard,
+      reactivation: UserX,
+      restock: Package,
+      preparation: Calendar,
+    };
+    const Icon = icons[type] || Circle;
+    return <Icon className="h-4 w-4" />;
+  };
+
+  const getPriorityColor = (priority: string) => {
+    const colors: Record<string, string> = {
+      urgent: "destructive",
+      high: "default",
+      medium: "secondary",
+      low: "outline",
+    };
+    return colors[priority] || "secondary";
+  };
+
+  const getPriorityLabel = (priority: string) => {
+    const labels: Record<string, string> = {
+      urgent: "Urgente",
+      high: "Alta",
+      medium: "Média",
+      low: "Baixa",
+    };
+    return labels[priority] || priority;
+  };
+
+  const getTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      general: "Geral",
+      follow_up: "Follow-up",
+      reactivation: "Reativação",
+      proposal_follow_up: "Follow-up de Proposta",
+    };
+    return labels[type] || type;
+  };
+
+  const getTypeColor = (type: string) => {
+    const colors: Record<string, string> = {
+      general: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+      follow_up: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300 border-green-200 dark:border-green-800",
+      reactivation: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300 border-orange-200 dark:border-orange-800",
+      proposal_follow_up: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+    };
+    return colors[type] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700";
+  };
+
+  const isOverdue = (dueDate: string) => {
+    return new Date(dueDate) < new Date();
+  };
+
+  if (loading) {
+    return <div className="text-muted-foreground">Carregando tarefas...</div>;
+  }
+
+  if (tasks.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-10">
+          <CheckCircle2 className="h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">
+            {showCompleted 
+              ? "Nenhuma tarefa no histórico" 
+              : showWeek
+                ? "Nenhuma tarefa para esta semana"
+                : showAll 
+                  ? "Nenhuma tarefa pendente" 
+                  : "Nenhuma tarefa para hoje"}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <EditTaskDialog
+        task={editingTask}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onTaskUpdated={fetchTasks}
+      />
+      
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Concluir tarefa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja marcar esta tarefa como concluída? Ela será movida para o histórico.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setTaskToComplete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCompleteTask} className="bg-green-600 hover:bg-green-700">
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <div className="space-y-3">
+        {tasks.map((task) => (
+        <Card 
+          key={task.id} 
+          className={`${
+            task.status === "completed"
+              ? "border-2 border-green-500 bg-green-50 dark:bg-green-950/20"
+              : !showCompleted && isOverdue(task.due_date) 
+                ? "border-2 border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20" 
+                : taskToComplete === task.id
+                  ? "border-2 border-green-500 bg-green-50 dark:bg-green-950/20"
+                  : ""
+          } transition-all hover:shadow-md`}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                checked={task.status === "completed"}
+                onCheckedChange={() => handleCheckboxChange(task.id, task.status)}
+                className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+              />
+              <div className="flex-1 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <h4 className="font-medium">{task.title}</h4>
+                    {task.customer_name && (
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        Cliente: {task.customer_name}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!showCompleted && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            setEditingTask({
+                              id: task.id,
+                              title: task.title,
+                              description: task.description,
+                              type: task.type,
+                              priority: task.priority,
+                              status: task.status,
+                              due_date: task.due_date,
+                              metadata: {
+                                customer_name: task.customer_name || task.metadata?.customer_name,
+                              },
+                            });
+                            setEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteTask(task.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {task.description && (
+                  <p className="text-sm text-muted-foreground">{task.description}</p>
+                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge 
+                    variant="outline" 
+                    className={`${getTypeColor(task.type)} border text-xs px-2 py-0.5`}
+                  >
+                    {getTypeLabel(task.type)}
+                  </Badge>
+                  <Badge 
+                    variant={getPriorityColor(task.priority) as any}
+                    className="text-xs px-2 py-0.5"
+                  >
+                    {getPriorityLabel(task.priority)}
+                  </Badge>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    {showCompleted ? (
+                      <>
+                        <CheckCircle2 className="h-3 w-3" />
+                        {format(new Date(task.completed_at || task.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </>
+                    ) : isOverdue(task.due_date) ? (
+                      <>
+                        <AlertCircle className="h-3 w-3 text-yellow-600 dark:text-yellow-500" />
+                        <span className="text-yellow-600 dark:text-yellow-500 font-medium">Atrasada</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="h-3 w-3" />
+                        {format(new Date(task.due_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        ))}
+      </div>
+    </>
+  );
+};
