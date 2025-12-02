@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ConnectWhatsAppDialog } from "@/components/ConnectWhatsAppDialog";
 
 interface WhatsAppConversation {
   id: string;
@@ -52,6 +53,7 @@ const ConversasWhatsApp = () => {
   const [sending, setSending] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showConnectDialog, setShowConnectDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -280,12 +282,28 @@ const ConversasWhatsApp = () => {
 
   return (
     <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Conversas WhatsApp</h1>
-        <p className="text-muted-foreground">
-          Acompanhe e responda conversas com clientes via WhatsApp
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Conversas WhatsApp</h1>
+          <p className="text-muted-foreground">
+            Acompanhe e responda conversas com clientes via WhatsApp
+          </p>
+        </div>
+        
+        <Button 
+          onClick={() => setShowConnectDialog(true)}
+          size="lg"
+          className="bg-green-600 hover:bg-green-700"
+        >
+          <MessageCircle className="mr-2 h-5 w-5" />
+          Conectar WhatsApp
+        </Button>
       </div>
+
+      <ConnectWhatsAppDialog 
+        open={showConnectDialog}
+        onOpenChange={setShowConnectDialog}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
         {/* Lista de Conversas */}
