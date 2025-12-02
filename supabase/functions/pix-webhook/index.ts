@@ -219,7 +219,7 @@ const handler = async (req: Request): Promise<Response> => {
           .from("financial_transactions")
           .select("id")
           .eq("user_id", metadata.userId)
-          .eq("amount", payload.amount)
+          .eq("amount", amount)
           .eq("description", `Assinatura ${metadata.billingFrequency || 'Renovação'} - PIX`)
           .eq("payment_method", "pix")
           .eq("status", "completed")
@@ -231,7 +231,7 @@ const handler = async (req: Request): Promise<Response> => {
             .insert({
               user_id: metadata.userId,
               type: "income",
-              amount: payload.amount,
+              amount: amount,
               description: `Assinatura ${metadata.billingFrequency || 'Renovação'} - PIX`,
               payment_method: "pix",
               status: "completed",
@@ -283,7 +283,7 @@ const handler = async (req: Request): Promise<Response> => {
             .from("financial_transactions")
             .select("id")
             .eq("user_id", subscription.user_id)
-            .eq("amount", payload.amount)
+            .eq("amount", amount)
             .eq("description", description)
             .eq("payment_method", "pix")
             .eq("status", "completed")
@@ -295,7 +295,7 @@ const handler = async (req: Request): Promise<Response> => {
               .insert({
                 user_id: subscription.user_id,
                 type: "income",
-                amount: payload.amount,
+                amount: amount,
                 description: description,
                 payment_method: "pix",
                 status: "completed",
@@ -437,7 +437,7 @@ const handler = async (req: Request): Promise<Response> => {
             .from("financial_transactions")
             .select("id")
             .eq("user_id", order.user_id)
-            .eq("amount", payload.amount)
+            .eq("amount", amount)
             .eq("description", description)
             .eq("payment_method", "pix")
             .eq("status", "completed")
@@ -450,7 +450,7 @@ const handler = async (req: Request): Promise<Response> => {
                 user_id: order.user_id,
                 category_id: categoryId,
                 type: "income",
-                amount: payload.amount,
+                amount: amount,
                 description: description,
                 payment_method: "pix",
                 status: "completed",
