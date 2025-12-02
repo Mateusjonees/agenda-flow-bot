@@ -42,45 +42,47 @@ export function ConnectWhatsAppDialog({ open, onOpenChange }: ConnectWhatsAppDia
             description: "Escaneie com seu WhatsApp para conectar.",
           });
 
-        // Verificar status da conexão a cada 3 segundos
-        const checkInterval = setInterval(async () => {
-          try {
-            const status = await evolutionApi.getInstanceStatus();
-            
-            if (status.state === 'open') {
-              setConnectionStatus('connected');
-              clearInterval(checkInterval);
-              toast({
-                title: "🎉 WhatsApp conectado!",
-                description: "Sua instância está pronta para enviar mensagens.",
-              });
+          // Verificar status da conexão a cada 3 segundos
+          const checkInterval = setInterval(async () => {
+            try {
+              const status = await evolutionApi.getInstanceStatus();
               
-              // Fechar modal após 2 segundos
-              setTimeout(() => {
-                onOpenChange(false);
-                setQrCode(null);
-                setConnectionStatus('disconnected');
-              }, 2000);
+              if (status.state === 'open') {
+                setConnectionStatus('connected');
+                clearInterval(checkInterval);
+                toast({
+                  title: "🎉 WhatsApp conectado!",
+                  description: "Sua instância está pronta para enviar mensagens.",
+                });
+                
+                // Fechar modal após 2 segundos
+                setTimeout(() => {
+                  onOpenChange(false);
+                  setQrCode(null);
+                  setConnectionStatus('disconnected');
+                }, 2000);
+              }
+            } catch (error) {
+              console.error('Erro ao verificar status:', error);
             }
-          } catch (error) {
-            console.error('Erro ao verificar status:', error);
-          }
-        }, 3000);
+          }, 3000);
 
-        // Limpar intervalo após 2 minutos (timeout do QR Code)
-        setTimeout(() => {
-          clearInterval(checkInterval);
-          if (connectionStatus !== 'connected') {
-            setConnectionStatus('disconnected');
-            setQrCode(null);
-            toast({
-              title: "⏱️ QR Code expirou",
-              description: "Clique novamente para gerar um novo código.",
-              variant: "destructive",
-            });
-          }
-        }, 120000);
-        
+          // Limpar intervalo após 2 minutos (timeout do QR Code)
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            if (connectionStatus !== 'connected') {
+              setConnectionStatus('disconnected');
+              setQrCode(null);
+              toast({
+                title: "⏱️ QR Code expirou",
+                description: "Clique novamente para gerar um novo código.",
+                variant: "destructive",
+              });
+            }
+          }, 120000);
+        } else {
+          throw new Error('QR Code não disponível. A instância pode já estar conectada.');
+        }
       } else {
         throw new Error('QR Code não disponível. A instância pode já estar conectada.');
       }
