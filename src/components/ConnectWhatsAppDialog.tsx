@@ -30,13 +30,27 @@ export function ConnectWhatsAppDialog({ open, onOpenChange }: ConnectWhatsAppDia
       // Buscar informações da instância (incluindo QR Code se disponível)
       const response = await evolutionApi.getQrCode();
       
-      console.log('Response completa:', response);
+      console.log('=== DEBUG INICIO ===');
+      console.log('1. Response completa:', response);
+      console.log('2. response.base64 existe?', !!response.base64);
+      console.log('3. response.qrcode existe?', !!response.qrcode);
       
-      if (response && response.qrcode) {
-        const qrCodeData = response.qrcode.base64 || response.qrcode.code;
+      // Evolution API v2 retorna base64 diretamente, v1 retorna em qrcode.base64
+      if (response && (response.base64 || response.qrcode)) {
+        const qrCodeData = response.base64 || response.qrcode?.base64 || response.qrcode?.code;
+        
+        console.log('4. qrCodeData:', qrCodeData ? 'presente' : 'ausente');
+        console.log('5. qrCodeData type:', typeof qrCodeData);
+        console.log('6. qrCodeData length:', qrCodeData?.length);
+        console.log('7. qrCodeData primeiros 100 chars:', qrCodeData?.substring(0, 100));
+        console.log('8. qrCodeData é truthy?', !!qrCodeData);
+        console.log('=== DEBUG FIM ===');
         
         if (qrCodeData) {
-          setQrCode(qrCodeData.startsWith('data:image') ? qrCodeData : `data:image/png;base64,${qrCodeData}`);
+          const finalQrCode = qrCodeData.startsWith('data:image') ? qrCodeData : `data:image/png;base64,${qrCodeData}`;
+          console.log('9. QR Code final (primeiros 100 chars):', finalQrCode.substring(0, 100));
+          
+          setQrCode(finalQrCode);
           toast({
             title: "✅ QR Code gerado!",
             description: "Escaneie com seu WhatsApp para conectar.",
