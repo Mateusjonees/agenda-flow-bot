@@ -1,9 +1,13 @@
 // Evolution API Client - Sistema Foguete
 // Integração com WhatsApp via Evolution API v2.3.6
+// Usa Supabase Edge Function como proxy para evitar Mixed Content (HTTPS → HTTP)
 
-const EVOLUTION_API_URL = import.meta.env.VITE_EVOLUTION_API_URL || 'http://72.60.155.81:8080';
-const EVOLUTION_API_KEY = import.meta.env.VITE_EVOLUTION_API_KEY || 'vh123A1SkFhtjP2rwTBdUSqr0sKcpgTztuwWNaCurfA=';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://pnwelorcrncqltqiyxwx.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBud2Vsb3Jjcm5jcWx0cWl5eHd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTIyNjAsImV4cCI6MjA3NzkyODI2MH0.Y6xkoKV4V8tAXqceJfnZ8pfWOTn30jUw9paGoPUcVog';
 const INSTANCE_NAME = import.meta.env.VITE_EVOLUTION_INSTANCE_NAME || 'sistema-foguete';
+
+// URL da Edge Function proxy
+const EVOLUTION_PROXY_URL = `${SUPABASE_URL}/functions/v1/evolution-api-proxy`;
 
 interface SendMessageParams {
   number: string; // Número com DDI, ex: 5511999999999
@@ -28,39 +32,41 @@ interface EvolutionApiResponse {
 }
 
 class EvolutionApiClient {
-  private baseUrl: string;
-  private apiKey: string;
+  private proxyUrl: string;
+  private supabaseKey: string;
   private instance: string;
 
   constructor() {
-    this.baseUrl = EVOLUTION_API_URL;
-    this.apiKey = EVOLUTION_API_KEY;
+    this.proxyUrl = EVOLUTION_PROXY_URL;
+    this.supabaseKey = SUPABASE_ANON_KEY;
     this.instance = INSTANCE_NAME;
   }
 
   private async request(endpoint: string, method: string = 'GET', body?: any): Promise<any> {
-    const url = `${this.baseUrl}${endpoint}`;
-    
+    // Fazer requisição via Edge Function proxy
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      'apikey': this.apiKey,
+      'Authorization': `Bearer ${this.supabaseKey}`,
+      'apikey': this.supabaseKey,
     };
 
-    const options: RequestInit = {
+    const proxyPayload = {
+      endpoint,
       method,
-      headers,
+      body,
     };
-
-    if (body) {
-      options.body = JSON.stringify(body);
-    }
 
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(this.proxyUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(proxyPayload),
+      });
+
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || `HTTP ${response.status}`);
+        throw new Error(data.message || data.error || `HTTP ${response.status}`);
       }
       
       return data;
