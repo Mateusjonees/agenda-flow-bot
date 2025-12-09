@@ -128,7 +128,7 @@ const PedidosWhatsApp = () => {
     try {
       const { error } = await supabase
         .from("orders")
-        .update({ status: newStatus })
+        .update({ status: newStatus as "cancelled" | "delivered" | "draft" | "payment_confirmed" | "pending_payment" | "processing" | "refunded" | "shipped" })
         .eq("id", selectedOrder.id);
 
       if (error) throw error;

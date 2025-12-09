@@ -146,13 +146,13 @@ export const CustomerHistory = ({ customerId }: CustomerHistoryProps) => {
 
       // 💬 Adicionar conversas WhatsApp
       whatsappConversations?.forEach(conv => {
-        const aiSummary = conv.context?.ai_summary;
+        const aiSummary = (conv.context as Record<string, unknown>)?.ai_summary as { summary?: string } | undefined;
         if (aiSummary) {
           allEvents.push({
             id: conv.id,
             type: "whatsapp",
             title: `💬 Conversa WhatsApp - ${conv.whatsapp_name || conv.whatsapp_phone}`,
-            description: aiSummary.summary || "Conversa registrada",
+            description: aiSummary?.summary || "Conversa registrada",
             date: conv.last_message_at,
             status: conv.status,
             icon: MessageCircle,

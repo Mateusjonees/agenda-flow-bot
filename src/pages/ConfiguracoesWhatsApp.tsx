@@ -110,7 +110,7 @@ const ConfiguracoesWhatsApp = () => {
       const { error } = await supabase
         .from("business_settings")
         .update({
-          whatsapp_config: config,
+          whatsapp_config: JSON.parse(JSON.stringify(config)),
           updated_at: new Date().toISOString(),
         })
         .eq("user_id", user.id);

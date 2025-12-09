@@ -118,7 +118,6 @@ ${guide}
         default_appointment_duration: defaultAppointmentDuration,
       };
 
-      // @ts-expect-error - ai_training column exists but types not regenerated yet
       const { error } = await supabase
         .from("business_settings")
         .update({ ai_training: aiTraining })

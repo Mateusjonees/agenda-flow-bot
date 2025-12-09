@@ -81,11 +81,11 @@ async function sendToWhatsApp(
       success: true,
       message_id: result.messages?.[0]?.id,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("❌ Send error:", error);
     return {
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -286,10 +286,10 @@ serve(async (req) => {
         status: 200,
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("❌ Send error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,

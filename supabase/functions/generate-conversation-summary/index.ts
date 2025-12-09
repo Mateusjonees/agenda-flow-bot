@@ -138,7 +138,7 @@ ${conversationText}`;
       customer_needs: [],
       pending_actions: "Análise manual necessária",
       next_steps: "Revisar conversa completa",
-      error: error.message,
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -246,11 +246,11 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("❌ Error in generate-conversation-summary:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : "Unknown error",
         success: false 
       }),
       {
