@@ -94,7 +94,7 @@ const Dashboard = () => {
 
       // Converter para array e ordenar
       return Object.entries(serviceCounts)
-        .map(([name, value]) => ({ name, value }))
+        .map(([name, value]) => ({ name, value: value as number }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 5); // Top 5 serviços
     },
@@ -145,7 +145,7 @@ const Dashboard = () => {
         }, {});
 
       const categoryData = Object.entries(categoryExpenses)
-        .map(([name, value]) => ({ name, value }))
+        .map(([name, value]) => ({ name, value: value as number }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 6);
 

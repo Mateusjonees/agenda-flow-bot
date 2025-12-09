@@ -285,7 +285,7 @@ async function executeFunction(
         .select("subtotal")
         .eq("cart_id", cart.id);
 
-      const subtotal = items?.reduce((sum, item) => sum + parseFloat(item.subtotal), 0) || 0;
+      const subtotal = items?.reduce((sum: number, item: { subtotal: string | number }) => sum + parseFloat(String(item.subtotal)), 0) || 0;
 
       await supabase
         .from("shopping_carts")
@@ -796,10 +796,10 @@ serve(async (req) => {
         status: 200,
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("❌ AI error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
