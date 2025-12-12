@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import logo from "@/assets/logo.png";
+import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 
 interface LayoutProps {
   children: ReactNode;
@@ -37,6 +38,9 @@ function LayoutContent({ children, user, profileImage, navigate, handleLogout }:
       <AppSidebar />
       
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Subscription Banner */}
+        <SubscriptionBanner />
+        
         {/* Header */}
         <header className="sticky top-0 z-40 w-full border-b bg-background">
           <div className="flex h-14 sm:h-16 items-center gap-2 sm:gap-4 px-3 sm:px-6">
