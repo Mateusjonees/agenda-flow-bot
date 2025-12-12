@@ -3,16 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { MessageCircle, Search, Send, User, Clock, PhoneCall, Loader2, UserPlus } from "lucide-react";
+import { MessageCircle, Search, Send, User, Clock, PhoneCall, Loader2, UserPlus, QrCode, Wifi, WifiOff } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
+import { WhatsAppConnectionDialog } from "@/components/WhatsAppConnectionDialog";
 interface WhatsAppConversation {
   id: string;
   user_id: string;
@@ -52,6 +51,8 @@ const ConversasWhatsApp = () => {
   const [sending, setSending] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
+  const [whatsappConnected, setWhatsappConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -280,12 +281,39 @@ const ConversasWhatsApp = () => {
 
   return (
     <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Conversas WhatsApp</h1>
-        <p className="text-muted-foreground">
-          Acompanhe e responda conversas com clientes via WhatsApp
-        </p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Conversas WhatsApp</h1>
+          <p className="text-muted-foreground">
+            Acompanhe e responda conversas com clientes via WhatsApp
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={whatsappConnected ? "default" : "secondary"} className="gap-1">
+            {whatsappConnected ? (
+              <>
+                <Wifi className="h-3 w-3" />
+                Conectado
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-3 w-3" />
+                Desconectado
+              </>
+            )}
+          </Badge>
+          <Button onClick={() => setConnectionDialogOpen(true)}>
+            <QrCode className="mr-2 h-4 w-4" />
+            Conectar WhatsApp
+          </Button>
+        </div>
       </div>
+
+      <WhatsAppConnectionDialog
+        open={connectionDialogOpen}
+        onOpenChange={setConnectionDialogOpen}
+        onConnectionChange={setWhatsappConnected}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
         {/* Lista de Conversas */}

@@ -156,3 +156,6 @@ verify_jwt = false
 
 [functions.check-pending-platform-payments]
 verify_jwt = false
+
+[functions.evolution-api]
+verify_jwt = true
