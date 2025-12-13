@@ -464,9 +464,9 @@ const Planos = () => {
         console.log("✅ PIX gerado:", data);
         
         setPixData({
-          qrCode: data.qr_code,
-          qrCodeBase64: data.qr_code_base64,
-          ticketUrl: data.ticket_url,
+          qrCode: data.qrCode,
+          qrCodeBase64: data.qrCodeBase64,
+          ticketUrl: data.ticketUrl,
           amount: plan.price
         });
         setPixDialogOpen(true);
