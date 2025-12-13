@@ -1088,6 +1088,12 @@ const Landing = () => {
               © 2025 Foguete Gestão Empresarial. Todos os direitos reservados.
             </div>
             <div className="flex flex-wrap items-center justify-center gap-4">
+              <a href="/politica-privacidade" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Política de Privacidade
+              </a>
+              <a href="/termos-servico" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Termos de Serviço
+              </a>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Shield className="w-4 h-4 text-primary" />
                 <span>SSL Seguro</span>
@@ -1095,10 +1101,6 @@ const Landing = () => {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Lock className="w-4 h-4 text-primary" />
                 <span>LGPD Compliance</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Award className="w-4 h-4 text-primary" />
-                <span>Dados Criptografados</span>
               </div>
             </div>
           </div>

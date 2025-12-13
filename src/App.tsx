@@ -34,6 +34,8 @@ import Produtos from "./pages/Produtos";
 import ConversasWhatsApp from "./pages/ConversasWhatsApp";
 import PedidosWhatsApp from "./pages/PedidosWhatsApp";
 import TreinamentoIA from "./pages/TreinamentoIA";
+import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
+import TermosServico from "./pages/TermosServico";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +57,8 @@ const App = () => (
                 <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/manutencao" element={<Maintenance />} />
                 <Route path="/pricing" element={<Pricing />} />
+                <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+                <Route path="/termos-servico" element={<TermosServico />} />
                 
                 {/* Página de configurações (fora do guard para permitir renovação) */}
                 <Route path="/configuracoes" element={<Layout><Configuracoes /></Layout>} />
