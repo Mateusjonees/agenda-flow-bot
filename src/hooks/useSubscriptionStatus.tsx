@@ -5,16 +5,19 @@ import { User } from "@supabase/supabase-js";
 
 export function useSubscriptionStatus() {
   const [user, setUser] = useState<User | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
   const queryClient = useQueryClient();
 
   // Escutar mudanças de autenticação
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
+      setUserLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setUserLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -84,10 +87,16 @@ export function useSubscriptionStatus() {
     ? new Date(subscription.next_billing_date).getTime() > new Date().getTime()
     : false;
   
-  // Expirado se: não tem subscription, status expired, ou cancelou e passou da data
-  const isExpired = !hasSubscription || 
+  // Loading combinado: considera user loading E query loading
+  const isFullyLoading = userLoading || (!!user?.id && isLoading);
+  
+  // Expirado APENAS se não estamos em loading
+  // E: não tem subscription OU status expired OU cancelou e passou da data
+  const isExpired = !userLoading && !isLoading && (
+    !hasSubscription || 
     subscription?.status === "expired" || 
-    (isCancelled && !hasAccessUntil);
+    (isCancelled && !hasAccessUntil)
+  );
   
   // Cálculo unificado de dias restantes usando sempre next_billing_date
   const daysRemaining = subscription?.next_billing_date
@@ -96,7 +105,7 @@ export function useSubscriptionStatus() {
 
   return {
     subscription,
-    isLoading,
+    isLoading: isFullyLoading,
     refetch,
     isActive,
     isTrial,
