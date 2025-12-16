@@ -100,6 +100,7 @@ export function useSubscriptionStatus() {
     refetch,
     isActive,
     isTrial,
+    isCancelled,
     isExpired,
     daysRemaining: isTrial ? trialDaysRemaining : daysRemaining,
     user,

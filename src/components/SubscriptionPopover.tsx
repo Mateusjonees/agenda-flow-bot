@@ -1,4 +1,4 @@
-import { Crown, ExternalLink } from "lucide-react";
+import { Crown, ExternalLink, RefreshCw, Flame, Gift } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,38 +13,74 @@ import { ptBR } from "date-fns/locale";
 
 export function SubscriptionPopover() {
   const navigate = useNavigate();
-  const { subscription, isLoading, daysRemaining, isActive, isTrial, isExpired } = useSubscriptionStatus();
+  const { subscription, isLoading, daysRemaining, isActive, isTrial, isCancelled, isExpired } = useSubscriptionStatus();
 
-  // Calcular dias restantes diretamente da subscription
-  const calculatedDays = subscription?.next_billing_date
-    ? Math.ceil((new Date(subscription.next_billing_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    : daysRemaining;
+  const displayDays = Math.max(0, daysRemaining);
 
-  const displayDays = calculatedDays > 0 ? calculatedDays : 0;
+  // Configuração baseada no status
+  const getConfig = () => {
+    if (isExpired) {
+      return {
+        circleColor: "border-destructive bg-destructive/10",
+        textColor: "text-destructive",
+        crownColor: "text-destructive",
+        statusText: "Expirado",
+        statusBg: "bg-destructive/10 text-destructive",
+        daysLabel: "Acesso bloqueado",
+        buttonText: "Renovar Agora",
+        buttonIcon: Flame,
+        buttonVariant: "destructive" as const,
+      };
+    }
 
-  // Determinar cores baseado no status
-  const getStatusColor = () => {
-    if (isExpired) return "text-destructive";
-    if (displayDays <= 3) return "text-destructive";
-    if (displayDays <= 7) return "text-warning";
-    return "text-primary";
+    if (isCancelled && daysRemaining > 0) {
+      return {
+        circleColor: "border-warning bg-warning/10",
+        textColor: "text-warning",
+        crownColor: "text-warning",
+        statusText: "Cancelada",
+        statusBg: "bg-warning/10 text-warning",
+        daysLabel: "de acesso restantes",
+        buttonText: "Reativar",
+        buttonIcon: RefreshCw,
+        buttonVariant: "default" as const,
+      };
+    }
+
+    if (isTrial) {
+      const isUrgent = displayDays <= 3;
+      return {
+        circleColor: isUrgent ? "border-warning bg-warning/10" : "border-primary bg-primary/10",
+        textColor: isUrgent ? "text-warning" : "text-primary",
+        crownColor: isUrgent ? "text-warning" : "text-primary",
+        statusText: "Trial Gratuito",
+        statusBg: isUrgent ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary",
+        daysLabel: "de teste",
+        buttonText: "Escolher Plano",
+        buttonIcon: Gift,
+        buttonVariant: "default" as const,
+      };
+    }
+
+    // Ativo
+    const isUrgent = displayDays <= 7;
+    return {
+      circleColor: isUrgent ? "border-warning bg-warning/10" : "border-success bg-success/10",
+      textColor: isUrgent ? "text-warning" : "text-success",
+      crownColor: isUrgent ? "text-warning" : "text-success",
+      statusText: "Ativo",
+      statusBg: isUrgent ? "bg-warning/10 text-warning" : "bg-success/10 text-success",
+      daysLabel: "até renovação",
+      buttonText: "Gerenciar Plano",
+      buttonIcon: ExternalLink,
+      buttonVariant: "outline" as const,
+    };
   };
 
-  const getCircleColor = () => {
-    if (isExpired) return "border-destructive bg-destructive/10";
-    if (displayDays <= 3) return "border-destructive bg-destructive/10";
-    if (displayDays <= 7) return "border-warning bg-warning/10";
-    return "border-primary bg-primary/10";
-  };
-
-  const getStatusText = () => {
-    if (isExpired) return "Expirado";
-    if (isTrial) return "Trial";
-    if (subscription?.status === "active") return "Ativo";
-    return "Indefinido";
-  };
+  const config = getConfig();
 
   const getPlanName = () => {
+    if (isTrial) return "Período de Teste";
     if (!subscription?.billing_frequency) {
       if (subscription?.type === "platform") return "Plano Foguetinho";
       return "Plano";
@@ -57,17 +93,17 @@ export function SubscriptionPopover() {
     }
   };
 
-  const getNextBillingDate = () => {
+  const getDateText = () => {
     if (!subscription?.next_billing_date) return null;
-    return format(new Date(subscription.next_billing_date), "dd 'de' MMMM", { locale: ptBR });
+    const dateStr = format(new Date(subscription.next_billing_date), "dd 'de' MMMM", { locale: ptBR });
+    
+    if (isExpired) return null;
+    if (isCancelled) return `Acesso até: ${dateStr}`;
+    if (isTrial) return `Trial expira em: ${dateStr}`;
+    return `Renova em: ${dateStr}`;
   };
 
-  // Texto para dias restantes
-  const getDaysText = () => {
-    if (displayDays === 0) return "Último dia!";
-    if (displayDays === 1) return "1 dia";
-    return `${displayDays} dias`;
-  };
+  const ButtonIcon = config.buttonIcon;
 
   return (
     <Popover>
@@ -78,17 +114,14 @@ export function SubscriptionPopover() {
           className="h-9 w-9 rounded-full transition-colors"
           title="Seu Plano"
         >
-          <Crown className={cn(
-            "h-5 w-5",
-            isExpired ? "text-destructive" : "text-warning"
-          )} />
+          <Crown className={cn("h-5 w-5", config.crownColor)} />
         </Button>
       </PopoverTrigger>
       
       <PopoverContent className="w-72 p-0" align="end">
         {/* Header */}
         <div className="flex items-center gap-2 p-4 border-b bg-muted/30">
-          <Crown className="h-5 w-5 text-warning" />
+          <Crown className={cn("h-5 w-5", config.crownColor)} />
           <span className="font-semibold">Seu Plano</span>
         </div>
 
@@ -104,26 +137,40 @@ export function SubscriptionPopover() {
               <div className="flex flex-col items-center py-2">
                 <div className={cn(
                   "w-20 h-20 rounded-full border-4 flex flex-col items-center justify-center transition-colors",
-                  getCircleColor()
+                  config.circleColor
                 )}>
-                  <span className={cn("text-2xl font-bold", getStatusColor())}>
-                    {displayDays}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {displayDays === 1 ? "dia" : "dias"}
-                  </span>
+                  {isExpired ? (
+                    <span className={cn("text-2xl font-bold", config.textColor)}>!</span>
+                  ) : (
+                    <>
+                      <span className={cn("text-2xl font-bold", config.textColor)}>
+                        {displayDays}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {displayDays === 1 ? "dia" : "dias"}
+                      </span>
+                    </>
+                  )}
                 </div>
+                
+                {/* Label abaixo do círculo */}
+                <span className={cn("text-xs mt-2", config.textColor)}>
+                  {isExpired ? "Acesso bloqueado" : config.daysLabel}
+                </span>
               </div>
 
-              {/* Status e plano */}
-              <div className="text-center space-y-1">
+              {/* Nome do plano e status */}
+              <div className="text-center space-y-2">
                 <p className="font-medium">{getPlanName()}</p>
-                <p className={cn("text-sm font-medium", getStatusColor())}>
-                  {getStatusText()}
-                </p>
-                {getNextBillingDate() && !isExpired && (
+                <span className={cn(
+                  "inline-block px-3 py-1 rounded-full text-xs font-semibold",
+                  config.statusBg
+                )}>
+                  {config.statusText}
+                </span>
+                {getDateText() && (
                   <p className="text-xs text-muted-foreground">
-                    {isTrial ? "Trial expira em" : "Renova em"}: {getNextBillingDate()}
+                    {getDateText()}
                   </p>
                 )}
               </div>
@@ -131,14 +178,15 @@ export function SubscriptionPopover() {
           )}
         </div>
 
-        {/* Botão Gerenciar */}
+        {/* Botão de ação */}
         <div className="p-4 border-t">
           <Button 
             className="w-full gap-2" 
+            variant={config.buttonVariant}
             onClick={() => navigate("/planos")}
           >
-            <ExternalLink className="h-4 w-4" />
-            Gerenciar Plano
+            <ButtonIcon className="h-4 w-4" />
+            {config.buttonText}
           </Button>
         </div>
       </PopoverContent>
