@@ -171,6 +171,31 @@ const Planos = () => {
     refetchInterval: 30000, // Atualiza a cada 30 segundos
   });
 
+  // Buscar PIX pago recentemente (últimas 2 horas) para mostrar card verde
+  const { data: recentPaidPix } = useQuery({
+    queryKey: ["recent-paid-platform-pix", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from("pix_charges")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "paid")
+        .gte("updated_at", twoHoursAgo)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      // Filtrar por metadata.type = platform_subscription
+      if (data && data.metadata && (data.metadata as any).type === "platform_subscription") {
+        return data as any;
+      }
+      return null;
+    },
+    enabled: !!user,
+  });
+
   useEffect(() => {
     loadMercadoPagoScript();
   }, []);
@@ -630,7 +655,61 @@ const Planos = () => {
         </Card>
       )}
 
-      {/* Current Subscription Status Card */}
+      {/* Card Verde - PIX Pago Recentemente */}
+      {(recentPaidPix || justPaidPix) && !pendingPix && (
+        <Card className="border-green-500/50 bg-green-50/50 dark:bg-green-950/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-green-600 dark:text-green-400">
+              <Check className="h-5 w-5" />
+              ✓ Pagamento Confirmado
+            </CardTitle>
+            <CardDescription>
+              Seu pagamento foi processado com sucesso!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 bg-background rounded-lg border border-green-200 dark:border-green-800">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Valor:</span>
+                  <span className="font-semibold text-green-600 dark:text-green-400">
+                    {new Intl.NumberFormat('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL'
+                    }).format(recentPaidPix?.amount || 97)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Plano:</span>
+                  <span className="font-semibold">
+                    {(recentPaidPix?.metadata as any)?.planName || "Plataforma"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Status:</span>
+                  <Badge className="bg-green-500 hover:bg-green-500 text-white">
+                    <Check className="h-3 w-3 mr-1" />
+                    Pago
+                  </Badge>
+                </div>
+                {recentPaidPix?.updated_at && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Confirmado em:</span>
+                    <span className="text-sm">
+                      {format(new Date(recentPaidPix.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="text-center text-sm text-green-600 dark:text-green-400">
+              🎉 Sua assinatura está ativa! Aproveite todos os recursos.
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {subscription && subscription.status !== "trial" && (
         <div className="mb-8">
           <SubscriptionStatusCard subscription={subscription} pendingPix={pendingPix} justPaidPix={justPaidPix} />
