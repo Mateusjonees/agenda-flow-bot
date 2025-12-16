@@ -16,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useConfetti } from "@/hooks/useConfetti";
 import { SubscriptionStatusCard } from "@/components/SubscriptionStatusCard";
 import { PaymentMethodBadge } from "@/components/PaymentMethodBadge";
+import { SubscriptionCountdown } from "@/components/SubscriptionCountdown";
 
 declare global {
   interface Window {
@@ -521,6 +522,9 @@ const Planos = () => {
 
   return (
     <div className="space-y-4 sm:space-y-8 p-3 sm:p-6 max-w-7xl mx-auto">
+      {/* Contador de Dias Restantes - Destaque no Topo */}
+      <SubscriptionCountdown />
+
       {/* Header */}
       <div className="text-center space-y-2 sm:space-y-3">
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">

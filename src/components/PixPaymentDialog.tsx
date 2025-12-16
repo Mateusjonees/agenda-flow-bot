@@ -89,11 +89,11 @@ export const PixPaymentDialog = ({
     // Callback para componente pai
     onPaymentConfirmed?.();
 
-    // Auto-fechar e redirecionar após 3 segundos
+    // Auto-fechar e redirecionar após 5 segundos para dar tempo do usuário ver
     setTimeout(() => {
       onOpenChange(false);
       navigate("/dashboard");
-    }, 3000);
+    }, 5000);
   };
 
   const handleCopy = async () => {
@@ -184,9 +184,9 @@ export const PixPaymentDialog = ({
           {/* Status Badge */}
           <div className="flex justify-center">
             {paymentConfirmed ? (
-              <Badge className="bg-green-500 text-white gap-2 py-2 px-4 text-base animate-pulse">
-                <CheckCircle2 className="h-5 w-5" />
-                Pagamento Confirmado!
+              <Badge className="bg-green-500 text-white gap-2 py-3 px-6 text-lg font-bold shadow-lg animate-bounce">
+                <CheckCircle2 className="h-6 w-6" />
+                Pagamento Concluído!
               </Badge>
             ) : (
               <Badge variant="outline" className="gap-2 py-2 px-4 text-base animate-pulse">
@@ -294,13 +294,19 @@ export const PixPaymentDialog = ({
           )}
 
           {paymentConfirmed && (
-            <div className="text-center py-8">
-              <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                Sua assinatura foi ativada!
+            <div className="text-center py-8 animate-fade-in">
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping" />
+                <CheckCircle2 className="h-20 w-20 text-green-500 mx-auto mb-4 relative z-10" />
+              </div>
+              <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-4">
+                🎉 Sua assinatura foi ativada!
               </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Redirecionando para o dashboard...
+              <p className="text-base text-muted-foreground mt-2">
+                Parabéns! Você agora tem acesso completo.
+              </p>
+              <p className="text-sm text-muted-foreground mt-4 animate-pulse">
+                Redirecionando em 5 segundos...
               </p>
             </div>
           )}
