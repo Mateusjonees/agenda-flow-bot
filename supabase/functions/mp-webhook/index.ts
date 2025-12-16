@@ -491,9 +491,9 @@ const handler = async (req: Request): Promise<Response> => {
             .from("subscriptions")
             .update({
               status: "active",
-              billing_frequency: metadata.billingFrequency || metadata.planId,
+              billing_frequency: metadata.billing_frequency || metadata.plan_id,
               payment_method: "card",
-              plan_name: metadata.planName,
+              plan_name: metadata.plan_name,
               start_date: startDate.toISOString(),
               next_billing_date: nextBillingDate.toISOString(),
               last_billing_date: startDate.toISOString(),
@@ -519,9 +519,9 @@ const handler = async (req: Request): Promise<Response> => {
             plan_id: null,      // ✅ EXPLÍCITO: Assinatura de plataforma
             type: "platform",
             status: "active",
-            billing_frequency: metadata.billingFrequency || metadata.planId,
+            billing_frequency: metadata.billing_frequency || metadata.plan_id,
             payment_method: "card",
-            plan_name: metadata.planName,
+            plan_name: metadata.plan_name,
             start_date: startDate.toISOString(),
             next_billing_date: nextBillingDate.toISOString(),
             last_billing_date: startDate.toISOString(),
