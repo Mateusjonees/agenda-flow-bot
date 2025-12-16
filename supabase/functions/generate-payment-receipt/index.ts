@@ -18,43 +18,44 @@ serve(async (req) => {
   }
 
   try {
-    // ✅ CORREÇÃO: Verificar se o header Authorization existe antes de usar
+    // ✅ CORREÇÃO: Verificar se o header Authorization existe
     const authHeader = req.headers.get('Authorization');
     
-    if (!authHeader) {
-      console.error('❌ Missing Authorization header');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('❌ Missing or invalid Authorization header');
       return new Response(
-        JSON.stringify({ error: 'Não autenticado - header de autorização ausente' }),
+        JSON.stringify({ error: 'Não autenticado - header de autorização ausente ou inválido' }),
         {
           status: 401,
-          headers: { 
-            'Content-Type': 'application/json',
-            ...corsHeaders 
-          },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
 
-    const supabaseClient = createClient(
+    // ✅ CORREÇÃO: Extrair o token JWT (sem o prefixo "Bearer ")
+    const jwt = authHeader.replace('Bearer ', '');
+
+    // ✅ CORREÇÃO: Criar cliente admin com SERVICE_ROLE_KEY para queries
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Verificar autenticação
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseClient.auth.getUser();
+    // ✅ CORREÇÃO: Verificar autenticação passando o JWT diretamente
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt);
 
     if (authError || !user) {
       console.error('❌ Auth error:', authError);
-      throw new Error('Não autenticado - sessão inválida');
+      return new Response(
+        JSON.stringify({ error: 'Token inválido ou expirado' }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
+
+    console.log('✅ User authenticated:', user.id);
 
     const { paymentId, paymentType }: ReceiptRequest = await req.json();
 
@@ -68,7 +69,7 @@ serve(async (req) => {
     let businessSettings: any = null;
 
     // Buscar configurações do negócio
-    const { data: settings } = await supabaseClient
+    const { data: settings } = await supabaseAdmin
       .from('business_settings')
       .select('*')
       .eq('user_id', user.id)
@@ -78,7 +79,7 @@ serve(async (req) => {
 
     // Buscar dados do pagamento
     if (paymentType === 'pix') {
-      const { data: pixCharge, error: pixError } = await supabaseClient
+      const { data: pixCharge, error: pixError } = await supabaseAdmin
         .from('pix_charges')
         .select('*')
         .eq('id', paymentId)
@@ -103,7 +104,7 @@ serve(async (req) => {
         txid: pixCharge.txid,
       };
     } else {
-      const { data: transaction, error: txError } = await supabaseClient
+      const { data: transaction, error: txError } = await supabaseAdmin
         .from('financial_transactions')
         .select('*')
         .eq('id', paymentId)
