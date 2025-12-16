@@ -125,7 +125,7 @@ const handler = async (req: Request): Promise<Response> => {
                 .from("subscriptions")
                 .update({
                   status: "active",
-                  plan_id: metadata.planId,
+                  plan_id: null,  // ✅ Assinatura de plataforma usa plan_id=null
                   start_date: startDate.toISOString(),
                   next_billing_date: nextBillingDate.toISOString(),
                   last_billing_date: startDate.toISOString(),
@@ -144,7 +144,8 @@ const handler = async (req: Request): Promise<Response> => {
                 .from("subscriptions")
                 .insert({
                   user_id: metadata.userId,
-                  plan_id: metadata.planId,
+                  plan_id: null,  // ✅ Assinatura de plataforma usa plan_id=null
+                  customer_id: null,  // ✅ Assinatura de plataforma
                   status: "active",
                   start_date: startDate.toISOString(),
                   next_billing_date: nextBillingDate.toISOString(),
