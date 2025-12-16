@@ -143,38 +143,10 @@ const handler = async (req: Request): Promise<Response> => {
            }
         }
 
-        // Create financial transaction for platform subscription (verificar duplicação)
-        const { data: existingTrans } = await supabaseClient
-          .from("financial_transactions")
-          .select("id")
-          .eq("user_id", metadata.userId)
-          .eq("amount", payload.amount)
-          .eq("description", `Assinatura ${metadata.billingFrequency || 'Renovação'} - PIX`)
-          .eq("payment_method", "pix")
-          .eq("status", "completed")
-          .maybeSingle();
-
-        if (!existingTrans) {
-          const { error: transError } = await supabaseClient
-            .from("financial_transactions")
-            .insert({
-              user_id: metadata.userId,
-              type: "income",
-              amount: payload.amount,
-              description: `Assinatura ${metadata.billingFrequency || 'Renovação'} - PIX`,
-              payment_method: "pix",
-              status: "completed",
-              transaction_date: new Date().toISOString(),
-            });
-
-          if (transError) {
-            console.error("Error creating financial transaction:", transError);
-          } else {
-            console.log("✅ Financial transaction created");
-          }
-        } else {
-          console.log("ℹ️ Financial transaction already exists, skipping");
-        }
+        // ✅ NÃO criar transação financeira para assinaturas de PLATAFORMA
+        // Pagamentos à plataforma Foguetinho não devem aparecer como receita do negócio do usuário
+        // Esses pagamentos são para a plataforma, não são receitas do cliente
+        console.log("ℹ️ Assinatura de plataforma processada - NÃO criar transação financeira (pagamento à plataforma)");
       }
       
       // Pagamento de assinatura de cliente (Assinaturas da aba Assinaturas)
