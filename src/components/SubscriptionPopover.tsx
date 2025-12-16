@@ -1,40 +1,19 @@
-import { Crown, ExternalLink, Lock, Unlock } from "lucide-react";
+import { Crown, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Switch } from "@/components/ui/switch";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const READ_ONLY_KEY = "readOnlyMode";
-
 export function SubscriptionPopover() {
   const navigate = useNavigate();
   const { subscription, isLoading, daysRemaining, isActive, isTrial, isExpired } = useSubscriptionStatus();
-  const [readOnlyMode, setReadOnlyMode] = useState(false);
-
-  // Carregar estado do localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem(READ_ONLY_KEY);
-    if (saved === "true") {
-      setReadOnlyMode(true);
-    }
-  }, []);
-
-  // Salvar estado no localStorage e disparar evento para outros componentes
-  const handleReadOnlyToggle = (checked: boolean) => {
-    setReadOnlyMode(checked);
-    localStorage.setItem(READ_ONLY_KEY, checked ? "true" : "false");
-    // Disparar evento customizado para o SubscriptionGuard
-    window.dispatchEvent(new CustomEvent("readOnlyModeChanged", { detail: checked }));
-  };
 
   // Calcular dias restantes diretamente da subscription
   const calculatedDays = subscription?.next_billing_date
@@ -42,31 +21,23 @@ export function SubscriptionPopover() {
     : daysRemaining;
 
   const displayDays = calculatedDays > 0 ? calculatedDays : 0;
-  
-  // Mostrar em meses se > 30 dias
-  const showMonths = displayDays > 30;
-  const displayValue = showMonths ? Math.floor(displayDays / 30) : displayDays;
-  const displayUnit = showMonths 
-    ? (displayValue === 1 ? "mês" : "meses")
-    : (displayDays === 1 ? "dia" : "dias");
 
-  // Determinar cores baseado no status (usando displayDays)
+  // Determinar cores baseado no status
   const getStatusColor = () => {
-    if (isExpired || readOnlyMode) return "text-destructive";
+    if (isExpired) return "text-destructive";
     if (displayDays <= 3) return "text-destructive";
     if (displayDays <= 7) return "text-warning";
     return "text-primary";
   };
 
   const getCircleColor = () => {
-    if (isExpired || readOnlyMode) return "border-destructive bg-destructive/10";
+    if (isExpired) return "border-destructive bg-destructive/10";
     if (displayDays <= 3) return "border-destructive bg-destructive/10";
     if (displayDays <= 7) return "border-warning bg-warning/10";
     return "border-primary bg-primary/10";
   };
 
   const getStatusText = () => {
-    if (readOnlyMode) return "Modo Leitura";
     if (isExpired) return "Expirado";
     if (isTrial) return "Trial";
     if (subscription?.status === "active") return "Ativo";
@@ -75,7 +46,6 @@ export function SubscriptionPopover() {
 
   const getPlanName = () => {
     if (!subscription?.billing_frequency) {
-      // Fallback baseado no tipo
       if (subscription?.type === "platform") return "Plano Foguetinho";
       return "Plano";
     }
@@ -87,10 +57,16 @@ export function SubscriptionPopover() {
     }
   };
 
-
   const getNextBillingDate = () => {
     if (!subscription?.next_billing_date) return null;
     return format(new Date(subscription.next_billing_date), "dd 'de' MMMM", { locale: ptBR });
+  };
+
+  // Texto para dias restantes
+  const getDaysText = () => {
+    if (displayDays === 0) return "Último dia!";
+    if (displayDays === 1) return "1 dia";
+    return `${displayDays} dias`;
   };
 
   return (
@@ -99,15 +75,12 @@ export function SubscriptionPopover() {
         <Button 
           variant="ghost" 
           size="icon" 
-          className={cn(
-            "h-9 w-9 rounded-full transition-colors",
-            readOnlyMode && "bg-destructive/10"
-          )}
+          className="h-9 w-9 rounded-full transition-colors"
           title="Seu Plano"
         >
           <Crown className={cn(
             "h-5 w-5",
-            readOnlyMode ? "text-destructive" : "text-warning"
+            isExpired ? "text-destructive" : "text-warning"
           )} />
         </Button>
       </PopoverTrigger>
@@ -127,20 +100,18 @@ export function SubscriptionPopover() {
             </div>
           ) : (
             <>
-              {/* Círculo com dias/meses restantes */}
+              {/* Círculo com dias restantes */}
               <div className="flex flex-col items-center py-2">
                 <div className={cn(
                   "w-20 h-20 rounded-full border-4 flex flex-col items-center justify-center transition-colors",
                   getCircleColor()
                 )}>
                   <span className={cn("text-2xl font-bold", getStatusColor())}>
-                    {readOnlyMode ? "🔒" : displayValue}
+                    {displayDays}
                   </span>
-                  {!readOnlyMode && (
-                    <span className="text-xs text-muted-foreground">
-                      {displayUnit}
-                    </span>
-                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {displayDays === 1 ? "dia" : "dias"}
+                  </span>
                 </div>
               </div>
 
@@ -150,7 +121,7 @@ export function SubscriptionPopover() {
                 <p className={cn("text-sm font-medium", getStatusColor())}>
                   {getStatusText()}
                 </p>
-                {getNextBillingDate() && !readOnlyMode && !isExpired && (
+                {getNextBillingDate() && !isExpired && (
                   <p className="text-xs text-muted-foreground">
                     {isTrial ? "Trial expira em" : "Renova em"}: {getNextBillingDate()}
                   </p>
@@ -158,27 +129,6 @@ export function SubscriptionPopover() {
               </div>
             </>
           )}
-        </div>
-
-        {/* Modo Leitura Toggle */}
-        <div className="px-4 py-3 border-t bg-muted/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {readOnlyMode ? (
-                <Lock className="h-4 w-4 text-destructive" />
-              ) : (
-                <Unlock className="h-4 w-4 text-muted-foreground" />
-              )}
-              <div>
-                <p className="text-sm font-medium">Modo Leitura</p>
-                <p className="text-xs text-muted-foreground">Simular expiração</p>
-              </div>
-            </div>
-            <Switch
-              checked={readOnlyMode}
-              onCheckedChange={handleReadOnlyToggle}
-            />
-          </div>
         </div>
 
         {/* Botão Gerenciar */}
