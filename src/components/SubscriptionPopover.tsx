@@ -36,18 +36,32 @@ export function SubscriptionPopover() {
     window.dispatchEvent(new CustomEvent("readOnlyModeChanged", { detail: checked }));
   };
 
-  // Determinar cores baseado no status
+  // Calcular dias restantes diretamente da subscription
+  const calculatedDays = subscription?.next_billing_date
+    ? Math.ceil((new Date(subscription.next_billing_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : daysRemaining;
+
+  const displayDays = calculatedDays > 0 ? calculatedDays : 0;
+  
+  // Mostrar em meses se > 30 dias
+  const showMonths = displayDays > 30;
+  const displayValue = showMonths ? Math.floor(displayDays / 30) : displayDays;
+  const displayUnit = showMonths 
+    ? (displayValue === 1 ? "mês" : "meses")
+    : (displayDays === 1 ? "dia" : "dias");
+
+  // Determinar cores baseado no status (usando displayDays)
   const getStatusColor = () => {
     if (isExpired || readOnlyMode) return "text-destructive";
-    if (daysRemaining <= 3) return "text-destructive";
-    if (daysRemaining <= 7) return "text-warning";
+    if (displayDays <= 3) return "text-destructive";
+    if (displayDays <= 7) return "text-warning";
     return "text-primary";
   };
 
   const getCircleColor = () => {
     if (isExpired || readOnlyMode) return "border-destructive bg-destructive/10";
-    if (daysRemaining <= 3) return "border-destructive bg-destructive/10";
-    if (daysRemaining <= 7) return "border-warning bg-warning/10";
+    if (displayDays <= 3) return "border-destructive bg-destructive/10";
+    if (displayDays <= 7) return "border-warning bg-warning/10";
     return "border-primary bg-primary/10";
   };
 
@@ -55,12 +69,16 @@ export function SubscriptionPopover() {
     if (readOnlyMode) return "Modo Leitura";
     if (isExpired) return "Expirado";
     if (isTrial) return "Trial";
-    if (isActive) return "Ativo";
+    if (subscription?.status === "active") return "Ativo";
     return "Indefinido";
   };
 
   const getPlanName = () => {
-    if (!subscription?.billing_frequency) return "Plano";
+    if (!subscription?.billing_frequency) {
+      // Fallback baseado no tipo
+      if (subscription?.type === "platform") return "Plano Foguetinho";
+      return "Plano";
+    }
     switch (subscription.billing_frequency) {
       case "monthly": return "Plano Mensal";
       case "semiannual": return "Plano Semestral";
@@ -68,6 +86,7 @@ export function SubscriptionPopover() {
       default: return "Plano";
     }
   };
+
 
   const getNextBillingDate = () => {
     if (!subscription?.next_billing_date) return null;
@@ -108,18 +127,18 @@ export function SubscriptionPopover() {
             </div>
           ) : (
             <>
-              {/* Círculo com dias restantes */}
+              {/* Círculo com dias/meses restantes */}
               <div className="flex flex-col items-center py-2">
                 <div className={cn(
                   "w-20 h-20 rounded-full border-4 flex flex-col items-center justify-center transition-colors",
                   getCircleColor()
                 )}>
                   <span className={cn("text-2xl font-bold", getStatusColor())}>
-                    {readOnlyMode ? "🔒" : (daysRemaining > 0 ? daysRemaining : 0)}
+                    {readOnlyMode ? "🔒" : displayValue}
                   </span>
                   {!readOnlyMode && (
                     <span className="text-xs text-muted-foreground">
-                      {daysRemaining === 1 ? "dia" : "dias"}
+                      {displayUnit}
                     </span>
                   )}
                 </div>
