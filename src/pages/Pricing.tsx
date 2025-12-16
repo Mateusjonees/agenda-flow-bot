@@ -45,6 +45,7 @@ const Pricing = () => {
     qrCodeBase64?: string;
     ticketUrl?: string;
     amount: number;
+    chargeId?: string;
   } | null>(null);
 
   const plans: PricingPlan[] = [
@@ -180,7 +181,8 @@ const Pricing = () => {
           qrCode: pixResponse.qrCode,
           qrCodeBase64: pixResponse.qrCodeBase64,
           ticketUrl: pixResponse.ticketUrl,
-          amount: plan.price
+          amount: plan.price,
+          chargeId: pixResponse.chargeId
         });
         setPixDialogOpen(true);
 
@@ -406,6 +408,11 @@ const Pricing = () => {
             qrCodeBase64={pixData.qrCodeBase64}
             ticketUrl={pixData.ticketUrl}
             amount={pixData.amount}
+            chargeId={pixData.chargeId}
+            onPaymentConfirmed={() => {
+              // Atualizar estado local se necessário
+              console.log("[Pricing] Payment confirmed callback");
+            }}
           />
         )}
 
