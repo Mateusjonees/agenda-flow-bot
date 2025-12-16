@@ -16,7 +16,7 @@ export const useReadOnly = () => useContext(ReadOnlyContext);
 
 // Guard principal
 export function SubscriptionGuard({ children }: { children: ReactNode }) {
-  const { subscription, isLoading, isExpired, isTrial, daysRemaining } = useSubscriptionStatus();
+  const { subscription, isLoading, isExpired, isTrial, daysRemaining, hasSubscription } = useSubscriptionStatus();
   const navigate = useNavigate();
 
   // Loading state
@@ -28,8 +28,8 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
     );
   }
 
-  // Modo read-only apenas quando assinatura está expirada
-  const isReadOnly = isExpired;
+  // Modo read-only: quando expirado OU quando não tem subscription
+  const isReadOnly = isExpired || !hasSubscription;
 
   return (
     <ReadOnlyContext.Provider value={{ isReadOnly }}>
