@@ -539,20 +539,21 @@ const Estoque = () => {
   }
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Estoque</h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie seus itens, kits e movimentações
+          <h1 className="text-2xl sm:text-3xl font-bold">Estoque</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
+            Gerencie seus itens e movimentações
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <Dialog open={isMovementDialogOpen} onOpenChange={setIsMovementDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" disabled={isReadOnly}>
-                <History className="mr-2 h-4 w-4" />
-                Movimentar
+              <Button variant="outline" disabled={isReadOnly} size="sm" className="flex-1 sm:flex-none text-xs sm:text-sm">
+                <History className="mr-1.5 h-4 w-4" />
+                <span className="hidden sm:inline">Movimentar</span>
+                <span className="sm:hidden">Mov.</span>
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -651,12 +652,13 @@ const Estoque = () => {
           </Dialog>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button disabled={isReadOnly}>
-                <Plus className="mr-2 h-4 w-4" />
-                Novo Item
+              <Button disabled={isReadOnly} size="sm" className="flex-1 sm:flex-none text-xs sm:text-sm">
+                <Plus className="mr-1.5 h-4 w-4" />
+                <span className="hidden sm:inline">Novo Item</span>
+                <span className="sm:hidden">Novo</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto mx-4 sm:mx-auto">
               <DialogHeader>
                 <DialogTitle>Criar Novo Item</DialogTitle>
                 <DialogDescription>
@@ -664,7 +666,7 @@ const Estoque = () => {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name">Nome *</Label>
                     <Input
@@ -690,7 +692,7 @@ const Estoque = () => {
                     onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="unit">Unidade</Label>
                     <Select value={newItem.unit} onValueChange={(value) => setNewItem({ ...newItem, unit: value })}>
@@ -738,7 +740,7 @@ const Estoque = () => {
                     </p>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="unit_price">Preço de Venda (R$)</Label>
                     <Input
@@ -775,7 +777,7 @@ const Estoque = () => {
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="current_stock">Estoque Inicial</Label>
                     <Input
@@ -806,41 +808,41 @@ const Estoque = () => {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Itens</CardTitle>
+      <div className="grid gap-3 sm:gap-6 grid-cols-1 sm:grid-cols-3">
+        <Card className="p-3 sm:p-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Total de Itens</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+          <CardContent className="p-0 pt-1">
+            <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Itens com Estoque Baixo</CardTitle>
+        <Card className="p-3 sm:p-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Estoque Baixo</CardTitle>
             <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{stats.lowStock}</div>
+          <CardContent className="p-0 pt-1">
+            <div className="text-xl sm:text-2xl font-bold text-destructive">{stats.lowStock}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Valor Total em Estoque</CardTitle>
+        <Card className="p-3 sm:p-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Valor em Estoque</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalValue)}</div>
+          <CardContent className="p-0 pt-1">
+            <div className="text-lg sm:text-2xl font-bold">{formatCurrency(stats.totalValue)}</div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="items" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="items">Todos os Itens</TabsTrigger>
-          <TabsTrigger value="low-stock">Estoque Baixo</TabsTrigger>
-          <TabsTrigger value="movements">Movimentações</TabsTrigger>
+      <Tabs defaultValue="items" className="space-y-3 sm:space-y-4">
+        <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:flex h-auto">
+          <TabsTrigger value="items" className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">Itens</TabsTrigger>
+          <TabsTrigger value="low-stock" className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">Baixo</TabsTrigger>
+          <TabsTrigger value="movements" className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="items" className="space-y-4">
@@ -887,7 +889,7 @@ const Estoque = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {filteredItems.map((item) => (
                 <Card key={item.id} className={isLowStock(item) ? "border-destructive" : ""}>
                   <CardHeader>
@@ -1012,7 +1014,7 @@ const Estoque = () => {
                   </p>
                 </div>
               </div>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {items.filter(isLowStock).map((item) => (
                   <Card key={item.id} className="border-destructive">
                     <CardHeader>
@@ -1123,25 +1125,25 @@ const Estoque = () => {
               ) : (
                 <div className="space-y-3">
                   {movements.map((mov) => (
-                    <div key={mov.id} className="flex items-center justify-between border-b pb-3">
-                      <div className="flex items-center gap-3">
+                    <div key={mov.id} className="flex items-center justify-between border-b pb-2 sm:pb-3 gap-2">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                         {mov.type === "in" ? (
-                          <TrendingUp className="h-4 w-4 text-green-500" />
+                          <TrendingUp className="h-4 w-4 text-green-500 flex-shrink-0" />
                         ) : (
-                          <TrendingDown className="h-4 w-4 text-red-500" />
+                          <TrendingDown className="h-4 w-4 text-red-500 flex-shrink-0" />
                         )}
-                        <div>
-                          <p className="font-medium">{mov.inventory_items?.name}</p>
-                          <p className="text-sm text-muted-foreground">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm sm:text-base truncate">{mov.inventory_items?.name}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
                             {mov.reason || (mov.type === "in" ? "Entrada" : mov.type === "out" ? "Saída" : "Ajuste")}
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold">
+                      <div className="text-right flex-shrink-0">
+                        <p className="font-bold text-sm sm:text-base">
                           {mov.type === "out" ? "-" : "+"}{mov.quantity}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           {new Date(mov.created_at).toLocaleDateString("pt-BR")}
                         </p>
                       </div>
@@ -1156,7 +1158,7 @@ const Estoque = () => {
 
       {/* Dialog de edição */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto mx-4 sm:mx-auto">
           <DialogHeader>
             <DialogTitle>Editar Item</DialogTitle>
             <DialogDescription>
@@ -1164,7 +1166,7 @@ const Estoque = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-name">Nome *</Label>
                 <Input
@@ -1190,7 +1192,7 @@ const Estoque = () => {
                 onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-unit">Unidade</Label>
                 <Select value={newItem.unit} onValueChange={(value) => setNewItem({ ...newItem, unit: value })}>
@@ -1217,7 +1219,7 @@ const Estoque = () => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-unit_price">Preço de Venda (R$)</Label>
                 <Input
