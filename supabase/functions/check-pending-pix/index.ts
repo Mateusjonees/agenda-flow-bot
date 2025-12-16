@@ -125,6 +125,7 @@ const handler = async (req: Request): Promise<Response> => {
                 .from("subscriptions")
                 .update({
                   status: "active",
+                  type: "platform",  // ✅ GARANTIR type correto
                   plan_id: null,  // ✅ Assinatura de plataforma usa plan_id=null
                   start_date: startDate.toISOString(),
                   next_billing_date: nextBillingDate.toISOString(),
@@ -146,6 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
                   user_id: metadata.userId,
                   plan_id: null,  // ✅ Assinatura de plataforma usa plan_id=null
                   customer_id: null,  // ✅ Assinatura de plataforma
+                  type: "platform",  // ✅ GARANTIR type correto
                   status: "active",
                   start_date: startDate.toISOString(),
                   next_billing_date: nextBillingDate.toISOString(),
