@@ -229,6 +229,7 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({
         success: true,
         charge: pixCharge,
+        chargeId: pixCharge.id,
         qrCode: qrCode,
         qrCodeBase64: qrCodeBase64,
         ticketUrl: ticketUrl,
