@@ -130,12 +130,13 @@ const Planos = () => {
     queryKey: ["user-subscription", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      // @ts-ignore
+      // @ts-ignore - Buscar assinatura da PLATAFORMA usando critérios consistentes
       const { data } = await supabase
         .from("subscriptions")
         .select("*, subscription_plans(*)")
         .eq("user_id", user.id)
-        .eq("type", "platform")
+        .is("customer_id", null)  // ✅ Critério consistente para plataforma
+        .is("plan_id", null)      // ✅ Critério consistente para plataforma
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();

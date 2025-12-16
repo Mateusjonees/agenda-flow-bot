@@ -78,6 +78,9 @@ const handler = async (req: Request): Promise<Response> => {
             .from("subscriptions")
             .insert({
               user_id: userId,
+              customer_id: null,  // ✅ Assinatura de plataforma
+              plan_id: null,  // ✅ Assinatura de plataforma
+              type: "platform",  // ✅ GARANTIR type correto
               status: "active",
               start_date: startDate.toISOString(),
               next_billing_date: nextBillingDate.toISOString(),
@@ -123,6 +126,7 @@ const handler = async (req: Request): Promise<Response> => {
             const { error: updateError } = await supabaseClient
               .from("subscriptions")
               .update({
+                type: "platform",  // ✅ GARANTIR type correto
                 last_billing_date: chargeDate.toISOString(),
                 next_billing_date: newNextBilling.toISOString(),
                 status: "active",

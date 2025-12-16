@@ -312,6 +312,7 @@ const handler = async (req: Request): Promise<Response> => {
             .from("subscriptions")
             .update({
               status: "active",
+              type: "platform",  // ✅ GARANTIR type correto
               start_date: startDate.toISOString(),
               next_billing_date: nextBillingDate.toISOString(),
               last_billing_date: startDate.toISOString(),
@@ -491,6 +492,7 @@ const handler = async (req: Request): Promise<Response> => {
             .from("subscriptions")
             .update({
               status: "active",
+              type: "platform",  // ✅ GARANTIR type correto
               billing_frequency: metadata.billing_frequency || metadata.plan_id,
               payment_method: "card",
               plan_name: metadata.plan_name,
@@ -622,6 +624,7 @@ const handler = async (req: Request): Promise<Response> => {
           .from("subscriptions")
           .update({
             status: "active",
+            type: "platform",  // ✅ GARANTIR type correto
             next_billing_date: nextBillingDate.toISOString(),
             last_billing_date: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -665,7 +668,8 @@ const handler = async (req: Request): Promise<Response> => {
             .from("subscriptions")
             .update({
               status: "active",
-              plan_id: metadata.planId || existingSub.plan_id,
+              type: "platform",  // ✅ GARANTIR type correto
+              plan_id: null,  // ✅ Plataforma usa plan_id=null
               start_date: startDate.toISOString(),
               next_billing_date: nextBillingDate.toISOString(),
               last_billing_date: startDate.toISOString(),
@@ -684,7 +688,9 @@ const handler = async (req: Request): Promise<Response> => {
             .from("subscriptions")
             .insert({
               user_id: metadata.userId,
-              plan_id: metadata.planId,
+              plan_id: null,  // ✅ Plataforma usa plan_id=null
+              customer_id: null,  // ✅ Plataforma usa customer_id=null
+              type: "platform",  // ✅ GARANTIR type correto
               status: "active",
               start_date: startDate.toISOString(),
               next_billing_date: nextBillingDate.toISOString(),
