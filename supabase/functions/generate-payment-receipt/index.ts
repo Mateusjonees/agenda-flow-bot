@@ -18,12 +18,29 @@ serve(async (req) => {
   }
 
   try {
+    // ✅ CORREÇÃO: Verificar se o header Authorization existe antes de usar
+    const authHeader = req.headers.get('Authorization');
+    
+    if (!authHeader) {
+      console.error('❌ Missing Authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Não autenticado - header de autorização ausente' }),
+        {
+          status: 401,
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          },
+        }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: { Authorization: authHeader },
         },
       }
     );
@@ -35,7 +52,8 @@ serve(async (req) => {
     } = await supabaseClient.auth.getUser();
 
     if (authError || !user) {
-      throw new Error('Não autenticado');
+      console.error('❌ Auth error:', authError);
+      throw new Error('Não autenticado - sessão inválida');
     }
 
     const { paymentId, paymentType }: ReceiptRequest = await req.json();
