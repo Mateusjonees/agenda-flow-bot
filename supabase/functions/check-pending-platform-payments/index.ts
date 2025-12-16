@@ -96,32 +96,9 @@ const handler = async (req: Request): Promise<Response> => {
           } else {
             console.log(`✅ Subscription da plataforma criada para user ${userId}`);
 
-            // Criar transação financeira se não existir
-            const { data: existingTrans } = await supabaseClient
-              .from("financial_transactions")
-              .select("id")
-              .eq("user_id", userId)
-              .eq("amount", charge.amount)
-              .eq("description", `Assinatura ${metadata.billingFrequency || planId} - PIX`)
-              .maybeSingle();
-
-            if (!existingTrans) {
-              const { error: transError } = await supabaseClient
-                .from("financial_transactions")
-                .insert({
-                  user_id: userId,
-                  type: "income",
-                  amount: charge.amount,
-                  description: `Assinatura ${metadata.billingFrequency || planId} - Plano Foguetinho`,
-                  payment_method: "pix",
-                  status: "completed",
-                  transaction_date: startDate.toISOString()
-                });
-
-              if (transError) {
-                console.error("❌ Erro ao criar transação:", transError);
-              }
-            }
+            // ✅ NÃO criar transação financeira para assinaturas de PLATAFORMA
+            // Isso evita que pagamentos da plataforma apareçam nos relatórios do usuário
+            console.log("ℹ️ Assinatura de plataforma - não criar transação financeira no relatório do usuário");
 
             results.push({
               charge_id: charge.id,

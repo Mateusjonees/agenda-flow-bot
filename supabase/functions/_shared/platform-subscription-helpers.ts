@@ -93,7 +93,9 @@ export async function processPlatformSubscriptionPayment(
 }
 
 /**
- * Cria transação financeira (com verificação de duplicação)
+ * ⚠️ DEPRECATED: NÃO criar transações financeiras para assinaturas de PLATAFORMA
+ * Essas transações apareciam incorretamente nos relatórios dos usuários como "receita"
+ * Agora apenas logamos que o pagamento foi processado sem criar registro financeiro
  */
 export async function createFinancialTransaction(
   supabaseClient: any,
@@ -103,45 +105,10 @@ export async function createFinancialTransaction(
   paymentMethod: string
 ): Promise<{ success: boolean; error?: string }> {
   
-  try {
-    // Verificar se transação já existe
-    const { data: existing } = await supabaseClient
-      .from("financial_transactions")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("amount", amount)
-      .eq("description", description)
-      .eq("payment_method", paymentMethod)
-      .eq("status", "completed")
-      .maybeSingle();
-
-    if (existing) {
-      console.log("ℹ️ Transação já existe, pulando criação");
-      return { success: true };
-    }
-
-    // Criar nova transação
-    const { error } = await supabaseClient
-      .from("financial_transactions")
-      .insert({
-        user_id: userId,
-        type: "income",
-        amount: amount,
-        description: description,
-        payment_method: paymentMethod,
-        status: "completed",
-        transaction_date: new Date().toISOString()
-      });
-
-    if (error) throw error;
-    
-    console.log("✅ Transação financeira criada");
-    return { success: true };
-    
-  } catch (error: any) {
-    console.error("❌ Erro ao criar transação:", error);
-    return { success: false, error: error.message };
-  }
+  // ✅ NÃO criar transações para pagamentos de assinatura da plataforma
+  // Isso evita que apareçam nos relatórios financeiros dos usuários
+  console.log(`ℹ️ Pagamento de plataforma registrado (sem criar transação financeira): ${description} - R$${amount}`);
+  return { success: true };
 }
 
 /**
@@ -221,14 +188,8 @@ export async function processSubscriptionRenewal(
 
     if (updateError) throw updateError;
 
-    // Criar transação de renovação
-    await createFinancialTransaction(
-      supabaseClient,
-      userId,
-      amount,
-      description,
-      "mercadopago_subscription"
-    );
+    // ✅ NÃO criar transação financeira para renovações de plataforma
+    console.log(`ℹ️ Renovação processada (sem criar transação financeira): ${description} - R$${amount}`);
 
     console.log("✅ Renovação processada com sucesso");
     return { success: true };

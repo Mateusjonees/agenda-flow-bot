@@ -359,17 +359,9 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
 
-        // Criar transação financeira usando função auxiliar (com anti-duplicação)
-        const description = `Assinatura ${metadata.billingFrequency || metadata.planId} - Plano Foguetinho`;
-        const amount = preapprovalData.auto_recurring?.transaction_amount || 0;
-        
-        await createFinancialTransaction(
-          supabaseClient,
-          userId,
-          amount,
-          description,
-          "mercado_pago"
-        );
+        // ✅ NÃO criar transação financeira para assinaturas de PLATAFORMA
+        // Isso evita que pagamentos da plataforma apareçam nos relatórios do usuário
+        console.log(`ℹ️ Assinatura de plataforma ativada (sem criar transação financeira)`);
 
         return new Response(
           JSON.stringify({ success: true, message: "Platform subscription activated" }),
@@ -555,15 +547,9 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
 
-        // Criar transação financeira usando função auxiliar (com anti-duplicação)
-        console.log("🔍 STEP 18: Criando transação financeira");
-        await createFinancialTransaction(
-          supabaseClient,
-          userId,
-          payment.transaction_amount,
-          `Assinatura ${metadata.billingFrequency || metadata.planId} - Plano Foguetinho`,
-          "pix"
-        );
+        // ✅ NÃO criar transação financeira para assinaturas de PLATAFORMA
+        // Isso evita que pagamentos da plataforma apareçam nos relatórios do usuário
+        console.log(`ℹ️ Pagamento PIX de plataforma processado (sem criar transação financeira)`);
 
         // Atualizar pix_charge se existir
         if (payment.external_reference) {
@@ -650,15 +636,10 @@ const handler = async (req: Request): Promise<Response> => {
 
         console.log("Subscription reactivated successfully:", metadata.subscription_id);
 
-        // Criar transação financeira para o pagamento de reativação usando função auxiliar
-        await createFinancialTransaction(
-          supabaseClient,
-          metadata.user_id,
-          payment.transaction_amount,
-          "Pagamento de reativação de assinatura - Mercado Pago",
-          "credit_card"
-        );
-      } 
+        // ✅ NÃO criar transação financeira para reativações de plataforma
+        // Isso evita que apareçam nos relatórios do usuário
+        console.log(`ℹ️ Reativação de plataforma processada (sem criar transação financeira)`);
+      }
       // Pagamento de assinatura normal da plataforma
       else if (metadata?.userId) {
         // Check if subscription already exists
@@ -716,14 +697,9 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
 
-        // Create financial transaction usando função auxiliar (com anti-duplicação)
-        await createFinancialTransaction(
-          supabaseClient,
-          metadata.userId,
-          payment.transaction_amount,
-          `Assinatura ${metadata.billingFrequency || 'Renovação'} - Mercado Pago`,
-          "credit_card"
-        );
+        // ✅ NÃO criar transação financeira para assinaturas de PLATAFORMA
+        // Isso evita que pagamentos da plataforma apareçam nos relatórios do usuário
+        console.log(`ℹ️ Assinatura de plataforma processada (sem criar transação financeira)`);
       }
     }
 
