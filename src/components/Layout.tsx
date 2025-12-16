@@ -3,7 +3,8 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, User as UserIcon, Crown } from "lucide-react";
+import { LogOut, Settings, User as UserIcon } from "lucide-react";
+import { SubscriptionPopover } from "@/components/SubscriptionPopover";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -57,15 +58,7 @@ function LayoutContent({ children, user, profileImage, navigate, handleLogout }:
             <div className="flex items-center gap-1 sm:gap-2 ml-auto">
               <ThemeToggle />
               
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-9 w-9 rounded-full"
-                onClick={() => navigate("/planos")}
-                title="Assinatura"
-              >
-                <Crown className="h-5 w-5 text-warning" />
-              </Button>
+              <SubscriptionPopover />
 
               <NotificationBell />
               

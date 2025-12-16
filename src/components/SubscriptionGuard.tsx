@@ -1,10 +1,12 @@
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Lock, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+const READ_ONLY_KEY = "readOnlyMode";
 
 // Context para propagar estado read-only
 const ReadOnlyContext = createContext<{ isReadOnly: boolean }>({ 
@@ -18,6 +20,28 @@ export const useReadOnly = () => useContext(ReadOnlyContext);
 export function SubscriptionGuard({ children }: { children: ReactNode }) {
   const { subscription, isLoading, isExpired, isTrial, daysRemaining } = useSubscriptionStatus();
   const navigate = useNavigate();
+  const [manualReadOnly, setManualReadOnly] = useState(false);
+
+  // Carregar estado do localStorage e escutar mudanças
+  useEffect(() => {
+    const checkReadOnly = () => {
+      const saved = localStorage.getItem(READ_ONLY_KEY);
+      setManualReadOnly(saved === "true");
+    };
+    
+    checkReadOnly();
+    
+    // Escutar evento customizado do SubscriptionPopover
+    const handleReadOnlyChange = (e: CustomEvent) => {
+      setManualReadOnly(e.detail);
+    };
+    
+    window.addEventListener("readOnlyModeChanged", handleReadOnlyChange as EventListener);
+    
+    return () => {
+      window.removeEventListener("readOnlyModeChanged", handleReadOnlyChange as EventListener);
+    };
+  }, []);
 
   // Loading state
   if (isLoading) {
@@ -28,30 +52,40 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
     );
   }
 
-  // Determinar modo read-only
-  const isReadOnly = isExpired;
+  // Determinar modo read-only (expirado OU modo manual ativado)
+  const isReadOnly = isExpired || manualReadOnly;
 
   return (
     <ReadOnlyContext.Provider value={{ isReadOnly }}>
       <div className="space-y-4">
-        {/* ALERTA 1: Assinatura Expirada (vermelho, permanente) */}
+        {/* ALERTA 1: Modo Leitura Ativo (vermelho/roxo) */}
         {isReadOnly && (
-          <Alert variant="destructive" className="border-2">
+          <Alert variant={manualReadOnly && !isExpired ? "default" : "destructive"} className="border-2">
             <Lock className="h-5 w-5" />
             <AlertDescription className="flex items-center justify-between gap-4">
               <div>
-                <strong className="font-semibold">Assinatura Expirada - Modo Somente Leitura</strong>
+                <strong className="font-semibold">
+                  {manualReadOnly && !isExpired 
+                    ? "Modo Leitura Ativo (Simulação)" 
+                    : "Assinatura Expirada - Modo Somente Leitura"
+                  }
+                </strong>
                 <p className="text-sm mt-1">
-                  Você pode visualizar seus dados, mas não pode criar, editar ou excluir registros.
+                  {manualReadOnly && !isExpired 
+                    ? "Você está simulando como fica quando a assinatura expira. Desative no ícone da coroa."
+                    : "Você pode visualizar seus dados, mas não pode criar, editar ou excluir registros."
+                  }
                 </p>
               </div>
-              <Button 
-                onClick={() => navigate("/planos")}
-                variant="secondary"
-                className="flex-shrink-0"
-              >
-                Renovar Assinatura
-              </Button>
+              {!manualReadOnly && (
+                <Button 
+                  onClick={() => navigate("/planos")}
+                  variant="secondary"
+                  className="flex-shrink-0"
+                >
+                  Renovar Assinatura
+                </Button>
+              )}
             </AlertDescription>
           </Alert>
         )}
