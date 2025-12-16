@@ -57,12 +57,12 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r transition-all duration-300">
       <SidebarHeader className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
-        <div className="flex items-center justify-center py-3 px-2 group-data-[collapsible=icon]:py-3 group-data-[collapsible=icon]:px-1">
-          <div className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl p-2 shadow-sm border border-primary/20 backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:scale-105 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:rounded-lg">
+        <div className="flex items-center justify-center py-3 px-2 group-data-[collapsible=icon]:py-2 group-data-[collapsible=icon]:px-0">
+          <div className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl p-2 shadow-sm border border-primary/20 backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:scale-105 group-data-[collapsible=icon]:p-1.5 group-data-[collapsible=icon]:rounded-lg overflow-hidden">
             <img 
               src={logo} 
               alt="Foguete Gestão Empresarial" 
-              className="h-12 md:h-14 w-auto drop-shadow-sm group-data-[collapsible=icon]:h-10" 
+              className="h-12 md:h-14 w-auto drop-shadow-sm group-data-[collapsible=icon]:h-7" 
             />
           </div>
         </div>
@@ -94,10 +94,13 @@ export function AppSidebar() {
 
         {/* WhatsApp E-commerce Section */}
         <SidebarGroup>
-          <div className="px-3 py-2">
+          <div className="px-3 py-2 group-data-[collapsible=icon]:hidden">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               WhatsApp E-commerce
             </h3>
+          </div>
+          <div className="hidden group-data-[collapsible=icon]:flex justify-center py-2">
+            <div className="w-6 h-px bg-border" />
           </div>
           <SidebarGroupContent>
             <SidebarMenu>
