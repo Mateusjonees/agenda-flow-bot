@@ -92,13 +92,18 @@ const Financeiro = () => {
     const endDate = new Date(filters.endDate);
     endDate.setHours(23, 59, 59, 999);
 
-    // Base query
+    // Base query - excluir transações de assinatura de plataforma
     let incomeQuery = supabase
       .from("financial_transactions")
       .select("*")
       .eq("user_id", user.id)
       .eq("type", "income")
       .eq("status", "completed")
+      .not("description", "ilike", "%assinatura monthly%")
+      .not("description", "ilike", "%assinatura mensal%")
+      .not("description", "ilike", "%assinatura semestral%")
+      .not("description", "ilike", "%assinatura anual%")
+      .not("description", "ilike", "%plano foguete%")
       .gte("transaction_date", startDate.toISOString())
       .lte("transaction_date", endDate.toISOString());
 

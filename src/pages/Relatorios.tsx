@@ -297,13 +297,18 @@ const Relatorios = () => {
         );
       }
 
-      // Resumo financeiro (com filtros aplicados)
+      // Resumo financeiro (com filtros aplicados) - excluir transações de assinatura de plataforma
       let incomeQuery = supabase
         .from("financial_transactions")
         .select("id, amount, description, transaction_date, payment_method")
         .eq("user_id", user.id)
         .eq("type", "income")
         .eq("status", "completed")
+        .not("description", "ilike", "%assinatura monthly%")
+        .not("description", "ilike", "%assinatura mensal%")
+        .not("description", "ilike", "%assinatura semestral%")
+        .not("description", "ilike", "%assinatura anual%")
+        .not("description", "ilike", "%plano foguete%")
         .gte("transaction_date", filterStartDate.toISOString())
         .lte("transaction_date", filterEndDate.toISOString())
         .order("transaction_date", { ascending: false });
@@ -446,6 +451,11 @@ const Relatorios = () => {
         .eq("user_id", user.id)
         .eq("type", "income")
         .eq("status", "completed")
+        .not("description", "ilike", "%assinatura monthly%")
+        .not("description", "ilike", "%assinatura mensal%")
+        .not("description", "ilike", "%assinatura semestral%")
+        .not("description", "ilike", "%assinatura anual%")
+        .not("description", "ilike", "%plano foguete%")
         .gte("transaction_date", previousStartDate.toISOString())
         .lte("transaction_date", previousEndDate.toISOString());
 
