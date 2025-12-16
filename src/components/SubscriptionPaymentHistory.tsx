@@ -16,7 +16,8 @@ import {
   FileText,
   Receipt,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -178,6 +179,8 @@ export function SubscriptionPaymentHistory() {
       method: "PIX",
       description: charge.description || "Assinatura Plataforma",
       type: "pix" as const,
+      ticketUrl: charge.metadata?.ticket_url || null,
+      mpPaymentId: charge.metadata?.mp_payment_id || null,
     })),
     ...transactions.map(transaction => ({
       id: transaction.id,
@@ -187,6 +190,8 @@ export function SubscriptionPaymentHistory() {
       method: transaction.payment_method || "N/A",
       description: transaction.description,
       type: "transaction" as const,
+      ticketUrl: null,
+      mpPaymentId: null,
     }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -311,15 +316,28 @@ export function SubscriptionPaymentHistory() {
                       </div>
 
                       {payment.status === "paid" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDownloadInvoice(payment.id)}
-                          disabled={downloadingInvoice === payment.id}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          {downloadingInvoice === payment.id ? "Gerando..." : "Recibo"}
-                        </Button>
+                        <div className="flex gap-2">
+                          {payment.ticketUrl && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(payment.ticketUrl!, '_blank')}
+                              title="Abrir comprovante do Mercado Pago"
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Nota MP
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownloadInvoice(payment.id)}
+                            disabled={downloadingInvoice === payment.id}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            {downloadingInvoice === payment.id ? "Gerando..." : "Recibo"}
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
