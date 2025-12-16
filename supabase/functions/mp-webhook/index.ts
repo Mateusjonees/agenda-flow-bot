@@ -370,9 +370,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Processar webhooks de pagamento único (payment.created)
-    if (action === "payment.created" && id) {
-      console.log("� STEP 6: Processando pagamento único (payment.created)");
+    // Processar webhooks de pagamento único (payment.created ou payment.updated)
+    // ✅ IMPORTANTE: Mercado Pago envia payment.updated quando o pagamento é APROVADO
+    if ((action === "payment.created" || action === "payment.updated") && id) {
+      console.log(`💳 STEP 6: Processando pagamento (${action})`);
       console.log("🔍 Payment ID:", id);
       
       // Buscar informações do pagamento
