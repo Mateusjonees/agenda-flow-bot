@@ -74,6 +74,7 @@ export function useSubscriptionStatus() {
   }, [user?.id, queryClient]);
 
   // Estados derivados
+  const hasSubscription = !!subscription;
   const isActive = subscription?.status === "active" || subscription?.status === "trial";
   const isTrial = subscription?.status === "trial";
   
@@ -83,15 +84,14 @@ export function useSubscriptionStatus() {
     ? new Date(subscription.next_billing_date).getTime() > new Date().getTime()
     : false;
   
-  // Só está expirado se o status for "expired" OU se cancelou e já passou da data de acesso
-  const isExpired = subscription?.status === "expired" || (isCancelled && !hasAccessUntil);
+  // Expirado se: não tem subscription, status expired, ou cancelou e passou da data
+  const isExpired = !hasSubscription || 
+    subscription?.status === "expired" || 
+    (isCancelled && !hasAccessUntil);
   
+  // Cálculo unificado de dias restantes usando sempre next_billing_date
   const daysRemaining = subscription?.next_billing_date
-    ? Math.ceil((new Date(subscription.next_billing_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    : 0;
-
-  const trialDaysRemaining = subscription?.status === "trial" && subscription?.start_date
-    ? Math.ceil((new Date(subscription.start_date).getTime() + (7 * 24 * 60 * 60 * 1000) - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    ? Math.max(0, Math.ceil((new Date(subscription.next_billing_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
 
   return {
@@ -102,7 +102,8 @@ export function useSubscriptionStatus() {
     isTrial,
     isCancelled,
     isExpired,
-    daysRemaining: isTrial ? trialDaysRemaining : daysRemaining,
+    hasSubscription,
+    daysRemaining,
     user,
   };
 }
