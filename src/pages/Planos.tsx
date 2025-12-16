@@ -555,8 +555,8 @@ const Planos = () => {
         </p>
       </div>
 
-      {/* Pending PIX Payment - Só mostra se NÃO tem assinatura ativa */}
-      {pendingPix && (!subscription || subscription.status !== 'active') && (
+      {/* Pending PIX Payment - Só mostra se NÃO tem assinatura ativa e não acabou de pagar */}
+      {pendingPix && !justPaidPix && (!subscription || subscription.status !== 'active') && (
         <Card className="border-orange-500/50 bg-orange-50/50 dark:bg-orange-950/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-orange-600 dark:text-orange-400">

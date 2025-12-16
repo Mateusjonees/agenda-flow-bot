@@ -12,7 +12,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart, Cell } from "recharts";
 import { StatCard } from "@/components/StatCard";
 import { FinancialCharts } from "@/components/FinancialCharts";
-import { SubscriptionCountdown } from "@/components/SubscriptionCountdown";
 
 interface Stats {
   todayAppointments: number;
@@ -303,9 +302,6 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Card de Dias Restantes da Assinatura */}
-      <SubscriptionCountdown compact />
-
       {/* Header Premium com gradiente */}
       <div className="relative rounded-2xl overflow-hidden">
         <div className="absolute inset-0 bg-red-50 dark:bg-muted/30" />
