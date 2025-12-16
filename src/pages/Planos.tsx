@@ -14,9 +14,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useConfetti } from "@/hooks/useConfetti";
-import { SubscriptionStatusCard } from "@/components/SubscriptionStatusCard";
 import { PaymentMethodBadge } from "@/components/PaymentMethodBadge";
-import { SubscriptionCountdown } from "@/components/SubscriptionCountdown";
 
 declare global {
   interface Window {
@@ -547,9 +545,6 @@ const Planos = () => {
 
   return (
     <div className="space-y-4 sm:space-y-8 p-3 sm:p-6 max-w-7xl mx-auto">
-      {/* Contador de Dias Restantes - Destaque no Topo */}
-      <SubscriptionCountdown />
-
       {/* Header */}
       <div className="text-center space-y-2 sm:space-y-3">
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
@@ -710,11 +705,6 @@ const Planos = () => {
         </Card>
       )}
 
-      {subscription && subscription.status !== "trial" && (
-        <div className="mb-8">
-          <SubscriptionStatusCard subscription={subscription} pendingPix={pendingPix} justPaidPix={justPaidPix} />
-        </div>
-      )}
 
       {/* Cancelled Subscription Info */}
       {subscription && subscription.status === "cancelled" && (
@@ -775,247 +765,77 @@ const Planos = () => {
         </Card>
       )}
 
-      {/* Current Subscription Info */}
-      {subscription && subscription.status !== "cancelled" && subscription.status !== "expired" && (
-        <Card className="border-primary bg-gradient-to-br from-primary/5 to-transparent">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {subscription.status === "trial" ? (
-                <>
-                  <Sparkles className="w-5 h-5 text-amber-600" />
-                  Período de Teste Gratuito
-                </>
-              ) : (
-                <>
-                  <Shield className="w-5 h-5 text-primary" />
-                  Seu Plano Ativo
-                </>
-              )}
-            </CardTitle>
-            <CardDescription>
-              {subscription.status === "trial" 
-                ? "Experimente todos os recursos gratuitamente por 7 dias"
-                : "Gerenciamento completo da sua conta"
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
-              {/* Plano Atual */}
-              <div className="space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-lg sm:text-xl">
-                        {subscription.subscription_plans?.name || (subscription.status === "trial" ? "Período de Teste" : "Plano Atual")}
-                      </p>
-                      {subscription.status === "trial" ? (
-                        <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">
-                          <Sparkles className="w-3 h-3 mr-1" />
-                          Teste Grátis
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
-                          <Check className="w-3 h-3 mr-1" />
-                          Plano Ativo
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      {subscription.subscription_plans?.description || ""}
-                    </p>
-                  </div>
-                  {subscription.subscription_plans?.price && (
-                    <div className="text-left sm:text-right">
-                      <p className="text-2xl sm:text-3xl font-bold text-primary">
-                        {new Intl.NumberFormat("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        }).format(subscription.subscription_plans.price)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        /{subscription.subscription_plans.billing_frequency === "monthly" ? "mês" : "período"}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Info Cards */}
-                <div className="grid grid-cols-2 gap-3 pt-3">
-                  <div className="bg-background/50 rounded-lg p-3 border">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Calendar className="w-4 h-4 text-primary" />
-                      <span className="text-xs text-muted-foreground">Início</span>
-                    </div>
-                    <p className="text-sm font-semibold">
-                      {format(new Date(subscription.start_date), "dd/MM/yyyy")}
-                    </p>
-                  </div>
-                  <div className="bg-background/50 rounded-lg p-3 border">
-                    <div className="flex items-center gap-2 mb-1">
-                      <TrendingUp className="w-4 h-4 text-primary" />
-                      <span className="text-xs text-muted-foreground">
-                        {subscription.status === "trial" ? "Fim do Teste" : "Renovação"}
-                      </span>
-                    </div>
-                    <p className="text-sm font-semibold">
-                      {subscription.next_billing_date 
-                        ? format(new Date(subscription.next_billing_date), "dd/MM/yyyy")
-                        : "N/A"
-                      }
-                    </p>
-                    {subscription.next_billing_date && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-semibold">
-                        {subscription.status === "trial" && (
-                          <>
-                            {Math.max(0, Math.ceil((new Date(subscription.next_billing_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} dias gratuitos restantes
-                          </>
-                        )}
-                      </p>
-                    )}
-                  </div>
-                </div>
+      {/* Card Compacto de Ações - Apenas para assinaturas ativas (não trial, não cancelada, não expirada) */}
+      {subscription && subscription.status === "active" && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="py-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Shield className="w-5 h-5 text-primary" />
+                <span className="font-medium">Ações da Assinatura</span>
               </div>
-
-              {/* Ações */}
-              <div className="space-y-3">
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div className="space-y-2 flex-1">
-                      <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                        Gerenciar Assinatura
-                      </p>
-                      <p className="text-xs text-amber-700 dark:text-amber-200">
-                        Você pode trocar de plano a qualquer momento. Upgrades são imediatos e downgrades são aplicados no próximo ciclo.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  {subscription.status === "trial" ? (
-                    <Button 
-                      className="w-full"
-                      onClick={() => {
-                        const plansSection = document.getElementById('plans-section');
-                        plansSection?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                    >
-                      <Gift className="w-4 h-4 mr-2" />
-                      Escolher Plano e Renovar
-                    </Button>
-                  ) : (
-                    <>
-                      <Button 
-                        className="w-full"
-                        onClick={() => {
-                          const plansSection = document.getElementById('plans-section');
-                          plansSection?.scrollIntoView({ behavior: 'smooth' });
-                        }}
-                      >
-                        <ArrowUpCircle className="w-4 h-4 mr-2" />
-                        Renovar ou Trocar Plano
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setCancelDialogOpen(true)}
-                        disabled={loading}
-                      >
-                        <AlertCircle className="w-4 h-4 mr-2" />
-                        Cancelar Assinatura
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full text-xs"
-                        onClick={() => navigate("/historico-pagamentos")}
-                      >
-                        <Receipt className="w-3 h-3 mr-2" />
-                        Ver Histórico de Pagamentos
-                      </Button>
-                    </>
-                  )}
-                </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button 
+                  size="sm"
+                  onClick={() => {
+                    const plansSection = document.getElementById('plans-section');
+                    plansSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  <ArrowUpCircle className="w-4 h-4 mr-2" />
+                  Trocar Plano
+                </Button>
+                <Button 
+                  size="sm"
+                  variant="outline" 
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setCancelDialogOpen(true)}
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => navigate("/historico-pagamentos")}
+                >
+                  <Receipt className="w-4 h-4 mr-2" />
+                  Histórico
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Trial Info */}
       {subscription && subscription.status === "trial" && (() => {
-        const trialDays = 7; // Período total do trial
-        const startDate = new Date(subscription.start_date);
         const endDate = new Date(subscription.next_billing_date || new Date());
         const today = new Date();
-        
         const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
-        const daysUsed = trialDays - daysRemaining;
-        const progressPercentage = Math.min(100, (daysUsed / trialDays) * 100);
         
         return (
-          <Card className="border-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent">
-            <CardContent className="pt-6 space-y-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 border-4 border-amber-500/30 flex-shrink-0 shadow-lg">
-                  <div className="text-center">
-                    <p className="text-3xl sm:text-4xl font-bold text-amber-600 dark:text-amber-400">
-                      {daysRemaining}
-                    </p>
-                    <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-                      {daysRemaining === 1 ? 'dia' : 'dias'}
-                    </p>
-                  </div>
+          <Card className={`border-amber-500/50 ${daysRemaining <= 3 ? 'bg-amber-500/10' : 'bg-amber-500/5'}`}>
+            <CardContent className="py-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-5 h-5 text-amber-600" />
+                  <span className="font-medium text-amber-900 dark:text-amber-100">
+                    {daysRemaining <= 3 
+                      ? `⚠️ Seu teste termina em ${daysRemaining} ${daysRemaining === 1 ? 'dia' : 'dias'}!`
+                      : 'Escolha um plano para continuar após o teste'
+                    }
+                  </span>
                 </div>
-                
-                <div className="flex-1 w-full">
-                  <div className="flex items-start gap-2 mb-3">
-                    <Sparkles className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
-                        Período de Teste Ativo - Aproveite Gratuitamente!
-                      </p>
-                      <p className="text-sm text-amber-700 dark:text-amber-200">
-                        Seu teste gratuito termina em {format(endDate, "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}.
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Barra de Progresso */}
-                  <div className="space-y-2 mb-3">
-                    <div className="flex items-center justify-between text-xs text-amber-700 dark:text-amber-300">
-                      <span className="font-medium">Progresso do teste: {daysUsed} de {trialDays} dias usados</span>
-                      <span className="font-semibold">{Math.round(progressPercentage)}%</span>
-                    </div>
-                    <div className="relative h-3 bg-amber-100 dark:bg-amber-950 rounded-full overflow-hidden border border-amber-200 dark:border-amber-800">
-                      <div 
-                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-500 to-amber-600 transition-all duration-500 rounded-full"
-                        style={{ width: `${progressPercentage}%` }}
-                      >
-                        <div className="absolute inset-0 bg-amber-400/30 animate-pulse" />
-                      </div>
-                    </div>
-                    {daysRemaining <= 3 && (
-                      <p className="text-xs font-medium text-amber-800 dark:text-amber-200 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Escolha um plano agora para não perder o acesso!
-                      </p>
-                    )}
-                  </div>
-                  
-                  <Button 
-                    size="sm"
-                    onClick={() => {
-                      const plansSection = document.getElementById('plans-section');
-                      plansSection?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    className="w-full sm:w-auto"
-                  >
-                    <CreditCard className="w-4 h-4 mr-2" />
-                    Escolher Plano Agora
-                  </Button>
-                </div>
+                <Button 
+                  onClick={() => {
+                    const plansSection = document.getElementById('plans-section');
+                    plansSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className={daysRemaining <= 3 ? 'bg-amber-600 hover:bg-amber-700' : ''}
+                >
+                  <Gift className="w-4 h-4 mr-2" />
+                  Escolher Plano
+                </Button>
               </div>
             </CardContent>
           </Card>
