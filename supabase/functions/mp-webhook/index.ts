@@ -290,10 +290,10 @@ const handler = async (req: Request): Promise<Response> => {
         const nextBillingDate = new Date(startDate);
         nextBillingDate.setMonth(nextBillingDate.getMonth() + months);
         
-        // Adicionar 7 dias de trial
-        nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+        // ✅ CORREÇÃO: Não adicionar dias de trial para usuários PAGANTES
+        // Trial é apenas para novos usuários que ainda não pagaram
         
-        console.log(`📅 Next billing date calculated: ${nextBillingDate.toISOString()} (start: ${startDate.toISOString()} + ${months} months + 7 days trial)`);
+        console.log(`📅 Next billing date calculated: ${nextBillingDate.toISOString()} (start: ${startDate.toISOString()} + ${months} months)`);
 
         // Verificar subscription existente
         const { data: existingSub } = await supabaseClient
@@ -447,14 +447,13 @@ const handler = async (req: Request): Promise<Response> => {
         const nextBillingDate = new Date(startDate);
         nextBillingDate.setMonth(nextBillingDate.getMonth() + months);
         
-        // Adicionar 7 dias de trial
-        nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+        // ✅ CORREÇÃO: Não adicionar dias de trial para usuários PAGANTES
+        // Trial é apenas para novos usuários que ainda não pagaram
 
         console.log("🔍 STEP 13: Calculando datas da assinatura:", {
           startDate: startDate.toISOString(),
           months,
-          nextBillingDate: nextBillingDate.toISOString(),
-          trialDays: 7
+          nextBillingDate: nextBillingDate.toISOString()
         });
 
         // Verificar subscription existente da plataforma (assinatura do sistema, não de cliente)
