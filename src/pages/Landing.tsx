@@ -338,8 +338,10 @@ const Landing = () => {
                   <Card key={index} className="group hover-lift border-2 border-transparent hover:border-primary/30 transition-all bg-card/50 backdrop-blur-sm overflow-hidden">
                     <CardContent className="p-8 text-center relative">
                       <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${useCase.color} opacity-0 group-hover:opacity-100 transition-opacity`} />
-                      <div className={`w-20 h-20 bg-gradient-to-br ${useCase.color} rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all`}>
-                        <Icon className="w-10 h-10 text-white" />
+                      <div className="w-20 h-20 mb-6 mx-auto flex items-center justify-center">
+                        <div className={`w-16 h-16 bg-gradient-to-br ${useCase.color} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}>
+                          <Icon className="w-8 h-8 text-white" />
+                        </div>
                       </div>
                       <h3 className="text-xl font-bold text-foreground mb-2">{useCase.title}</h3>
                       <p className="text-muted-foreground">{useCase.description}</p>
@@ -375,8 +377,10 @@ const Landing = () => {
                 <Card key={index} className="group hover-lift border-2 border-transparent hover:border-primary/30 bg-card/80 backdrop-blur-sm overflow-hidden">
                   <CardContent className="p-8 relative">
                     <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${feature.color} opacity-0 group-hover:opacity-100 transition-opacity`} />
-                    <div className={`w-16 h-16 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
-                      <feature.icon className="w-8 h-8 text-white" />
+                    <div className="w-16 h-16 mb-6 flex items-center justify-center">
+                      <div className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}>
+                        <feature.icon className="w-7 h-7 text-white" />
+                      </div>
                     </div>
                     <h3 className="text-xl font-bold text-foreground mb-3">{feature.title}</h3>
                     <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
@@ -452,8 +456,10 @@ const Landing = () => {
                 return (
                   <Card key={index} className="group hover-lift border-0 bg-gradient-to-br from-card to-card/50 overflow-hidden shadow-premium">
                     <CardContent className="p-10 text-center">
-                      <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform">
-                        <Icon className="w-10 h-10 text-primary" />
+                      <div className="w-20 h-20 mb-6 mx-auto flex items-center justify-center">
+                        <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center group-hover:scale-105 transition-transform">
+                          <Icon className="w-8 h-8 text-primary" />
+                        </div>
                       </div>
                       <div className="text-5xl font-extrabold text-gradient-primary mb-3">{stat.value}</div>
                       <div className="text-lg font-semibold text-foreground mb-1">{stat.label}</div>
@@ -566,10 +572,12 @@ const Landing = () => {
               {integrations.map((integration, index) => {
                 const Icon = integration.icon;
                 return (
-                  <Card key={index} className="group hover-lift border-2 border-transparent hover:border-primary/30 bg-card/80 backdrop-blur-sm">
+                  <Card key={index} className="group hover-lift border-2 border-transparent hover:border-primary/30 bg-card/80 backdrop-blur-sm overflow-hidden">
                     <CardContent className="p-8 flex gap-6">
-                      <div className={`w-20 h-20 bg-gradient-to-br ${integration.color} rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all`}>
-                        <Icon className="w-10 h-10 text-white" />
+                      <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center">
+                        <div className={`w-16 h-16 bg-gradient-to-br ${integration.color} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}>
+                          <Icon className="w-8 h-8 text-white" />
+                        </div>
                       </div>
                       <div>
                         <h3 className="text-xl font-bold text-foreground mb-2">{integration.name}</h3>
