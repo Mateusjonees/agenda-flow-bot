@@ -45,6 +45,10 @@ import {
   Edit,
   Trash2,
   Power,
+  RotateCcw,
+  Sparkles,
+  Clock,
+  User,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -109,6 +113,7 @@ const Assinaturas = () => {
   const [renewSubscription, setRenewSubscription] = useState<Subscription | null>(null);
   const [deleteSubscription, setDeleteSubscription] = useState<Subscription | null>(null);
   const [pauseSubscription, setPauseSubscription] = useState<Subscription | null>(null);
+  const [reactivateSubscription, setReactivateSubscription] = useState<Subscription | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string>("pix");
   const [generatingDocument, setGeneratingDocument] = useState<string>("");
   const [sendingDocument, setSendingDocument] = useState<string>("");
@@ -183,9 +188,15 @@ const Assinaturas = () => {
   };
 
   const fetchPlans = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { data, error } = await supabase
       .from("subscription_plans")
       .select("*")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -200,10 +211,16 @@ const Assinaturas = () => {
   };
 
   const fetchSubscriptions = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { data, error } = await supabase
       .from("subscriptions")
       .select("*")
-      .eq("type", "customer")  // ✅ Apenas contratos de CLIENTES
+      .eq("user_id", user.id)
+      .eq("type", "customer")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -237,7 +254,16 @@ const Assinaturas = () => {
   };
 
   const fetchCustomers = async () => {
-    const { data } = await supabase.from("customers").select("*").order("name");
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("customers")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("name");
     setCustomers(data || []);
   };
 
@@ -251,7 +277,7 @@ const Assinaturas = () => {
       .from("subscriptions")
       .select("plan_id")
       .eq("user_id", user.id)
-      .eq("type", "customer")  // ✅ Apenas contratos de CLIENTES
+      .eq("type", "customer")
       .in("status", ["active", "suspended"]);
 
     if (data) {
@@ -279,7 +305,7 @@ const Assinaturas = () => {
       `,
       )
       .eq("user_id", user.id)
-      .eq("type", "customer")  // ✅ Apenas contratos de CLIENTES
+      .eq("type", "customer")
       .eq("status", "active");
 
     if (activeSubs) {
@@ -376,7 +402,7 @@ const Assinaturas = () => {
       customer_id: selectedCustomer,
       plan_id: selectedPlanForSubscription,
       status: "active",
-      type: "customer",  // ✅ Tipo correto para contratos de clientes
+      type: "customer",
       next_billing_date: nextBillingDate.toISOString(),
       start_date: new Date().toISOString(),
       failed_payments_count: 0,
@@ -398,6 +424,7 @@ const Assinaturas = () => {
       setSelectedPlanForSubscription("");
       fetchSubscriptions();
       calculateMetrics();
+      fetchPlanSubscriptionCounts();
     }
   };
 
@@ -450,6 +477,7 @@ const Assinaturas = () => {
       setDeleteSubscription(null);
       fetchSubscriptions();
       calculateMetrics();
+      fetchPlanSubscriptionCounts();
     } catch (error: any) {
       console.error("Error deleting subscription:", error);
       toast({
@@ -480,6 +508,41 @@ const Assinaturas = () => {
       setPauseSubscription(null);
       fetchSubscriptions();
       calculateMetrics();
+      fetchPlanSubscriptionCounts();
+    }
+  };
+
+  // ✅ NOVA FUNÇÃO: Reativar contratos cancelados/expirados
+  const handleReactivateSubscription = async () => {
+    if (!reactivateSubscription) return;
+
+    const nextBillingDate = new Date();
+    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+
+    const { error } = await supabase
+      .from("subscriptions")
+      .update({ 
+        status: "active",
+        next_billing_date: nextBillingDate.toISOString(),
+        failed_payments_count: 0,
+      })
+      .eq("id", reactivateSubscription.id);
+
+    if (error) {
+      toast({
+        title: "Erro ao reativar",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Contrato reativado!",
+        description: "O contrato foi reativado com sucesso e está ativo novamente.",
+      });
+      setReactivateSubscription(null);
+      fetchSubscriptions();
+      calculateMetrics();
+      fetchPlanSubscriptionCounts();
     }
   };
 
@@ -564,14 +627,34 @@ const Assinaturas = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, any> = {
-      active: { label: "Ativo", variant: "default" },
-      suspended: { label: "Suspenso", variant: "secondary" },
-      cancelled: { label: "Cancelado", variant: "outline" },
-      payment_failed: { label: "Pagamento Falhou", variant: "destructive" },
+    const variants: Record<string, { label: string; className: string }> = {
+      active: { 
+        label: "Ativo", 
+        className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" 
+      },
+      suspended: { 
+        label: "Suspenso", 
+        className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" 
+      },
+      cancelled: { 
+        label: "Cancelado", 
+        className: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20" 
+      },
+      expired: { 
+        label: "Expirado", 
+        className: "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20" 
+      },
+      payment_failed: { 
+        label: "Pagamento Falhou", 
+        className: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20" 
+      },
     };
-    const config = variants[status] || { label: status, variant: "outline" };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    const config = variants[status] || { label: status, className: "bg-muted text-muted-foreground" };
+    return (
+      <Badge variant="outline" className={`${config.className} font-medium`}>
+        {config.label}
+      </Badge>
+    );
   };
 
   const getFrequencyLabel = (frequency: string) => {
@@ -762,37 +845,62 @@ const Assinaturas = () => {
     });
   };
 
+  const getCustomerInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  };
+
   if (loading) {
-    return <div className="p-8">Carregando...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando contratos...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {/* Header Premium */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold">Contratos Recorrentes</h1>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
+            Contratos Recorrentes
+          </h1>
           <p className="text-muted-foreground mt-1">Gerencie planos e contratos recorrentes dos seus clientes</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           {/* Diálogo de Vincular Cliente */}
           <Dialog open={isSubscribeDialogOpen} onOpenChange={setIsSubscribeDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" disabled={isReadOnly}>
-                <Users className="mr-2 h-4 w-4" />
+              <Button variant="outline" disabled={isReadOnly} className="gap-2 hover:border-primary/50 transition-colors">
+                <Users className="h-4 w-4" />
                 Vincular Cliente
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Vincular Cliente a um Plano</DialogTitle>
-                <DialogDescription>Selecione um cliente e um plano para criar uma nova assinatura</DialogDescription>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <DialogTitle>Vincular Cliente</DialogTitle>
+                    <DialogDescription>Selecione um cliente e um plano para criar um novo contrato</DialogDescription>
+                  </div>
+                </div>
               </DialogHeader>
-              <div className="space-y-4">
-                <div>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
                   <Label>Cliente</Label>
                   <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11">
                       <SelectValue placeholder="Selecione um cliente" />
                     </SelectTrigger>
                     <SelectContent>
@@ -804,10 +912,10 @@ const Assinaturas = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label>Plano</Label>
                   <Select value={selectedPlanForSubscription} onValueChange={setSelectedPlanForSubscription}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11">
                       <SelectValue placeholder="Selecione um plano" />
                     </SelectTrigger>
                     <SelectContent>
@@ -826,8 +934,9 @@ const Assinaturas = () => {
                 <Button variant="outline" onClick={() => setIsSubscribeDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleCreateSubscription} disabled={isReadOnly}>
-                  Criar Assinatura
+                <Button onClick={handleCreateSubscription} disabled={isReadOnly} className="gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Criar Contrato
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -836,37 +945,46 @@ const Assinaturas = () => {
           {/* Diálogo de Novo Plano */}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button disabled={isReadOnly}>
-                <Plus className="mr-2 h-4 w-4" />
+              <Button disabled={isReadOnly} className="gap-2 shadow-lg hover:shadow-xl transition-all">
+                <Plus className="h-4 w-4" />
                 Novo Plano
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Criar Novo Plano</DialogTitle>
-                <DialogDescription>Configure um plano de assinatura recorrente</DialogDescription>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <DialogTitle>Criar Novo Plano</DialogTitle>
+                    <DialogDescription>Configure um plano de assinatura recorrente</DialogDescription>
+                  </div>
+                </div>
               </DialogHeader>
-              <div className="space-y-4">
-                <div>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
                   <Label htmlFor="name">Nome do Plano *</Label>
                   <Input
                     id="name"
                     value={newPlan.name}
                     onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
                     placeholder="Ex: Pacote 4 Aulas/Mês"
+                    className="h-11"
                   />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="description">Descrição</Label>
                   <Textarea
                     id="description"
                     value={newPlan.description}
                     onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
                     placeholder="Descreva o que está incluso no plano"
+                    className="resize-none"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="price">Valor (R$) *</Label>
                     <Input
                       id="price"
@@ -875,9 +993,10 @@ const Assinaturas = () => {
                       value={newPlan.price}
                       onChange={(e) => setNewPlan({ ...newPlan, price: e.target.value })}
                       placeholder="0.00"
+                      className="h-11"
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="duration">Duração (meses)</Label>
                     <Input
                       id="duration"
@@ -886,16 +1005,17 @@ const Assinaturas = () => {
                       value={newPlan.duration_months}
                       onChange={(e) => setNewPlan({ ...newPlan, duration_months: e.target.value })}
                       placeholder="3"
+                      className="h-11"
                     />
                   </div>
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="frequency">Frequência de Cobrança</Label>
                   <Select
                     value={newPlan.billing_frequency}
                     onValueChange={(value) => setNewPlan({ ...newPlan, billing_frequency: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -905,7 +1025,8 @@ const Assinaturas = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleCreatePlan} className="w-full" disabled={isReadOnly}>
+                <Button onClick={handleCreatePlan} className="w-full h-11" disabled={isReadOnly}>
+                  <Sparkles className="mr-2 h-4 w-4" />
                   Criar Plano
                 </Button>
               </div>
@@ -914,68 +1035,92 @@ const Assinaturas = () => {
         </div>
       </div>
 
-      {/* Métricas */}
-      <div className="grid gap-6 md:grid-cols-4">
-        <Card>
+      {/* Cards de Métricas Premium */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl -mr-8 -mt-8" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Mensal</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Receita Mensal</CardTitle>
+            <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <DollarSign className="h-5 w-5 text-emerald-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(metrics.mrr)}</div>
-            <p className="text-xs text-muted-foreground">Receita recorrente mensal</p>
+            <div className="text-3xl font-bold text-foreground">{formatCurrency(metrics.mrr)}</div>
+            <p className="text-xs text-muted-foreground mt-1">MRR - Receita recorrente</p>
           </CardContent>
         </Card>
-        <Card>
+
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl -mr-8 -mt-8" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Anual</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Receita Anual</CardTitle>
+            <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-blue-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(metrics.totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground">Projeção anual</p>
+            <div className="text-3xl font-bold text-foreground">{formatCurrency(metrics.totalRevenue)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Projeção anual</p>
           </CardContent>
         </Card>
-        <Card>
+
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/10 rounded-full blur-2xl -mr-8 -mt-8" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Planos Ativos</CardTitle>
-            <PackageCheck className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Planos Ativos</CardTitle>
+            <div className="h-10 w-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
+              <PackageCheck className="h-5 w-5 text-violet-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{plans.filter((p) => p.is_active).length}</div>
+            <div className="text-3xl font-bold text-foreground">{plans.filter((p) => p.is_active).length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Planos disponíveis</p>
           </CardContent>
         </Card>
-        <Card>
+
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl -mr-8 -mt-8" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assinaturas Ativas</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Contratos Ativos</CardTitle>
+            <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+              <Users className="h-5 w-5 text-amber-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.activeSubscriptions}</div>
+            <div className="text-3xl font-bold text-foreground">{metrics.activeSubscriptions}</div>
+            <p className="text-xs text-muted-foreground mt-1">Clientes ativos</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="subscriptions" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="subscriptions">Assinantes</TabsTrigger>
-          <TabsTrigger value="plans">Planos Disponíveis</TabsTrigger>
+      <Tabs defaultValue="subscriptions" className="space-y-6">
+        <TabsList className="bg-muted/50 p-1 h-12">
+          <TabsTrigger value="subscriptions" className="gap-2 h-10 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <Users className="h-4 w-4" />
+            Assinantes
+          </TabsTrigger>
+          <TabsTrigger value="plans" className="gap-2 h-10 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <PackageCheck className="h-4 w-4" />
+            Planos Disponíveis
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="subscriptions" className="space-y-4">
-          {/* Sub-tabs para Ativos e Histórico */}
-          <div className="flex gap-2 mb-4">
+        <TabsContent value="subscriptions" className="space-y-6">
+          {/* Toggle Ativos/Histórico */}
+          <div className="flex gap-2">
             <Button
               variant={subscriptionView === "active" ? "default" : "outline"}
               onClick={() => {
                 setSubscriptionView("active");
                 setStatusFilter("all");
               }}
+              className="gap-2"
             >
-              <CheckCircle className="mr-2 h-4 w-4" />
+              <CheckCircle className="h-4 w-4" />
               Ativos
-              <Badge variant="secondary" className="ml-2">
+              <Badge variant="secondary" className="ml-1 bg-background/50">
                 {subscriptions.filter((s) => s.status !== "cancelled" && s.status !== "expired").length}
               </Badge>
             </Button>
@@ -985,29 +1130,31 @@ const Assinaturas = () => {
                 setSubscriptionView("history");
                 setStatusFilter("all");
               }}
+              className="gap-2"
             >
-              <FileText className="mr-2 h-4 w-4" />
+              <Clock className="h-4 w-4" />
               Histórico
-              <Badge variant="secondary" className="ml-2">
+              <Badge variant="secondary" className="ml-1 bg-background/50">
                 {subscriptions.filter((s) => s.status === "cancelled" || s.status === "expired").length}
               </Badge>
             </Button>
           </div>
+
           {/* Filtros */}
-          <Card className="mb-4">
+          <Card className="border-dashed">
             <CardContent className="pt-6">
               <div className="grid gap-4 md:grid-cols-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar por nome ou email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 h-11"
                   />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1027,7 +1174,7 @@ const Assinaturas = () => {
                   </SelectContent>
                 </Select>
                 <Select value={planFilter} onValueChange={setPlanFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="Plano" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1046,49 +1193,58 @@ const Assinaturas = () => {
                     setStatusFilter("all");
                     setPlanFilter("all");
                   }}
+                  className="h-11 gap-2"
                 >
-                  <Filter className="mr-2 h-4 w-4" />
+                  <Filter className="h-4 w-4" />
                   Limpar Filtros
                 </Button>
               </div>
-              <div className="mt-2 text-sm text-muted-foreground">
+              <div className="mt-3 text-sm text-muted-foreground">
                 Mostrando {getFilteredSubscriptions().length} de{" "}
                 {subscriptionView === "active"
                   ? subscriptions.filter((s) => s.status !== "cancelled" && s.status !== "expired").length
                   : subscriptions.filter((s) => s.status === "cancelled" || s.status === "expired").length}{" "}
-                assinatura(s) {subscriptionView === "active" ? "ativas" : "no histórico"}
+                contrato(s) {subscriptionView === "active" ? "ativos" : "no histórico"}
               </div>
             </CardContent>
           </Card>
 
+          {/* Lista de Assinaturas */}
           {subscriptions.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <p className="text-muted-foreground mb-4">Nenhuma assinatura cadastrada ainda</p>
-                <Button onClick={() => setIsSubscribeDialogOpen(true)} disabled={isReadOnly}>
-                  <Plus className="mr-2 h-4 w-4" />
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <Users className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p className="text-lg font-medium text-muted-foreground mb-2">Nenhum contrato cadastrado</p>
+                <p className="text-sm text-muted-foreground mb-6">Vincule seu primeiro cliente a um plano para começar</p>
+                <Button onClick={() => setIsSubscribeDialogOpen(true)} disabled={isReadOnly} className="gap-2">
+                  <Plus className="h-4 w-4" />
                   Vincular Primeiro Cliente
                 </Button>
               </CardContent>
             </Card>
           ) : getFilteredSubscriptions().length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-10">
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-16">
                 {subscriptionView === "history" ? (
                   <>
-                    <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground mb-2 font-semibold">Nenhuma assinatura no histórico</p>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Assinaturas canceladas ou expiradas aparecerão aqui
-                    </p>
+                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                      <Clock className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-lg font-medium text-muted-foreground mb-2">Nenhum contrato no histórico</p>
+                    <p className="text-sm text-muted-foreground">Contratos cancelados ou expirados aparecerão aqui</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-muted-foreground mb-4">
-                      Nenhuma assinatura{" "}
+                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                      <Search className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-lg font-medium text-muted-foreground mb-2">Nenhum contrato encontrado</p>
+                    <p className="text-sm text-muted-foreground mb-6">
                       {statusFilter !== "all" || planFilter !== "all" || searchTerm
-                        ? "encontrada com os filtros aplicados"
-                        : "ativa no momento"}
+                        ? "Tente ajustar os filtros"
+                        : "Nenhum contrato ativo no momento"}
                     </p>
                     {(statusFilter !== "all" || planFilter !== "all" || searchTerm) && (
                       <Button
@@ -1098,7 +1254,9 @@ const Assinaturas = () => {
                           setStatusFilter("all");
                           setPlanFilter("all");
                         }}
+                        className="gap-2"
                       >
+                        <Filter className="h-4 w-4" />
                         Limpar Filtros
                       </Button>
                     )}
@@ -1107,117 +1265,174 @@ const Assinaturas = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
+            <div className="grid gap-4">
               {getFilteredSubscriptions().map((subscription) => (
-                <Card key={subscription.id}>
-                  <CardHeader>
+                <Card 
+                  key={subscription.id} 
+                  className="group overflow-hidden hover:shadow-lg transition-all duration-300 hover:border-primary/30"
+                >
+                  <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle
-                          className="cursor-pointer hover:text-primary transition-colors"
-                          onClick={() => navigate(`/clientes?customer=${subscription.customer_id}&tab=loyalty`)}
-                        >
-                          {subscription.customers?.name}
-                        </CardTitle>
-                        <CardDescription>{subscription.subscription_plans?.name}</CardDescription>
+                      <div className="flex items-center gap-4">
+                        {/* Avatar */}
+                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-semibold text-lg">
+                          {getCustomerInitials(subscription.customers?.name || "?")}
+                        </div>
+                        <div>
+                          <CardTitle
+                            className="text-lg cursor-pointer hover:text-primary transition-colors flex items-center gap-2"
+                            onClick={() => navigate(`/clientes?customer=${subscription.customer_id}&tab=loyalty`)}
+                          >
+                            {subscription.customers?.name}
+                            <User className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </CardTitle>
+                          <CardDescription className="flex items-center gap-2 mt-1">
+                            <PackageCheck className="h-3.5 w-3.5" />
+                            {subscription.subscription_plans?.name}
+                          </CardDescription>
+                        </div>
                       </div>
                       {getStatusBadge(subscription.status)}
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <div className="grid grid-cols-3 gap-4 text-sm">
+                      {/* Info Grid */}
+                      <div className="grid grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
                         <div>
-                          <p className="text-muted-foreground">Valor</p>
-                          <p className="font-semibold">{formatCurrency(subscription.subscription_plans?.price || 0)}</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Valor</p>
+                          <p className="font-semibold text-lg mt-1">{formatCurrency(subscription.subscription_plans?.price || 0)}</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Próximo Pagamento</p>
-                          <p className="font-semibold">
-                            {new Date(subscription.next_billing_date).toLocaleDateString("pt-BR")}
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Próximo Pagamento</p>
+                          <p className="font-semibold text-lg mt-1">
+                            {format(new Date(subscription.next_billing_date), "dd/MM/yyyy", { locale: ptBR })}
                           </p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Início</p>
-                          <p className="font-semibold">
-                            {new Date(subscription.start_date).toLocaleDateString("pt-BR")}
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Início</p>
+                          <p className="font-semibold text-lg mt-1">
+                            {format(new Date(subscription.start_date), "dd/MM/yyyy", { locale: ptBR })}
                           </p>
                         </div>
                       </div>
 
+                      {/* Action Buttons */}
                       <div className="flex gap-2 flex-wrap">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleGenerateDocument(subscription.id, "contract")}
-                          disabled={generatingDocument === `${subscription.id}-contract`}
-                        >
-                          {generatingDocument === `${subscription.id}-contract` ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <FileCheck className="mr-2 h-4 w-4" />
-                          )}
-                          {generatingDocument === `${subscription.id}-contract` ? "Gerando..." : "Contrato"}
-                        </Button>
+                        {/* Documentos */}
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleGenerateDocument(subscription.id, "contract")}
+                            disabled={generatingDocument === `${subscription.id}-contract`}
+                            className="gap-1.5"
+                          >
+                            {generatingDocument === `${subscription.id}-contract` ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <FileCheck className="h-3.5 w-3.5" />
+                            )}
+                            Contrato
+                          </Button>
 
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleSendDocument(subscription.id, "contract")}
-                          disabled={sendingDocument === `${subscription.id}-contract`}
-                        >
-                          {sendingDocument === `${subscription.id}-contract` ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Mail className="mr-2 h-4 w-4" />
-                          )}
-                          {sendingDocument === `${subscription.id}-contract` ? "Enviando..." : "Email Contrato"}
-                        </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSendDocument(subscription.id, "contract")}
+                            disabled={sendingDocument === `${subscription.id}-contract`}
+                            className="gap-1.5"
+                          >
+                            {sendingDocument === `${subscription.id}-contract` ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Mail className="h-3.5 w-3.5" />
+                            )}
+                            Email
+                          </Button>
+                        </div>
 
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleGenerateDocument(subscription.id, "receipt")}
-                          disabled={generatingDocument === `${subscription.id}-receipt`}
-                        >
-                          {generatingDocument === `${subscription.id}-receipt` ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <FileDown className="mr-2 h-4 w-4" />
-                          )}
-                          {generatingDocument === `${subscription.id}-receipt` ? "Gerando..." : "Comprovante"}
-                        </Button>
+                        <div className="w-px h-6 bg-border self-center" />
 
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleSendDocument(subscription.id, "receipt")}
-                          disabled={sendingDocument === `${subscription.id}-receipt`}
-                        >
-                          {sendingDocument === `${subscription.id}-receipt` ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Mail className="mr-2 h-4 w-4" />
-                          )}
-                          {sendingDocument === `${subscription.id}-receipt` ? "Enviando..." : "Email Comprovante"}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleGenerateDocument(subscription.id, "receipt")}
+                            disabled={generatingDocument === `${subscription.id}-receipt`}
+                            className="gap-1.5"
+                          >
+                            {generatingDocument === `${subscription.id}-receipt` ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <FileDown className="h-3.5 w-3.5" />
+                            )}
+                            Comprovante
+                          </Button>
 
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSendDocument(subscription.id, "receipt")}
+                            disabled={sendingDocument === `${subscription.id}-receipt`}
+                            className="gap-1.5"
+                          >
+                            {sendingDocument === `${subscription.id}-receipt` ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Mail className="h-3.5 w-3.5" />
+                            )}
+                            Email
+                          </Button>
+                        </div>
+
+                        <div className="w-px h-6 bg-border self-center" />
+
+                        {/* Status Actions */}
                         {subscription.status === "active" && (
-                          <Button size="sm" variant="outline" onClick={() => setPauseSubscription(subscription)}>
-                            <Pause className="mr-2 h-4 w-4" />
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => setPauseSubscription(subscription)}
+                            className="gap-1.5 hover:border-amber-500/50 hover:text-amber-600"
+                          >
+                            <Pause className="h-3.5 w-3.5" />
                             Pausar
                           </Button>
                         )}
 
                         {subscription.status === "suspended" && (
-                          <Button size="sm" variant="outline" onClick={() => setPauseSubscription(subscription)}>
-                            <Play className="mr-2 h-4 w-4" />
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => setPauseSubscription(subscription)}
+                            className="gap-1.5 hover:border-emerald-500/50 hover:text-emerald-600"
+                          >
+                            <Play className="h-3.5 w-3.5" />
+                            Retomar
+                          </Button>
+                        )}
+
+                        {/* ✅ NOVO: Botão de reativar para histórico */}
+                        {(subscription.status === "cancelled" || subscription.status === "expired") && (
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => setReactivateSubscription(subscription)}
+                            className="gap-1.5 hover:border-emerald-500/50 hover:text-emerald-600"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
                             Reativar
                           </Button>
                         )}
 
-                        <Button size="sm" variant="destructive" onClick={() => setDeleteSubscription(subscription)}>
-                          <Trash2 className="mr-2 h-4 w-4" />
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => setDeleteSubscription(subscription)}
+                          className="gap-1.5 hover:border-destructive/50 hover:text-destructive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
                           Deletar
                         </Button>
                       </div>
@@ -1229,34 +1444,55 @@ const Assinaturas = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="plans" className="space-y-4">
+        <TabsContent value="plans" className="space-y-6">
           {plans.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <p className="text-muted-foreground mb-4">Nenhum plano criado ainda</p>
-                <Button onClick={() => setIsDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <PackageCheck className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p className="text-lg font-medium text-muted-foreground mb-2">Nenhum plano criado</p>
+                <p className="text-sm text-muted-foreground mb-6">Crie seu primeiro plano para começar a vincular clientes</p>
+                <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
                   Criar Primeiro Plano
                 </Button>
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {plans.map((plan) => (
-                <Card key={plan.id} className={!plan.is_active ? "opacity-60" : ""}>
+              {plans.map((plan, index) => (
+                <Card 
+                  key={plan.id} 
+                  className={`group relative overflow-hidden transition-all duration-300 hover:shadow-lg ${
+                    !plan.is_active ? "opacity-60" : "hover:border-primary/30"
+                  } ${index === 0 && plan.is_active ? "border-primary/50 shadow-md" : ""}`}
+                >
+                  {/* Popular Badge */}
+                  {index === 0 && plan.is_active && (
+                    <div className="absolute top-0 right-0">
+                      <div className="bg-primary text-primary-foreground text-xs font-medium px-3 py-1 rounded-bl-lg">
+                        Popular
+                      </div>
+                    </div>
+                  )}
+                  
                   <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className="flex items-center gap-2 text-xl">
                           {plan.name}
-                          {!plan.is_active && <Badge variant="secondary">Inativo</Badge>}
-                          {plan.is_active && <Badge variant="default">Ativo</Badge>}
                         </CardTitle>
-                        <CardDescription className="mt-1">{plan.description}</CardDescription>
+                        <CardDescription className="mt-1 line-clamp-2">{plan.description}</CardDescription>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" disabled={isReadOnly}>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            disabled={isReadOnly}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -1281,17 +1517,21 @@ const Assinaturas = () => {
                       </DropdownMenu>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div>
-                        <div className="text-3xl font-bold">{formatCurrency(plan.price)}</div>
-                        <div className="text-sm text-muted-foreground">{getFrequencyLabel(plan.billing_frequency)}</div>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">
-                          {planSubscriptionCounts[plan.id] || 0} assinante(s)
-                        </span>
+                  <CardContent className="space-y-4">
+                    {/* Preço */}
+                    <div className="p-4 bg-muted/30 rounded-lg">
+                      <div className="text-4xl font-bold">{formatCurrency(plan.price)}</div>
+                      <div className="text-sm text-muted-foreground mt-1">{getFrequencyLabel(plan.billing_frequency)}</div>
+                    </div>
+                    
+                    {/* Status e Assinantes */}
+                    <div className="flex items-center justify-between">
+                      <Badge variant={plan.is_active ? "default" : "secondary"}>
+                        {plan.is_active ? "Ativo" : "Inativo"}
+                      </Badge>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Users className="h-4 w-4" />
+                        <span>{planSubscriptionCounts[plan.id] || 0} assinante(s)</span>
                       </div>
                     </div>
                   </CardContent>
@@ -1306,44 +1546,91 @@ const Assinaturas = () => {
       <AlertDialog open={!!deleteSubscription} onOpenChange={() => setDeleteSubscription(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive">Deletar Assinatura Permanentemente</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p className="font-semibold">⚠️ ATENÇÃO: Esta ação é irreversível!</p>
-              <p>Ao deletar esta assinatura, os seguintes dados serão removidos permanentemente:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>Registro da assinatura</li>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </div>
+              <AlertDialogTitle>Deletar Contrato Permanentemente</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="space-y-3 pt-2">
+              <p className="font-semibold text-amber-600">⚠️ ATENÇÃO: Esta ação é irreversível!</p>
+              <p>Ao deletar este contrato, os seguintes dados serão removidos permanentemente:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm ml-2">
+                <li>Registro do contrato</li>
                 <li>Cobranças PIX relacionadas</li>
                 <li>Transações financeiras relacionadas</li>
               </ul>
-              <p className="font-semibold mt-2">Tem certeza absoluta que deseja continuar?</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteSubscription} className="bg-destructive hover:bg-destructive/90">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Sim, Deletar Permanentemente
+            <AlertDialogAction onClick={handleDeleteSubscription} className="bg-destructive hover:bg-destructive/90 gap-2">
+              <Trash2 className="h-4 w-4" />
+              Deletar Permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog de Pausar/Reativar */}
+      {/* Dialog de Pausar/Retomar */}
       <AlertDialog open={!!pauseSubscription} onOpenChange={() => setPauseSubscription(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {pauseSubscription?.status === "active" ? "Pausar" : "Reativar"} Assinatura
-            </AlertDialogTitle>
-            <AlertDialogDescription>
+            <div className="flex items-center gap-3">
+              <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                pauseSubscription?.status === "active" 
+                  ? "bg-amber-500/10" 
+                  : "bg-emerald-500/10"
+              }`}>
+                {pauseSubscription?.status === "active" ? (
+                  <Pause className="h-5 w-5 text-amber-500" />
+                ) : (
+                  <Play className="h-5 w-5 text-emerald-500" />
+                )}
+              </div>
+              <AlertDialogTitle>
+                {pauseSubscription?.status === "active" ? "Pausar" : "Retomar"} Contrato
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="pt-2">
               {pauseSubscription?.status === "active"
-                ? "A assinatura será pausada e não haverá cobranças até ser reativada."
-                : "A assinatura será reativada e as cobranças voltarão ao normal."}
+                ? "O contrato será pausado e não haverá cobranças até ser retomado."
+                : "O contrato será retomado e as cobranças voltarão ao normal."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handlePauseSubscription}>Confirmar</AlertDialogAction>
+            <AlertDialogAction onClick={handlePauseSubscription}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ✅ NOVO: Dialog de Reativar Contrato Cancelado/Expirado */}
+      <AlertDialog open={!!reactivateSubscription} onOpenChange={() => setReactivateSubscription(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <RotateCcw className="h-5 w-5 text-emerald-500" />
+              </div>
+              <AlertDialogTitle>Reativar Contrato</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="pt-2 space-y-2">
+              <p>Deseja reativar o contrato de <strong>{reactivateSubscription?.customers?.name}</strong>?</p>
+              <p>O contrato será reativado com status "Ativo" e a próxima cobrança será em 30 dias.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleReactivateSubscription}
+              className="bg-emerald-600 hover:bg-emerald-700 gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reativar Contrato
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1406,31 +1693,40 @@ const Assinaturas = () => {
       <Dialog open={!!editingPlan} onOpenChange={(open) => !open && setEditingPlan(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Editar Plano</DialogTitle>
-            <DialogDescription>Modifique as informações do plano de assinatura</DialogDescription>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Edit className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <DialogTitle>Editar Plano</DialogTitle>
+                <DialogDescription>Modifique as informações do plano de assinatura</DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           {editingPlan && (
-            <div className="space-y-4">
-              <div>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
                 <Label htmlFor="edit-name">Nome do Plano *</Label>
                 <Input
                   id="edit-name"
                   value={editingPlan.name}
                   onChange={(e) => setEditingPlan({ ...editingPlan, name: e.target.value })}
                   placeholder="Ex: Pacote 4 Aulas/Mês"
+                  className="h-11"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="edit-description">Descrição</Label>
                 <Textarea
                   id="edit-description"
                   value={editingPlan.description || ""}
                   onChange={(e) => setEditingPlan({ ...editingPlan, description: e.target.value })}
                   placeholder="Descreva o que está incluso no plano"
+                  className="resize-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="edit-price">Valor (R$) *</Label>
                   <Input
                     id="edit-price"
@@ -1439,15 +1735,16 @@ const Assinaturas = () => {
                     value={editingPlan.price}
                     onChange={(e) => setEditingPlan({ ...editingPlan, price: parseFloat(e.target.value) || 0 })}
                     placeholder="0.00"
+                    className="h-11"
                   />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="edit-frequency">Frequência de Cobrança</Label>
                   <Select
                     value={editingPlan.billing_frequency}
                     onValueChange={(value) => setEditingPlan({ ...editingPlan, billing_frequency: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1459,13 +1756,13 @@ const Assinaturas = () => {
                 </div>
               </div>
               {planSubscriptionCounts[editingPlan.id] > 0 && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Atenção</p>
                       <p className="text-sm text-amber-600 dark:text-amber-500 mt-1">
-                        Este plano possui {planSubscriptionCounts[editingPlan.id]} assinatura(s) ativa(s). Alterações no
+                        Este plano possui {planSubscriptionCounts[editingPlan.id]} contrato(s) ativo(s). Alterações no
                         valor afetarão as próximas cobranças.
                       </p>
                     </div>
@@ -1476,7 +1773,8 @@ const Assinaturas = () => {
                 <Button variant="outline" onClick={() => setEditingPlan(null)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleEditPlan} disabled={isReadOnly}>
+                <Button onClick={handleEditPlan} disabled={isReadOnly} className="gap-2">
+                  <CheckCircle className="h-4 w-4" />
                   Salvar Alterações
                 </Button>
               </DialogFooter>
@@ -1489,16 +1787,21 @@ const Assinaturas = () => {
       <AlertDialog open={!!deletingPlan} onOpenChange={(open) => !open && setDeletingPlan(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Plano</AlertDialogTitle>
-            <AlertDialogDescription>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </div>
+              <AlertDialogTitle>Excluir Plano</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="pt-2">
               {deletingPlan && planSubscriptionCounts[deletingPlan.id] > 0 ? (
                 <div className="space-y-2">
                   <p>
-                    Este plano possui {planSubscriptionCounts[deletingPlan.id]} assinatura(s) ativa(s) e não pode ser
+                    Este plano possui <strong>{planSubscriptionCounts[deletingPlan.id]} contrato(s) ativo(s)</strong> e não pode ser
                     excluído.
                   </p>
                   <p className="text-sm">
-                    Você pode desativar o plano para impedir novas assinaturas, ou cancelar todas as assinaturas ativas
+                    Você pode desativar o plano para impedir novos contratos, ou cancelar todos os contratos ativos
                     primeiro.
                   </p>
                 </div>
@@ -1512,8 +1815,9 @@ const Assinaturas = () => {
             {deletingPlan && planSubscriptionCounts[deletingPlan.id] === 0 && (
               <AlertDialogAction
                 onClick={handleDeletePlan}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2"
               >
+                <Trash2 className="h-4 w-4" />
                 Excluir Plano
               </AlertDialogAction>
             )}
