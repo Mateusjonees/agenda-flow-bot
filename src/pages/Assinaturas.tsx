@@ -203,7 +203,7 @@ const Assinaturas = () => {
     const { data, error } = await supabase
       .from("subscriptions")
       .select("*")
-      .eq("type", "client")  // ✅ Apenas contratos de CLIENTES
+      .eq("type", "customer")  // ✅ Apenas contratos de CLIENTES
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -251,7 +251,7 @@ const Assinaturas = () => {
       .from("subscriptions")
       .select("plan_id")
       .eq("user_id", user.id)
-      .eq("type", "client")  // ✅ Apenas contratos de CLIENTES
+      .eq("type", "customer")  // ✅ Apenas contratos de CLIENTES
       .in("status", ["active", "suspended"]);
 
     if (data) {
@@ -279,7 +279,7 @@ const Assinaturas = () => {
       `,
       )
       .eq("user_id", user.id)
-      .eq("type", "client")  // ✅ Apenas contratos de CLIENTES
+      .eq("type", "customer")  // ✅ Apenas contratos de CLIENTES
       .eq("status", "active");
 
     if (activeSubs) {
@@ -376,6 +376,7 @@ const Assinaturas = () => {
       customer_id: selectedCustomer,
       plan_id: selectedPlanForSubscription,
       status: "active",
+      type: "customer",  // ✅ Tipo correto para contratos de clientes
       next_billing_date: nextBillingDate.toISOString(),
       start_date: new Date().toISOString(),
       failed_payments_count: 0,
