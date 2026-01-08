@@ -1337,89 +1337,19 @@ const Assinaturas = () => {
                         </div>
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex gap-2 flex-wrap">
-                        {/* Documentos */}
-                        <div className="flex gap-2">
-                          {/* Botão de Editar/Preview Contrato */}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setContractPreviewSubscription(subscription)}
-                            className="gap-1.5 hover:border-primary/50 hover:bg-primary/5"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Editar Contrato
-                          </Button>
+                      {/* Action Buttons - Reorganized with Dropdown */}
+                      <div className="flex items-center gap-2 pt-2">
+                        {/* Contrato - Principal */}
+                        <Button
+                          size="sm"
+                          onClick={() => setContractPreviewSubscription(subscription)}
+                          className="gap-1.5"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          Contrato
+                        </Button>
 
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleGenerateDocument(subscription.id, "contract")}
-                            disabled={generatingDocument === `${subscription.id}-contract`}
-                            className="gap-1.5"
-                          >
-                            {generatingDocument === `${subscription.id}-contract` ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <FileCheck className="h-3.5 w-3.5" />
-                            )}
-                            Imprimir
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleSendDocument(subscription.id, "contract")}
-                            disabled={sendingDocument === `${subscription.id}-contract`}
-                            className="gap-1.5"
-                          >
-                            {sendingDocument === `${subscription.id}-contract` ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Mail className="h-3.5 w-3.5" />
-                            )}
-                            Email
-                          </Button>
-                        </div>
-
-                        <div className="w-px h-6 bg-border self-center" />
-
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleGenerateDocument(subscription.id, "receipt")}
-                            disabled={generatingDocument === `${subscription.id}-receipt`}
-                            className="gap-1.5"
-                          >
-                            {generatingDocument === `${subscription.id}-receipt` ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <FileDown className="h-3.5 w-3.5" />
-                            )}
-                            Comprovante
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleSendDocument(subscription.id, "receipt")}
-                            disabled={sendingDocument === `${subscription.id}-receipt`}
-                            className="gap-1.5"
-                          >
-                            {sendingDocument === `${subscription.id}-receipt` ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Mail className="h-3.5 w-3.5" />
-                            )}
-                            Email
-                          </Button>
-                        </div>
-
-                        <div className="w-px h-6 bg-border self-center" />
-
-                        {/* Status Actions */}
+                        {/* Status Action */}
                         {subscription.status === "active" && (
                           <Button 
                             size="sm" 
@@ -1444,7 +1374,6 @@ const Assinaturas = () => {
                           </Button>
                         )}
 
-                        {/* ✅ NOVO: Botão de reativar para histórico */}
                         {(subscription.status === "cancelled" || subscription.status === "expired") && (
                           <Button 
                             size="sm" 
@@ -1457,15 +1386,53 @@ const Assinaturas = () => {
                           </Button>
                         )}
 
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => setDeleteSubscription(subscription)}
-                          className="gap-1.5 hover:border-destructive/50 hover:text-destructive"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Deletar
-                        </Button>
+                        {/* Dropdown for more actions */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="outline" className="gap-1.5">
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem 
+                              onClick={() => handleGenerateDocument(subscription.id, "contract")}
+                              disabled={generatingDocument === `${subscription.id}-contract`}
+                            >
+                              <FileCheck className="h-4 w-4 mr-2" />
+                              Imprimir Contrato
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleSendDocument(subscription.id, "contract")}
+                              disabled={sendingDocument === `${subscription.id}-contract`}
+                            >
+                              <Mail className="h-4 w-4 mr-2" />
+                              Enviar Contrato
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleGenerateDocument(subscription.id, "receipt")}
+                              disabled={generatingDocument === `${subscription.id}-receipt`}
+                            >
+                              <FileDown className="h-4 w-4 mr-2" />
+                              Gerar Comprovante
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleSendDocument(subscription.id, "receipt")}
+                              disabled={sendingDocument === `${subscription.id}-receipt`}
+                            >
+                              <Mail className="h-4 w-4 mr-2" />
+                              Enviar Comprovante
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => setDeleteSubscription(subscription)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </CardContent>
