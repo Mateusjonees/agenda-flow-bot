@@ -52,6 +52,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { ContractPreviewDialog } from "@/components/ContractPreviewDialog";
+import { ReceiptPreviewDialog } from "@/components/ReceiptPreviewDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -141,8 +142,9 @@ const Assinaturas = () => {
   const [deletingPlan, setDeletingPlan] = useState<SubscriptionPlan | null>(null);
   const [planSubscriptionCounts, setPlanSubscriptionCounts] = useState<Record<string, number>>({});
   
-  // Estado para preview/edição de contrato
+  // Estado para preview/edição de contrato e comprovante
   const [contractPreviewSubscription, setContractPreviewSubscription] = useState<Subscription | null>(null);
+  const [receiptPreviewSubscription, setReceiptPreviewSubscription] = useState<Subscription | null>(null);
   const [businessSettings, setBusinessSettings] = useState<any>(null);
 
   const [newPlan, setNewPlan] = useState({
@@ -1395,19 +1397,10 @@ const Assinaturas = () => {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuItem 
-                              onClick={() => handleGenerateDocument(subscription.id, "contract")}
-                              disabled={generatingDocument === `${subscription.id}-contract`}
-                            >
-                              <FileCheck className="h-4 w-4 mr-2" />
-                              Imprimir Contrato
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={() => handleGenerateDocument(subscription.id, "receipt")}
-                              disabled={generatingDocument === `${subscription.id}-receipt`}
+                              onClick={() => setReceiptPreviewSubscription(subscription)}
                             >
                               <FileDown className="h-4 w-4 mr-2" />
-                              Gerar Comprovante
+                              Comprovante
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
@@ -1816,6 +1809,16 @@ const Assinaturas = () => {
         subscription={contractPreviewSubscription}
         plan={contractPreviewSubscription ? plans.find(p => p.id === contractPreviewSubscription.plan_id) : null}
         customer={contractPreviewSubscription ? customers.find(c => c.id === contractPreviewSubscription.customer_id) : null}
+        businessSettings={businessSettings}
+      />
+
+      {/* Dialog de Preview/Edição de Comprovante */}
+      <ReceiptPreviewDialog
+        open={!!receiptPreviewSubscription}
+        onOpenChange={(open) => !open && setReceiptPreviewSubscription(null)}
+        subscription={receiptPreviewSubscription}
+        plan={receiptPreviewSubscription ? plans.find(p => p.id === receiptPreviewSubscription.plan_id) : null}
+        customer={receiptPreviewSubscription ? customers.find(c => c.id === receiptPreviewSubscription.customer_id) : null}
         businessSettings={businessSettings}
       />
     </div>
