@@ -420,7 +420,16 @@ export function ContractPreviewDialog({
                     <strong>{formatCurrency(contractData.planPrice)}</strong>.
                   </p>
                   <p className="mt-2">
-                    Data de início: <strong>{contractData.startDate ? format(new Date(contractData.startDate + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR }) : "[Não definida]"}</strong>
+                    Data de início: <strong>{(() => {
+                      try {
+                        if (!contractData.startDate) return "[Não definida]";
+                        const date = new Date(contractData.startDate + "T12:00:00");
+                        if (isNaN(date.getTime())) return "[Data inválida]";
+                        return format(date, "dd/MM/yyyy", { locale: ptBR });
+                      } catch {
+                        return "[Data inválida]";
+                      }
+                    })()}</strong>
                   </p>
                   <p>
                     Dia de vencimento: <strong>Todo dia {contractData.billingDay}</strong>
