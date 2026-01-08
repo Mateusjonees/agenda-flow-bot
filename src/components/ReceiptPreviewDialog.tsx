@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,11 +6,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Receipt, Printer, User, Building2, DollarSign, Loader2, Eye, Edit3, Calendar } from "lucide-react";
+import { Receipt, Printer, User, Building2, DollarSign, Loader2, Eye, Edit3, Plus, Trash2, ChevronUp, ChevronDown, Download } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { downloadPdfFromHtml, printHtml } from "@/lib/pdf";
+import { toDateInputValue, formatShortPtBr } from "@/lib/date";
+
+interface Clause {
+  id: string;
+  title: string;
+  text: string;
+}
 
 interface ReceiptPreviewDialogProps {
   open: boolean;
@@ -34,25 +40,22 @@ export function ReceiptPreviewDialog({
   const [isGenerating, setIsGenerating] = useState(false);
 
   const [receiptData, setReceiptData] = useState({
-    // Business data
     businessName: "",
     businessCpfCnpj: "",
     businessAddress: "",
     businessPhone: "",
-    // Customer data
     customerName: "",
     customerCpf: "",
     customerPhone: "",
-    // Payment data
     planName: "",
     amount: 0,
     paymentDate: "",
     paymentMethod: "",
     referenceMonth: "",
-    // Additional
     notes: "",
-    additionalClauses: ""
   });
+
+  const [clauses, setClauses] = useState<Clause[]>([]);
 
   useEffect(() => {
     if (open && subscription && plan && customer) {
@@ -67,75 +70,81 @@ export function ReceiptPreviewDialog({
         customerPhone: customer?.phone || "",
         planName: plan?.name || "",
         amount: plan?.price || subscription?.price || 0,
-        paymentDate: format(now, "yyyy-MM-dd"),
+        paymentDate: toDateInputValue(now),
         paymentMethod: subscription?.payment_method || "pix",
         referenceMonth: format(now, "MMMM 'de' yyyy", { locale: ptBR }),
         notes: "",
-        additionalClauses: ""
       });
+      setClauses([]);
       setActiveTab("dados");
     }
   }, [open, subscription, plan, customer, businessSettings]);
 
   const handleInputChange = (field: string, value: string | number) => {
-    setReceiptData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setReceiptData(prev => ({ ...prev, [field]: value }));
   };
 
-  const generateAndPrint = async () => {
-    setIsGenerating(true);
-    try {
-      // Generate receipt HTML
-      const receiptHtml = generateReceiptHtml();
-      
-      const printWindow = window.open("", "_blank");
-      if (printWindow) {
-        printWindow.document.write(receiptHtml);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-          printWindow.print();
-        }, 500);
-      }
-      toast.success("Comprovante gerado com sucesso!");
-      onOpenChange(false);
-    } catch (error: any) {
-      console.error("Error generating receipt:", error);
-      toast.error("Erro ao gerar comprovante: " + error.message);
-    } finally {
-      setIsGenerating(false);
-    }
+  const handleClauseChange = (id: string, field: "title" | "text", value: string) => {
+    setClauses(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
   };
+
+  const addClause = () => {
+    const newId = Date.now().toString();
+    setClauses(prev => [...prev, { id: newId, title: "Termo Adicional", text: "" }]);
+  };
+
+  const removeClause = (id: string) => {
+    setClauses(prev => prev.filter(c => c.id !== id));
+  };
+
+  const moveClause = (id: string, direction: "up" | "down") => {
+    setClauses(prev => {
+      const index = prev.findIndex(c => c.id === id);
+      if (index === -1) return prev;
+      if (direction === "up" && index === 0) return prev;
+      if (direction === "down" && index === prev.length - 1) return prev;
+
+      const newClauses = [...prev];
+      const swapIndex = direction === "up" ? index - 1 : index + 1;
+      [newClauses[index], newClauses[swapIndex]] = [newClauses[swapIndex], newClauses[index]];
+      return newClauses;
+    });
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  };
+
+  const paymentMethodLabels: Record<string, string> = {
+    pix: "PIX",
+    credit_card: "Cartão de Crédito",
+    debit_card: "Cartão de Débito",
+    boleto: "Boleto",
+    cash: "Dinheiro",
+    transfer: "Transferência Bancária"
+  };
+
+  const paymentMethodOptions = [
+    { value: "pix", label: "PIX" },
+    { value: "credit_card", label: "Cartão de Crédito" },
+    { value: "debit_card", label: "Cartão de Débito" },
+    { value: "boleto", label: "Boleto" },
+    { value: "cash", label: "Dinheiro" },
+    { value: "transfer", label: "Transferência Bancária" }
+  ];
 
   const generateReceiptHtml = () => {
-    const formatCurrency = (value: number) => {
-      return new Intl.NumberFormat("pt-BR", {
-        style: "currency",
-        currency: "BRL"
-      }).format(value);
-    };
-
-    const formatDate = (dateStr: string) => {
-      try {
-        if (!dateStr) return "[Não informada]";
-        const date = new Date(dateStr + "T12:00:00");
-        if (isNaN(date.getTime())) return "[Data inválida]";
-        return format(date, "dd/MM/yyyy", { locale: ptBR });
-      } catch {
-        return "[Data inválida]";
-      }
-    };
-
-    const paymentMethodLabels: Record<string, string> = {
-      pix: "PIX",
-      credit_card: "Cartão de Crédito",
-      debit_card: "Cartão de Débito",
-      boleto: "Boleto",
-      cash: "Dinheiro",
-      transfer: "Transferência Bancária"
-    };
+    const clausesHtml = clauses.length > 0 ? `
+      <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin-top: 16px;">
+        <div style="font-size: 12px; font-weight: 600; color: #92400e; margin-bottom: 8px; text-transform: uppercase;">Termos Adicionais</div>
+        ${clauses.map(c => `
+          <div style="margin-bottom: 12px;">
+            <div style="font-weight: 600; color: #78350f; margin-bottom: 4px;">${c.title}</div>
+            <div style="font-size: 14px; color: #78350f; white-space: pre-wrap;">${c.text}</div>
+          </div>
+        `).join("")}
+      </div>
+    ` : "";
 
     return `
 <!DOCTYPE html>
@@ -146,7 +155,7 @@ export function ReceiptPreviewDialog({
   <title>Comprovante de Pagamento</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1a1a1a; max-width: 800px; margin: 0 auto; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1a1a1a; max-width: 800px; margin: 0 auto; background: white; }
     .header { text-align: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 20px; margin-bottom: 30px; }
     .header h1 { font-size: 24px; color: #1a1a1a; margin-bottom: 8px; }
     .header p { color: #6b7280; font-size: 14px; }
@@ -237,7 +246,7 @@ export function ReceiptPreviewDialog({
       </div>
       <div class="info-item">
         <div class="info-label">Data do Pagamento</div>
-        <div class="info-value">${formatDate(receiptData.paymentDate)}</div>
+        <div class="info-value">${formatShortPtBr(receiptData.paymentDate)}</div>
       </div>
       <div class="info-item">
         <div class="info-label">Forma de Pagamento</div>
@@ -253,12 +262,7 @@ export function ReceiptPreviewDialog({
   </div>
   ` : ""}
 
-  ${receiptData.additionalClauses ? `
-  <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin-top: 16px;">
-    <div style="font-size: 12px; font-weight: 600; color: #92400e; margin-bottom: 8px; text-transform: uppercase;">Cláusulas Adicionais</div>
-    <div style="font-size: 14px; color: #78350f; white-space: pre-wrap;">${receiptData.additionalClauses}</div>
-  </div>
-  ` : ""}
+  ${clausesHtml}
 
   <div class="signature-area">
     <div class="signature-line">
@@ -277,21 +281,26 @@ export function ReceiptPreviewDialog({
     `;
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL"
-    }).format(value);
+  const handleDownloadPdf = async () => {
+    setIsGenerating(true);
+    try {
+      const html = generateReceiptHtml();
+      const filename = `Comprovante - ${receiptData.customerName || "Cliente"} - ${format(new Date(), "yyyy-MM-dd")}.pdf`;
+      await downloadPdfFromHtml(html, filename);
+      toast.success("PDF baixado com sucesso!");
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error("Error generating PDF:", error);
+      toast.error("Erro ao gerar PDF: " + error.message);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const paymentMethodOptions = [
-    { value: "pix", label: "PIX" },
-    { value: "credit_card", label: "Cartão de Crédito" },
-    { value: "debit_card", label: "Cartão de Débito" },
-    { value: "boleto", label: "Boleto" },
-    { value: "cash", label: "Dinheiro" },
-    { value: "transfer", label: "Transferência Bancária" }
-  ];
+  const handlePrint = () => {
+    const html = generateReceiptHtml();
+    printHtml(html);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -323,7 +332,7 @@ export function ReceiptPreviewDialog({
           </TabsList>
 
           <TabsContent value="dados" className="space-y-6 mt-6">
-            {/* Prestador (Business) */}
+            {/* Prestador */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -334,35 +343,19 @@ export function ReceiptPreviewDialog({
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nome da Empresa</Label>
-                  <Input
-                    value={receiptData.businessName}
-                    onChange={(e) => handleInputChange("businessName", e.target.value)}
-                    placeholder="Nome da empresa"
-                  />
+                  <Input value={receiptData.businessName} onChange={e => handleInputChange("businessName", e.target.value)} placeholder="Nome da empresa" />
                 </div>
                 <div className="space-y-2">
                   <Label>CPF/CNPJ</Label>
-                  <Input
-                    value={receiptData.businessCpfCnpj}
-                    onChange={(e) => handleInputChange("businessCpfCnpj", e.target.value)}
-                    placeholder="00.000.000/0000-00"
-                  />
+                  <Input value={receiptData.businessCpfCnpj} onChange={e => handleInputChange("businessCpfCnpj", e.target.value)} placeholder="00.000.000/0000-00" />
                 </div>
                 <div className="space-y-2">
                   <Label>Endereço</Label>
-                  <Input
-                    value={receiptData.businessAddress}
-                    onChange={(e) => handleInputChange("businessAddress", e.target.value)}
-                    placeholder="Endereço completo"
-                  />
+                  <Input value={receiptData.businessAddress} onChange={e => handleInputChange("businessAddress", e.target.value)} placeholder="Endereço completo" />
                 </div>
                 <div className="space-y-2">
                   <Label>Telefone</Label>
-                  <Input
-                    value={receiptData.businessPhone}
-                    onChange={(e) => handleInputChange("businessPhone", e.target.value)}
-                    placeholder="(00) 00000-0000"
-                  />
+                  <Input value={receiptData.businessPhone} onChange={e => handleInputChange("businessPhone", e.target.value)} placeholder="(00) 00000-0000" />
                 </div>
               </CardContent>
             </Card>
@@ -378,27 +371,15 @@ export function ReceiptPreviewDialog({
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nome Completo</Label>
-                  <Input
-                    value={receiptData.customerName}
-                    onChange={(e) => handleInputChange("customerName", e.target.value)}
-                    placeholder="Nome do cliente"
-                  />
+                  <Input value={receiptData.customerName} onChange={e => handleInputChange("customerName", e.target.value)} placeholder="Nome do cliente" />
                 </div>
                 <div className="space-y-2">
                   <Label>CPF</Label>
-                  <Input
-                    value={receiptData.customerCpf}
-                    onChange={(e) => handleInputChange("customerCpf", e.target.value)}
-                    placeholder="000.000.000-00"
-                  />
+                  <Input value={receiptData.customerCpf} onChange={e => handleInputChange("customerCpf", e.target.value)} placeholder="000.000.000-00" />
                 </div>
                 <div className="space-y-2">
                   <Label>Telefone</Label>
-                  <Input
-                    value={receiptData.customerPhone}
-                    onChange={(e) => handleInputChange("customerPhone", e.target.value)}
-                    placeholder="(00) 00000-0000"
-                  />
+                  <Input value={receiptData.customerPhone} onChange={e => handleInputChange("customerPhone", e.target.value)} placeholder="(00) 00000-0000" />
                 </div>
               </CardContent>
             </Card>
@@ -414,51 +395,31 @@ export function ReceiptPreviewDialog({
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Serviço/Plano</Label>
-                  <Input
-                    value={receiptData.planName}
-                    onChange={(e) => handleInputChange("planName", e.target.value)}
-                    placeholder="Nome do serviço"
-                  />
+                  <Input value={receiptData.planName} onChange={e => handleInputChange("planName", e.target.value)} placeholder="Nome do serviço" />
                 </div>
                 <div className="space-y-2">
                   <Label>Valor (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={receiptData.amount}
-                    onChange={(e) => handleInputChange("amount", parseFloat(e.target.value) || 0)}
-                    placeholder="0,00"
-                  />
+                  <Input type="number" step="0.01" value={receiptData.amount} onChange={e => handleInputChange("amount", parseFloat(e.target.value) || 0)} placeholder="0,00" />
                 </div>
                 <div className="space-y-2">
                   <Label>Data do Pagamento</Label>
-                  <Input
-                    type="date"
-                    value={receiptData.paymentDate}
-                    onChange={(e) => handleInputChange("paymentDate", e.target.value)}
-                  />
+                  <Input type="date" value={receiptData.paymentDate} onChange={e => handleInputChange("paymentDate", e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>Forma de Pagamento</Label>
                   <select
                     value={receiptData.paymentMethod}
-                    onChange={(e) => handleInputChange("paymentMethod", e.target.value)}
+                    onChange={e => handleInputChange("paymentMethod", e.target.value)}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
-                    {paymentMethodOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
+                    {paymentMethodOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
                 </div>
-                <div className="md:col-span-2 space-y-2">
+                <div className="space-y-2">
                   <Label>Mês de Referência</Label>
-                  <Input
-                    value={receiptData.referenceMonth}
-                    onChange={(e) => handleInputChange("referenceMonth", e.target.value)}
-                    placeholder="Ex: Janeiro de 2025"
-                  />
+                  <Input value={receiptData.referenceMonth} onChange={e => handleInputChange("referenceMonth", e.target.value)} placeholder="Janeiro de 2024" />
                 </div>
               </CardContent>
             </Card>
@@ -466,174 +427,130 @@ export function ReceiptPreviewDialog({
             {/* Observações */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-emerald-500" />
-                  Observações (Opcional)
-                </CardTitle>
+                <CardTitle className="text-base">Observações</CardTitle>
               </CardHeader>
               <CardContent>
-                <Textarea
-                  value={receiptData.notes}
-                  onChange={(e) => handleInputChange("notes", e.target.value)}
-                  placeholder="Adicione observações que serão incluídas no comprovante..."
-                  rows={3}
-                  className="resize-none"
-                />
+                <Textarea value={receiptData.notes} onChange={e => handleInputChange("notes", e.target.value)} placeholder="Observações adicionais..." rows={3} />
               </CardContent>
             </Card>
 
-            {/* Cláusulas Adicionais */}
+            {/* Termos Adicionais */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-emerald-500" />
-                  Cláusulas Adicionais (Opcional)
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Termos Adicionais</CardTitle>
+                  <Button onClick={addClause} size="sm" variant="outline" className="gap-1">
+                    <Plus className="w-4 h-4" />
+                    Adicionar
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={receiptData.additionalClauses}
-                  onChange={(e) => handleInputChange("additionalClauses", e.target.value)}
-                  placeholder="Adicione cláusulas personalizadas que serão incluídas no comprovante..."
-                  rows={4}
-                  className="resize-none"
-                />
+              <CardContent className="space-y-4">
+                {clauses.map((clause, index) => (
+                  <div key={clause.id} className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Input value={clause.title} onChange={e => handleClauseChange(clause.id, "title", e.target.value)} placeholder="Título" className="font-medium" />
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveClause(clause.id, "up")} disabled={index === 0}>
+                          <ChevronUp className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveClause(clause.id, "down")} disabled={index === clauses.length - 1}>
+                          <ChevronDown className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeClause(clause.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Textarea value={clause.text} onChange={e => handleClauseChange(clause.id, "text", e.target.value)} placeholder="Texto do termo..." rows={2} />
+                  </div>
+                ))}
+                {clauses.length === 0 && (
+                  <p className="text-muted-foreground text-sm text-center py-4">
+                    Nenhum termo adicional. Clique em "Adicionar" para criar.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="preview" className="mt-6">
-            <Card className="p-6 bg-white dark:bg-zinc-900">
-              <div className="space-y-6 text-sm">
-                {/* Header */}
-                <div className="text-center border-b pb-4">
-                  <h2 className="text-xl font-bold">COMPROVANTE DE PAGAMENTO</h2>
-                  <p className="text-muted-foreground mt-1">
-                    {receiptData.businessName || "[Nome da Empresa]"}
-                  </p>
-                </div>
+            <div className="bg-muted/30 border rounded-xl p-6 space-y-6">
+              <div className="text-center border-b pb-4">
+                <h2 className="text-xl font-bold">COMPROVANTE DE PAGAMENTO</h2>
+                <p className="text-muted-foreground text-sm">{receiptData.businessName || "[Nome da Empresa]"}</p>
+              </div>
 
-                {/* Prestador */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="font-semibold text-emerald-600 mb-2">DADOS DO PRESTADOR:</h3>
-                  <p><strong>{receiptData.businessName || "[Nome da Empresa]"}</strong></p>
-                  <p>CPF/CNPJ: {receiptData.businessCpfCnpj || "[Não informado]"}</p>
-                  <p>Endereço: {receiptData.businessAddress || "[Não informado]"}</p>
-                  <p>Telefone: {receiptData.businessPhone || "[Não informado]"}</p>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-2">PRESTADOR</h3>
+                  <p className="font-medium">{receiptData.businessName || "[Não informado]"}</p>
+                  <p className="text-sm text-muted-foreground">{receiptData.businessCpfCnpj || "[CPF/CNPJ]"}</p>
                 </div>
-
-                <Separator />
-
-                {/* Cliente */}
                 <div>
-                  <h3 className="font-semibold text-emerald-600 mb-2">DADOS DO CLIENTE:</h3>
-                  <p><strong>{receiptData.customerName || "[Nome do Cliente]"}</strong></p>
-                  <p>CPF: {receiptData.customerCpf || "[Não informado]"}</p>
-                  <p>Telefone: {receiptData.customerPhone || "[Não informado]"}</p>
-                </div>
-
-                <Separator />
-
-                {/* Valor */}
-                <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white p-6 rounded-xl text-center">
-                  <p className="text-sm opacity-90 mb-2">Valor Pago</p>
-                  <p className="text-3xl font-bold">{formatCurrency(receiptData.amount)}</p>
-                </div>
-
-                {/* Detalhes */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Serviço</p>
-                    <p className="font-medium">{receiptData.planName || "[Não informado]"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Referência</p>
-                    <p className="font-medium">{receiptData.referenceMonth || "[Não informado]"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Data do Pagamento</p>
-                    <p className="font-medium">
-                      {receiptData.paymentDate ? (() => {
-                        try {
-                          const date = new Date(receiptData.paymentDate + "T12:00:00");
-                          if (isNaN(date.getTime())) return "[Data inválida]";
-                          return format(date, "dd/MM/yyyy", { locale: ptBR });
-                        } catch {
-                          return "[Data inválida]";
-                        }
-                      })() : "[Não informada]"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Forma de Pagamento</p>
-                    <p className="font-medium">
-                      {paymentMethodOptions.find(p => p.value === receiptData.paymentMethod)?.label || receiptData.paymentMethod}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                {receiptData.notes && (
-                  <>
-                    <Separator />
-                    <div className="bg-muted/50 p-4 rounded-lg">
-                      <h3 className="font-semibold text-sm mb-2">OBSERVAÇÕES:</h3>
-                      <p className="whitespace-pre-wrap text-sm">{receiptData.notes}</p>
-                    </div>
-                  </>
-                )}
-
-                {/* Additional Clauses */}
-                {receiptData.additionalClauses && (
-                  <>
-                    <Separator />
-                    <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg dark:bg-amber-900/20">
-                      <h3 className="font-semibold text-sm mb-2 text-amber-800 dark:text-amber-300">CLÁUSULAS ADICIONAIS:</h3>
-                      <p className="whitespace-pre-wrap text-sm text-amber-900 dark:text-amber-200">{receiptData.additionalClauses}</p>
-                    </div>
-                  </>
-                )}
-
-                {/* Signatures */}
-                <div className="mt-8 pt-8 border-t">
-                  <div className="grid grid-cols-2 gap-8 text-center">
-                    <div>
-                      <div className="border-t border-foreground/50 pt-2 mt-12">
-                        <p className="font-medium">{receiptData.businessName || "Prestador"}</p>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="border-t border-foreground/50 pt-2 mt-12">
-                        <p className="font-medium">{receiptData.customerName || "Cliente"}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-center text-muted-foreground mt-6 text-xs">
-                    {format(new Date(), "'Documento gerado em 'dd' de 'MMMM' de 'yyyy", { locale: ptBR })}
-                  </p>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-2">CLIENTE</h3>
+                  <p className="font-medium">{receiptData.customerName || "[Não informado]"}</p>
+                  <p className="text-sm text-muted-foreground">{receiptData.customerCpf || "[CPF]"}</p>
                 </div>
               </div>
-            </Card>
+
+              <div className="bg-primary text-primary-foreground rounded-xl p-6 text-center">
+                <p className="text-sm opacity-80">Valor Pago</p>
+                <p className="text-3xl font-bold">{formatCurrency(receiptData.amount)}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Serviço:</span>
+                  <span className="ml-2 font-medium">{receiptData.planName}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Referência:</span>
+                  <span className="ml-2 font-medium">{receiptData.referenceMonth}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Data:</span>
+                  <span className="ml-2 font-medium">{formatShortPtBr(receiptData.paymentDate)}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Forma:</span>
+                  <span className="ml-2 font-medium">{paymentMethodLabels[receiptData.paymentMethod] || receiptData.paymentMethod}</span>
+                </div>
+              </div>
+
+              {receiptData.notes && (
+                <div className="bg-muted rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground mb-1">Observações</p>
+                  <p className="text-sm">{receiptData.notes}</p>
+                </div>
+              )}
+
+              {clauses.length > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">Termos Adicionais</p>
+                  {clauses.map(c => (
+                    <div key={c.id} className="mb-2">
+                      <p className="text-sm font-medium text-amber-900 dark:text-amber-100">{c.title}</p>
+                      <p className="text-sm text-amber-800 dark:text-amber-200">{c.text}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
             Cancelar
           </Button>
-
-          <Button
-            onClick={generateAndPrint}
-            disabled={isGenerating}
-            className="gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
-          >
-            {isGenerating ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Printer className="w-4 h-4" />
-            )}
-            Visualizar e Imprimir
+          <Button variant="outline" onClick={handlePrint} className="flex-1 gap-2">
+            <Printer className="w-4 h-4" />
+            Imprimir
+          </Button>
+          <Button onClick={handleDownloadPdf} disabled={isGenerating} className="flex-1 gap-2">
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Baixar PDF
           </Button>
         </div>
       </DialogContent>
