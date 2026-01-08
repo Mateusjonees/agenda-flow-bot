@@ -51,11 +51,43 @@ export function ContractPreviewDialog({
     planPrice: 0,
     billingDay: 1,
     startDate: "",
+    // Fixed clauses (editable)
+    clause1Object: "",
+    clause2Payment: "",
+    clause3Validity: "",
+    clause4Cancel: "",
+    clause5Forum: "",
     // Custom clauses
     customClauses: ""
   });
+  // Helper function to safely format date
+  const safeFormatDate = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return "[Não definida]";
+    try {
+      // Try parsing as ISO date first
+      let date: Date;
+      if (dateStr.includes("T")) {
+        date = parseISO(dateStr);
+      } else {
+        // Parse as YYYY-MM-DD
+        date = new Date(dateStr + "T12:00:00");
+      }
+      if (!isValid(date)) return "[Data inválida]";
+      return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    } catch {
+      return "[Data inválida]";
+    }
+  };
+
   useEffect(() => {
     if (open && subscription && plan && customer) {
+      const planName = plan?.name || "";
+      const planPrice = plan?.price || subscription?.price || 0;
+      const billingDay = subscription?.billing_day || 1;
+      const startDateRaw = subscription?.start_date || new Date().toISOString().split("T")[0];
+      const formattedStartDate = safeFormatDate(startDateRaw);
+      const formattedPrice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(planPrice);
+
       setContractData({
         businessName: businessSettings?.business_name || "",
         businessCpfCnpj: businessSettings?.cpf_cnpj || "",
@@ -67,10 +99,16 @@ export function ContractPreviewDialog({
         customerAddress: customer?.address || "",
         customerEmail: customer?.email || "",
         customerPhone: customer?.phone || "",
-        planName: plan?.name || "",
-        planPrice: plan?.price || subscription?.price || 0,
-        billingDay: subscription?.billing_day || 1,
-        startDate: subscription?.start_date || new Date().toISOString().split("T")[0],
+        planName: planName,
+        planPrice: planPrice,
+        billingDay: billingDay,
+        startDate: startDateRaw,
+        // Initialize fixed clauses with default text
+        clause1Object: `O presente contrato tem como objeto a prestação de serviços conforme o plano "${planName}", pelo valor de ${formattedPrice}, com periodicidade mensal. Os serviços serão prestados com qualidade e profissionalismo.`,
+        clause2Payment: `O pagamento será realizado mensalmente, com vencimento todo dia ${billingDay}. Em caso de atraso, será aplicada multa de 2% sobre o valor devido, acrescido de juros de mora de 1% ao mês.`,
+        clause3Validity: `O presente contrato entra em vigor na data de sua assinatura, com início dos serviços em ${formattedStartDate}, com renovação automática, salvo manifestação contrária com antecedência mínima de 30 dias.`,
+        clause4Cancel: `O contratado poderá solicitar o cancelamento a qualquer momento, mediante aviso prévio de 30 dias. O cancelamento será efetivado ao término do ciclo de cobrança vigente.`,
+        clause5Forum: `As partes elegem o foro da comarca do contratante para dirimir quaisquer questões oriundas deste contrato.`,
         customClauses: ""
       });
       setActiveTab("dados");
@@ -222,43 +260,27 @@ export function ContractPreviewDialog({
     
     <div class="clause">
       <div class="clause-title">Cláusula 1ª - Do Objeto</div>
-      <div class="clause-text">
-        O presente contrato tem como objeto a prestação de serviços conforme o plano "<strong>${contractData.planName}</strong>", 
-        pelo valor de <strong>${formatCurrency(contractData.planPrice)}</strong>, com periodicidade mensal. 
-        Os serviços serão prestados com qualidade e profissionalismo.
-      </div>
+      <div class="clause-text">${contractData.clause1Object}</div>
     </div>
 
     <div class="clause">
       <div class="clause-title">Cláusula 2ª - Do Pagamento</div>
-      <div class="clause-text">
-        O pagamento será realizado mensalmente, com vencimento todo dia <strong>${contractData.billingDay}</strong>.
-        Em caso de atraso, será aplicada multa de 2% sobre o valor devido, acrescido de juros de mora de 1% ao mês.
-      </div>
+      <div class="clause-text">${contractData.clause2Payment}</div>
     </div>
 
     <div class="clause">
       <div class="clause-title">Cláusula 3ª - Da Vigência</div>
-      <div class="clause-text">
-        O presente contrato entra em vigor na data de sua assinatura, com início dos serviços em 
-        <strong>${formatDate(contractData.startDate)}</strong>, com renovação automática, 
-        salvo manifestação contrária com antecedência mínima de 30 dias.
-      </div>
+      <div class="clause-text">${contractData.clause3Validity}</div>
     </div>
 
     <div class="clause">
       <div class="clause-title">Cláusula 4ª - Do Cancelamento</div>
-      <div class="clause-text">
-        O contratado poderá solicitar o cancelamento a qualquer momento, mediante aviso prévio de 30 dias.
-        O cancelamento será efetivado ao término do ciclo de cobrança vigente.
-      </div>
+      <div class="clause-text">${contractData.clause4Cancel}</div>
     </div>
 
     <div class="clause">
       <div class="clause-title">Cláusula 5ª - Do Foro</div>
-      <div class="clause-text">
-        As partes elegem o foro da comarca do contratante para dirimir quaisquer questões oriundas deste contrato.
-      </div>
+      <div class="clause-text">${contractData.clause5Forum}</div>
     </div>
 
     ${contractData.customClauses ? `
@@ -448,11 +470,68 @@ export function ContractPreviewDialog({
               </CardContent>
             </Card>
 
-            {/* Custom Clauses */}
+            {/* Fixed Clauses (Editable) */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary" />
+                  Cláusulas do Contrato
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="font-semibold">Cláusula 1ª - Do Objeto</Label>
+                  <Textarea 
+                    value={contractData.clause1Object} 
+                    onChange={e => handleInputChange("clause1Object", e.target.value)} 
+                    rows={3} 
+                    className="resize-none text-sm" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold">Cláusula 2ª - Do Pagamento</Label>
+                  <Textarea 
+                    value={contractData.clause2Payment} 
+                    onChange={e => handleInputChange("clause2Payment", e.target.value)} 
+                    rows={3} 
+                    className="resize-none text-sm" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold">Cláusula 3ª - Da Vigência</Label>
+                  <Textarea 
+                    value={contractData.clause3Validity} 
+                    onChange={e => handleInputChange("clause3Validity", e.target.value)} 
+                    rows={3} 
+                    className="resize-none text-sm" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold">Cláusula 4ª - Do Cancelamento</Label>
+                  <Textarea 
+                    value={contractData.clause4Cancel} 
+                    onChange={e => handleInputChange("clause4Cancel", e.target.value)} 
+                    rows={3} 
+                    className="resize-none text-sm" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold">Cláusula 5ª - Do Foro</Label>
+                  <Textarea 
+                    value={contractData.clause5Forum} 
+                    onChange={e => handleInputChange("clause5Forum", e.target.value)} 
+                    rows={2} 
+                    className="resize-none text-sm" 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Custom Clauses */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-amber-500" />
                   Cláusulas Adicionais (Opcional)
                 </CardTitle>
               </CardHeader>
@@ -498,31 +577,34 @@ export function ContractPreviewDialog({
 
                 <Separator />
 
-                {/* Service Details */}
-                <div>
-                  <h3 className="font-semibold text-primary mb-2">OBJETO DO CONTRATO:</h3>
-                  <p>
-                    O presente contrato tem por objeto a prestação de serviços referentes ao plano{" "}
-                    <strong>{contractData.planName}</strong>, pelo valor mensal de{" "}
-                    <strong>{formatCurrency(contractData.planPrice)}</strong>.
-                  </p>
-                  <p className="mt-2">
-                    Data de início: <strong>{(() => {
-                      try {
-                        if (!contractData.startDate) return "[Não definida]";
-                        const date = new Date(contractData.startDate + "T12:00:00");
-                        if (isNaN(date.getTime())) return "[Data inválida]";
-                        return format(date, "dd/MM/yyyy", {
-                          locale: ptBR
-                        });
-                      } catch {
-                        return "[Data inválida]";
-                      }
-                    })()}</strong>
-                  </p>
-                  <p>
-                    Dia de vencimento: <strong>Todo dia {contractData.billingDay}</strong>
-                  </p>
+                {/* Clauses Preview */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-primary mb-2">CLÁUSULAS CONTRATUAIS:</h3>
+                  
+                  <div className="border-l-4 border-primary/30 pl-4">
+                    <p className="font-medium text-sm mb-1">Cláusula 1ª - Do Objeto</p>
+                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">{contractData.clause1Object}</p>
+                  </div>
+                  
+                  <div className="border-l-4 border-primary/30 pl-4">
+                    <p className="font-medium text-sm mb-1">Cláusula 2ª - Do Pagamento</p>
+                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">{contractData.clause2Payment}</p>
+                  </div>
+                  
+                  <div className="border-l-4 border-primary/30 pl-4">
+                    <p className="font-medium text-sm mb-1">Cláusula 3ª - Da Vigência</p>
+                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">{contractData.clause3Validity}</p>
+                  </div>
+                  
+                  <div className="border-l-4 border-primary/30 pl-4">
+                    <p className="font-medium text-sm mb-1">Cláusula 4ª - Do Cancelamento</p>
+                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">{contractData.clause4Cancel}</p>
+                  </div>
+                  
+                  <div className="border-l-4 border-primary/30 pl-4">
+                    <p className="font-medium text-sm mb-1">Cláusula 5ª - Do Foro</p>
+                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">{contractData.clause5Forum}</p>
+                  </div>
                 </div>
 
                 {/* Custom Clauses */}
