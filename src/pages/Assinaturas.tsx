@@ -1401,13 +1401,6 @@ const Assinaturas = () => {
                               <FileCheck className="h-4 w-4 mr-2" />
                               Imprimir Contrato
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleSendDocument(subscription.id, "contract")}
-                              disabled={sendingDocument === `${subscription.id}-contract`}
-                            >
-                              <Mail className="h-4 w-4 mr-2" />
-                              Enviar Contrato
-                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
                               onClick={() => handleGenerateDocument(subscription.id, "receipt")}
@@ -1415,13 +1408,6 @@ const Assinaturas = () => {
                             >
                               <FileDown className="h-4 w-4 mr-2" />
                               Gerar Comprovante
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleSendDocument(subscription.id, "receipt")}
-                              disabled={sendingDocument === `${subscription.id}-receipt`}
-                            >
-                              <Mail className="h-4 w-4 mr-2" />
-                              Enviar Comprovante
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
