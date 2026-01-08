@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,11 +6,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { FileText, Printer, Mail, User, Building2, Calendar, DollarSign, Loader2, Eye, Edit3 } from "lucide-react";
+import { FileText, Printer, User, Building2, Loader2, Eye, Edit3, Plus, Trash2, ChevronUp, ChevronDown, Download } from "lucide-react";
 import { toast } from "sonner";
-import { format, isValid, parse, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { downloadPdfFromHtml, printHtml } from "@/lib/pdf";
+import { toDateInputValue, formatLongPtBr, getDayOfMonth } from "@/lib/date";
+
+interface Clause {
+  id: string;
+  title: string;
+  text: string;
+}
+
 interface ContractPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -20,6 +27,7 @@ interface ContractPreviewDialogProps {
   customer: any;
   businessSettings: any;
 }
+
 export function ContractPreviewDialog({
   open,
   onOpenChange,
@@ -30,63 +38,38 @@ export function ContractPreviewDialog({
 }: ContractPreviewDialogProps) {
   const [activeTab, setActiveTab] = useState("dados");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isSending, setIsSending] = useState(false);
 
-  // Editable data
   const [contractData, setContractData] = useState({
-    // Business data
     businessName: "",
     businessCpfCnpj: "",
     businessAddress: "",
     businessEmail: "",
     businessPhone: "",
-    // Customer data
     customerName: "",
     customerCpf: "",
     customerAddress: "",
     customerEmail: "",
     customerPhone: "",
-    // Plan data
     planName: "",
     planPrice: 0,
     billingDay: 1,
     startDate: "",
-    // Fixed clauses (editable)
-    clause1Object: "",
-    clause2Payment: "",
-    clause3Validity: "",
-    clause4Cancel: "",
-    clause5Forum: "",
-    // Custom clauses
-    customClauses: ""
   });
-  // Helper function to safely format date
-  const safeFormatDate = (dateStr: string | null | undefined): string => {
-    if (!dateStr) return "[Não definida]";
-    try {
-      // Try parsing as ISO date first
-      let date: Date;
-      if (dateStr.includes("T")) {
-        date = parseISO(dateStr);
-      } else {
-        // Parse as YYYY-MM-DD
-        date = new Date(dateStr + "T12:00:00");
-      }
-      if (!isValid(date)) return "[Data inválida]";
-      return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-    } catch {
-      return "[Data inválida]";
-    }
+
+  const [clauses, setClauses] = useState<Clause[]>([]);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
   };
 
   useEffect(() => {
     if (open && subscription && plan && customer) {
       const planName = plan?.name || "";
       const planPrice = plan?.price || subscription?.price || 0;
-      const billingDay = subscription?.billing_day || 1;
       const startDateRaw = subscription?.start_date || new Date().toISOString().split("T")[0];
-      const formattedStartDate = safeFormatDate(startDateRaw);
-      const formattedPrice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(planPrice);
+      const billingDay = getDayOfMonth(subscription?.next_billing_date) || 1;
+      const formattedStartDate = formatLongPtBr(startDateRaw);
+      const formattedPrice = formatCurrency(planPrice);
 
       setContractData({
         businessName: businessSettings?.business_name || "",
@@ -102,66 +85,86 @@ export function ContractPreviewDialog({
         planName: planName,
         planPrice: planPrice,
         billingDay: billingDay,
-        startDate: startDateRaw,
-        // Initialize fixed clauses with default text
-        clause1Object: `O presente contrato tem como objeto a prestação de serviços conforme o plano "${planName}", pelo valor de ${formattedPrice}, com periodicidade mensal. Os serviços serão prestados com qualidade e profissionalismo.`,
-        clause2Payment: `O pagamento será realizado mensalmente, com vencimento todo dia ${billingDay}. Em caso de atraso, será aplicada multa de 2% sobre o valor devido, acrescido de juros de mora de 1% ao mês.`,
-        clause3Validity: `O presente contrato entra em vigor na data de sua assinatura, com início dos serviços em ${formattedStartDate}, com renovação automática, salvo manifestação contrária com antecedência mínima de 30 dias.`,
-        clause4Cancel: `O contratado poderá solicitar o cancelamento a qualquer momento, mediante aviso prévio de 30 dias. O cancelamento será efetivado ao término do ciclo de cobrança vigente.`,
-        clause5Forum: `As partes elegem o foro da comarca do contratante para dirimir quaisquer questões oriundas deste contrato.`,
-        customClauses: ""
+        startDate: toDateInputValue(startDateRaw),
       });
+
+      // Initialize default clauses
+      setClauses([
+        {
+          id: "1",
+          title: "Cláusula 1ª - Do Objeto",
+          text: `O presente contrato tem como objeto a prestação de serviços conforme o plano "${planName}", pelo valor de ${formattedPrice}, com periodicidade mensal. Os serviços serão prestados com qualidade e profissionalismo.`
+        },
+        {
+          id: "2",
+          title: "Cláusula 2ª - Do Pagamento",
+          text: `O pagamento será realizado mensalmente, com vencimento todo dia ${billingDay}. Em caso de atraso, será aplicada multa de 2% sobre o valor devido, acrescido de juros de mora de 1% ao mês.`
+        },
+        {
+          id: "3",
+          title: "Cláusula 3ª - Da Vigência",
+          text: `O presente contrato entra em vigor na data de sua assinatura, com início dos serviços em ${formattedStartDate}, com renovação automática, salvo manifestação contrária com antecedência mínima de 30 dias.`
+        },
+        {
+          id: "4",
+          title: "Cláusula 4ª - Do Cancelamento",
+          text: `O contratado poderá solicitar o cancelamento a qualquer momento, mediante aviso prévio de 30 dias. O cancelamento será efetivado ao término do ciclo de cobrança vigente.`
+        },
+        {
+          id: "5",
+          title: "Cláusula 5ª - Do Foro",
+          text: `As partes elegem o foro da comarca do contratante para dirimir quaisquer questões oriundas deste contrato.`
+        }
+      ]);
+
       setActiveTab("dados");
     }
   }, [open, subscription, plan, customer, businessSettings]);
+
   const handleInputChange = (field: string, value: string | number) => {
-    setContractData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setContractData(prev => ({ ...prev, [field]: value }));
   };
-  const generateAndPrint = async () => {
-    setIsGenerating(true);
-    try {
-      // Generate contract HTML locally with edited data
-      const html = generateContractHtml();
-      
-      const printWindow = window.open("", "_blank");
-      if (printWindow) {
-        printWindow.document.write(html);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-          printWindow.print();
-        }, 500);
-      }
-      toast.success("Contrato gerado com sucesso!");
-      onOpenChange(false);
-    } catch (error: any) {
-      console.error("Error generating contract:", error);
-      toast.error("Erro ao gerar contrato: " + error.message);
-    } finally {
-      setIsGenerating(false);
-    }
+
+  const handleClauseChange = (id: string, field: "title" | "text", value: string) => {
+    setClauses(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+
+  const addClause = () => {
+    const newId = Date.now().toString();
+    setClauses(prev => [...prev, {
+      id: newId,
+      title: `Cláusula ${prev.length + 1}ª`,
+      text: ""
+    }]);
+  };
+
+  const removeClause = (id: string) => {
+    setClauses(prev => prev.filter(c => c.id !== id));
+  };
+
+  const moveClause = (id: string, direction: "up" | "down") => {
+    setClauses(prev => {
+      const index = prev.findIndex(c => c.id === id);
+      if (index === -1) return prev;
+      if (direction === "up" && index === 0) return prev;
+      if (direction === "down" && index === prev.length - 1) return prev;
+
+      const newClauses = [...prev];
+      const swapIndex = direction === "up" ? index - 1 : index + 1;
+      [newClauses[index], newClauses[swapIndex]] = [newClauses[swapIndex], newClauses[index]];
+      return newClauses;
+    });
   };
 
   const generateContractHtml = () => {
-    const formatCurrency = (value: number) => {
-      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-    };
-
-    const formatDate = (dateStr: string) => {
-      try {
-        if (!dateStr) return "[Não definida]";
-        const date = new Date(dateStr + "T12:00:00");
-        if (isNaN(date.getTime())) return "[Data inválida]";
-        return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-      } catch {
-        return "[Data inválida]";
-      }
-    };
-
     const currentDate = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+
+    const clausesHtml = clauses.map(clause => `
+      <div class="clause">
+        <div class="clause-title">${clause.title}</div>
+        <div class="clause-text">${clause.text}</div>
+      </div>
+    `).join("");
 
     return `
 <!DOCTYPE html>
@@ -172,7 +175,7 @@ export function ContractPreviewDialog({
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     @page { size: A4; margin: 20mm; }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.8; color: #1e293b; max-width: 800px; margin: 0 auto; padding: 40px; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.8; color: #1e293b; max-width: 800px; margin: 0 auto; padding: 40px; background: white; }
     .header { text-align: center; border-bottom: 3px solid #0f172a; padding-bottom: 20px; margin-bottom: 30px; }
     .header h1 { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
     .header p { color: #64748b; font-size: 14px; }
@@ -186,10 +189,7 @@ export function ContractPreviewDialog({
     .party-value { font-size: 14px; font-weight: 600; color: #0f172a; }
     .clause { background: #fff; border-left: 4px solid #0f172a; padding: 16px 20px; margin-bottom: 16px; border-radius: 0 8px 8px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     .clause-title { font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px; text-transform: uppercase; }
-    .clause-text { font-size: 14px; line-height: 1.8; color: #475569; text-align: justify; }
-    .custom-clauses { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px 20px; margin-top: 20px; border-radius: 0 8px 8px 0; }
-    .custom-clauses-title { font-size: 13px; font-weight: 700; color: #92400e; margin-bottom: 8px; text-transform: uppercase; }
-    .custom-clauses-text { font-size: 14px; line-height: 1.8; color: #78350f; white-space: pre-wrap; }
+    .clause-text { font-size: 14px; line-height: 1.8; color: #475569; text-align: justify; white-space: pre-wrap; }
     .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 80px; }
     .signature-box { text-align: center; }
     .signature-line { border-top: 2px solid #0f172a; padding-top: 10px; margin-top: 60px; }
@@ -257,38 +257,7 @@ export function ContractPreviewDialog({
 
   <div class="section">
     <div class="section-title">📜 Cláusulas Contratuais</div>
-    
-    <div class="clause">
-      <div class="clause-title">Cláusula 1ª - Do Objeto</div>
-      <div class="clause-text">${contractData.clause1Object}</div>
-    </div>
-
-    <div class="clause">
-      <div class="clause-title">Cláusula 2ª - Do Pagamento</div>
-      <div class="clause-text">${contractData.clause2Payment}</div>
-    </div>
-
-    <div class="clause">
-      <div class="clause-title">Cláusula 3ª - Da Vigência</div>
-      <div class="clause-text">${contractData.clause3Validity}</div>
-    </div>
-
-    <div class="clause">
-      <div class="clause-title">Cláusula 4ª - Do Cancelamento</div>
-      <div class="clause-text">${contractData.clause4Cancel}</div>
-    </div>
-
-    <div class="clause">
-      <div class="clause-title">Cláusula 5ª - Do Foro</div>
-      <div class="clause-text">${contractData.clause5Forum}</div>
-    </div>
-
-    ${contractData.customClauses ? `
-    <div class="custom-clauses">
-      <div class="custom-clauses-title">⚡ Cláusulas Adicionais</div>
-      <div class="custom-clauses-text">${contractData.customClauses}</div>
-    </div>
-    ` : ""}
+    ${clausesHtml}
   </div>
 
   <div class="signatures">
@@ -314,42 +283,30 @@ export function ContractPreviewDialog({
 </html>
     `;
   };
-  const sendByEmail = async () => {
-    if (!contractData.customerEmail) {
-      toast.error("Email do cliente não informado");
-      return;
-    }
-    setIsSending(true);
+
+  const handleDownloadPdf = async () => {
+    setIsGenerating(true);
     try {
-      const {
-        error
-      } = await supabase.functions.invoke("send-subscription-document", {
-        body: {
-          subscriptionId: subscription.id,
-          customData: contractData
-        }
-      });
-      if (error) throw error;
-      toast.success("Contrato enviado por email!");
+      const html = generateContractHtml();
+      const filename = `Contrato - ${contractData.customerName || "Cliente"} - ${format(new Date(), "yyyy-MM-dd")}.pdf`;
+      await downloadPdfFromHtml(html, filename);
+      toast.success("PDF baixado com sucesso!");
       onOpenChange(false);
     } catch (error: any) {
-      console.error("Error sending contract:", error);
-      if (error.message?.includes("RESEND_API_KEY")) {
-        toast.error("Configure a chave RESEND_API_KEY nas configurações do servidor");
-      } else {
-        toast.error("Erro ao enviar contrato: " + error.message);
-      }
+      console.error("Error generating PDF:", error);
+      toast.error("Erro ao gerar PDF: " + error.message);
     } finally {
-      setIsSending(false);
+      setIsGenerating(false);
     }
   };
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL"
-    }).format(value);
+
+  const handlePrint = () => {
+    const html = generateContractHtml();
+    printHtml(html);
   };
-  return <Dialog open={open} onOpenChange={onOpenChange}>
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -359,7 +316,7 @@ export function ContractPreviewDialog({
             <div>
               <span className="text-xl">Contrato de Serviço</span>
               <p className="text-sm font-normal text-muted-foreground">
-                Edite os dados antes de imprimir ou enviar
+                Edite os dados e cláusulas antes de gerar
               </p>
             </div>
           </DialogTitle>
@@ -442,21 +399,21 @@ export function ContractPreviewDialog({
               </CardContent>
             </Card>
 
-            {/* Plan/Service Details */}
+            {/* Plano */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-primary" />
-                  Detalhes do Plano/Serviço
+                  <FileText className="w-4 h-4 text-primary" />
+                  Dados do Plano
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Nome do Plano</Label>
-                  <Input value={contractData.planName} onChange={e => handleInputChange("planName", e.target.value)} placeholder="Nome do plano" />
+                  <Input value={contractData.planName} onChange={e => handleInputChange("planName", e.target.value)} placeholder="Plano mensal" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Valor Mensal (R$)</Label>
+                  <Label>Valor (R$)</Label>
                   <Input type="number" step="0.01" value={contractData.planPrice} onChange={e => handleInputChange("planPrice", parseFloat(e.target.value) || 0)} placeholder="0,00" />
                 </div>
                 <div className="space-y-2">
@@ -470,188 +427,125 @@ export function ContractPreviewDialog({
               </CardContent>
             </Card>
 
-            {/* Fixed Clauses (Editable) */}
+            {/* Cláusulas */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-primary" />
-                  Cláusulas do Contrato
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" />
+                    Cláusulas do Contrato
+                  </CardTitle>
+                  <Button onClick={addClause} size="sm" variant="outline" className="gap-1">
+                    <Plus className="w-4 h-4" />
+                    Adicionar
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="font-semibold">Cláusula 1ª - Do Objeto</Label>
-                  <Textarea 
-                    value={contractData.clause1Object} 
-                    onChange={e => handleInputChange("clause1Object", e.target.value)} 
-                    rows={3} 
-                    className="resize-none text-sm" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-semibold">Cláusula 2ª - Do Pagamento</Label>
-                  <Textarea 
-                    value={contractData.clause2Payment} 
-                    onChange={e => handleInputChange("clause2Payment", e.target.value)} 
-                    rows={3} 
-                    className="resize-none text-sm" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-semibold">Cláusula 3ª - Da Vigência</Label>
-                  <Textarea 
-                    value={contractData.clause3Validity} 
-                    onChange={e => handleInputChange("clause3Validity", e.target.value)} 
-                    rows={3} 
-                    className="resize-none text-sm" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-semibold">Cláusula 4ª - Do Cancelamento</Label>
-                  <Textarea 
-                    value={contractData.clause4Cancel} 
-                    onChange={e => handleInputChange("clause4Cancel", e.target.value)} 
-                    rows={3} 
-                    className="resize-none text-sm" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-semibold">Cláusula 5ª - Do Foro</Label>
-                  <Textarea 
-                    value={contractData.clause5Forum} 
-                    onChange={e => handleInputChange("clause5Forum", e.target.value)} 
-                    rows={2} 
-                    className="resize-none text-sm" 
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Custom Clauses */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-amber-500" />
-                  Cláusulas Adicionais (Opcional)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea value={contractData.customClauses} onChange={e => handleInputChange("customClauses", e.target.value)} placeholder="Adicione cláusulas personalizadas que serão incluídas no contrato..." rows={4} className="resize-none" />
+                {clauses.map((clause, index) => (
+                  <div key={clause.id} className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={clause.title}
+                        onChange={e => handleClauseChange(clause.id, "title", e.target.value)}
+                        placeholder="Título da cláusula"
+                        className="font-medium"
+                      />
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => moveClause(clause.id, "up")}
+                          disabled={index === 0}
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => moveClause(clause.id, "down")}
+                          disabled={index === clauses.length - 1}
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => removeClause(clause.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Textarea
+                      value={clause.text}
+                      onChange={e => handleClauseChange(clause.id, "text", e.target.value)}
+                      placeholder="Texto da cláusula..."
+                      rows={3}
+                    />
+                  </div>
+                ))}
+                {clauses.length === 0 && (
+                  <p className="text-muted-foreground text-sm text-center py-4">
+                    Nenhuma cláusula. Clique em "Adicionar" para criar.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="preview" className="mt-6">
-            <Card className="p-6 bg-white dark:bg-zinc-900">
-              <div className="space-y-6 text-sm">
-                {/* Header */}
-                <div className="text-center border-b pb-4">
-                  <h2 className="text-xl font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h2>
-                  <p className="text-muted-foreground mt-1">
-                    Plano: {contractData.planName}
-                  </p>
+            <div className="bg-muted/30 border rounded-xl p-6 space-y-6">
+              <div className="text-center border-b pb-4">
+                <h2 className="text-xl font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h2>
+                <p className="text-muted-foreground text-sm">Contrato Nº {subscription?.id?.substring(0, 8).toUpperCase() || "---"}</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-background rounded-lg p-4">
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-2">CONTRATANTE</h3>
+                  <p className="font-medium">{contractData.businessName || "[Não informado]"}</p>
+                  <p className="text-sm text-muted-foreground">{contractData.businessCpfCnpj || "[CPF/CNPJ]"}</p>
+                  <p className="text-sm text-muted-foreground">{contractData.businessAddress || "[Endereço]"}</p>
                 </div>
-
-                {/* Parties */}
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-primary mb-2">CONTRATANTE:</h3>
-                    <p><strong>{contractData.businessName || "[Nome da Empresa]"}</strong></p>
-                    <p>CPF/CNPJ: {contractData.businessCpfCnpj || "[Não informado]"}</p>
-                    <p>Endereço: {contractData.businessAddress || "[Não informado]"}</p>
-                    <p>Email: {contractData.businessEmail || "[Não informado]"}</p>
-                    <p>Telefone: {contractData.businessPhone || "[Não informado]"}</p>
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <h3 className="font-semibold text-primary mb-2">CONTRATADO:</h3>
-                    <p><strong>{contractData.customerName || "[Nome do Cliente]"}</strong></p>
-                    <p>CPF: {contractData.customerCpf || "[Não informado]"}</p>
-                    <p>Endereço: {contractData.customerAddress || "[Não informado]"}</p>
-                    <p>Email: {contractData.customerEmail || "[Não informado]"}</p>
-                    <p>Telefone: {contractData.customerPhone || "[Não informado]"}</p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Clauses Preview */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-primary mb-2">CLÁUSULAS CONTRATUAIS:</h3>
-                  
-                  <div className="border-l-4 border-primary/30 pl-4">
-                    <p className="font-medium text-sm mb-1">Cláusula 1ª - Do Objeto</p>
-                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">{contractData.clause1Object}</p>
-                  </div>
-                  
-                  <div className="border-l-4 border-primary/30 pl-4">
-                    <p className="font-medium text-sm mb-1">Cláusula 2ª - Do Pagamento</p>
-                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">{contractData.clause2Payment}</p>
-                  </div>
-                  
-                  <div className="border-l-4 border-primary/30 pl-4">
-                    <p className="font-medium text-sm mb-1">Cláusula 3ª - Da Vigência</p>
-                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">{contractData.clause3Validity}</p>
-                  </div>
-                  
-                  <div className="border-l-4 border-primary/30 pl-4">
-                    <p className="font-medium text-sm mb-1">Cláusula 4ª - Do Cancelamento</p>
-                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">{contractData.clause4Cancel}</p>
-                  </div>
-                  
-                  <div className="border-l-4 border-primary/30 pl-4">
-                    <p className="font-medium text-sm mb-1">Cláusula 5ª - Do Foro</p>
-                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">{contractData.clause5Forum}</p>
-                  </div>
-                </div>
-
-                {/* Custom Clauses */}
-                {contractData.customClauses && <>
-                    <Separator />
-                    <div>
-                      <h3 className="font-semibold text-primary mb-2">CLÁUSULAS ADICIONAIS:</h3>
-                      <p className="whitespace-pre-wrap">{contractData.customClauses}</p>
-                    </div>
-                  </>}
-
-                {/* Signatures */}
-                <div className="mt-8 pt-8 border-t">
-                  <div className="grid grid-cols-2 gap-8 text-center">
-                    <div>
-                      <div className="border-t border-foreground/50 pt-2 mt-12">
-                        <p className="font-medium">{contractData.businessName || "CONTRATANTE"}</p>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="border-t border-foreground/50 pt-2 mt-12">
-                        <p className="font-medium">{contractData.customerName || "CONTRATADO"}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-center text-muted-foreground mt-6">
-                    {format(new Date(), "'Data: 'dd' de 'MMMM' de 'yyyy", {
-                    locale: ptBR
-                  })}
-                  </p>
+                <div className="bg-background rounded-lg p-4">
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-2">CONTRATADO</h3>
+                  <p className="font-medium">{contractData.customerName || "[Não informado]"}</p>
+                  <p className="text-sm text-muted-foreground">{contractData.customerCpf || "[CPF]"}</p>
+                  <p className="text-sm text-muted-foreground">{contractData.customerAddress || "[Endereço]"}</p>
                 </div>
               </div>
-            </Card>
+
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm text-muted-foreground">CLÁUSULAS</h3>
+                {clauses.map(clause => (
+                  <div key={clause.id} className="bg-background rounded-lg p-4 border-l-4 border-primary">
+                    <h4 className="font-semibold text-sm mb-2">{clause.title}</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{clause.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
             Cancelar
           </Button>
-          
-          <Button onClick={generateAndPrint} disabled={isGenerating} className="gap-2 bg-gradient-to-r from-primary to-primary/80">
-            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
-            Visualizar e Imprimir
+          <Button variant="outline" onClick={handlePrint} className="flex-1 gap-2">
+            <Printer className="w-4 h-4" />
+            Imprimir
+          </Button>
+          <Button onClick={handleDownloadPdf} disabled={isGenerating} className="flex-1 gap-2">
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Baixar PDF
           </Button>
         </div>
       </DialogContent>
-    </Dialog>;
+    </Dialog>
+  );
 }
