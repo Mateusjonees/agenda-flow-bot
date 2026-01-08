@@ -49,7 +49,9 @@ import {
   Sparkles,
   Clock,
   User,
+  Pencil,
 } from "lucide-react";
+import { ContractPreviewDialog } from "@/components/ContractPreviewDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -138,6 +140,10 @@ const Assinaturas = () => {
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
   const [deletingPlan, setDeletingPlan] = useState<SubscriptionPlan | null>(null);
   const [planSubscriptionCounts, setPlanSubscriptionCounts] = useState<Record<string, number>>({});
+  
+  // Estado para preview/edição de contrato
+  const [contractPreviewSubscription, setContractPreviewSubscription] = useState<Subscription | null>(null);
+  const [businessSettings, setBusinessSettings] = useState<any>(null);
 
   const [newPlan, setNewPlan] = useState({
     name: "",
@@ -156,7 +162,21 @@ const Assinaturas = () => {
     fetchCustomers();
     calculateMetrics();
     fetchPlanSubscriptionCounts();
+    fetchBusinessSettings();
   }, []);
+
+  const fetchBusinessSettings = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from("business_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+    
+    setBusinessSettings(data);
+  };
 
   const checkAuth = async () => {
     const {
@@ -1321,6 +1341,17 @@ const Assinaturas = () => {
                       <div className="flex gap-2 flex-wrap">
                         {/* Documentos */}
                         <div className="flex gap-2">
+                          {/* Botão de Editar/Preview Contrato */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setContractPreviewSubscription(subscription)}
+                            className="gap-1.5 hover:border-primary/50 hover:bg-primary/5"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Editar Contrato
+                          </Button>
+
                           <Button
                             size="sm"
                             variant="outline"
@@ -1333,7 +1364,7 @@ const Assinaturas = () => {
                             ) : (
                               <FileCheck className="h-3.5 w-3.5" />
                             )}
-                            Contrato
+                            Imprimir
                           </Button>
 
                           <Button
@@ -1824,6 +1855,16 @@ const Assinaturas = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog de Preview/Edição de Contrato */}
+      <ContractPreviewDialog
+        open={!!contractPreviewSubscription}
+        onOpenChange={(open) => !open && setContractPreviewSubscription(null)}
+        subscription={contractPreviewSubscription}
+        plan={contractPreviewSubscription ? plans.find(p => p.id === contractPreviewSubscription.plan_id) : null}
+        customer={contractPreviewSubscription ? customers.find(c => c.id === contractPreviewSubscription.customer_id) : null}
+        businessSettings={businessSettings}
+      />
     </div>
   );
 };
