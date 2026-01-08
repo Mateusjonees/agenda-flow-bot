@@ -1,11 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,22 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { 
-  FileText, 
-  Printer, 
-  Mail, 
-  User, 
-  Building2, 
-  Calendar,
-  DollarSign,
-  Loader2,
-  Eye,
-  Edit3
-} from "lucide-react";
+import { FileText, Printer, Mail, User, Building2, Calendar, DollarSign, Loader2, Eye, Edit3 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
 interface ContractPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -37,19 +20,18 @@ interface ContractPreviewDialogProps {
   customer: any;
   businessSettings: any;
 }
-
 export function ContractPreviewDialog({
   open,
   onOpenChange,
   subscription,
   plan,
   customer,
-  businessSettings,
+  businessSettings
 }: ContractPreviewDialogProps) {
   const [activeTab, setActiveTab] = useState("dados");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  
+
   // Editable data
   const [contractData, setContractData] = useState({
     // Business data
@@ -70,9 +52,8 @@ export function ContractPreviewDialog({
     billingDay: 1,
     startDate: "",
     // Custom clauses
-    customClauses: "",
+    customClauses: ""
   });
-
   useEffect(() => {
     if (open && subscription && plan && customer) {
       setContractData({
@@ -90,26 +71,29 @@ export function ContractPreviewDialog({
         planPrice: plan?.price || subscription?.price || 0,
         billingDay: subscription?.billing_day || 1,
         startDate: subscription?.start_date || new Date().toISOString().split("T")[0],
-        customClauses: "",
+        customClauses: ""
       });
       setActiveTab("dados");
     }
   }, [open, subscription, plan, customer, businessSettings]);
-
   const handleInputChange = (field: string, value: string | number) => {
-    setContractData(prev => ({ ...prev, [field]: value }));
+    setContractData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
-
   const generateAndPrint = async () => {
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-subscription-document", {
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke("generate-subscription-document", {
         body: {
           subscriptionId: subscription.id,
-          customData: contractData,
-        },
+          customData: contractData
+        }
       });
-
       if (error) throw error;
 
       // Open print window
@@ -122,7 +106,6 @@ export function ContractPreviewDialog({
           printWindow.print();
         }, 500);
       }
-
       toast.success("Contrato gerado com sucesso!");
     } catch (error: any) {
       console.error("Error generating contract:", error);
@@ -131,24 +114,22 @@ export function ContractPreviewDialog({
       setIsGenerating(false);
     }
   };
-
   const sendByEmail = async () => {
     if (!contractData.customerEmail) {
       toast.error("Email do cliente não informado");
       return;
     }
-
     setIsSending(true);
     try {
-      const { error } = await supabase.functions.invoke("send-subscription-document", {
+      const {
+        error
+      } = await supabase.functions.invoke("send-subscription-document", {
         body: {
           subscriptionId: subscription.id,
-          customData: contractData,
-        },
+          customData: contractData
+        }
       });
-
       if (error) throw error;
-
       toast.success("Contrato enviado por email!");
       onOpenChange(false);
     } catch (error: any) {
@@ -162,16 +143,13 @@ export function ContractPreviewDialog({
       setIsSending(false);
     }
   };
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
-      currency: "BRL",
+      currency: "BRL"
     }).format(value);
   };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+  return <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -211,44 +189,23 @@ export function ContractPreviewDialog({
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nome da Empresa</Label>
-                  <Input
-                    value={contractData.businessName}
-                    onChange={(e) => handleInputChange("businessName", e.target.value)}
-                    placeholder="Nome da empresa"
-                  />
+                  <Input value={contractData.businessName} onChange={e => handleInputChange("businessName", e.target.value)} placeholder="Nome da empresa" />
                 </div>
                 <div className="space-y-2">
                   <Label>CPF/CNPJ</Label>
-                  <Input
-                    value={contractData.businessCpfCnpj}
-                    onChange={(e) => handleInputChange("businessCpfCnpj", e.target.value)}
-                    placeholder="00.000.000/0000-00"
-                  />
+                  <Input value={contractData.businessCpfCnpj} onChange={e => handleInputChange("businessCpfCnpj", e.target.value)} placeholder="00.000.000/0000-00" />
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <Label>Endereço</Label>
-                  <Input
-                    value={contractData.businessAddress}
-                    onChange={(e) => handleInputChange("businessAddress", e.target.value)}
-                    placeholder="Endereço completo"
-                  />
+                  <Input value={contractData.businessAddress} onChange={e => handleInputChange("businessAddress", e.target.value)} placeholder="Endereço completo" />
                 </div>
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={contractData.businessEmail}
-                    onChange={(e) => handleInputChange("businessEmail", e.target.value)}
-                    placeholder="email@empresa.com"
-                  />
+                  <Input type="email" value={contractData.businessEmail} onChange={e => handleInputChange("businessEmail", e.target.value)} placeholder="email@empresa.com" />
                 </div>
                 <div className="space-y-2">
                   <Label>Telefone/WhatsApp</Label>
-                  <Input
-                    value={contractData.businessPhone}
-                    onChange={(e) => handleInputChange("businessPhone", e.target.value)}
-                    placeholder="(00) 00000-0000"
-                  />
+                  <Input value={contractData.businessPhone} onChange={e => handleInputChange("businessPhone", e.target.value)} placeholder="(00) 00000-0000" />
                 </div>
               </CardContent>
             </Card>
@@ -264,44 +221,23 @@ export function ContractPreviewDialog({
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nome Completo</Label>
-                  <Input
-                    value={contractData.customerName}
-                    onChange={(e) => handleInputChange("customerName", e.target.value)}
-                    placeholder="Nome do cliente"
-                  />
+                  <Input value={contractData.customerName} onChange={e => handleInputChange("customerName", e.target.value)} placeholder="Nome do cliente" />
                 </div>
                 <div className="space-y-2">
                   <Label>CPF</Label>
-                  <Input
-                    value={contractData.customerCpf}
-                    onChange={(e) => handleInputChange("customerCpf", e.target.value)}
-                    placeholder="000.000.000-00"
-                  />
+                  <Input value={contractData.customerCpf} onChange={e => handleInputChange("customerCpf", e.target.value)} placeholder="000.000.000-00" />
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <Label>Endereço</Label>
-                  <Input
-                    value={contractData.customerAddress}
-                    onChange={(e) => handleInputChange("customerAddress", e.target.value)}
-                    placeholder="Endereço completo"
-                  />
+                  <Input value={contractData.customerAddress} onChange={e => handleInputChange("customerAddress", e.target.value)} placeholder="Endereço completo" />
                 </div>
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={contractData.customerEmail}
-                    onChange={(e) => handleInputChange("customerEmail", e.target.value)}
-                    placeholder="email@cliente.com"
-                  />
+                  <Input type="email" value={contractData.customerEmail} onChange={e => handleInputChange("customerEmail", e.target.value)} placeholder="email@cliente.com" />
                 </div>
                 <div className="space-y-2">
                   <Label>Telefone</Label>
-                  <Input
-                    value={contractData.customerPhone}
-                    onChange={(e) => handleInputChange("customerPhone", e.target.value)}
-                    placeholder="(00) 00000-0000"
-                  />
+                  <Input value={contractData.customerPhone} onChange={e => handleInputChange("customerPhone", e.target.value)} placeholder="(00) 00000-0000" />
                 </div>
               </CardContent>
             </Card>
@@ -317,40 +253,19 @@ export function ContractPreviewDialog({
               <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Nome do Plano</Label>
-                  <Input
-                    value={contractData.planName}
-                    onChange={(e) => handleInputChange("planName", e.target.value)}
-                    placeholder="Nome do plano"
-                  />
+                  <Input value={contractData.planName} onChange={e => handleInputChange("planName", e.target.value)} placeholder="Nome do plano" />
                 </div>
                 <div className="space-y-2">
                   <Label>Valor Mensal (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={contractData.planPrice}
-                    onChange={(e) => handleInputChange("planPrice", parseFloat(e.target.value) || 0)}
-                    placeholder="0,00"
-                  />
+                  <Input type="number" step="0.01" value={contractData.planPrice} onChange={e => handleInputChange("planPrice", parseFloat(e.target.value) || 0)} placeholder="0,00" />
                 </div>
                 <div className="space-y-2">
                   <Label>Dia do Vencimento</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={contractData.billingDay}
-                    onChange={(e) => handleInputChange("billingDay", parseInt(e.target.value) || 1)}
-                    placeholder="1"
-                  />
+                  <Input type="number" min="1" max="31" value={contractData.billingDay} onChange={e => handleInputChange("billingDay", parseInt(e.target.value) || 1)} placeholder="1" />
                 </div>
                 <div className="space-y-2">
                   <Label>Data de Início</Label>
-                  <Input
-                    type="date"
-                    value={contractData.startDate}
-                    onChange={(e) => handleInputChange("startDate", e.target.value)}
-                  />
+                  <Input type="date" value={contractData.startDate} onChange={e => handleInputChange("startDate", e.target.value)} />
                 </div>
               </CardContent>
             </Card>
@@ -364,13 +279,7 @@ export function ContractPreviewDialog({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Textarea
-                  value={contractData.customClauses}
-                  onChange={(e) => handleInputChange("customClauses", e.target.value)}
-                  placeholder="Adicione cláusulas personalizadas que serão incluídas no contrato..."
-                  rows={4}
-                  className="resize-none"
-                />
+                <Textarea value={contractData.customClauses} onChange={e => handleInputChange("customClauses", e.target.value)} placeholder="Adicione cláusulas personalizadas que serão incluídas no contrato..." rows={4} className="resize-none" />
               </CardContent>
             </Card>
           </TabsContent>
@@ -425,7 +334,9 @@ export function ContractPreviewDialog({
                         if (!contractData.startDate) return "[Não definida]";
                         const date = new Date(contractData.startDate + "T12:00:00");
                         if (isNaN(date.getTime())) return "[Data inválida]";
-                        return format(date, "dd/MM/yyyy", { locale: ptBR });
+                        return format(date, "dd/MM/yyyy", {
+                          locale: ptBR
+                        });
                       } catch {
                         return "[Data inválida]";
                       }
@@ -437,15 +348,13 @@ export function ContractPreviewDialog({
                 </div>
 
                 {/* Custom Clauses */}
-                {contractData.customClauses && (
-                  <>
+                {contractData.customClauses && <>
                     <Separator />
                     <div>
                       <h3 className="font-semibold text-primary mb-2">CLÁUSULAS ADICIONAIS:</h3>
                       <p className="whitespace-pre-wrap">{contractData.customClauses}</p>
                     </div>
-                  </>
-                )}
+                  </>}
 
                 {/* Signatures */}
                 <div className="mt-8 pt-8 border-t">
@@ -462,7 +371,9 @@ export function ContractPreviewDialog({
                     </div>
                   </div>
                   <p className="text-center text-muted-foreground mt-6">
-                    {format(new Date(), "'Data: 'dd' de 'MMMM' de 'yyyy", { locale: ptBR })}
+                    {format(new Date(), "'Data: 'dd' de 'MMMM' de 'yyyy", {
+                    locale: ptBR
+                  })}
                   </p>
                 </div>
               </div>
@@ -475,33 +386,12 @@ export function ContractPreviewDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button
-            variant="outline"
-            onClick={sendByEmail}
-            disabled={isSending || !contractData.customerEmail}
-            className="gap-2"
-          >
-            {isSending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Mail className="w-4 h-4" />
-            )}
-            Enviar por Email
-          </Button>
-          <Button
-            onClick={generateAndPrint}
-            disabled={isGenerating}
-            className="gap-2 bg-gradient-to-r from-primary to-primary/80"
-          >
-            {isGenerating ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Printer className="w-4 h-4" />
-            )}
+          
+          <Button onClick={generateAndPrint} disabled={isGenerating} className="gap-2 bg-gradient-to-r from-primary to-primary/80">
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
             Visualizar e Imprimir
           </Button>
         </div>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>;
 }
