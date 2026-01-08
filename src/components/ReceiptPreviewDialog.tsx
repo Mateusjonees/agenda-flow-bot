@@ -50,7 +50,8 @@ export function ReceiptPreviewDialog({
     paymentMethod: "",
     referenceMonth: "",
     // Additional
-    notes: ""
+    notes: "",
+    additionalClauses: ""
   });
 
   useEffect(() => {
@@ -69,7 +70,8 @@ export function ReceiptPreviewDialog({
         paymentDate: format(now, "yyyy-MM-dd"),
         paymentMethod: subscription?.payment_method || "pix",
         referenceMonth: format(now, "MMMM 'de' yyyy", { locale: ptBR }),
-        notes: ""
+        notes: "",
+        additionalClauses: ""
       });
       setActiveTab("dados");
     }
@@ -248,6 +250,13 @@ export function ReceiptPreviewDialog({
   <div class="notes">
     <div class="notes-title">Observações</div>
     <div class="notes-content">${receiptData.notes}</div>
+  </div>
+  ` : ""}
+
+  ${receiptData.additionalClauses ? `
+  <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin-top: 16px;">
+    <div style="font-size: 12px; font-weight: 600; color: #92400e; margin-bottom: 8px; text-transform: uppercase;">Cláusulas Adicionais</div>
+    <div style="font-size: 14px; color: #78350f; white-space: pre-wrap;">${receiptData.additionalClauses}</div>
   </div>
   ` : ""}
 
@@ -472,6 +481,25 @@ export function ReceiptPreviewDialog({
                 />
               </CardContent>
             </Card>
+
+            {/* Cláusulas Adicionais */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-emerald-500" />
+                  Cláusulas Adicionais (Opcional)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={receiptData.additionalClauses}
+                  onChange={(e) => handleInputChange("additionalClauses", e.target.value)}
+                  placeholder="Adicione cláusulas personalizadas que serão incluídas no comprovante..."
+                  rows={4}
+                  className="resize-none"
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="preview" className="mt-6">
@@ -551,6 +579,17 @@ export function ReceiptPreviewDialog({
                     <div className="bg-muted/50 p-4 rounded-lg">
                       <h3 className="font-semibold text-sm mb-2">OBSERVAÇÕES:</h3>
                       <p className="whitespace-pre-wrap text-sm">{receiptData.notes}</p>
+                    </div>
+                  </>
+                )}
+
+                {/* Additional Clauses */}
+                {receiptData.additionalClauses && (
+                  <>
+                    <Separator />
+                    <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg dark:bg-amber-900/20">
+                      <h3 className="font-semibold text-sm mb-2 text-amber-800 dark:text-amber-300">CLÁUSULAS ADICIONAIS:</h3>
+                      <p className="whitespace-pre-wrap text-sm text-amber-900 dark:text-amber-200">{receiptData.additionalClauses}</p>
                     </div>
                   </>
                 )}
