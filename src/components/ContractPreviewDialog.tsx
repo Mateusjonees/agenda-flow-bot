@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { FileText, Printer, Mail, User, Building2, Calendar, DollarSign, Loader2, Eye, Edit3 } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, isValid, parse, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 interface ContractPreviewDialogProps {
   open: boolean;
