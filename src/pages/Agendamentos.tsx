@@ -246,7 +246,13 @@ const Agendamentos = () => {
   const isDayActive = (date: Date) => {
     const dayOfWeek = date.getDay();
     const dayConfig = businessHours.find(h => h.day_of_week === dayOfWeek);
-    return dayConfig?.is_active ?? true; // Default true se não configurado
+    
+    // Se não há NENHUMA configuração de horário, considerar todos os dias de seg-sex como ativos
+    if (businessHours.length === 0) {
+      return dayOfWeek >= 1 && dayOfWeek <= 5; // Seg a Sex
+    }
+    
+    return dayConfig?.is_active ?? false;
   };
 
   // Obter horários de funcionamento de um dia específico
@@ -254,7 +260,21 @@ const Agendamentos = () => {
     const dayOfWeek = date.getDay();
     const dayConfig = businessHours.find(h => h.day_of_week === dayOfWeek);
     
-    if (!dayConfig || !dayConfig.is_active) {
+    // Se não tem configuração para este dia
+    if (!dayConfig) {
+      // Se não tem NENHUMA configuração de horário, usar padrão comercial
+      if (businessHours.length === 0) {
+        return {
+          start: "08:00",
+          end: "18:00",
+        };
+      }
+      // Se tem configuração mas este dia não está configurado, retorna null
+      return null;
+    }
+    
+    // Se o dia está configurado mas não está ativo
+    if (!dayConfig.is_active) {
       return null;
     }
     
@@ -764,34 +784,45 @@ const Agendamentos = () => {
     }
     
     // Determinar o horário mínimo e máximo entre todos os dias ativos
-    let minHour = 23;
-    let maxHour = 0;
+    let minHour = 24;
+    let maxHour = -1;
+    let hasBusinessHoursConfig = false;
     
     activeDays.forEach(day => {
       const dayHours = getDayHours(day);
       if (dayHours) {
-        const [start] = dayHours.start.split(':').map(Number);
-        const [end] = dayHours.end.split(':').map(Number);
-        minHour = Math.min(minHour, start);
-        maxHour = Math.max(maxHour, end);
+        hasBusinessHoursConfig = true;
+        const [startH] = dayHours.start.split(':').map(Number);
+        const [endH] = dayHours.end.split(':').map(Number);
+        minHour = Math.min(minHour, startH);
+        maxHour = Math.max(maxHour, endH);
       }
     });
+    
+    // Se não há configuração de horário de funcionamento, usar horário comercial padrão
+    if (!hasBusinessHoursConfig || minHour > maxHour) {
+      minHour = 8;
+      maxHour = 18;
+    }
     
     // Considerar também os agendamentos que estão fora do horário de funcionamento
     const appointmentHours = appointments.map(apt => parseISO(apt.start_time).getHours());
     if (appointmentHours.length > 0) {
       minHour = Math.min(minHour, ...appointmentHours);
-      maxHour = Math.max(maxHour, ...appointmentHours);
+      maxHour = Math.max(maxHour, ...appointmentHours.map(h => h + 1)); // +1 para incluir a hora do agendamento
     }
     
     // Considerar também as tarefas
     const taskHours = allTasks.map(task => parseISO(task.due_date).getHours());
     if (taskHours.length > 0) {
       minHour = Math.min(minHour, ...taskHours);
-      maxHour = Math.max(maxHour, ...taskHours);
+      maxHour = Math.max(maxHour, ...taskHours.map(h => h + 1));
     }
     
-    const hours = Array.from({ length: maxHour - minHour + 1 }, (_, i) => minHour + i);
+    // Garantir que maxHour não ultrapasse 24
+    maxHour = Math.min(maxHour, 24);
+    
+    const hours = Array.from({ length: maxHour - minHour }, (_, i) => minHour + i);
 
     return (
       <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
