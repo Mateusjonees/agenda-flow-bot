@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { parseFunctionsError } from "@/lib/parseFunctionsError";
 import { CreditCard, Lock, Check, AlertCircle, Loader2, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { MERCADO_PAGO_PUBLIC_KEY } from "@/config/mercadoPago";
 
 declare global {
   interface Window {
@@ -91,9 +92,9 @@ export function CardSubscriptionDialog({
     }
 
     try {
-      // Use public key from environment
-      const publicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY;
-      
+      // Use public key from config (publishable)
+      const publicKey = MERCADO_PAGO_PUBLIC_KEY;
+
       if (!publicKey) {
         setCardFormError("Chave pública do Mercado Pago não configurada.");
         return;

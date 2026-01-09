@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PixPaymentDialog } from "@/components/PixPaymentDialog";
 import { parseFunctionsError } from "@/lib/parseFunctionsError";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
+import { MERCADO_PAGO_PUBLIC_KEY } from "@/config/mercadoPago";
 
 declare global {
   interface Window {
@@ -195,9 +196,9 @@ const Pricing = () => {
           throw new Error("Mercado Pago não carregado");
         }
 
-        const publicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY;
-        if (!publicKey || publicKey === "TEST-your-public-key") {
-          throw new Error("Chave pública do Mercado Pago não configurada. Configure VITE_MERCADO_PAGO_PUBLIC_KEY no arquivo .env");
+        const publicKey = MERCADO_PAGO_PUBLIC_KEY;
+        if (!publicKey) {
+          throw new Error("Chave pública do Mercado Pago não configurada.");
         }
 
         const mp = new window.MercadoPago(publicKey);
