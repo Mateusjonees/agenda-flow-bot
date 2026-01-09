@@ -14,6 +14,13 @@ interface PreferenceRequest {
   months?: number;
   user_id?: string;
   planType?: "monthly" | "semestral" | "annual";
+  // Checkout transparente
+  card_token_id?: string;
+  payer_email?: string;
+  payer_identification?: {
+    type: string;
+    number: string;
+  };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -124,6 +131,120 @@ const handler = async (req: Request): Promise<Response> => {
       }
     };
 
+    // Se vier card_token_id, fazer checkout transparente (cartão dentro do app)
+    if (requestData.card_token_id) {
+      console.log("Processing transparent checkout with card token");
+      
+      const cardPreferenceData = {
+        ...preferenceData,
+        card_token_id: requestData.card_token_id,
+        status: "authorized", // Autorizar imediatamente
+      };
+
+      // Se tiver dados do pagador, adicionar
+      if (requestData.payer_email) {
+        (cardPreferenceData as any).payer_email = requestData.payer_email;
+      }
+
+      console.log("Creating Mercado Pago subscription with card token:", { 
+        ...cardPreferenceData, 
+        card_token_id: "[REDACTED]" 
+      });
+
+      const mpResponse = await fetch("https://api.mercadopago.com/preapproval", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(cardPreferenceData),
+      });
+
+      const responseText = await mpResponse.text();
+      let responseData;
+      
+      try {
+        responseData = JSON.parse(responseText);
+      } catch {
+        console.error("Failed to parse MP response:", responseText);
+        throw new Error("Resposta inválida do Mercado Pago");
+      }
+
+      if (!mpResponse.ok) {
+        console.error("Mercado Pago card payment error:", responseData);
+        
+        // Extrair mensagem de erro mais amigável
+        let errorMessage = "Erro ao processar pagamento com cartão";
+        
+        if (responseData.message) {
+          errorMessage = responseData.message;
+        }
+        
+        if (responseData.cause && Array.isArray(responseData.cause)) {
+          const causes = responseData.cause.map((c: any) => c.description || c.code).join(", ");
+          if (causes) {
+            errorMessage = causes;
+          }
+        }
+
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: errorMessage,
+            error_code: responseData.error || "payment_error",
+            error_description: errorMessage,
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      console.log(`Subscription created with card successfully: ${responseData.id}, status: ${responseData.status}`);
+
+      // Criar registro da assinatura no banco
+      const supabaseClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+
+      // Calcular próxima data de cobrança
+      const nextBillingDate = new Date();
+      nextBillingDate.setMonth(nextBillingDate.getMonth() + selectedPlan.frequency);
+
+      await supabaseClient.from("subscriptions").upsert({
+        user_id: user.id,
+        status: responseData.status === "authorized" ? "active" : "pending",
+        plan_type: planType,
+        amount: selectedPlan.price,
+        payment_method: "credit_card",
+        mp_subscription_id: responseData.id,
+        next_billing_date: nextBillingDate.toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: "user_id",
+        ignoreDuplicates: false,
+      });
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          preapproval_id: responseData.id,
+          status: responseData.status,
+          message: responseData.status === "authorized" 
+            ? "Assinatura ativada com sucesso!" 
+            : "Assinatura criada, aguardando confirmação",
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Fluxo normal (redirect para init_point) - usado como fallback
     console.log("Creating Mercado Pago subscription preference with data:", preferenceData);
 
     const mpResponse = await fetch("https://api.mercadopago.com/preapproval", {

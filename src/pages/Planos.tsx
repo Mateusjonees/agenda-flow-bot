@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Check, Zap, Star, CreditCard, ArrowUpCircle, ArrowDownCircle, Sparkles, Calendar, AlertCircle, Shield, TrendingUp, Gift, QrCode, Receipt } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PixPaymentDialog } from "@/components/PixPaymentDialog";
+import { CardSubscriptionDialog } from "@/components/CardSubscriptionDialog";
 import { parseFunctionsError } from "@/lib/parseFunctionsError";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -43,6 +44,7 @@ const Planos = () => {
   const [mpLoaded, setMpLoaded] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
   const [pixDialogOpen, setPixDialogOpen] = useState(false);
+  const [cardDialogOpen, setCardDialogOpen] = useState(false);
   const [downgradeDialogOpen, setDowngradeDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
@@ -498,30 +500,9 @@ const Planos = () => {
         refetchPendingPix();
         
       } else {
-        // Pagamento com cartão via Mercado Pago
-        console.log("💳 Processando pagamento com cartão:", plan.id);
-        
-        const { data, error } = await supabase.functions.invoke('create-subscription-preference', {
-          body: {
-            plan_id: plan.id,
-            plan_name: plan.name,
-            price: plan.price,
-            billing_frequency: plan.billingFrequency,
-            months: plan.months,
-            user_id: user.id
-          }
-        });
-
-        if (error) {
-          const parsed = await parseFunctionsError(error);
-          throw new Error(parsed.message);
-        }
-
-        if (data.init_point) {
-          window.location.href = data.init_point;
-        } else {
-          throw new Error("Link de pagamento não foi gerado");
-        }
+        // Pagamento com cartão - abrir modal de checkout transparente
+        console.log("💳 Abrindo modal de pagamento com cartão:", plan.id);
+        setCardDialogOpen(true);
       }
     } catch (error: any) {
       console.error("Erro ao processar assinatura:", error);
@@ -1202,6 +1183,17 @@ const Planos = () => {
           amount={pixData.amount}
         />
       )}
+
+      {/* Card Payment Dialog */}
+      <CardSubscriptionDialog
+        open={cardDialogOpen}
+        onOpenChange={setCardDialogOpen}
+        plan={selectedPlan}
+        onSuccess={() => {
+          refetchSubscription();
+          setSelectedPlan(null);
+        }}
+      />
     </div>
   );
 };
