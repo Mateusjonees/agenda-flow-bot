@@ -278,7 +278,7 @@ const Pricing = () => {
                 <p className="text-lg font-semibold">{daysRemaining} dias restantes do período gratuito</p>
                 {subscription?.start_date && (
                   <p className="text-sm mt-1">
-                    Expira em: {new Date(new Date(subscription.start_date).getTime() + (7 * 24 * 60 * 60 * 1000)).toLocaleDateString('pt-BR')}
+                    Expira em: {new Date(new Date(subscription.start_date as string).getTime() + (7 * 24 * 60 * 60 * 1000)).toLocaleDateString('pt-BR')}
                   </p>
                 )}
               </div>
