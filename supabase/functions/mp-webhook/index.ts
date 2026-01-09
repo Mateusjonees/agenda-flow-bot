@@ -269,6 +269,18 @@ const handler = async (req: Request): Promise<Response> => {
       const preapprovalData = await mpResponse.json();
       console.log("📋 Preapproval data:", preapprovalData);
 
+      // ✅ Se o preapproval está pendente, retornar sucesso e aguardar autorização
+      if (preapprovalData.status === "pending") {
+        console.log(`⏳ Preapproval ${preapprovalId} ainda está pendente - aguardando autorização do usuário`);
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: "Preapproval pending - waiting for user authorization" 
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       const metadata = preapprovalData.metadata || {};
       const userId = metadata.userId || preapprovalData.external_reference;
       
