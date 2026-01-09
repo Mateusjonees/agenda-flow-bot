@@ -136,7 +136,7 @@ export const CustomerDetailsSheet = ({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
         side="right" 
-        className={`p-0 flex flex-col gap-0 [&>button]:hidden transition-all duration-200 ${sheetWidth || ''}`}
+        className={`p-0 flex flex-col gap-0 [&>button]:hidden transition-all duration-200 sm:max-w-none ${sheetWidth || ''}`}
         style={!isMobile && !isExpanded ? { width: `${width}px`, maxWidth: '100vw' } : undefined}
       >
         {/* Resize handle - apenas desktop e quando sheet está aberto */}
