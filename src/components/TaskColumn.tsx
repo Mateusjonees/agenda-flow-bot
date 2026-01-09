@@ -1,6 +1,5 @@
 import { useDroppable } from "@dnd-kit/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,6 +16,20 @@ interface TaskColumnProps {
   accentColor?: string;
 }
 
+// Mapeamento de cores para dots
+const getColumnDotColor = (id: string) => {
+  switch (id) {
+    case "pending":
+      return "bg-yellow-500";
+    case "in_progress":
+      return "bg-blue-500";
+    case "completed":
+      return "bg-green-500";
+    default:
+      return "bg-slate-400";
+  }
+};
+
 export const TaskColumn = ({
   id,
   title,
@@ -25,7 +38,6 @@ export const TaskColumn = ({
   children,
   onAddTask,
   isReadOnly,
-  accentColor = "border-primary",
 }: TaskColumnProps) => {
   const { isOver, setNodeRef } = useDroppable({
     id,
@@ -35,21 +47,34 @@ export const TaskColumn = ({
   });
 
   return (
-    <Card className={cn("flex flex-col h-full", isOver && "ring-2 ring-primary")}>
-      <CardHeader className={cn("border-b-4 pb-3", accentColor)}>
+    <Card 
+      className={cn(
+        "flex flex-col h-full bg-muted/30 dark:bg-slate-900/50 rounded-2xl border-0 shadow-sm",
+        "transition-all duration-300",
+        isOver && "ring-2 ring-primary/50 bg-primary/5"
+      )}
+    >
+      <CardHeader className="pb-3 border-b border-border/30">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {icon}
-            <CardTitle className="text-base md:text-lg">{title}</CardTitle>
-            <Badge variant="secondary" className="ml-1">
+          <div className="flex items-center gap-3">
+            {/* Dot colorido em vez de ícone */}
+            <span className={cn("w-3 h-3 rounded-full", getColumnDotColor(id))} />
+            
+            <CardTitle className="text-base font-semibold text-foreground">
+              {title}
+            </CardTitle>
+            
+            {/* Counter com estilo pill */}
+            <span className="text-xs font-medium text-muted-foreground bg-background/80 px-2.5 py-1 rounded-full">
               {count}
-            </Badge>
+            </span>
           </div>
+          
           {onAddTask && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 rounded-full hover:bg-background/80"
               onClick={onAddTask}
               disabled={isReadOnly}
             >
@@ -58,10 +83,12 @@ export const TaskColumn = ({
           )}
         </div>
       </CardHeader>
+      
       <CardContent
         ref={setNodeRef}
         className={cn(
           "flex-1 p-3 space-y-3 overflow-y-auto min-h-[400px]",
+          "transition-colors duration-200",
           isOver && "bg-primary/5"
         )}
       >
