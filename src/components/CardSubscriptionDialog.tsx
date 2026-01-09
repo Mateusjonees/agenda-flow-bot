@@ -91,8 +91,13 @@ export function CardSubscriptionDialog({
     }
 
     try {
-      // Use a public key from environment or hardcoded for demo
-      const publicKey = "APP_USR-6c94fba5-84bc-4bdf-8939-cced71f15e3c"; // You should use your actual public key
+      // Use public key from environment
+      const publicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY;
+      
+      if (!publicKey) {
+        setCardFormError("Chave pública do Mercado Pago não configurada.");
+        return;
+      }
       
       mpInstanceRef.current = new window.MercadoPago(publicKey, {
         locale: "pt-BR",
