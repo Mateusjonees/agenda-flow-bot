@@ -747,16 +747,19 @@ const Planos = () => {
 
       {/* Card Compacto de Ações - Apenas para assinaturas ativas (não trial, não cancelada, não expirada) */}
       {subscription && subscription.status === "active" && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="py-4">
+        <Card className="bg-gradient-to-r from-slate-800/80 to-slate-900/80 border-slate-700/50 shadow-lg">
+          <CardContent className="py-5 px-6">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <Shield className="w-5 h-5 text-primary" />
-                <span className="font-medium">Ações da Assinatura</span>
+                <div className="p-2 rounded-full bg-primary/10">
+                  <Shield className="w-5 h-5 text-primary" />
+                </div>
+                <span className="font-semibold text-foreground">Ações da Assinatura</span>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
                 <Button 
                   size="sm"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
                   onClick={() => {
                     const plansSection = document.getElementById('plans-section');
                     plansSection?.scrollIntoView({ behavior: 'smooth' });
@@ -768,7 +771,7 @@ const Planos = () => {
                 <Button 
                   size="sm"
                   variant="outline" 
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="border-destructive/50 text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive"
                   onClick={() => setCancelDialogOpen(true)}
                   disabled={loading}
                 >
@@ -776,7 +779,8 @@ const Planos = () => {
                 </Button>
                 <Button 
                   size="sm"
-                  variant="ghost"
+                  variant="outline"
+                  className="border-slate-600 hover:border-slate-500 hover:bg-slate-800"
                   onClick={() => navigate("/historico-pagamentos")}
                 >
                   <Receipt className="w-4 h-4 mr-2" />
