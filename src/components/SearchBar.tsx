@@ -32,6 +32,13 @@ export function SearchBar() {
     return () => document.removeEventListener("keydown", down, true);
   }, []);
 
+  // Limpar busca quando o dialog fecha
+  useEffect(() => {
+    if (!open) {
+      setSearch("");
+    }
+  }, [open]);
+
   const { data: results, isLoading } = useQuery({
     queryKey: ["search", search],
     queryFn: async () => {
