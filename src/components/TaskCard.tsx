@@ -1,7 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Trash2, Edit, User, ChevronDown, ChevronUp, GripVertical, CheckCircle2 } from "lucide-react";
+import { Calendar, Trash2, Edit, User, ChevronDown, ChevronUp, GripVertical, Check, Plus, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useDraggable } from "@dnd-kit/core";
@@ -10,6 +9,7 @@ import { TaskItem } from "@/types/task";
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 
 interface TaskCardProps {
   task: TaskItem;
@@ -49,17 +49,17 @@ export const TaskCard = ({
 
   const style = {
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.5 : 1,
   };
 
-  const getPriorityColor = (priority: string) => {
+  // Cores dos dots por prioridade
+  const getPriorityDotColor = (priority: string) => {
     const colors: Record<string, string> = {
-      low: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200",
-      medium: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300 border-yellow-200",
-      high: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300 border-orange-200",
-      urgent: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border-red-200",
+      low: "bg-blue-500",
+      medium: "bg-yellow-500",
+      high: "bg-orange-500",
+      urgent: "bg-red-500",
     };
-    return colors[priority] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+    return colors[priority] || "bg-slate-400";
   };
 
   const getPriorityLabel = (priority: string) => {
@@ -72,14 +72,15 @@ export const TaskCard = ({
     return labels[priority] || priority;
   };
 
-  const getTypeColor = (type: string) => {
+  // Cores dos dots por tipo
+  const getTypeDotColor = (type: string) => {
     const colors: Record<string, string> = {
-      general: "bg-slate-100 text-slate-700 dark:bg-slate-950 dark:text-slate-300",
-      follow_up: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
-      reactivation: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
-      proposal_follow_up: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
+      general: "bg-slate-500",
+      follow_up: "bg-purple-500",
+      reactivation: "bg-cyan-500",
+      proposal_follow_up: "bg-indigo-500",
     };
-    return colors[type] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+    return colors[type] || "bg-slate-400";
   };
 
   const getTypeLabel = (type: string) => {
@@ -87,7 +88,7 @@ export const TaskCard = ({
       general: "Geral",
       follow_up: "Follow-up",
       reactivation: "Reativação",
-      proposal_follow_up: "Follow-up de Proposta",
+      proposal_follow_up: "Follow-up Proposta",
     };
     return labels[type] || type;
   };
@@ -97,52 +98,89 @@ export const TaskCard = ({
   const hasSubtasks = subtasks.length > 0;
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={isDragging ? "opacity-50" : ""}
-    >
-      <Card className="hover:shadow-md transition-all duration-200 border-l-4" style={{ borderLeftColor: task.color || '#FF6B35' }}>
-        <CardHeader className="p-3 pb-2">
-          <div className="flex items-start gap-2">
-            <div
-              {...listeners}
-              {...attributes}
-              className="cursor-grab active:cursor-grabbing mt-1 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <GripVertical className="h-4 w-4" />
-            </div>
-            <div className="flex-1">
-              <CardTitle className="text-sm font-medium line-clamp-2">{task.title}</CardTitle>
-              {hasSubtasks && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  {completedSubtasks}/{subtasks.length} subtarefas concluídas
+    <div ref={setNodeRef} style={style}>
+      <Card 
+        className={cn(
+          "bg-white dark:bg-slate-800/90 rounded-2xl shadow-sm border border-border/30",
+          "hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300",
+          isDragging && "opacity-50 shadow-xl scale-105",
+          isOverdue && "ring-2 ring-red-500/20"
+        )}
+      >
+        <CardHeader className="p-4 pb-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              {/* Drag handle */}
+              <div
+                {...listeners}
+                {...attributes}
+                className={cn(
+                  "mt-0.5 cursor-grab active:cursor-grabbing",
+                  isReadOnly && "cursor-not-allowed opacity-50"
+                )}
+              >
+                <GripVertical className="h-4 w-4 text-muted-foreground/40 hover:text-muted-foreground transition-colors" />
+              </div>
+              
+              {/* Priority dot + Title */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span 
+                    className={cn(
+                      "w-2.5 h-2.5 rounded-full shrink-0",
+                      getPriorityDotColor(task.priority)
+                    )} 
+                  />
+                  <h4 className="font-medium text-sm text-foreground truncate">
+                    {task.title}
+                  </h4>
                 </div>
-              )}
+                
+                {task.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-2 ml-4.5">
+                    {task.description}
+                  </p>
+                )}
+              </div>
             </div>
+
+            {/* Overdue indicator */}
+            {isOverdue && (
+              <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
+            )}
           </div>
         </CardHeader>
-        <CardContent className="p-3 pt-0 space-y-3">
-          {task.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
-          )}
 
-          <div className="flex flex-wrap gap-1.5">
-            <Badge variant="outline" className={`text-xs px-2 py-0.5 ${getPriorityColor(task.priority)}`}>
-              {getPriorityLabel(task.priority)}
-            </Badge>
-            <Badge variant="outline" className={`text-xs px-2 py-0.5 ${getTypeColor(task.type)}`}>
-              {getTypeLabel(task.type)}
-            </Badge>
+        <CardContent className="p-4 pt-2 space-y-3">
+          {/* Tags row */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Type tag */}
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className={cn("w-2 h-2 rounded-full", getTypeDotColor(task.type))} />
+              <span>{getTypeLabel(task.type)}</span>
+            </div>
+
+            {/* Priority tag */}
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className={cn("w-2 h-2 rounded-full", getPriorityDotColor(task.priority))} />
+              <span>{getPriorityLabel(task.priority)}</span>
+            </div>
+
+            {/* Due date */}
+            {task.due_date && (
+              <div className={cn(
+                "flex items-center gap-1 text-xs",
+                isOverdue ? "text-red-500" : "text-muted-foreground"
+              )}>
+                <Calendar className="h-3 w-3" />
+                <span>
+                  {format(new Date(task.due_date), "dd MMM", { locale: ptBR })}
+                </span>
+              </div>
+            )}
           </div>
 
-          {task.due_date && (
-            <div className={`flex items-center gap-1.5 text-xs ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
-              <Calendar className="h-3 w-3" />
-              <span>{format(new Date(task.due_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
-            </div>
-          )}
-
+          {/* Customer */}
           {task.metadata?.customer_name && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <User className="h-3 w-3" />
@@ -150,30 +188,47 @@ export const TaskCard = ({
             </div>
           )}
 
-          {/* Subtasks Section */}
+          {/* Subtasks */}
           {(hasSubtasks || task.status !== "completed") && (
             <Collapsible open={isOpen} onOpenChange={setIsOpen}>
               <CollapsibleTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-full justify-between px-2"
+                  className="w-full justify-between h-8 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <span className="text-xs">Subtarefas</span>
-                  {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  <span>
+                    {hasSubtasks 
+                      ? `Subtarefas (${completedSubtasks}/${subtasks.length})`
+                      : "Subtarefas"
+                    }
+                  </span>
+                  {isOpen ? (
+                    <ChevronUp className="h-3 w-3" />
+                  ) : (
+                    <ChevronDown className="h-3 w-3" />
+                  )}
                 </Button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-2 mt-2">
+              <CollapsibleContent className="space-y-1.5 mt-2">
                 {subtasks.map((subtask) => (
-                  <div key={subtask.id} className="flex items-center gap-2 pl-2">
+                  <div
+                    key={subtask.id}
+                    className="flex items-center gap-2 text-xs p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
                     <Checkbox
                       checked={subtask.completed}
                       onCheckedChange={() => onSubtaskToggle?.(task.id, subtask.id)}
                       disabled={isReadOnly}
-                      className="h-3 w-3"
+                      className="h-3.5 w-3.5"
                     />
-                    <span className={`text-xs ${subtask.completed ? "line-through text-muted-foreground" : ""}`}>
+                    <span
+                      className={cn(
+                        "flex-1",
+                        subtask.completed && "line-through text-muted-foreground"
+                      )}
+                    >
                       {subtask.title}
                     </span>
                   </div>
@@ -182,62 +237,68 @@ export const TaskCard = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-full text-xs"
+                    className="h-7 w-full text-xs text-muted-foreground hover:text-foreground"
                     onClick={(e) => {
                       e.stopPropagation();
                       onAddSubtask?.(task.id);
                     }}
                     disabled={isReadOnly}
                   >
-                    + Adicionar subtarefa
+                    <Plus className="h-3 w-3 mr-1" />
+                    Adicionar subtarefa
                   </Button>
                 )}
               </CollapsibleContent>
             </Collapsible>
           )}
 
+          {/* Action buttons */}
           {task.status !== "completed" && (
-            <div className="flex gap-1.5 pt-1">
-              {(task.status === "pending" || task.status === "in_progress") && onComplete && (
+            <div className="flex items-center justify-between pt-1 border-t border-border/30">
+              <div className="flex items-center gap-1">
+                {(task.status === "pending" || task.status === "in_progress") && onComplete && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onComplete(task.id);
+                    }}
+                    disabled={isReadOnly}
+                  >
+                    <Check className="h-3.5 w-3.5 mr-1" />
+                    Concluir
+                  </Button>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-1">
                 <Button
-                  variant="default"
+                  variant="ghost"
                   size="sm"
-                  className="h-7 px-2 flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onComplete(task.id);
+                    onEdit(task);
                   }}
                   disabled={isReadOnly}
                 >
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                  <span className="text-xs">Concluir</span>
+                  <Edit className="h-3.5 w-3.5" />
                 </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 flex-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(task);
-                }}
-                disabled={isReadOnly}
-              >
-                <Edit className="h-3 w-3 mr-1" />
-                <span className="text-xs">Editar</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-destructive hover:text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(task.id);
-                }}
-                disabled={isReadOnly}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(task.id);
+                  }}
+                  disabled={isReadOnly}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
