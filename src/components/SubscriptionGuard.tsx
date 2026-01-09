@@ -16,10 +16,10 @@ export const useReadOnly = () => useContext(ReadOnlyContext);
 
 // Guard principal
 export function SubscriptionGuard({ children }: { children: ReactNode }) {
-  const { subscription, isLoading, isExpired, isTrial, daysRemaining, hasSubscription } = useSubscriptionStatus();
+  const { isLoading, isExpired, isTrial, daysRemaining, hasNoSubscriptionConfirmed } = useSubscriptionStatus();
   const navigate = useNavigate();
 
-  // Loading state
+  // Loading state - só mostra loading se não temos cache
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -28,8 +28,8 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
     );
   }
 
-  // Modo read-only: quando expirado OU quando não tem subscription
-  const isReadOnly = isExpired || !hasSubscription;
+  // Modo read-only: SOMENTE quando temos certeza que está expirado OU confirmamos que não tem subscription
+  const isReadOnly = isExpired || hasNoSubscriptionConfirmed;
 
   return (
     <ReadOnlyContext.Provider value={{ isReadOnly }}>
