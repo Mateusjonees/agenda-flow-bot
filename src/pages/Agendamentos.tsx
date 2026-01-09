@@ -600,9 +600,6 @@ const Agendamentos = () => {
                 
                 <div className="w-14 sm:w-20 text-xs sm:text-sm text-muted-foreground font-semibold pt-0.5 flex-shrink-0">
                   {String(hour).padStart(2, "0")}:00
-                  {!isWithinBusinessHours && hourAppointments.length === 0 && hourTasks.length === 0 && (
-                    <span className="block text-[10px] text-muted-foreground/60 italic">Fechado</span>
-                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   {hourAppointments.length > 0 || hourTasks.length > 0 ? (
@@ -892,11 +889,6 @@ const Agendamentos = () => {
                         isCurrentDay && isWithinBusinessHours && "bg-primary/5"
                       )}
                     >
-                      {!isWithinBusinessHours && dayHourAppointments.length === 0 && (
-                        <div className="text-xs text-muted-foreground/60 italic text-center py-1">
-                          Fechado
-                        </div>
-                      )}
                       {/* Mostrar agendamentos sempre, mesmo fora do horário de funcionamento */}
                       {dayHourAppointments.map((apt) => {
                         const statusColors = {
