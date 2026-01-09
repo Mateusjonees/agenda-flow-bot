@@ -62,9 +62,9 @@ const TermosServico = () => {
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li><strong>Trial Gratuito:</strong> 7 dias de acesso completo para novos usuários</li>
-              <li><strong>Plano Mensal:</strong> R$ 97,00/mês</li>
-              <li><strong>Plano Semestral:</strong> R$ 582,00 (economia de 14%)</li>
-              <li><strong>Plano Anual:</strong> R$ 1.164,00 (economia de 17%)</li>
+              <li><strong>Plano Mensal:</strong> R$ 49,00/mês</li>
+              <li><strong>Plano Semestral:</strong> R$ 259,00 (economia de 12%)</li>
+              <li><strong>Plano Anual:</strong> R$ 475,00 (economia de 19%)</li>
             </ul>
             <p className="text-muted-foreground mt-4">
               Os pagamentos são processados via Mercado Pago (PIX ou cartão de crédito). 
