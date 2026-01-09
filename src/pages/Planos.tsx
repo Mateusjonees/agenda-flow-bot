@@ -745,51 +745,36 @@ const Planos = () => {
         </Card>
       )}
 
-      {/* Card Compacto de Ações - Apenas para assinaturas ativas (não trial, não cancelada, não expirada) */}
+      {/* Ações da Assinatura - Design limpo */}
       {subscription && subscription.status === "active" && (
-        <Card className="bg-gradient-to-r from-slate-800/80 to-slate-900/80 border-slate-700/50 shadow-lg">
-          <CardContent className="py-5 px-6">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-primary/10">
-                  <Shield className="w-5 h-5 text-primary" />
-                </div>
-                <span className="font-semibold text-foreground">Ações da Assinatura</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button 
-                  size="sm"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
-                  onClick={() => {
-                    const plansSection = document.getElementById('plans-section');
-                    plansSection?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  <ArrowUpCircle className="w-4 h-4 mr-2" />
-                  Trocar Plano
-                </Button>
-                <Button 
-                  size="sm"
-                  variant="outline" 
-                  className="border-destructive/50 text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive"
-                  onClick={() => setCancelDialogOpen(true)}
-                  disabled={loading}
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  size="sm"
-                  variant="outline"
-                  className="border-slate-600 hover:border-slate-500 hover:bg-slate-800"
-                  onClick={() => navigate("/historico-pagamentos")}
-                >
-                  <Receipt className="w-4 h-4 mr-2" />
-                  Histórico
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button 
+            onClick={() => {
+              const plansSection = document.getElementById('plans-section');
+              plansSection?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="gap-2"
+          >
+            <ArrowUpCircle className="w-4 h-4" />
+            Trocar Plano
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => navigate("/historico-pagamentos")}
+            className="gap-2"
+          >
+            <Receipt className="w-4 h-4" />
+            Ver Histórico
+          </Button>
+          <Button 
+            variant="ghost"
+            className="text-muted-foreground hover:text-destructive"
+            onClick={() => setCancelDialogOpen(true)}
+            disabled={loading}
+          >
+            Cancelar Assinatura
+          </Button>
+        </div>
       )}
 
       {subscription && subscription.status === "trial" && (() => {
