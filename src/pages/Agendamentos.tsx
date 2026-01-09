@@ -961,11 +961,35 @@ const Agendamentos = () => {
       ...days
     ];
 
+    // Obter dias ativos da configuração do usuário
+    const activeDayNumbers = businessHours
+      .filter(h => h.is_active)
+      .map(h => h.day_of_week);
+    
+    // Dias da semana filtrados
+    const allDaysOfWeek = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+    const activeDaysOfWeek = allDaysOfWeek.filter((_, idx) => activeDayNumbers.includes(idx));
+    
+    // Filtrar dias do mês para mostrar apenas os dias ativos
+    const filteredDays = allDays.filter(day => activeDayNumbers.includes(day.getDay()));
+    
+    // Definir número de colunas baseado nos dias ativos
+    const gridCols = activeDayNumbers.length || 7;
+    const gridColsClass = {
+      1: "grid-cols-1",
+      2: "grid-cols-2",
+      3: "grid-cols-3",
+      4: "grid-cols-4",
+      5: "grid-cols-5",
+      6: "grid-cols-6",
+      7: "grid-cols-7"
+    }[gridCols] || "grid-cols-7";
+
     return (
       <div className="overflow-hidden rounded-lg border">
-        {/* Cabeçalho dos dias da semana - estilo Google */}
-        <div className="grid grid-cols-7 bg-muted/50 border-b">
-          {["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"].map((day) => (
+        {/* Cabeçalho dos dias da semana - apenas dias ativos */}
+        <div className={cn("grid bg-muted/50 border-b", gridColsClass)}>
+          {activeDaysOfWeek.map((day) => (
             <div key={day} className="p-3 text-center border-l first:border-l-0 border-border">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 {day.slice(0, 3)}
@@ -974,12 +998,11 @@ const Agendamentos = () => {
           ))}
         </div>
         
-        {/* Grid de dias */}
-        <div className="grid grid-cols-7 bg-background">
-          {allDays.map((day, idx) => {
+        {/* Grid de dias - apenas dias ativos */}
+        <div className={cn("grid bg-background", gridColsClass)}>
+          {filteredDays.map((day, idx) => {
             const isCurrentMonth = day >= start && day <= end;
             const isCurrentDay = isSameDay(day, new Date());
-            const isActive = isDayActive(day);
             
             const dayAppointments = appointments.filter(apt => {
               const aptDate = parseISO(apt.start_time);
@@ -997,7 +1020,7 @@ const Agendamentos = () => {
                 className={cn(
                   "min-h-[110px] sm:min-h-[140px] p-2 border-b border-l first:border-l-0",
                   "relative group transition-colors",
-                  isActive ? "bg-card hover:bg-accent/5" : "bg-muted/40",
+                  "bg-card hover:bg-accent/5",
                   !isCurrentMonth && "opacity-60",
                   isCurrentDay && "bg-primary/5 ring-2 ring-primary/30"
                 )}
@@ -1009,23 +1032,15 @@ const Agendamentos = () => {
                       "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-all",
                       isCurrentDay && "bg-primary text-primary-foreground shadow-sm",
                       !isCurrentDay && !isCurrentMonth && "text-muted-foreground/50",
-                      !isCurrentDay && isCurrentMonth && isActive && "text-foreground hover:bg-muted/50",
-                      !isCurrentDay && isCurrentMonth && !isActive && "text-muted-foreground/50"
+                      !isCurrentDay && isCurrentMonth && "text-foreground hover:bg-muted/50"
                     )}
                   >
                     {format(day, "d")}
                   </div>
                 </div>
                 
-                {/* Indicador de dia fechado */}
-                {isCurrentMonth && !isActive && (
-                  <div className="text-xs text-center text-muted-foreground/70 italic">
-                    Fechado
-                  </div>
-                )}
-                
                 {/* Indicador de agendamentos no topo */}
-                {hasAppointments && isActive && (
+                {hasAppointments && (
                   <div className="absolute top-2 right-2">
                     <div className="w-2 h-2 rounded-full bg-primary shadow-sm" />
                   </div>
