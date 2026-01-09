@@ -49,8 +49,6 @@ const App = () => (
           <Toaster />
           <Sonner />
           <PWAUpdatePrompt />
-          <CookieConsent />
-          <OnboardingTutorial />
           <BrowserRouter>
             <PasswordResetGuard>
               <MaintenanceGuard>
