@@ -105,7 +105,7 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Suporte">
-                  <a href="https://wa.me/5548990751889?text=Olá,%20preciso%20de%20suporte" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
+                  <a href="https://wa.me/554899075189?text=Olá,%20preciso%20de%20suporte" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
                     <MessageCircle className="w-5 h-5" />
                     <span>Suporte WhatsApp</span>
                   </a>

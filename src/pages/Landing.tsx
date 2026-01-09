@@ -115,7 +115,7 @@ const Landing = () => {
     <div className="min-h-screen bg-background overflow-hidden">
       {/* WhatsApp Floating Button */}
       <a
-        href="https://wa.me/5548988430812?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão"
+        href="https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão"
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-full p-4 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 animate-pulse-glow group"
@@ -273,7 +273,7 @@ const Landing = () => {
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => window.open("https://wa.me/5548988430812?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão", "_blank")}
+                onClick={() => window.open("https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão", "_blank")}
                 className="h-16 px-10 text-lg gap-3 glass hover:bg-primary/10 hover:-translate-y-1 transition-all"
               >
                 <Play className="w-5 h-5" />
