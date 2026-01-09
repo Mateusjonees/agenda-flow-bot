@@ -7,7 +7,13 @@ const corsHeaders = {
 };
 
 interface PreferenceRequest {
-  planType: "monthly" | "semestral" | "annual";
+  plan_id?: string;
+  plan_name?: string;
+  price?: number;
+  billing_frequency?: string;
+  months?: number;
+  user_id?: string;
+  planType?: "monthly" | "semestral" | "annual";
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -33,12 +39,22 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Unauthorized");
     }
 
-    const { planType }: PreferenceRequest = await req.json();
+    const requestData: PreferenceRequest = await req.json();
+    
+    // Mapear billing_frequency do frontend para planType interno
+    const billingToTypeMap: Record<string, string> = {
+      "monthly": "monthly",
+      "semiannual": "semestral",
+      "annual": "annual"
+    };
+    
+    // Suporta tanto o formato antigo (planType) quanto o novo (billing_frequency)
+    const planType = requestData.planType || billingToTypeMap[requestData.billing_frequency || ""] || "monthly";
 
-    console.log(`Creating subscription preference for user ${user.id} with plan ${planType}`);
+    console.log(`Creating subscription preference for user ${user.id} with plan ${planType}`, requestData);
 
-    // Definir preços e descrições baseado no plano
-    const planDetails = {
+  // Definir preços e descrições baseado no plano
+    const planDetails: Record<string, { price: number; title: string; description: string; frequency: number; frequency_type: string }> = {
       monthly: { 
         price: 49.00, 
         title: "Plano Mensal", 
