@@ -211,73 +211,74 @@ export const TaskCard = ({
                   )}
                 </Button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-2 mt-3">
-                {subtasks.map((subtask) => (
-                  <button
-                    key={subtask.id}
-                    onClick={() => !isReadOnly && onSubtaskToggle?.(task.id, subtask.id)}
-                    disabled={isReadOnly}
-                    className={cn(
-                      "w-full flex items-center gap-3 p-3 rounded-xl text-left",
-                      "border border-border/40 bg-gradient-to-r",
-                      "transition-all duration-200 cursor-pointer group",
-                      subtask.completed 
-                        ? "from-green-500/10 to-green-500/5 border-green-500/30 hover:border-green-500/50" 
-                        : "from-muted/50 to-muted/30 hover:from-muted/70 hover:to-muted/50 hover:border-primary/30",
-                      isReadOnly && "cursor-not-allowed opacity-60"
-                    )}
-                  >
-                    {/* Custom checkbox circle */}
-                    <div 
+              <CollapsibleContent className="mt-2">
+                <div className="space-y-1.5">
+                  {subtasks.map((subtask) => (
+                    <button
+                      key={subtask.id}
+                      onClick={() => !isReadOnly && onSubtaskToggle?.(task.id, subtask.id)}
+                      disabled={isReadOnly}
                       className={cn(
-                        "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0",
-                        "transition-all duration-200",
+                        "w-full flex items-center gap-2.5 py-2 px-2.5 rounded-lg text-left",
+                        "transition-all duration-150 group",
                         subtask.completed 
-                          ? "bg-green-500 border-green-500" 
-                          : "border-muted-foreground/40 group-hover:border-primary"
+                          ? "bg-green-500/10 hover:bg-green-500/15" 
+                          : "bg-muted/40 hover:bg-muted/60",
+                        isReadOnly && "cursor-not-allowed opacity-60"
                       )}
                     >
-                      {subtask.completed && (
-                        <Check className="h-3 w-3 text-white" />
-                      )}
-                    </div>
-                    
-                    {/* Subtask text */}
-                    <span
+                      {/* Checkbox */}
+                      <div 
+                        className={cn(
+                          "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0",
+                          "transition-all duration-150",
+                          subtask.completed 
+                            ? "bg-green-500 border-green-500" 
+                            : "border-muted-foreground/50 group-hover:border-primary"
+                        )}
+                      >
+                        {subtask.completed && (
+                          <Check className="h-2.5 w-2.5 text-white" />
+                        )}
+                      </div>
+                      
+                      {/* Text */}
+                      <span
+                        className={cn(
+                          "text-xs leading-tight",
+                          subtask.completed 
+                            ? "line-through text-muted-foreground" 
+                            : "text-foreground"
+                        )}
+                      >
+                        {subtask.title}
+                      </span>
+                    </button>
+                  ))}
+                  
+                  {/* Add button */}
+                  {task.status !== "completed" && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddSubtask?.(task.id);
+                      }}
+                      disabled={isReadOnly}
                       className={cn(
-                        "flex-1 text-sm transition-all duration-200",
-                        subtask.completed 
-                          ? "line-through text-muted-foreground" 
-                          : "text-foreground group-hover:text-primary"
+                        "w-full flex items-center gap-2.5 py-2 px-2.5 rounded-lg",
+                        "border border-dashed border-muted-foreground/30",
+                        "text-muted-foreground hover:text-primary hover:border-primary/50",
+                        "transition-all duration-150",
+                        isReadOnly && "cursor-not-allowed opacity-60"
                       )}
                     >
-                      {subtask.title}
-                    </span>
-                  </button>
-                ))}
-                
-                {/* Add subtask button */}
-                {task.status !== "completed" && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddSubtask?.(task.id);
-                    }}
-                    disabled={isReadOnly}
-                    className={cn(
-                      "w-full flex items-center gap-3 p-3 rounded-xl",
-                      "border border-dashed border-border/50 hover:border-primary/50",
-                      "text-muted-foreground hover:text-primary",
-                      "transition-all duration-200 group",
-                      isReadOnly && "cursor-not-allowed opacity-60"
-                    )}
-                  >
-                    <div className="w-5 h-5 rounded-full border-2 border-dashed border-current flex items-center justify-center">
-                      <Plus className="h-3 w-3" />
-                    </div>
-                    <span className="text-sm">Adicionar subtarefa</span>
-                  </button>
-                )}
+                      <div className="w-4 h-4 rounded border-2 border-dashed border-current flex items-center justify-center">
+                        <Plus className="h-2.5 w-2.5" />
+                      </div>
+                      <span className="text-xs">Adicionar subtarefa</span>
+                    </button>
+                  )}
+                </div>
               </CollapsibleContent>
             </Collapsible>
           )}
