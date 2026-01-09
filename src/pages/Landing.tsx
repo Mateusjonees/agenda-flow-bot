@@ -3,7 +3,41 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Rocket, Calendar, Users, DollarSign, BarChart3, Star, CheckCircle2, ArrowRight, Sparkles, Shield, Clock, TrendingUp, HeadphonesIcon, Lock, Zap, Award, MessageCircle, Check, Quote, Menu, X, Scissors, Dumbbell, Heart, Stethoscope, PawPrint, CreditCard, CalendarCheck, XCircle, TrendingDown, Target, Smartphone, Play } from "lucide-react";
+import {
+  Rocket,
+  Calendar,
+  Users,
+  DollarSign,
+  BarChart3,
+  Star,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
+  Shield,
+  Clock,
+  TrendingUp,
+  HeadphonesIcon,
+  Lock,
+  Zap,
+  Award,
+  MessageCircle,
+  Check,
+  Quote,
+  Menu,
+  X,
+  Scissors,
+  Dumbbell,
+  Heart,
+  Stethoscope,
+  PawPrint,
+  CreditCard,
+  CalendarCheck,
+  XCircle,
+  TrendingDown,
+  Target,
+  Smartphone,
+  Play,
+} from "lucide-react";
 import foguetinho from "@/assets/foguetinho.png";
 import logoAntigo from "@/assets/logo.png";
 import { Badge } from "@/components/ui/badge";
@@ -17,11 +51,15 @@ const Landing = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
     };
     checkAuth();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_, session) => {
       setIsAuthenticated(!!session);
     });
     return () => subscription.unsubscribe();
@@ -41,38 +79,179 @@ const Landing = () => {
   };
 
   const features = [
-    { icon: Calendar, title: "Agendamentos Inteligentes", description: "Gerencie seus horários de forma eficiente com calendário visual e lembretes automáticos", color: "from-blue-500 to-cyan-500" },
-    { icon: Users, title: "Gestão de Clientes", description: "Histórico completo, cartão fidelidade e comunicação automatizada com WhatsApp", color: "from-purple-500 to-pink-500" },
-    { icon: DollarSign, title: "Controle Financeiro", description: "Acompanhe receitas, despesas e fluxo de caixa em tempo real", color: "from-emerald-500 to-teal-500" },
-    { icon: BarChart3, title: "Relatórios Detalhados", description: "Analytics completo para tomar decisões baseadas em dados", color: "from-orange-500 to-amber-500" },
-    { icon: Star, title: "Pós-venda Automático", description: "Solicite avaliações e envie cupons automaticamente após cada serviço", color: "from-rose-500 to-red-500" },
-    { icon: Sparkles, title: "Propostas Profissionais", description: "Crie e envie propostas profissionais com acompanhamento de status", color: "from-indigo-500 to-violet-500" },
+    {
+      icon: Calendar,
+      title: "Agendamentos Inteligentes",
+      description: "Gerencie seus horários de forma eficiente com calendário visual e lembretes automáticos",
+      color: "from-blue-500 to-cyan-500",
+    },
+    {
+      icon: Users,
+      title: "Gestão de Clientes",
+      description: "Histórico completo, cartão fidelidade e comunicação automatizada com WhatsApp",
+      color: "from-purple-500 to-pink-500",
+    },
+    {
+      icon: DollarSign,
+      title: "Controle Financeiro",
+      description: "Acompanhe receitas, despesas e fluxo de caixa em tempo real",
+      color: "from-emerald-500 to-teal-500",
+    },
+    {
+      icon: BarChart3,
+      title: "Relatórios Detalhados",
+      description: "Analytics completo para tomar decisões baseadas em dados",
+      color: "from-orange-500 to-amber-500",
+    },
+    {
+      icon: Star,
+      title: "Pós-venda Automático",
+      description: "Solicite avaliações e envie cupons automaticamente após cada serviço",
+      color: "from-rose-500 to-red-500",
+    },
+    {
+      icon: Sparkles,
+      title: "Propostas Profissionais",
+      description: "Crie e envie propostas profissionais com acompanhamento de status",
+      color: "from-indigo-500 to-violet-500",
+    },
   ];
 
-  const benefits = ["Sem instalação - 100% online", "Interface intuitiva e moderna", "Suporte técnico dedicado", "Atualizações constantes", "Segurança de dados garantida", "Relatórios em tempo real"];
+  const benefits = [
+    "Sem instalação - 100% online",
+    "Interface intuitiva e moderna",
+    "Suporte técnico dedicado",
+    "Atualizações constantes",
+    "Segurança de dados garantida",
+    "Relatórios em tempo real",
+  ];
 
   const testimonials = [
-    { name: "Maria Silva", role: "Proprietária - Salão Beleza Pura", content: "O Foguete transformou completamente a gestão do meu salão. Economizo 10 horas por semana e aumentei em 30% minhas reservas!", rating: 5, avatar: "MS" },
-    { name: "João Santos", role: "Dono - Barbearia Estilo", content: "Incrível como é fácil de usar! Meus clientes adoram receber lembretes automáticos e o pós-venda aumentou muito nossa fidelização.", rating: 5, avatar: "JS" },
-    { name: "Ana Costa", role: "Gerente - Clínica Vida Saudável", content: "O controle financeiro e os relatórios me dão total visibilidade do negócio. Recomendo para qualquer prestador de serviços!", rating: 5, avatar: "AC" },
-    { name: "Pedro Oliveira", role: "Proprietário - Academia Forma Fitness", content: "Triplicamos o controle sobre as mensalidades e reduzimos inadimplência em 60%. O sistema é perfeito!", rating: 5, avatar: "PO" },
-    { name: "Carla Mendes", role: "Dona - Clínica Estética Beleza", content: "Os prontuários digitais e o histórico de clientes facilitaram muito nosso trabalho. Recomendo!", rating: 5, avatar: "CM" },
-    { name: "Ricardo Lima", role: "Gerente - Consultório Dr. Lima", content: "A agenda médica ficou muito mais organizada. Os lembretes automáticos reduziram faltas drasticamente.", rating: 5, avatar: "RL" },
+    {
+      name: "Maria Silva",
+      role: "Proprietária - Salão Beleza Pura",
+      content:
+        "O Foguete transformou completamente a gestão do meu salão. Economizo 10 horas por semana e aumentei em 30% minhas reservas!",
+      rating: 5,
+      avatar: "MS",
+    },
+    {
+      name: "João Santos",
+      role: "Dono - Barbearia Estilo",
+      content:
+        "Incrível como é fácil de usar! Meus clientes adoram receber lembretes automáticos e o pós-venda aumentou muito nossa fidelização.",
+      rating: 5,
+      avatar: "JS",
+    },
+    {
+      name: "Ana Costa",
+      role: "Gerente - Clínica Vida Saudável",
+      content:
+        "O controle financeiro e os relatórios me dão total visibilidade do negócio. Recomendo para qualquer prestador de serviços!",
+      rating: 5,
+      avatar: "AC",
+    },
+    {
+      name: "Pedro Oliveira",
+      role: "Proprietário - Academia Forma Fitness",
+      content: "Triplicamos o controle sobre as mensalidades e reduzimos inadimplência em 60%. O sistema é perfeito!",
+      rating: 5,
+      avatar: "PO",
+    },
+    {
+      name: "Carla Mendes",
+      role: "Dona - Clínica Estética Beleza",
+      content: "Os prontuários digitais e o histórico de clientes facilitaram muito nosso trabalho. Recomendo!",
+      rating: 5,
+      avatar: "CM",
+    },
+    {
+      name: "Ricardo Lima",
+      role: "Gerente - Consultório Dr. Lima",
+      content: "A agenda médica ficou muito mais organizada. Os lembretes automáticos reduziram faltas drasticamente.",
+      rating: 5,
+      avatar: "RL",
+    },
   ];
 
   const pricingPlans = [
-    { name: "Starter", price: "R$ 97", period: "/mês", description: "Perfeito para começar", features: ["Até 100 agendamentos/mês", "Gestão de clientes ilimitada", "WhatsApp automático", "Controle financeiro básico", "Suporte por email"], popular: false },
-    { name: "Professional", price: "R$ 197", period: "/mês", description: "Ideal para negócios em crescimento", features: ["Agendamentos ilimitados", "Todas as funcionalidades", "Relatórios avançados", "Propostas profissionais", "Multi-usuários (até 5)", "Suporte prioritário", "Integração com PIX"], popular: true },
-    { name: "Enterprise", price: "Customizado", period: "", description: "Para grandes operações", features: ["Tudo do Professional", "Usuários ilimitados", "API personalizada", "Treinamento dedicado", "Suporte 24/7", "Gerente de conta", "SLA garantido"], popular: false },
+    {
+      name: "Starter",
+      price: "R$ 97",
+      period: "/mês",
+      description: "Perfeito para começar",
+      features: [
+        "Até 100 agendamentos/mês",
+        "Gestão de clientes ilimitada",
+        "WhatsApp automático",
+        "Controle financeiro básico",
+        "Suporte por email",
+      ],
+      popular: false,
+    },
+    {
+      name: "Professional",
+      price: "R$ 197",
+      period: "/mês",
+      description: "Ideal para negócios em crescimento",
+      features: [
+        "Agendamentos ilimitados",
+        "Todas as funcionalidades",
+        "Relatórios avançados",
+        "Propostas profissionais",
+        "Multi-usuários (até 5)",
+        "Suporte prioritário",
+        "Integração com PIX",
+      ],
+      popular: true,
+    },
+    {
+      name: "Enterprise",
+      price: "Customizado",
+      period: "",
+      description: "Para grandes operações",
+      features: [
+        "Tudo do Professional",
+        "Usuários ilimitados",
+        "API personalizada",
+        "Treinamento dedicado",
+        "Suporte 24/7",
+        "Gerente de conta",
+        "SLA garantido",
+      ],
+      popular: false,
+    },
   ];
 
   const faqs = [
-    { question: "Como funciona o período de teste?", answer: "Você tem 7 dias grátis para testar todas as funcionalidades sem compromisso. Não precisa cadastrar cartão de crédito." },
-    { question: "Posso cancelar a qualquer momento?", answer: "Sim! Você pode cancelar quando quiser, sem multas ou taxas. Seu acesso continua até o fim do período pago." },
-    { question: "Os dados estão seguros?", answer: "Absolutamente! Usamos criptografia de ponta e backups diários. Seus dados ficam em servidores seguros na nuvem." },
-    { question: "Preciso instalar algum programa?", answer: "Não! O Foguete funciona 100% online. Acesse de qualquer navegador, computador, tablet ou celular." },
-    { question: "Tem limite de agendamentos?", answer: "No plano Professional e Enterprise não há limites. O plano Starter tem limite de 100 agendamentos/mês." },
-    { question: "Como funciona o suporte?", answer: "Oferecemos suporte via email, chat e WhatsApp. Planos Professional e Enterprise têm suporte prioritário." },
+    {
+      question: "Como funciona o período de teste?",
+      answer:
+        "Você tem 7 dias grátis para testar todas as funcionalidades sem compromisso. Não precisa cadastrar cartão de crédito.",
+    },
+    {
+      question: "Posso cancelar a qualquer momento?",
+      answer:
+        "Sim! Você pode cancelar quando quiser, sem multas ou taxas. Seu acesso continua até o fim do período pago.",
+    },
+    {
+      question: "Os dados estão seguros?",
+      answer:
+        "Absolutamente! Usamos criptografia de ponta e backups diários. Seus dados ficam em servidores seguros na nuvem.",
+    },
+    {
+      question: "Preciso instalar algum programa?",
+      answer: "Não! O Foguete funciona 100% online. Acesse de qualquer navegador, computador, tablet ou celular.",
+    },
+    {
+      question: "Tem limite de agendamentos?",
+      answer: "No plano Professional e Enterprise não há limites. O plano Starter tem limite de 100 agendamentos/mês.",
+    },
+    {
+      question: "Como funciona o suporte?",
+      answer:
+        "Oferecemos suporte via email, chat e WhatsApp. Planos Professional e Enterprise têm suporte prioritário.",
+    },
   ];
 
   const stats = [
@@ -83,19 +262,69 @@ const Landing = () => {
   ];
 
   const useCases = [
-    { icon: Scissors, title: "Salões de Beleza", description: "Gestão completa de agenda, clientes e serviços", color: "from-pink-500 to-rose-500" },
-    { icon: Scissors, title: "Barbearias", description: "Controle de fila, comissões e agendamentos", color: "from-slate-600 to-gray-700" },
-    { icon: Heart, title: "Clínicas de Estética", description: "Prontuários digitais e histórico de tratamentos", color: "from-purple-500 to-fuchsia-500" },
-    { icon: Stethoscope, title: "Consultórios", description: "Agendamento médico e controle financeiro", color: "from-cyan-500 to-blue-500" },
-    { icon: Dumbbell, title: "Academias", description: "Gestão de planos, mensalidades e acesso", color: "from-orange-500 to-red-500" },
-    { icon: PawPrint, title: "Pet Shops", description: "Controle de serviços, produtos e pets", color: "from-amber-500 to-yellow-500" },
+    {
+      icon: Scissors,
+      title: "Salões de Beleza",
+      description: "Gestão completa de agenda, clientes e serviços",
+      color: "from-pink-500 to-rose-500",
+    },
+    {
+      icon: Scissors,
+      title: "Barbearias",
+      description: "Controle de fila, comissões e agendamentos",
+      color: "from-slate-600 to-gray-700",
+    },
+    {
+      icon: Heart,
+      title: "Clínicas de Estética",
+      description: "Prontuários digitais e histórico de tratamentos",
+      color: "from-purple-500 to-fuchsia-500",
+    },
+    {
+      icon: Stethoscope,
+      title: "Consultórios",
+      description: "Agendamento médico e controle financeiro",
+      color: "from-cyan-500 to-blue-500",
+    },
+    {
+      icon: Dumbbell,
+      title: "Academias",
+      description: "Gestão de planos, mensalidades e acesso",
+      color: "from-orange-500 to-red-500",
+    },
+    {
+      icon: PawPrint,
+      title: "Pet Shops",
+      description: "Controle de serviços, produtos e pets",
+      color: "from-amber-500 to-yellow-500",
+    },
   ];
 
   const integrations = [
-    { name: "WhatsApp Business", description: "Envio automático de lembretes, confirmações e mensagens personalizadas", icon: MessageCircle, color: "from-green-500 to-emerald-500" },
-    { name: "PIX", description: "Cobranças e pagamentos instantâneos integrados ao sistema", icon: Smartphone, color: "from-cyan-500 to-teal-500" },
-    { name: "Mercado Pago", description: "Gateway de pagamento completo com link de pagamento", icon: CreditCard, color: "from-blue-500 to-sky-500" },
-    { name: "Google Calendar", description: "Sincronização automática de agendamentos com sua agenda", icon: CalendarCheck, color: "from-red-500 to-orange-500" },
+    {
+      name: "WhatsApp Business",
+      description: "Envio automático de lembretes, confirmações e mensagens personalizadas",
+      icon: MessageCircle,
+      color: "from-green-500 to-emerald-500",
+    },
+    {
+      name: "PIX",
+      description: "Cobranças e pagamentos instantâneos integrados ao sistema",
+      icon: Smartphone,
+      color: "from-cyan-500 to-teal-500",
+    },
+    {
+      name: "Mercado Pago",
+      description: "Gateway de pagamento completo com link de pagamento",
+      icon: CreditCard,
+      color: "from-blue-500 to-sky-500",
+    },
+    {
+      name: "Google Calendar",
+      description: "Sincronização automática de agendamentos com sua agenda",
+      icon: CalendarCheck,
+      color: "from-red-500 to-orange-500",
+    },
   ];
 
   const roiStats = [
@@ -131,7 +360,11 @@ const Landing = () => {
       <header className="border-b glass-strong sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img alt="Foguete" className="h-16 w-auto dark:hidden transition-transform duration-300 hover:scale-110 hover:rotate-6" src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png" />
+            <img
+              alt="Foguete"
+              className="h-16 w-auto dark:hidden transition-transform duration-300 hover:scale-110 hover:rotate-6"
+              src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png"
+            />
             <img src={logoAntigo} alt="Foguete" className="h-16 w-auto hidden dark:block" />
           </div>
 
@@ -143,7 +376,15 @@ const Landing = () => {
                 onClick={() => scrollToSection(item)}
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-300 relative group"
               >
-                {item === "home" ? "Início" : item === "features" ? "Recursos" : item === "testimonials" ? "Depoimentos" : item === "pricing" ? "Preços" : "FAQ"}
+                {item === "home"
+                  ? "Início"
+                  : item === "features"
+                    ? "Recursos"
+                    : item === "testimonials"
+                      ? "Depoimentos"
+                      : item === "pricing"
+                        ? "Preços"
+                        : "FAQ"}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-primary to-accent transition-all duration-300 group-hover:w-full rounded-full"></span>
               </button>
             ))}
@@ -153,10 +394,17 @@ const Landing = () => {
             <ThemeToggle />
             {!isAuthenticated ? (
               <>
-                <Button onClick={() => navigate("/auth")} variant="ghost" className="hidden md:flex hover:bg-primary/10">
+                <Button
+                  onClick={() => navigate("/auth")}
+                  variant="ghost"
+                  className="hidden md:flex hover:bg-primary/10"
+                >
                   Entrar
                 </Button>
-                <Button onClick={() => navigate("/auth")} className="hidden md:flex gap-2 bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all glow-primary">
+                <Button
+                  onClick={() => navigate("/auth")}
+                  className="hidden md:flex gap-2 bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all glow-primary"
+                >
                   Começe Grátis
                   <ArrowRight className="w-4 h-4" />
                 </Button>
@@ -168,7 +416,12 @@ const Landing = () => {
               </Button>
             )}
 
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
           </div>
@@ -184,7 +437,15 @@ const Landing = () => {
                   onClick={() => scrollToSection(item)}
                   className="text-left text-sm font-medium text-muted-foreground hover:text-primary transition-colors py-2 px-3 rounded-lg hover:bg-primary/10"
                 >
-                  {item === "home" ? "Início" : item === "features" ? "Recursos" : item === "testimonials" ? "Depoimentos" : item === "pricing" ? "Preços" : "FAQ"}
+                  {item === "home"
+                    ? "Início"
+                    : item === "features"
+                      ? "Recursos"
+                      : item === "testimonials"
+                        ? "Depoimentos"
+                        : item === "pricing"
+                          ? "Preços"
+                          : "FAQ"}
                 </button>
               ))}
               <div className="pt-2 border-t space-y-2">
@@ -215,7 +476,7 @@ const Landing = () => {
         {/* Background Effects */}
         <div className="absolute inset-0 bg-mesh-gradient opacity-60" />
         <div className="absolute inset-0 bg-grid-pattern opacity-30" />
-        
+
         {/* Floating Decorative Elements */}
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-float-slow" />
@@ -240,8 +501,8 @@ const Landing = () => {
             </h1>
 
             <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto animate-slide-up animation-delay-200 leading-relaxed">
-              Sistema completo para <span className="text-foreground font-semibold">salões, clínicas, barbearias</span> e prestadores de serviço.
-              Gerencie tudo em um só lugar.
+              Sistema completo para <span className="text-foreground font-semibold">salões, clínicas, barbearias</span>{" "}
+              e prestadores de serviço. Gerencie tudo em um só lugar.
             </p>
 
             {/* Guarantee Badges */}
@@ -273,7 +534,12 @@ const Landing = () => {
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => window.open("https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão", "_blank")}
+                onClick={() =>
+                  window.open(
+                    "https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão",
+                    "_blank",
+                  )
+                }
                 className="h-16 px-10 text-lg gap-3 glass hover:bg-primary/10 hover:-translate-y-1 transition-all"
               >
                 <Play className="w-5 h-5" />
@@ -335,11 +601,18 @@ const Landing = () => {
               {useCases.map((useCase, index) => {
                 const Icon = useCase.icon;
                 return (
-                  <Card key={index} className="group hover-lift border-2 border-transparent hover:border-primary/30 transition-all bg-card/50 backdrop-blur-sm overflow-hidden">
+                  <Card
+                    key={index}
+                    className="group hover-lift border-2 border-transparent hover:border-primary/30 transition-all bg-card/50 backdrop-blur-sm overflow-hidden"
+                  >
                     <CardContent className="p-8 text-center relative">
-                      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${useCase.color} opacity-0 group-hover:opacity-100 transition-opacity`} />
+                      <div
+                        className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${useCase.color} opacity-0 group-hover:opacity-100 transition-opacity`}
+                      />
                       <div className="w-20 h-20 mb-6 mx-auto flex items-center justify-center">
-                        <div className={`w-16 h-16 bg-gradient-to-br ${useCase.color} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}>
+                        <div
+                          className={`w-16 h-16 bg-gradient-to-br ${useCase.color} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}
+                        >
                           <Icon className="w-8 h-8 text-white" />
                         </div>
                       </div>
@@ -374,11 +647,18 @@ const Landing = () => {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {features.map((feature, index) => (
-                <Card key={index} className="group hover-lift border-2 border-transparent hover:border-primary/30 bg-card/80 backdrop-blur-sm overflow-hidden">
+                <Card
+                  key={index}
+                  className="group hover-lift border-2 border-transparent hover:border-primary/30 bg-card/80 backdrop-blur-sm overflow-hidden"
+                >
                   <CardContent className="p-8 relative">
-                    <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${feature.color} opacity-0 group-hover:opacity-100 transition-opacity`} />
+                    <div
+                      className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${feature.color} opacity-0 group-hover:opacity-100 transition-opacity`}
+                    />
                     <div className="w-16 h-16 mb-6 flex items-center justify-center">
-                      <div className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}>
+                      <div
+                        className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}
+                      >
                         <feature.icon className="w-7 h-7 text-white" />
                       </div>
                     </div>
@@ -454,7 +734,10 @@ const Landing = () => {
               {roiStats.map((stat, index) => {
                 const Icon = stat.icon;
                 return (
-                  <Card key={index} className="group hover-lift border-0 bg-gradient-to-br from-card to-card/50 overflow-hidden shadow-premium">
+                  <Card
+                    key={index}
+                    className="group hover-lift border-0 bg-gradient-to-br from-card to-card/50 overflow-hidden shadow-premium"
+                  >
                     <CardContent className="p-10 text-center">
                       <div className="w-20 h-20 mb-6 mx-auto flex items-center justify-center">
                         <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -525,7 +808,10 @@ const Landing = () => {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {testimonials.map((testimonial, index) => (
-                <Card key={index} className="group hover-lift border-0 bg-card/80 backdrop-blur-sm overflow-hidden shadow-lg">
+                <Card
+                  key={index}
+                  className="group hover-lift border-0 bg-card/80 backdrop-blur-sm overflow-hidden shadow-lg"
+                >
                   <CardContent className="p-8 relative">
                     <Quote className="absolute top-6 right-6 w-10 h-10 text-primary/10" />
                     <div className="flex gap-1 mb-6">
@@ -572,10 +858,15 @@ const Landing = () => {
               {integrations.map((integration, index) => {
                 const Icon = integration.icon;
                 return (
-                  <Card key={index} className="group hover-lift border-2 border-transparent hover:border-primary/30 bg-card/80 backdrop-blur-sm overflow-hidden">
+                  <Card
+                    key={index}
+                    className="group hover-lift border-2 border-transparent hover:border-primary/30 bg-card/80 backdrop-blur-sm overflow-hidden"
+                  >
                     <CardContent className="p-8 flex gap-6">
                       <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center">
-                        <div className={`w-16 h-16 bg-gradient-to-br ${integration.color} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}>
+                        <div
+                          className={`w-16 h-16 bg-gradient-to-br ${integration.color} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}
+                        >
                           <Icon className="w-8 h-8 text-white" />
                         </div>
                       </div>
@@ -703,7 +994,7 @@ const Landing = () => {
               <Button
                 variant="outline"
                 className="gap-2 h-12 px-6 glass hover:bg-primary/10"
-                onClick={() => window.open("https://wa.me/5548990751889", "_blank")}
+                onClick={() => window.open("https://wa.me/554899075189", "_blank")}
               >
                 <MessageCircle className="w-4 h-4" />
                 Falar com Suporte
@@ -760,7 +1051,11 @@ const Landing = () => {
             {/* Logo and Description */}
             <div className="md:col-span-1">
               <div className="flex items-center gap-3 mb-4">
-                <img src={foguetinho} alt="Foguete" className="h-12 w-auto dark:hidden transition-transform duration-300 hover:scale-110 hover:rotate-6" />
+                <img
+                  src={foguetinho}
+                  alt="Foguete"
+                  className="h-12 w-auto dark:hidden transition-transform duration-300 hover:scale-110 hover:rotate-6"
+                />
                 <img src={logoAntigo} alt="Foguete" className="h-12 w-auto hidden dark:block" />
                 <span className="text-xl font-bold text-foreground">Foguete</span>
               </div>
@@ -783,7 +1078,13 @@ const Landing = () => {
                       onClick={() => scrollToSection(item)}
                       className="text-sm text-muted-foreground hover:text-primary transition-colors"
                     >
-                      {item === "features" ? "Funcionalidades" : item === "pricing" ? "Preços" : item === "testimonials" ? "Depoimentos" : "FAQ"}
+                      {item === "features"
+                        ? "Funcionalidades"
+                        : item === "pricing"
+                          ? "Preços"
+                          : item === "testimonials"
+                            ? "Depoimentos"
+                            : "FAQ"}
                     </button>
                   </li>
                 ))}
@@ -795,12 +1096,20 @@ const Landing = () => {
               <h3 className="font-bold text-foreground mb-4">Empresa</h3>
               <ul className="space-y-3">
                 <li>
-                  <button onClick={() => scrollToSection("home")} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <button
+                    onClick={() => scrollToSection("home")}
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
                     Início
                   </button>
                 </li>
                 <li>
-                  <a href="https://wa.me/5548988430812" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <a
+                    href="https://wa.me/5548988430812"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
                     Contato
                   </a>
                 </li>
@@ -816,7 +1125,12 @@ const Landing = () => {
                     <MessageCircle className="w-4 h-4 text-primary" />
                     Vendas
                   </div>
-                  <a href="https://wa.me/5548988430812" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <a
+                    href="https://wa.me/5548988430812"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
                     (48) 98843-0812
                   </a>
                 </li>
@@ -825,7 +1139,12 @@ const Landing = () => {
                     <HeadphonesIcon className="w-4 h-4 text-primary" />
                     Suporte
                   </div>
-                  <a href="https://wa.me/5548990751889" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <a
+                    href="https://wa.me/554899075189"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
                     (48) 99075-1889
                   </a>
                 </li>
@@ -860,7 +1179,10 @@ const Landing = () => {
               © 2025 Foguete Gestão Empresarial. Todos os direitos reservados.
             </div>
             <div className="flex flex-wrap items-center justify-center gap-6">
-              <a href="/politica-privacidade" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              <a
+                href="/politica-privacidade"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
                 Política de Privacidade
               </a>
               <a href="/termos-servico" className="text-sm text-muted-foreground hover:text-primary transition-colors">
