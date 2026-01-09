@@ -517,7 +517,6 @@ const Agendamentos = () => {
     // Gerar horários baseados na configuração
     const [startHour] = dayHours.start.split(':').map(Number);
     const [endHour] = dayHours.end.split(':').map(Number);
-    const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
     
     const dayAppointments = appointments.filter(apt => {
       const aptDate = parseISO(apt.start_time);
@@ -528,6 +527,20 @@ const Agendamentos = () => {
       const taskDate = parseISO(task.due_date);
       return isSameDay(taskDate, currentDate);
     });
+    
+    // Calcular o range de horas considerando agendamentos fora do horário de funcionamento
+    const appointmentHours = dayAppointments.map(apt => parseISO(apt.start_time).getHours());
+    const taskHours = dayTasks.map(task => parseISO(task.due_date).getHours());
+    const allEventHours = [...appointmentHours, ...taskHours];
+    
+    // Expandir o range para incluir eventos fora do horário de funcionamento
+    const minEventHour = allEventHours.length > 0 ? Math.min(...allEventHours) : startHour;
+    const maxEventHour = allEventHours.length > 0 ? Math.max(...allEventHours) : endHour;
+    
+    const effectiveStartHour = Math.min(startHour, minEventHour);
+    const effectiveEndHour = Math.max(endHour, maxEventHour);
+    
+    const hours = Array.from({ length: effectiveEndHour - effectiveStartHour + 1 }, (_, i) => effectiveStartHour + i);
 
     const currentHour = new Date().getHours();
     const currentMinute = new Date().getMinutes();
@@ -543,15 +556,23 @@ const Agendamentos = () => {
         </div>
         <div className="divide-y relative">
           {hours.map((hour) => {
+            // Filtrar agendamentos para esta hora usando hora LOCAL
             const hourAppointments = dayAppointments.filter(apt => {
-              const aptHour = parseISO(apt.start_time).getHours();
+              const aptDate = parseISO(apt.start_time);
+              // getHours() retorna hora LOCAL do navegador
+              const aptHour = aptDate.getHours();
               return aptHour === hour;
             });
             
+            // Filtrar tarefas para esta hora usando hora LOCAL
             const hourTasks = dayTasks.filter(task => {
-              const taskHour = parseISO(task.due_date).getHours();
+              const taskDate = parseISO(task.due_date);
+              const taskHour = taskDate.getHours();
               return taskHour === hour;
             });
+            
+            // Verificar se está dentro do horário de funcionamento
+            const isWithinBusinessHours = hour >= startHour && hour < endHour;
 
             return (
               <DroppableTimeSlot
@@ -559,7 +580,10 @@ const Agendamentos = () => {
                 id={`day-${format(currentDate, 'yyyy-MM-dd')}-${hour}`}
                 date={currentDate}
                 hour={hour}
-                className="flex items-start p-2 sm:p-4 hover:bg-muted/50 transition-colors min-h-[70px] sm:min-h-[90px] relative"
+                className={cn(
+                  "flex items-start p-2 sm:p-4 transition-colors min-h-[70px] sm:min-h-[90px] relative",
+                  isWithinBusinessHours ? "hover:bg-muted/50" : "bg-muted/30"
+                )}
               >
                 {/* Linha de hora atual */}
                 {isCurrentDay && hour === currentHour && (
@@ -576,6 +600,9 @@ const Agendamentos = () => {
                 
                 <div className="w-14 sm:w-20 text-xs sm:text-sm text-muted-foreground font-semibold pt-0.5 flex-shrink-0">
                   {String(hour).padStart(2, "0")}:00
+                  {!isWithinBusinessHours && hourAppointments.length === 0 && hourTasks.length === 0 && (
+                    <span className="block text-[10px] text-muted-foreground/60 italic">Fechado</span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   {hourAppointments.length > 0 || hourTasks.length > 0 ? (
@@ -753,6 +780,20 @@ const Agendamentos = () => {
       }
     });
     
+    // Considerar também os agendamentos que estão fora do horário de funcionamento
+    const appointmentHours = appointments.map(apt => parseISO(apt.start_time).getHours());
+    if (appointmentHours.length > 0) {
+      minHour = Math.min(minHour, ...appointmentHours);
+      maxHour = Math.max(maxHour, ...appointmentHours);
+    }
+    
+    // Considerar também as tarefas
+    const taskHours = allTasks.map(task => parseISO(task.due_date).getHours());
+    if (taskHours.length > 0) {
+      minHour = Math.min(minHour, ...taskHours);
+      maxHour = Math.max(maxHour, ...taskHours);
+    }
+    
     const hours = Array.from({ length: maxHour - minHour + 1 }, (_, i) => minHour + i);
 
     return (
@@ -831,9 +872,12 @@ const Agendamentos = () => {
                     return hour >= startHour && hour < endHour;
                   })();
                   
+                  // Filtrar agendamentos para este dia e hora usando hora LOCAL
                   const dayHourAppointments = appointments.filter(apt => {
                     const aptDate = parseISO(apt.start_time);
-                    return isSameDay(aptDate, day) && aptDate.getHours() === hour;
+                    // getHours() já retorna a hora LOCAL do navegador
+                    const aptHour = aptDate.getHours();
+                    return isSameDay(aptDate, day) && aptHour === hour;
                   });
 
                   return (
@@ -848,12 +892,13 @@ const Agendamentos = () => {
                         isCurrentDay && isWithinBusinessHours && "bg-primary/5"
                       )}
                     >
-                      {!isWithinBusinessHours && (
+                      {!isWithinBusinessHours && dayHourAppointments.length === 0 && (
                         <div className="text-xs text-muted-foreground/60 italic text-center py-1">
                           Fechado
                         </div>
                       )}
-                      {isWithinBusinessHours && dayHourAppointments.map((apt) => {
+                      {/* Mostrar agendamentos sempre, mesmo fora do horário de funcionamento */}
+                      {dayHourAppointments.map((apt) => {
                         const statusColors = {
                           confirmed: "hsl(142 71% 45%)",
                           pending: "hsl(48 96% 53%)",
