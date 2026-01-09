@@ -173,26 +173,51 @@ const handler = async (req: Request): Promise<Response> => {
       if (!mpResponse.ok) {
         console.error("Mercado Pago card payment error:", responseData);
         
-        // Extrair mensagem de erro mais amigável
-        let errorMessage = "Erro ao processar pagamento com cartão";
+        // Mapeamento de códigos de erro do MP para mensagens amigáveis em português
+        const errorMessages: Record<string, string> = {
+          "cc_rejected_high_risk": "Pagamento recusado pelo sistema de segurança. Tente outro cartão ou entre em contato com seu banco.",
+          "cc_rejected_insufficient_amount": "Saldo insuficiente no cartão.",
+          "cc_rejected_bad_filled_card_number": "Número do cartão incorreto.",
+          "cc_rejected_bad_filled_date": "Data de validade incorreta.",
+          "cc_rejected_bad_filled_security_code": "Código de segurança (CVV) incorreto.",
+          "cc_rejected_bad_filled_other": "Dados do cartão incorretos. Verifique e tente novamente.",
+          "cc_rejected_blacklist": "Cartão não permitido. Use outro cartão.",
+          "cc_rejected_call_for_authorize": "Você precisa autorizar o pagamento com seu banco antes de continuar.",
+          "cc_rejected_card_disabled": "Cartão desabilitado. Entre em contato com seu banco.",
+          "cc_rejected_duplicated_payment": "Pagamento duplicado. Já existe uma transação recente com este cartão.",
+          "cc_rejected_max_attempts": "Limite de tentativas atingido. Aguarde alguns minutos e tente novamente.",
+          "cc_rejected_card_error": "Erro no cartão. Tente outro cartão.",
+          "cc_rejected_other_reason": "Pagamento recusado. Tente outro cartão ou método de pagamento.",
+          "invalid_card_number": "Número do cartão inválido.",
+          "invalid_expiry_date": "Data de validade inválida.",
+          "invalid_security_code": "Código de segurança inválido.",
+          "card_expired": "Cartão expirado. Use outro cartão.",
+        };
+
+        // Tentar encontrar o código de erro nos diferentes lugares da resposta
+        const errorCode = responseData.error || 
+          responseData.cause?.[0]?.code || 
+          responseData.status_detail ||
+          "";
         
-        if (responseData.message) {
-          errorMessage = responseData.message;
-        }
+        // Buscar mensagem amigável ou usar genérica
+        let userFriendlyMessage = errorMessages[errorCode];
         
-        if (responseData.cause && Array.isArray(responseData.cause)) {
-          const causes = responseData.cause.map((c: any) => c.description || c.code).join(", ");
-          if (causes) {
-            errorMessage = causes;
+        if (!userFriendlyMessage) {
+          // Tentar mensagem do MP ou mensagem genérica
+          if (responseData.message && !responseData.message.includes("CC_VAL_")) {
+            userFriendlyMessage = responseData.message;
+          } else {
+            userFriendlyMessage = "Não foi possível processar o pagamento. Verifique os dados do cartão ou tente outro método de pagamento.";
           }
         }
 
         return new Response(
           JSON.stringify({ 
             success: false,
-            error: errorMessage,
-            error_code: responseData.error || "payment_error",
-            error_description: errorMessage,
+            error: userFriendlyMessage,
+            error_code: errorCode || "payment_error",
+            error_description: userFriendlyMessage,
           }),
           {
             status: 400,
