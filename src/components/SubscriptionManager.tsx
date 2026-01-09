@@ -2,7 +2,16 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Check, Star, CreditCard, Calendar, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -27,22 +36,22 @@ const plans: Plan[] = [
   {
     id: "monthly",
     name: "Mensal",
-    monthlyPrice: 97,
-    totalPrice: 97,
+    monthlyPrice: 49,
+    totalPrice: 49,
     months: 1,
     features: [
       "Agendamentos ilimitados",
       "Gestão de clientes",
       "Controle financeiro",
       "Relatórios básicos",
-      "Suporte por email"
-    ]
+      "Suporte por email",
+    ],
   },
   {
     id: "semestral",
     name: "Semestral",
-    monthlyPrice: 83,
-    totalPrice: 582,
+    monthlyPrice: 259,
+    totalPrice: 259,
     months: 7,
     discount: "Economize 14%",
     popular: true,
@@ -52,14 +61,14 @@ const plans: Plan[] = [
       "Integração WhatsApp",
       "Suporte prioritário",
       "Backup automático",
-      "2 meses grátis"
-    ]
+      "2 meses grátis",
+    ],
   },
   {
     id: "annual",
     name: "Anual",
-    monthlyPrice: 83,
-    totalPrice: 1164,
+    monthlyPrice: 475,
+    totalPrice: 475,
     months: 14,
     discount: "Economize 17%",
     features: [
@@ -67,9 +76,9 @@ const plans: Plan[] = [
       "API personalizada",
       "Treinamento exclusivo",
       "Consultor dedicado",
-      "4 meses grátis"
-    ]
-  }
+      "4 meses grátis",
+    ],
+  },
 ];
 
 export function SubscriptionManager() {
@@ -81,7 +90,9 @@ export function SubscriptionManager() {
   const { data: subscription, isLoading } = useQuery({
     queryKey: ["current-subscription"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
       const { data, error } = await supabase
@@ -100,35 +111,37 @@ export function SubscriptionManager() {
   // Escutar mudanças em tempo real na assinatura
   useEffect(() => {
     const getUserAndSubscribe = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const channel = supabase
-        .channel('subscription-changes')
+        .channel("subscription-changes")
         .on(
-          'postgres_changes',
+          "postgres_changes",
           {
-            event: '*',
-            schema: 'public',
-            table: 'subscriptions',
-            filter: `user_id=eq.${user.id}`
+            event: "*",
+            schema: "public",
+            table: "subscriptions",
+            filter: `user_id=eq.${user.id}`,
           },
           (payload) => {
-            console.log('Subscription updated in real-time:', payload);
-            
+            console.log("Subscription updated in real-time:", payload);
+
             // Invalidar cache para recarregar dados
             queryClient.invalidateQueries({ queryKey: ["current-subscription"] });
-            
+
             // Mostrar notificação se o status mudou para "active"
-            if (payload.new && 'status' in payload.new) {
+            if (payload.new && "status" in payload.new) {
               const newStatus = (payload.new as any).status;
-              if (newStatus === 'active' && payload.eventType === 'UPDATE') {
-                toast.success('🎉 Pagamento confirmado! Sua assinatura está ativa.', {
+              if (newStatus === "active" && payload.eventType === "UPDATE") {
+                toast.success("🎉 Pagamento confirmado! Sua assinatura está ativa.", {
                   duration: 5000,
                 });
               }
             }
-          }
+          },
         )
         .subscribe();
 
@@ -217,7 +230,7 @@ export function SubscriptionManager() {
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active;
-    
+
     return (
       <Badge variant={config.variant} className="gap-1">
         <div className={`w-2 h-2 rounded-full ${config.color}`} />
@@ -236,8 +249,8 @@ export function SubscriptionManager() {
     );
   }
 
-  const hasActiveSubscription = subscription && ['active', 'trial'].includes(subscription.status);
-  const isCancelled = subscription?.status === 'cancelled';
+  const hasActiveSubscription = subscription && ["active", "trial"].includes(subscription.status);
+  const isCancelled = subscription?.status === "cancelled";
 
   return (
     <div className="space-y-6">
@@ -247,9 +260,7 @@ export function SubscriptionManager() {
             <CreditCard className="w-5 h-5" />
             Minha Assinatura
           </CardTitle>
-          <CardDescription>
-            Gerencie sua assinatura e acesse todos os recursos da plataforma
-          </CardDescription>
+          <CardDescription>Gerencie sua assinatura e acesse todos os recursos da plataforma</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Status atual */}
@@ -258,9 +269,7 @@ export function SubscriptionManager() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Status Atual</p>
-                  <div className="mt-1">
-                    {getStatusBadge(subscription.status)}
-                  </div>
+                  <div className="mt-1">{getStatusBadge(subscription.status)}</div>
                 </div>
                 {subscription.next_billing_date && hasActiveSubscription && (
                   <div className="text-right">
@@ -313,15 +322,10 @@ export function SubscriptionManager() {
 
           {/* Planos disponíveis */}
           <div>
-            <h3 className="font-semibold mb-4">
-              {hasActiveSubscription ? "Mudar de Plano" : "Escolha seu Plano"}
-            </h3>
+            <h3 className="font-semibold mb-4">{hasActiveSubscription ? "Mudar de Plano" : "Escolha seu Plano"}</h3>
             <div className="grid gap-4 md:grid-cols-3">
               {plans.map((plan) => (
-                <Card 
-                  key={plan.id}
-                  className={`relative ${plan.popular ? 'border-primary shadow-lg' : ''}`}
-                >
+                <Card key={plan.id} className={`relative ${plan.popular ? "border-primary shadow-lg" : ""}`}>
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                       <Badge className="bg-red-500 hover:bg-red-600 gap-1">
@@ -330,17 +334,15 @@ export function SubscriptionManager() {
                       </Badge>
                     </div>
                   )}
-                  
+
                   <CardHeader className="space-y-1">
                     <CardTitle className="text-lg">{plan.name}</CardTitle>
                     <div className="space-y-1">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold">
-                          R$ {plan.totalPrice}
-                        </span>
+                        <span className="text-3xl font-bold">R$ {plan.totalPrice}</span>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        R$ {plan.monthlyPrice} por {plan.months} {plan.months === 1 ? 'mês' : 'meses'}
+                        R$ {plan.monthlyPrice} por {plan.months} {plan.months === 1 ? "mês" : "meses"}
                       </p>
                       {plan.discount && (
                         <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300">
@@ -387,7 +389,8 @@ export function SubscriptionManager() {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar Assinatura</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja cancelar sua assinatura? Você perderá o acesso a todos os recursos premium ao final do período atual.
+              Tem certeza que deseja cancelar sua assinatura? Você perderá o acesso a todos os recursos premium ao final
+              do período atual.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
