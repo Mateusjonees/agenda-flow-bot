@@ -8,17 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Phone, Mail, User, CalendarPlus, ListTodo, Search, Filter, Pencil, Trash2, Maximize2, Minimize2, X } from "lucide-react";
+import { Plus, Phone, Mail, User, Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CustomerSubscriptions } from "@/components/CustomerSubscriptions";
-import { CustomerHistory } from "@/components/CustomerHistory";
-import { CustomerDocuments } from "@/components/CustomerDocuments";
-import { CustomerLoyalty } from "@/components/CustomerLoyalty";
-import { useReadOnly, ReadOnlyWrapper } from "@/components/SubscriptionGuard";
+import { useReadOnly } from "@/components/SubscriptionGuard";
 import { ProposalEditDialog } from "@/components/ProposalEditDialog";
 import { FileText, CreditCard } from "lucide-react";
+import { CustomerDetailsSheet } from "@/components/CustomerDetailsSheet";
 
 interface Customer {
   id: string;
@@ -37,7 +33,6 @@ const Clientes = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedTab, setSelectedTab] = useState<string>("info");
-  const [isModalExpanded, setIsModalExpanded] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [newCustomer, setNewCustomer] = useState({
     name: "",
@@ -669,378 +664,221 @@ const Clientes = () => {
         </div>
       )}
 
-      {/* Dialog de detalhes do cliente */}
-      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent 
-          className={`${isModalExpanded ? 'max-w-[95vw] h-[95vh]' : 'max-w-4xl h-[90vh]'} p-3 sm:p-4 overflow-hidden flex flex-col transition-all duration-300 [&>button]:hidden`}
-          onPointerDownOutside={(e) => e.preventDefault()}
-        >
-          {selectedCustomer && (
-            <>
-              <DialogHeader className="space-y-1 flex-shrink-0">
-                <div className="flex items-center justify-between">
-                  <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
-                    <span className="truncate">{selectedCustomer.name}</span>
-                  </DialogTitle>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsModalExpanded(false)}
-                      className="h-7 w-7 p-0 flex-shrink-0"
-                      title="Minimizar"
-                      disabled={!isModalExpanded}
-                    >
-                      <Minimize2 className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsModalExpanded(true)}
-                      className="h-7 w-7 p-0 flex-shrink-0"
-                      title="Maximizar"
-                      disabled={isModalExpanded}
-                    >
-                      <Maximize2 className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDetailsOpen(false)}
-                      className="h-7 w-7 p-0 flex-shrink-0"
-                      title="Fechar"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </div>
-                <DialogDescription className="text-xs">
-                  Informações completas do cliente
-                </DialogDescription>
-              </DialogHeader>
+      {/* Sheet de detalhes do cliente */}
+      <CustomerDetailsSheet
+        customer={selectedCustomer}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        selectedTab={selectedTab}
+        onTabChange={setSelectedTab}
+        onEdit={() => {
+          if (selectedCustomer) {
+            setEditCustomer({
+              id: selectedCustomer.id,
+              name: selectedCustomer.name,
+              phone: selectedCustomer.phone,
+              email: selectedCustomer.email || "",
+              cpf: selectedCustomer.cpf || "",
+              notes: selectedCustomer.notes || "",
+              source: selectedCustomer.source || "",
+            });
+            setEditDialogOpen(true);
+          }
+        }}
+        onDelete={() => {
+          if (selectedCustomer) {
+            setCustomerToDelete(selectedCustomer);
+            setDeleteDialogOpen(true);
+          }
+        }}
+        onNewTask={() => setTaskDialogOpen(true)}
+        onNewAppointment={() => setAppointmentDialogOpen(true)}
+        onNewProposal={() => setProposalDialogOpen(true)}
+        onNewSubscription={() => setSubscriptionDialogOpen(true)}
+        isReadOnly={isReadOnly}
+      />
 
-              <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mt-1.5 flex-1 flex flex-col min-h-0">
-                <TabsList className="grid w-full grid-cols-4 h-8 flex-shrink-0">
-                  <TabsTrigger value="info" className="text-xs py-1 px-1.5">Info</TabsTrigger>
-                  <TabsTrigger value="history" className="text-xs py-1 px-1.5">Histórico</TabsTrigger>
-                  <TabsTrigger value="subscriptions" className="text-xs py-1 px-1.5">Assinaturas</TabsTrigger>
-                  <TabsTrigger value="loyalty" className="text-xs py-1 px-1.5">Fidelidade</TabsTrigger>
-                </TabsList>
+      {/* Dialog de Nova Tarefa */}
+      <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Tarefa para {selectedCustomer?.name}</DialogTitle>
+            <DialogDescription>
+              Crie uma tarefa relacionada a este cliente
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="task-title">Título *</Label>
+              <Input
+                id="task-title"
+                value={taskForm.title}
+                onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                placeholder="Ex: Ligar para confirmar agendamento"
+              />
+            </div>
+            <div>
+              <Label htmlFor="task-description">Descrição</Label>
+              <Textarea
+                id="task-description"
+                value={taskForm.description}
+                onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                placeholder="Detalhes da tarefa..."
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="task-due-date">Data de Vencimento *</Label>
+              <Input
+                id="task-due-date"
+                type="date"
+                value={taskForm.due_date}
+                onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="task-priority">Prioridade</Label>
+              <Select value={taskForm.priority} onValueChange={(value: any) => setTaskForm({ ...taskForm, priority: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Baixa</SelectItem>
+                  <SelectItem value="medium">Média</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="task-status">Status</Label>
+              <Select value={taskForm.status} onValueChange={(value: any) => setTaskForm({ ...taskForm, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="completed">Concluída</SelectItem>
+                  <SelectItem value="cancelled">Cancelada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleAddTask} className="w-full" disabled={isReadOnly}>
+              Criar Tarefa
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-                <TabsContent value="info" className="space-y-2 flex-1 overflow-y-auto mt-2 pr-1 pb-0">
-                  {/* Botões de ação rápida */}
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm"
-                      onClick={() => {
-                        setEditCustomer({
-                          id: selectedCustomer.id,
-                          name: selectedCustomer.name,
-                          phone: selectedCustomer.phone,
-                          email: selectedCustomer.email || "",
-                          cpf: selectedCustomer.cpf || "",
-                          notes: selectedCustomer.notes || "",
-                          source: selectedCustomer.source || "",
-                        });
-                        setEditDialogOpen(true);
-                      }}
-                      disabled={isReadOnly}
-                    >
-                      <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      Editar Cliente
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm text-destructive hover:text-destructive"
-                      onClick={() => {
-                        setCustomerToDelete(selectedCustomer);
-                        setDeleteDialogOpen(true);
-                      }}
-                      disabled={isReadOnly}
-                    >
-                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      Excluir Cliente
-                    </Button>
-                <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm" disabled={isReadOnly}>
-                      <ListTodo className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      Nova Tarefa
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Nova Tarefa para {selectedCustomer.name}</DialogTitle>
-                      <DialogDescription>
-                        Crie uma tarefa relacionada a este cliente
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="task-title">Título *</Label>
-                        <Input
-                          id="task-title"
-                          value={taskForm.title}
-                          onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-                          placeholder="Ex: Ligar para confirmar agendamento"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="task-description">Descrição</Label>
-                        <Textarea
-                          id="task-description"
-                          value={taskForm.description}
-                          onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
-                          placeholder="Detalhes da tarefa..."
-                          rows={3}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="task-due-date">Data de Vencimento *</Label>
-                        <Input
-                          id="task-due-date"
-                          type="date"
-                          value={taskForm.due_date}
-                          onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="task-priority">Prioridade</Label>
-                        <Select value={taskForm.priority} onValueChange={(value: any) => setTaskForm({ ...taskForm, priority: value })}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low">Baixa</SelectItem>
-                            <SelectItem value="medium">Média</SelectItem>
-                            <SelectItem value="high">Alta</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="task-status">Status</Label>
-                        <Select value={taskForm.status} onValueChange={(value: any) => setTaskForm({ ...taskForm, status: value })}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Pendente</SelectItem>
-                            <SelectItem value="completed">Concluída</SelectItem>
-                            <SelectItem value="cancelled">Cancelada</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button onClick={handleAddTask} className="w-full" disabled={isReadOnly}>
-                        Criar Tarefa
-                      </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+      {/* Dialog de Novo Agendamento */}
+      <Dialog open={appointmentDialogOpen} onOpenChange={setAppointmentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo Agendamento para {selectedCustomer?.name}</DialogTitle>
+            <DialogDescription>
+              Crie um agendamento relacionado a este cliente
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="appointment-service">Serviço *</Label>
+              <Input
+                id="appointment-service"
+                value={appointmentForm.service}
+                onChange={(e) => setAppointmentForm({ ...appointmentForm, service: e.target.value })}
+                placeholder="Ex: Corte de cabelo"
+              />
+            </div>
+            <div>
+              <Label htmlFor="appointment-date">Data *</Label>
+              <Input
+                id="appointment-date"
+                type="date"
+                value={appointmentForm.date}
+                onChange={(e) => setAppointmentForm({ ...appointmentForm, date: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="appointment-time">Horário *</Label>
+              <Input
+                id="appointment-time"
+                type="time"
+                value={appointmentForm.time}
+                onChange={(e) => setAppointmentForm({ ...appointmentForm, time: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="appointment-duration">Duração</Label>
+              <Select value={appointmentForm.duration} onValueChange={(value) => setAppointmentForm({ ...appointmentForm, duration: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30">30 minutos</SelectItem>
+                  <SelectItem value="60">1 hora</SelectItem>
+                  <SelectItem value="90">1h 30min</SelectItem>
+                  <SelectItem value="120">2 horas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="appointment-notes">Observações</Label>
+              <Textarea
+                id="appointment-notes"
+                value={appointmentForm.notes}
+                onChange={(e) => setAppointmentForm({ ...appointmentForm, notes: e.target.value })}
+                placeholder="Detalhes do agendamento..."
+                rows={3}
+              />
+            </div>
+            <Button onClick={handleAddAppointment} className="w-full" disabled={isReadOnly}>
+              Criar Agendamento
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-                  <Dialog open={appointmentDialogOpen} onOpenChange={setAppointmentDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm" disabled={isReadOnly}>
-                        <CalendarPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        Novo Agendamento
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Novo Agendamento para {selectedCustomer.name}</DialogTitle>
-                        <DialogDescription>
-                          Crie um agendamento relacionado a este cliente
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="appointment-service">Serviço *</Label>
-                          <Input
-                            id="appointment-service"
-                            value={appointmentForm.service}
-                            onChange={(e) => setAppointmentForm({ ...appointmentForm, service: e.target.value })}
-                            placeholder="Ex: Corte de cabelo"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="appointment-date">Data *</Label>
-                          <Input
-                            id="appointment-date"
-                            type="date"
-                            value={appointmentForm.date}
-                            onChange={(e) => setAppointmentForm({ ...appointmentForm, date: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="appointment-time">Horário *</Label>
-                          <Input
-                            id="appointment-time"
-                            type="time"
-                            value={appointmentForm.time}
-                            onChange={(e) => setAppointmentForm({ ...appointmentForm, time: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="appointment-duration">Duração</Label>
-                          <Select value={appointmentForm.duration} onValueChange={(value) => setAppointmentForm({ ...appointmentForm, duration: value })}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="30">30 minutos</SelectItem>
-                              <SelectItem value="60">1 hora</SelectItem>
-                              <SelectItem value="90">1h 30min</SelectItem>
-                              <SelectItem value="120">2 horas</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="appointment-notes">Observações</Label>
-                          <Textarea
-                            id="appointment-notes"
-                            value={appointmentForm.notes}
-                            onChange={(e) => setAppointmentForm({ ...appointmentForm, notes: e.target.value })}
-                            placeholder="Detalhes do agendamento..."
-                            rows={3}
-                          />
-                        </div>
-                        <Button onClick={handleAddAppointment} className="w-full" disabled={isReadOnly}>
-                          Criar Agendamento
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-
-                  <Dialog open={proposalDialogOpen} onOpenChange={setProposalDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm" disabled={isReadOnly}>
-                        <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        Nova Proposta
-                      </Button>
-                    </DialogTrigger>
-                  </Dialog>
-
-                  <Dialog open={subscriptionDialogOpen} onOpenChange={setSubscriptionDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1 gap-2 h-9 sm:h-10 text-xs sm:text-sm" disabled={isReadOnly}>
-                        <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        Nova Assinatura
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Nova Assinatura para {selectedCustomer.name}</DialogTitle>
-                        <DialogDescription>
-                          Crie uma assinatura para este cliente
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="subscription-plan">Plano *</Label>
-                          <Select value={subscriptionForm.plan_id} onValueChange={(value) => setSubscriptionForm({ ...subscriptionForm, plan_id: value })}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione um plano" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {subscriptionPlans.map((plan) => (
-                                <SelectItem key={plan.id} value={plan.id}>
-                                  {plan.name} - R$ {Number(plan.price).toFixed(2)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="subscription-payment">Método de Pagamento</Label>
-                          <Select value={subscriptionForm.payment_method} onValueChange={(value) => setSubscriptionForm({ ...subscriptionForm, payment_method: value })}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pix">PIX</SelectItem>
-                              <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                              <SelectItem value="boleto">Boleto</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button onClick={handleAddSubscription} className="w-full" disabled={isReadOnly}>
-                          Criar Assinatura
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-                
-                <div className="space-y-3 sm:space-y-4">
-                  {/* Informações básicas */}
-                  <Card>
-                    <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
-                      <CardTitle className="text-sm sm:text-base">Informações de Contato</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 p-3 sm:p-4 pt-0">
-                      <div className="flex items-center gap-2 text-xs sm:text-sm">
-                        <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                        <span className="break-all">{selectedCustomer.phone}</span>
-                      </div>
-                      {selectedCustomer.cpf && (
-                        <div className="flex items-center gap-2 text-xs sm:text-sm">
-                          <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                          <span className="break-all">CPF: {selectedCustomer.cpf}</span>
-                        </div>
-                      )}
-                      {selectedCustomer.email && (
-                        <div className="flex items-center gap-2 text-xs sm:text-sm">
-                          <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                          <span className="break-all">{selectedCustomer.email}</span>
-                        </div>
-                      )}
-                      {selectedCustomer.source && (
-                        <div className="flex items-center gap-2 text-xs sm:text-sm">
-                          <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                          <span>
-                            Origem: <span className="font-medium">
-                              {selectedCustomer.source === 'indicacao' && 'Indicação'}
-                              {selectedCustomer.source === 'facebook' && 'Facebook'}
-                              {selectedCustomer.source === 'instagram' && 'Instagram'}
-                              {selectedCustomer.source === 'google' && 'Google'}
-                              {selectedCustomer.source === 'whatsapp' && 'WhatsApp'}
-                              {selectedCustomer.source === 'site' && 'Site'}
-                              {selectedCustomer.source === 'outdoor' && 'Outdoor/Placa'}
-                              {selectedCustomer.source === 'panfleto' && 'Panfleto'}
-                              {selectedCustomer.source === 'radio' && 'Rádio'}
-                              {selectedCustomer.source === 'outro' && 'Outro'}
-                            </span>
-                          </span>
-                        </div>
-                      )}
-                      {selectedCustomer.notes && (
-                        <div className="pt-2 border-t">
-                          <p className="text-xs sm:text-sm text-muted-foreground">{selectedCustomer.notes}</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Documentos anexados */}
-                  <CustomerDocuments customerId={selectedCustomer.id} />
-                </div>
-                </TabsContent>
-
-                <TabsContent value="history" className="flex-1 overflow-y-auto mt-2 pr-1 pb-0">
-                  <CustomerHistory customerId={selectedCustomer.id} />
-                </TabsContent>
-
-                <TabsContent value="subscriptions" className="flex-1 overflow-y-auto mt-2 pr-1 pb-0">
-                  <CustomerSubscriptions customerId={selectedCustomer.id} />
-                </TabsContent>
-
-                <TabsContent value="loyalty" className="flex-1 overflow-y-auto mt-2 pr-1 pb-0">
-                  <CustomerLoyalty customerId={selectedCustomer.id} />
-                </TabsContent>
-              </Tabs>
-            </>
-          )}
+      {/* Dialog de Nova Assinatura */}
+      <Dialog open={subscriptionDialogOpen} onOpenChange={setSubscriptionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Assinatura para {selectedCustomer?.name}</DialogTitle>
+            <DialogDescription>
+              Crie uma assinatura para este cliente
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="subscription-plan">Plano *</Label>
+              <Select value={subscriptionForm.plan_id} onValueChange={(value) => setSubscriptionForm({ ...subscriptionForm, plan_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um plano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subscriptionPlans.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.id}>
+                      {plan.name} - R$ {Number(plan.price).toFixed(2)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="subscription-payment">Método de Pagamento</Label>
+              <Select value={subscriptionForm.payment_method} onValueChange={(value) => setSubscriptionForm({ ...subscriptionForm, payment_method: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleAddSubscription} className="w-full" disabled={isReadOnly}>
+              Criar Assinatura
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
