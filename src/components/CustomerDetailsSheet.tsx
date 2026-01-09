@@ -139,14 +139,13 @@ export const CustomerDetailsSheet = ({
         className={`p-0 flex flex-col gap-0 [&>button]:hidden transition-all duration-200 ${sheetWidth || ''}`}
         style={!isMobile && !isExpanded ? { width: `${width}px`, maxWidth: '100vw' } : undefined}
       >
-        {/* Resize handle - apenas desktop */}
-        {!isMobile && (
+        {/* Resize handle - apenas desktop e quando sheet está aberto */}
+        {!isMobile && open && (
           <div
             onMouseDown={handleMouseDown}
-            className={`absolute left-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-primary/20 transition-colors z-20 flex items-center justify-center group ${isResizing ? 'bg-primary/20' : ''}`}
-          >
-            <GripVertical className="h-6 w-6 text-muted-foreground/50 group-hover:text-primary transition-colors" />
-          </div>
+            className={`absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/30 transition-colors z-20 ${isResizing ? 'bg-primary/30' : 'bg-transparent'}`}
+            title="Arraste para redimensionar"
+          />
         )}
 
         {/* Header compacto */}
