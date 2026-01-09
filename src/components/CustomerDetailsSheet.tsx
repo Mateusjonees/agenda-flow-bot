@@ -1,24 +1,25 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Phone, Mail, FileText, MoreVertical, Pencil, Trash2, ListTodo, CalendarPlus, CreditCard, X } from "lucide-react";
-import { CustomerSubscriptions } from "@/components/CustomerSubscriptions";
-import { CustomerHistory } from "@/components/CustomerHistory";
-import { CustomerDocuments } from "@/components/CustomerDocuments";
-import { CustomerLoyalty } from "@/components/CustomerLoyalty";
+import { Phone, Mail, MapPin, FileText, MoreVertical, Pencil, Trash2, Plus, Calendar, ClipboardList, CreditCard, Maximize2, Minimize2, GripVertical, User, X, ListTodo, CalendarPlus } from "lucide-react";
+import { CustomerHistory } from "./CustomerHistory";
+import { CustomerSubscriptions } from "./CustomerSubscriptions";
+import { CustomerLoyalty } from "./CustomerLoyalty";
+import { CustomerDocuments } from "./CustomerDocuments";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Customer {
   id: string;
   name: string;
-  phone: string;
+  phone: string | null;
   email: string | null;
-  cpf: string | null;
+  address?: string | null;
   notes: string | null;
   source: string | null;
-  created_at: string;
+  cpf: string | null;
 }
 
 interface CustomerDetailsSheetProps {
@@ -33,23 +34,18 @@ interface CustomerDetailsSheetProps {
   onNewAppointment: () => void;
   onNewProposal: () => void;
   onNewSubscription: () => void;
-  isReadOnly: boolean;
+  isReadOnly?: boolean;
 }
 
-const getSourceLabel = (source: string | null) => {
-  const sources: Record<string, string> = {
-    indicacao: 'Indicação',
-    facebook: 'Facebook',
-    instagram: 'Instagram',
-    google: 'Google',
-    whatsapp: 'WhatsApp',
-    site: 'Site',
-    outdoor: 'Outdoor/Placa',
-    panfleto: 'Panfleto',
-    radio: 'Rádio',
-    outro: 'Outro'
-  };
-  return source ? sources[source] || source : null;
+const getSourceLabel = (source: string | null): string => {
+  switch (source) {
+    case 'whatsapp': return 'WhatsApp';
+    case 'website': return 'Site';
+    case 'referral': return 'Indicação';
+    case 'social_media': return 'Redes Sociais';
+    case 'other': return 'Outro';
+    default: return source || 'Não informado';
+  }
 };
 
 const tabLabels: Record<string, string> = {
@@ -58,6 +54,9 @@ const tabLabels: Record<string, string> = {
   subscriptions: "Assinaturas",
   loyalty: "Fidelidade"
 };
+
+const MIN_WIDTH = 400;
+const DEFAULT_WIDTH = 650;
 
 export const CustomerDetailsSheet = ({
   customer,
@@ -73,14 +72,83 @@ export const CustomerDetailsSheet = ({
   onNewSubscription,
   isReadOnly
 }: CustomerDetailsSheetProps) => {
+  const isMobile = useIsMobile();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Reset states when sheet closes
+  useEffect(() => {
+    if (!open) {
+      setIsExpanded(false);
+      setWidth(DEFAULT_WIDTH);
+    }
+  }, [open]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (isMobile) return;
+    e.preventDefault();
+    setIsResizing(true);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      if (newWidth >= MIN_WIDTH && newWidth <= window.innerWidth) {
+        setWidth(newWidth);
+        setIsExpanded(false);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  const toggleExpand = () => {
+    if (isExpanded) {
+      setIsExpanded(false);
+      setWidth(DEFAULT_WIDTH);
+    } else {
+      setIsExpanded(true);
+    }
+  };
+
   if (!customer) return null;
+
+  const sheetWidth = isMobile 
+    ? "w-full" 
+    : isExpanded 
+      ? "w-full" 
+      : undefined;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
         side="right" 
-        className="w-full sm:w-[540px] md:w-[600px] lg:w-[650px] p-0 flex flex-col gap-0 [&>button]:hidden"
+        className={`p-0 flex flex-col gap-0 [&>button]:hidden transition-all duration-200 ${sheetWidth || ''}`}
+        style={!isMobile && !isExpanded ? { width: `${width}px`, maxWidth: '100vw' } : undefined}
       >
+        {/* Resize handle - apenas desktop */}
+        {!isMobile && (
+          <div
+            onMouseDown={handleMouseDown}
+            className={`absolute left-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-primary/20 transition-colors z-20 flex items-center justify-center group ${isResizing ? 'bg-primary/20' : ''}`}
+          >
+            <GripVertical className="h-6 w-6 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+          </div>
+        )}
+
         {/* Header compacto */}
         <SheetHeader className="px-4 py-3 border-b bg-muted/30 flex-shrink-0">
           <div className="flex items-start justify-between gap-3">
@@ -98,14 +166,32 @@ export const CustomerDetailsSheet = ({
                 </p>
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 flex-shrink-0"
-              onClick={() => onOpenChange(false)}
-            >
-              <X className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              {/* Botão expandir/minimizar - apenas desktop */}
+              {!isMobile && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleExpand}
+                  className="h-8 w-8"
+                  title={isExpanded ? "Minimizar" : "Expandir"}
+                >
+                  {isExpanded ? (
+                    <Minimize2 className="h-4 w-4" />
+                  ) : (
+                    <Maximize2 className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 flex-shrink-0"
+                onClick={() => onOpenChange(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Navegação e Ações */}
