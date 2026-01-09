@@ -11,6 +11,7 @@ import { OnboardingTutorial } from "./components/OnboardingTutorial";
 import { SubscriptionGuard } from "./components/SubscriptionGuard";
 import { PasswordResetGuard } from "./components/PasswordResetGuard";
 import { CookieConsent } from "./components/CookieConsent";
+import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
@@ -47,6 +48,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <PWAUpdatePrompt />
           <CookieConsent />
           <OnboardingTutorial />
           <BrowserRouter>
