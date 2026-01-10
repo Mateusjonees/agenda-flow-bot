@@ -122,9 +122,9 @@ const handler = async (req: Request): Promise<Response> => {
         name: body.payer.name || body.payer.email,
       },
       back_urls: {
-        success: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mp-webhook?status=success`,
-        failure: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mp-webhook?status=failure`,
-        pending: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mp-webhook?status=pending`,
+        success: "https://www.sistemafoguete.com.br/dashboard?payment=success",
+        failure: "https://www.sistemafoguete.com.br/planos?payment=failure",
+        pending: "https://www.sistemafoguete.com.br/planos?payment=pending",
       },
       auto_return: "approved",
       notification_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mp-webhook`,

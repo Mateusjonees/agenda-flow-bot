@@ -10,13 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PixPaymentDialog } from "@/components/PixPaymentDialog";
 import { parseFunctionsError } from "@/lib/parseFunctionsError";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
-import { MERCADO_PAGO_PUBLIC_KEY } from "@/config/mercadoPago";
-
-declare global {
-  interface Window {
-    MercadoPago: any;
-  }
-}
 
 interface PricingPlan {
   id: string;
@@ -38,7 +31,6 @@ const Pricing = () => {
   const { toast } = useToast();
   const { subscription, isTrial, daysRemaining } = useSubscriptionStatus();
   const [loading, setLoading] = useState(false);
-  const [mpLoaded, setMpLoaded] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
   const [pixDialogOpen, setPixDialogOpen] = useState(false);
   const [pixData, setPixData] = useState<{
@@ -110,7 +102,6 @@ const Pricing = () => {
 
   useEffect(() => {
     checkAuth();
-    loadMercadoPagoScript();
   }, []);
 
   const checkAuth = async () => {
@@ -118,19 +109,6 @@ const Pricing = () => {
     if (!session) {
       navigate("/auth");
     }
-  };
-
-  const loadMercadoPagoScript = () => {
-    if (window.MercadoPago) {
-      setMpLoaded(true);
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://sdk.mercadopago.com/js/v2";
-    script.async = true;
-    script.onload = () => setMpLoaded(true);
-    document.body.appendChild(script);
   };
 
   const handleSubscribe = async (plan: PricingPlan) => {
@@ -191,19 +169,7 @@ const Pricing = () => {
         });
         
       } else {
-        // Process credit card payment with Mercado Pago
-        if (!mpLoaded) {
-          throw new Error("Mercado Pago não carregado");
-        }
-
-        const publicKey = MERCADO_PAGO_PUBLIC_KEY;
-        if (!publicKey) {
-          throw new Error("Chave pública do Mercado Pago não configurada.");
-        }
-
-        const mp = new window.MercadoPago(publicKey);
-        
-        // Create preference via edge function
+        // Process credit card payment - Redirect directly to Mercado Pago checkout
         const { data: preferenceData, error: prefError } = await supabase.functions.invoke("create-mp-preference", {
           body: {
             title: `Assinatura ${plan.name}`,
@@ -232,13 +198,12 @@ const Pricing = () => {
           throw new Error(status ? `(${status}) ${message}` : message);
         }
 
-        // Redirect to Mercado Pago checkout
-        mp.checkout({
-          preference: {
-            id: preferenceData.preferenceId
-          },
-          autoOpen: true
-        });
+        // Redirect directly to Mercado Pago checkout page
+        if (preferenceData?.initPoint) {
+          window.location.href = preferenceData.initPoint;
+        } else {
+          throw new Error("Link de pagamento não foi gerado");
+        }
       }
     } catch (error: any) {
       console.error("Error processing payment:", error);
