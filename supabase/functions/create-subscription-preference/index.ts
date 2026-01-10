@@ -113,9 +113,12 @@ const handler = async (req: Request): Promise<Response> => {
         transaction_amount: selectedPlan.price,
         currency_id: "BRL",
         start_date: startDate.toISOString(),
-        // ✅ REMOVIDO: free_trial de 7 dias
-        // Agora a cobrança é feita imediatamente ao invés de após 7 dias
+        // ✅ IMPORTANTE: billing_day_proportional força cobrança imediata do valor integral
+        billing_day_proportional: false,
+        // ✅ first_invoice_offset: 0 = cobrar na primeira fatura imediatamente
       },
+      // ✅ NOVO: status "authorized" força cobrança imediata
+      status: "pending",
       back_url: `${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovableproject.com") || ""}/configuracoes`,
       payer_email: user.email,
       external_reference: user.id,
@@ -136,7 +139,12 @@ const handler = async (req: Request): Promise<Response> => {
       const cardPreferenceData = {
         ...preferenceData,
         card_token_id: requestData.card_token_id,
-        status: "authorized", // Autorizar imediatamente
+        status: "authorized", // Autorizar e cobrar imediatamente
+        // ✅ FORÇAR COBRANÇA IMEDIATA - sem billing_day_proportional na recorrência
+        auto_recurring: {
+          ...preferenceData.auto_recurring,
+          billing_day_proportional: false, // Cobrar valor integral
+        },
       };
 
       // Se tiver dados do pagador, adicionar
