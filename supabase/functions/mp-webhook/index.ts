@@ -292,9 +292,10 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      // Verificar se é assinatura da plataforma
-      if (metadata.type === "platform_subscription" && preapprovalData.status === "authorized") {
-        console.log(`✅ Ativando assinatura da plataforma para user ${userId}`);
+      // ✅ CORREÇÃO: Processar QUALQUER preapproval autorizado (não apenas platform_subscription)
+      // O status "authorized" significa que o cartão foi autorizado e a assinatura está ativa
+      if (preapprovalData.status === "authorized") {
+        console.log(`✅ Ativando assinatura para user ${userId} (status: authorized)`);
 
         // Usar data de criação do MP ao invés de data atual
         const startDate = new Date(preapprovalData.date_created || preapprovalData.auto_recurring?.start_date || new Date());
@@ -381,6 +382,18 @@ const handler = async (req: Request): Promise<Response> => {
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      // ✅ CORREÇÃO: Para QUALQUER outro status de preapproval, retornar sucesso
+      // Isso evita que o código tente buscar o preapproval_id como payment_id (causando 404)
+      console.log(`ℹ️ Preapproval ${preapprovalId} processado com status: ${preapprovalData.status}`);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Preapproval processed with status: ${preapprovalData.status}`,
+          status: preapprovalData.status
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Processar webhooks de pagamento único (payment.created ou payment.updated)

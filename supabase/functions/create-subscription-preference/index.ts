@@ -113,10 +113,8 @@ const handler = async (req: Request): Promise<Response> => {
         transaction_amount: selectedPlan.price,
         currency_id: "BRL",
         start_date: startDate.toISOString(),
-        free_trial: {
-          frequency: 7,
-          frequency_type: "days"
-        }
+        // ✅ REMOVIDO: free_trial de 7 dias
+        // Agora a cobrança é feita imediatamente ao invés de após 7 dias
       },
       back_url: `${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovableproject.com") || ""}/configuracoes`,
       payer_email: user.email,
