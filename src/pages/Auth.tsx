@@ -26,13 +26,7 @@ const Auth = () => {
         data: { session },
       } = await supabase.auth.getSession();
       if (session) {
-        // Se já fez onboarding, vai pro dashboard, senão vai pro onboarding
-        const onboardingCompleted = localStorage.getItem("onboarding_completed");
-        if (onboardingCompleted) {
-          navigate("/dashboard");
-        } else {
-          navigate("/onboarding");
-        }
+        navigate("/dashboard");
       }
     };
 
@@ -43,13 +37,7 @@ const Auth = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        // Verificar se já fez onboarding
-        const onboardingCompleted = localStorage.getItem("onboarding_completed");
-        if (onboardingCompleted) {
-          navigate("/dashboard");
-        } else {
-          navigate("/onboarding");
-        }
+        navigate("/dashboard");
       }
     });
 
@@ -99,7 +87,7 @@ const Auth = () => {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/onboarding`,
+        emailRedirectTo: `${window.location.origin}/dashboard`,
         data: {
           name,
         },
@@ -150,7 +138,7 @@ const Auth = () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/onboarding`,
+        redirectTo: `${window.location.origin}/dashboard`,
       },
     });
 
