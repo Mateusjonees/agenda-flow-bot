@@ -12,9 +12,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { parseFunctionsError } from "@/lib/parseFunctionsError";
-import { CreditCard, Lock, Check, AlertCircle, Loader2, Shield } from "lucide-react";
+import { CreditCard, Lock, Check, AlertCircle, Loader2, Shield, ExternalLink, QrCode } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MERCADO_PAGO_PUBLIC_KEY } from "@/config/mercadoPago";
+import { Separator } from "@/components/ui/separator";
 
 declare global {
   interface Window {
@@ -45,7 +46,9 @@ export function CardSubscriptionDialog({
   const [loading, setLoading] = useState(false);
   const [cardFormReady, setCardFormReady] = useState(false);
   const [cardFormError, setCardFormError] = useState<string | null>(null);
+  const [cardErrorCode, setCardErrorCode] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [loadingFallback, setLoadingFallback] = useState(false);
   const cardFormRef = useRef<any>(null);
   const mpInstanceRef = useRef<any>(null);
   const formContainerRef = useRef<HTMLDivElement>(null);
@@ -270,12 +273,57 @@ export function CardSubscriptionDialog({
         }
       }
 
+      // Extract error code from error message or data
+      let extractedErrorCode = "";
+      if (error.message?.includes("cc_rejected_high_risk")) {
+        extractedErrorCode = "cc_rejected_high_risk";
+      } else if (error.message?.includes("cc_rejected")) {
+        extractedErrorCode = error.message.match(/cc_rejected_\w+/)?.[0] || "cc_rejected";
+      }
+      
       setCardFormError(errorMessage);
+      setCardErrorCode(extractedErrorCode);
       toast.error("Erro no pagamento", {
         description: errorMessage,
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fallback: Redirect to Mercado Pago checkout
+  const handleCheckoutFallback = async () => {
+    if (!plan) return;
+    
+    setLoadingFallback(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-subscription-preference", {
+        body: {
+          plan_id: plan.id,
+          plan_name: plan.name,
+          price: plan.price,
+          billing_frequency: plan.billingFrequency,
+          months: plan.months,
+          // NO card_token_id = redirect flow
+        },
+      });
+
+      if (error) {
+        const parsed = await parseFunctionsError(error);
+        throw new Error(parsed.message);
+      }
+
+      if (data.init_point) {
+        window.location.href = data.init_point;
+      } else {
+        throw new Error("Não foi possível gerar o link de pagamento");
+      }
+    } catch (error: any) {
+      toast.error("Erro ao redirecionar", {
+        description: error.message || "Tente novamente",
+      });
+    } finally {
+      setLoadingFallback(false);
     }
   };
 
@@ -287,6 +335,7 @@ export function CardSubscriptionDialog({
     setSecurityCode("");
     setIdentificationNumber("");
     setCardFormError(null);
+    setCardErrorCode(null);
   };
 
   if (!plan) return null;
@@ -339,11 +388,52 @@ export function CardSubscriptionDialog({
             </div>
 
             {cardFormError && (
-              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mb-4">
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-4 space-y-3">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-destructive">{cardFormError}</p>
                 </div>
+                
+                {/* Show alternative payment options when card is rejected */}
+                {cardErrorCode && (
+                  <>
+                    <Separator className="my-2" />
+                    <p className="text-xs text-muted-foreground font-medium">
+                      Alternativas de pagamento:
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCheckoutFallback}
+                        disabled={loadingFallback}
+                        className="w-full justify-start"
+                      >
+                        {loadingFallback ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                        )}
+                        Pagar pelo site do Mercado Pago
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          onOpenChange(false);
+                          // Emit event for parent to open PIX dialog
+                          window.dispatchEvent(new CustomEvent('openPixPayment', { detail: plan }));
+                        }}
+                        className="w-full justify-start"
+                      >
+                        <QrCode className="h-4 w-4 mr-2" />
+                        Pagar com PIX
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

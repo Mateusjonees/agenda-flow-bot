@@ -175,7 +175,7 @@ const handler = async (req: Request): Promise<Response> => {
         
         // Mapeamento de códigos de erro do MP para mensagens amigáveis em português
         const errorMessages: Record<string, string> = {
-          "cc_rejected_high_risk": "Pagamento recusado pelo sistema de segurança. Tente outro cartão ou entre em contato com seu banco.",
+          "cc_rejected_high_risk": "Pagamento recusado pelo sistema de segurança do Mercado Pago. Isso pode acontecer com primeira compra, CPF diferente do titular, ou limite de segurança do cartão. Tente outro cartão ou use PIX.",
           "cc_rejected_insufficient_amount": "Saldo insuficiente no cartão.",
           "cc_rejected_bad_filled_card_number": "Número do cartão incorreto.",
           "cc_rejected_bad_filled_date": "Data de validade incorreta.",
@@ -195,10 +195,14 @@ const handler = async (req: Request): Promise<Response> => {
         };
 
         // Tentar encontrar o código de erro nos diferentes lugares da resposta
-        const errorCode = responseData.error || 
+        // O código principal vem em responseData.code para erros de cartão
+        const errorCode = responseData.code ||
+          responseData.error || 
           responseData.cause?.[0]?.code || 
           responseData.status_detail ||
           "";
+        
+        console.log(`Payment error code: ${errorCode}, message: ${responseData.message}`);
         
         // Buscar mensagem amigável ou usar genérica
         let userFriendlyMessage = errorMessages[errorCode];
