@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MaintenanceGuard } from "./components/MaintenanceGuard";
-import { OnboardingTutorial } from "./components/OnboardingTutorial";
 import { SubscriptionGuard } from "./components/SubscriptionGuard";
 import { PasswordResetGuard } from "./components/PasswordResetGuard";
 import { CookieConsent } from "./components/CookieConsent";
@@ -31,7 +30,6 @@ import Planos from "./pages/Planos";
 import Maintenance from "./pages/Maintenance";
 import NotFound from "./pages/NotFound";
 import HistoricoPagamentos from "./pages/HistoricoPagamentos";
-import Onboarding from "./pages/Onboarding";
 import Produtos from "./pages/Produtos";
 import ConversasWhatsApp from "./pages/ConversasWhatsApp";
 import PedidosWhatsApp from "./pages/PedidosWhatsApp";
@@ -56,7 +54,6 @@ const App = () => (
                 {/* Rotas públicas (sem guard) */}
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/manutencao" element={<Maintenance />} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
