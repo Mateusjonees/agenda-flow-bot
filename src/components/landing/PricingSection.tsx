@@ -14,12 +14,13 @@ const plans = [
     icon: Zap,
     price: "R$ 49",
     period: "/mês",
-    description: "Perfeito para começar",
+    description: "Ideal para começar",
     features: [
+      "Acesso completo ao sistema",
       "Agendamentos ilimitados",
-      "Gestão de clientes",
-      "WhatsApp automático",
-      "Controle financeiro básico",
+      "Propostas e CRM",
+      "Gestão financeira",
+      "Controle de estoque",
       "Suporte por email",
     ],
     popular: false,
@@ -32,14 +33,12 @@ const plans = [
     period: "/6 meses",
     originalPrice: "R$ 294",
     savings: "Economize R$ 35",
-    description: "Mais popular",
+    description: "6 meses com desconto",
     features: [
-      "Tudo do plano Mensal",
-      "Relatórios avançados",
-      "Propostas profissionais",
-      "Integração PIX completa",
+      "Tudo do plano mensal",
+      "Economia de R$ 35",
       "Suporte prioritário",
-      "Cartão fidelidade digital",
+      "Atualizações antecipadas",
     ],
     popular: true,
     color: "from-primary to-accent",
@@ -51,14 +50,13 @@ const plans = [
     period: "/ano",
     originalPrice: "R$ 588",
     savings: "Economize R$ 113",
-    description: "Melhor custo-benefício",
+    description: "12 meses com o melhor desconto",
     features: [
-      "Tudo do Semestral",
-      "API personalizada",
-      "Treinamento dedicado",
-      "Suporte VIP 24/7",
+      "Tudo do plano mensal",
+      "Economia de R$ 113",
+      "Suporte prioritário VIP",
       "Consultoria mensal",
-      "Backup dedicado",
+      "Acesso beta features",
     ],
     popular: false,
     color: "from-amber-500 to-orange-500",
@@ -86,8 +84,8 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
             </p>
           </div>
 
-          {/* Pricing Cards */}
-          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
+          {/* Pricing Cards - Square aspect ratio */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 items-stretch">
             {plans.map((plan, index) => (
               <motion.div
                 key={index}
@@ -97,8 +95,9 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
                 transition={{ delay: index * 0.1 }}
                 className={cn(
                   "relative rounded-2xl bg-card border-2 overflow-hidden flex flex-col",
+                  "aspect-square md:aspect-auto md:min-h-[420px]", // Square on mobile, auto on desktop
                   plan.popular
-                    ? "border-primary shadow-2xl scale-105 z-10"
+                    ? "border-primary shadow-2xl md:scale-[1.02] z-10"
                     : "border-border hover:border-primary/50 hover:shadow-lg"
                 )}
               >
@@ -108,36 +107,36 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
                 )}
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
-                    <Badge className="bg-primary text-primary-foreground px-4 py-1.5 shadow-lg">
+                    <Badge className="bg-primary text-primary-foreground px-3 py-1 shadow-lg text-xs">
                       <Star className="w-3 h-3 mr-1 fill-current" />
                       Mais Popular
                     </Badge>
                   </div>
                 )}
 
-                {/* Content */}
-                <div className="p-8 pt-10 flex-1 flex flex-col">
+                {/* Content - Compact padding */}
+                <div className="p-5 pt-8 flex-1 flex flex-col">
                   {/* Plan Header */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${plan.color} flex items-center justify-center`}>
-                      <plan.icon className="w-6 h-6 text-white" />
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${plan.color} flex items-center justify-center flex-shrink-0`}>
+                      <plan.icon className="w-5 h-5 text-white" />
                     </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
-                      <p className="text-sm text-muted-foreground">{plan.description}</p>
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-bold text-foreground leading-tight">{plan.name}</h3>
+                      <p className="text-xs text-muted-foreground truncate">{plan.description}</p>
                     </div>
                   </div>
 
                   {/* Price */}
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-extrabold text-foreground">{plan.price}</span>
-                      <span className="text-muted-foreground">{plan.period}</span>
+                      <span className="text-3xl font-extrabold text-foreground">{plan.price}</span>
+                      <span className="text-sm text-muted-foreground">{plan.period}</span>
                     </div>
                     {plan.originalPrice && (
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-muted-foreground line-through">{plan.originalPrice}</span>
-                        <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                        <span className="text-xs text-muted-foreground line-through">{plan.originalPrice}</span>
+                        <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/30 px-2 py-0.5">
                           {plan.savings}
                         </Badge>
                       </div>
@@ -147,9 +146,9 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
                   {/* CTA Button */}
                   <Button
                     onClick={onGetStarted}
-                    size="lg"
+                    size="default"
                     className={cn(
-                      "w-full mb-6",
+                      "w-full mb-4",
                       plan.popular
                         ? "bg-primary hover:bg-primary/90 shadow-lg"
                         : "bg-muted hover:bg-primary hover:text-primary-foreground"
@@ -159,14 +158,14 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
                     Começar Teste Grátis
                   </Button>
 
-                  {/* Features */}
-                  <ul className="space-y-3 flex-1">
+                  {/* Features - Compact spacing */}
+                  <ul className="space-y-2 flex-1">
                     {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-start gap-3">
-                        <div className="w-5 h-5 bg-emerald-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Check className="w-3 h-3 text-emerald-500" />
+                      <li key={featureIndex} className="flex items-start gap-2">
+                        <div className="w-4 h-4 bg-emerald-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Check className="w-2.5 h-2.5 text-emerald-500" />
                         </div>
-                        <span className="text-sm text-foreground">{feature}</span>
+                        <span className="text-xs text-foreground leading-relaxed">{feature}</span>
                       </li>
                     ))}
                   </ul>
