@@ -12,6 +12,8 @@ export interface PlatformSubscriptionData {
 /**
  * Processa pagamento de assinatura de plataforma
  * Consolida lógica duplicada de PIX e Cartão
+ * 
+ * ✅ CORREÇÃO: Removido trial de 7 dias - pagamento = ciclo começa agora
  */
 export async function processPlatformSubscriptionPayment(
   supabaseClient: any,
@@ -19,12 +21,13 @@ export async function processPlatformSubscriptionPayment(
 ): Promise<{ success: boolean; subscriptionId?: string; error?: string }> {
   
   try {
-    // Calcular next_billing_date (months + 7 dias de trial)
+    // ✅ CORREÇÃO: Calcular next_billing_date SEM adicionar dias de trial
+    // Quando o usuário PAGA, o ciclo começa AGORA
     const nextBillingDate = new Date(data.startDate);
     nextBillingDate.setMonth(nextBillingDate.getMonth() + data.months);
-    nextBillingDate.setDate(nextBillingDate.getDate() + 7); // Trial
+    // ❌ REMOVIDO: nextBillingDate.setDate(nextBillingDate.getDate() + 7); // Trial
 
-    console.log(`📅 Processando pagamento para ${data.userId}: ${data.months} meses + 7 dias trial`);
+    console.log(`📅 Processando pagamento para ${data.userId}: ${data.months} meses (sem trial - pagamento confirmado)`);
 
     // Buscar subscription existente de PLATAFORMA
     const { data: existingSub, error: findError } = await supabaseClient

@@ -90,96 +90,86 @@ const handler = async (req: Request): Promise<Response> => {
     // Buscar dados do perfil do usuário
     const { data: profile } = await supabaseClient
       .from("profiles")
-      .select("full_name, phone")
+      .select("full_name, phone, cpf")
       .eq("id", user.id)
       .single();
 
-    // Criar preferência de assinatura no Mercado Pago
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
     
     if (!accessToken) {
       throw new Error("Mercado Pago access token not configured");
     }
 
-    // Criar data de início com buffer de 5 minutos no futuro
-    const startDate = new Date();
-    startDate.setMinutes(startDate.getMinutes() + 5);
-
-    const preferenceData = {
-      reason: selectedPlan.title,
-      auto_recurring: {
-        frequency: selectedPlan.frequency,
-        frequency_type: selectedPlan.frequency_type,
-        transaction_amount: selectedPlan.price,
-        currency_id: "BRL",
-        start_date: startDate.toISOString(),
-        // ✅ IMPORTANTE: billing_day_proportional força cobrança imediata do valor integral
-        billing_day_proportional: false,
-        // ✅ first_invoice_offset: 0 = cobrar na primeira fatura imediatamente
-      },
-      // ✅ NOVO: status "authorized" força cobrança imediata
-      status: "pending",
-      back_url: `${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovableproject.com") || ""}/configuracoes`,
-      payer_email: user.email,
-      external_reference: user.id,
-      metadata: {
-        userId: user.id,
-        planId: planType,
-        billingFrequency: planType,
-        planName: selectedPlan.title,
-        months: selectedPlan.frequency,
-        type: "platform_subscription"
-      }
-    };
-
-    // Se vier card_token_id, fazer checkout transparente (cartão dentro do app)
+    // ============================================================
+    // FLUXO DE CARTÃO: Pagamento único imediato + assinatura recorrente
+    // ============================================================
     if (requestData.card_token_id) {
-      console.log("Processing transparent checkout with card token");
+      console.log("💳 Processing card payment: immediate charge + recurring subscription");
       
-      const cardPreferenceData = {
-        ...preferenceData,
-        card_token_id: requestData.card_token_id,
-        status: "authorized", // Autorizar e cobrar imediatamente
-        // ✅ FORÇAR COBRANÇA IMEDIATA - sem billing_day_proportional na recorrência
-        auto_recurring: {
-          ...preferenceData.auto_recurring,
-          billing_day_proportional: false, // Cobrar valor integral
+      // PASSO 1: Cobrar o valor integral AGORA via API de pagamentos
+      console.log(`💰 STEP 1: Creating immediate payment of R$${selectedPlan.price}`);
+      
+      const paymentData = {
+        transaction_amount: selectedPlan.price,
+        token: requestData.card_token_id,
+        description: selectedPlan.title,
+        installments: 1,
+        payment_method_id: "master", // Será detectado automaticamente pelo token
+        payer: {
+          email: requestData.payer_email || user.email,
+          identification: requestData.payer_identification || {
+            type: "CPF",
+            number: profile?.cpf?.replace(/\D/g, '') || ""
+          }
         },
+        external_reference: user.id,
+        metadata: {
+          userId: user.id,
+          planId: planType,
+          billingFrequency: planType,
+          planName: selectedPlan.title,
+          months: selectedPlan.frequency,
+          type: "platform_subscription",
+          payment_type: "first_payment" // Identifica como primeiro pagamento
+        }
       };
 
-      // Se tiver dados do pagador, adicionar
-      if (requestData.payer_email) {
-        (cardPreferenceData as any).payer_email = requestData.payer_email;
-      }
-
-      console.log("Creating Mercado Pago subscription with card token:", { 
-        ...cardPreferenceData, 
-        card_token_id: "[REDACTED]" 
+      console.log("📤 Sending payment request to Mercado Pago:", { 
+        ...paymentData, 
+        token: "[REDACTED]" 
       });
 
-      const mpResponse = await fetch("https://api.mercadopago.com/preapproval", {
+      const paymentResponse = await fetch("https://api.mercadopago.com/v1/payments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${accessToken}`,
+          "X-Idempotency-Key": `${user.id}-${Date.now()}` // Evita cobranças duplicadas
         },
-        body: JSON.stringify(cardPreferenceData),
+        body: JSON.stringify(paymentData),
       });
 
-      const responseText = await mpResponse.text();
-      let responseData;
+      const paymentResponseText = await paymentResponse.text();
+      let paymentResult;
       
       try {
-        responseData = JSON.parse(responseText);
+        paymentResult = JSON.parse(paymentResponseText);
       } catch {
-        console.error("Failed to parse MP response:", responseText);
+        console.error("Failed to parse payment response:", paymentResponseText);
         throw new Error("Resposta inválida do Mercado Pago");
       }
 
-      if (!mpResponse.ok) {
-        console.error("Mercado Pago card payment error:", responseData);
+      console.log("📥 Payment response:", {
+        id: paymentResult.id,
+        status: paymentResult.status,
+        status_detail: paymentResult.status_detail
+      });
+
+      // Se o pagamento NÃO foi aprovado, retornar erro
+      if (paymentResult.status !== "approved") {
+        console.error("❌ Payment not approved:", paymentResult);
         
-        // Mapeamento de códigos de erro do MP para mensagens amigáveis em português
+        // Mapeamento de códigos de erro do MP para mensagens amigáveis
         const errorMessages: Record<string, string> = {
           "cc_rejected_high_risk": "Pagamento recusado pelo sistema de segurança do Mercado Pago. Isso pode acontecer com primeira compra, CPF diferente do titular, ou limite de segurança do cartão. Tente outro cartão ou use PIX.",
           "cc_rejected_insufficient_amount": "Saldo insuficiente no cartão.",
@@ -194,40 +184,20 @@ const handler = async (req: Request): Promise<Response> => {
           "cc_rejected_max_attempts": "Limite de tentativas atingido. Aguarde alguns minutos e tente novamente.",
           "cc_rejected_card_error": "Erro no cartão. Tente outro cartão.",
           "cc_rejected_other_reason": "Pagamento recusado. Tente outro cartão ou método de pagamento.",
-          "invalid_card_number": "Número do cartão inválido.",
-          "invalid_expiry_date": "Data de validade inválida.",
-          "invalid_security_code": "Código de segurança inválido.",
-          "card_expired": "Cartão expirado. Use outro cartão.",
+          "pending_contingency": "O pagamento está sendo processado. Aguarde a confirmação.",
+          "pending_review_manual": "O pagamento está em análise. Aguarde até 2 dias úteis.",
         };
 
-        // Tentar encontrar o código de erro nos diferentes lugares da resposta
-        // O código principal vem em responseData.code para erros de cartão
-        const errorCode = responseData.code ||
-          responseData.error || 
-          responseData.cause?.[0]?.code || 
-          responseData.status_detail ||
-          "";
-        
-        console.log(`Payment error code: ${errorCode}, message: ${responseData.message}`);
-        
-        // Buscar mensagem amigável ou usar genérica
-        let userFriendlyMessage = errorMessages[errorCode];
-        
-        if (!userFriendlyMessage) {
-          // Tentar mensagem do MP ou mensagem genérica
-          if (responseData.message && !responseData.message.includes("CC_VAL_")) {
-            userFriendlyMessage = responseData.message;
-          } else {
-            userFriendlyMessage = "Não foi possível processar o pagamento. Verifique os dados do cartão ou tente outro método de pagamento.";
-          }
-        }
+        const errorCode = paymentResult.status_detail || paymentResult.error || "";
+        let userFriendlyMessage = errorMessages[errorCode] || 
+          "Não foi possível processar o pagamento. Verifique os dados do cartão ou tente outro método.";
 
         return new Response(
           JSON.stringify({ 
             success: false,
             error: userFriendlyMessage,
-            error_code: errorCode || "payment_error",
-            error_description: userFriendlyMessage,
+            error_code: errorCode,
+            status: paymentResult.status
           }),
           {
             status: 400,
@@ -236,41 +206,88 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      console.log(`Subscription created with card successfully: ${responseData.id}, status: ${responseData.status}`);
+      console.log("✅ STEP 1 COMPLETE: Payment approved! ID:", paymentResult.id);
 
-      // Criar registro da assinatura no banco
-      const supabaseClient = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-      );
-
-      // Calcular próxima data de cobrança
-      const nextBillingDate = new Date();
+      // PASSO 2: Ativar assinatura no banco de dados (pagamento confirmado)
+      const startDate = new Date();
+      const nextBillingDate = new Date(startDate);
       nextBillingDate.setMonth(nextBillingDate.getMonth() + selectedPlan.frequency);
 
-      await supabaseClient.from("subscriptions").upsert({
-        user_id: user.id,
-        status: responseData.status === "authorized" ? "active" : "pending",
-        plan_type: planType,
-        amount: selectedPlan.price,
-        payment_method: "credit_card",
-        mp_subscription_id: responseData.id,
-        next_billing_date: nextBillingDate.toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: "user_id",
-        ignoreDuplicates: false,
-      });
+      console.log(`📅 STEP 2: Activating subscription. Start: ${startDate.toISOString()}, Next: ${nextBillingDate.toISOString()}`);
+
+      // Buscar subscription existente
+      const { data: existingSub } = await supabaseClient
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", user.id)
+        .is("customer_id", null)
+        .is("plan_id", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingSub) {
+        // Atualizar subscription existente
+        const { error: updateError } = await supabaseClient
+          .from("subscriptions")
+          .update({
+            status: "active",
+            type: "platform",
+            billing_frequency: planType,
+            payment_method: "credit_card",
+            plan_name: selectedPlan.title,
+            start_date: startDate.toISOString(),
+            next_billing_date: nextBillingDate.toISOString(),
+            last_billing_date: startDate.toISOString(),
+            failed_payments_count: 0,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", existingSub.id);
+
+        if (updateError) {
+          console.error("❌ Error updating subscription:", updateError);
+        } else {
+          console.log(`✅ Subscription ${existingSub.id} updated to ACTIVE`);
+        }
+      } else {
+        // Criar nova subscription
+        const { error: insertError } = await supabaseClient
+          .from("subscriptions")
+          .insert({
+            user_id: user.id,
+            customer_id: null,
+            plan_id: null,
+            type: "platform",
+            status: "active",
+            billing_frequency: planType,
+            payment_method: "credit_card",
+            plan_name: selectedPlan.title,
+            start_date: startDate.toISOString(),
+            next_billing_date: nextBillingDate.toISOString(),
+            last_billing_date: startDate.toISOString(),
+            failed_payments_count: 0
+          });
+
+        if (insertError) {
+          console.error("❌ Error creating subscription:", insertError);
+        } else {
+          console.log("✅ New platform subscription created");
+        }
+      }
+
+      // PASSO 3 (OPCIONAL): Criar assinatura recorrente para próximos meses
+      // Nota: Podemos pular isso e processar renovações manualmente ou via cron
+      // Por enquanto, vamos deixar só o pagamento único ativando a assinatura
+      // A renovação pode ser tratada quando a next_billing_date chegar
+
+      console.log("🎉 Card payment flow complete! Subscription activated.");
 
       return new Response(
         JSON.stringify({ 
           success: true,
-          preapproval_id: responseData.id,
-          status: responseData.status,
-          message: responseData.status === "authorized" 
-            ? "Assinatura ativada com sucesso!" 
-            : "Assinatura criada, aguardando confirmação",
+          payment_id: paymentResult.id,
+          status: "approved",
+          message: "Assinatura ativada com sucesso! Pagamento de R$" + selectedPlan.price.toFixed(2) + " confirmado.",
         }),
         {
           status: 200,
@@ -279,7 +296,36 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Fluxo normal (redirect para init_point) - usado como fallback
+    // ============================================================
+    // FLUXO DE REDIRECT (PIX ou checkout externo)
+    // ============================================================
+    // Criar data de início com buffer de 5 minutos no futuro
+    const startDate = new Date();
+    startDate.setMinutes(startDate.getMinutes() + 5);
+
+    const preferenceData = {
+      reason: selectedPlan.title,
+      auto_recurring: {
+        frequency: selectedPlan.frequency,
+        frequency_type: selectedPlan.frequency_type,
+        transaction_amount: selectedPlan.price,
+        currency_id: "BRL",
+        start_date: startDate.toISOString(),
+      },
+      status: "pending",
+      back_url: `${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovableproject.com") || ""}/configuracoes`,
+      payer_email: user.email,
+      external_reference: user.id,
+      metadata: {
+        userId: user.id,
+        planId: planType,
+        billingFrequency: planType,
+        planName: selectedPlan.title,
+        months: selectedPlan.frequency,
+        type: "platform_subscription"
+      }
+    };
+
     console.log("Creating Mercado Pago subscription preference with data:", preferenceData);
 
     const mpResponse = await fetch("https://api.mercadopago.com/preapproval", {
