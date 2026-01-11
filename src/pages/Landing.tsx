@@ -230,14 +230,11 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Product Showcase */}
-      <ProductShowcase />
-
-      {/* How It Works */}
+      {/* How It Works - Fim do Home */}
       <HowItWorks />
 
       {/* Collapsible Sections */}
-      <section className="py-16 relative">
+      <section className="py-12 relative">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             <Accordion type="multiple" className="space-y-4">
@@ -253,6 +250,7 @@ const Landing = () => {
                 </AccordionTrigger>
                 <AccordionContent className="px-0 pb-0">
                   <div id="features">
+                    <ProductShowcase />
                     <FeatureGrid />
                   </div>
                 </AccordionContent>
@@ -328,29 +326,6 @@ const Landing = () => {
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-accent/10 to-secondary/20" />
-        <div className="container mx-auto px-4 relative">
-          <div className="max-w-4xl mx-auto text-center bg-card rounded-3xl shadow-2xl p-12 md:p-16 border">
-            <Rocket className="w-16 h-16 text-primary mx-auto mb-6" />
-            <h2 className="text-4xl md:text-5xl font-extrabold text-foreground mb-6">
-              Pronto para <span className="text-gradient-primary">decolar</span>?
-            </h2>
-            <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-              Junte-se a mais de 5.000 empresários que já transformaram sua gestão
-            </p>
-            <Button size="lg" onClick={handleGetStarted} className="h-16 px-10 text-lg gap-3 shadow-xl bg-primary">
-              {isAuthenticated ? "Ir para Dashboard" : "Começar Teste Grátis"}
-              <ArrowRight className="w-5 h-5" />
-            </Button>
-            <p className="text-sm text-muted-foreground mt-8">
-              ✓ Sem cartão de crédito &nbsp;•&nbsp; ✓ 7 dias grátis &nbsp;•&nbsp; ✓ Cancele quando quiser
-            </p>
           </div>
         </div>
       </section>
