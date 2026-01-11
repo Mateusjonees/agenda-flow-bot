@@ -304,46 +304,111 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <img src={foguetinho} alt="Foguete" className="h-10 w-auto dark:hidden" />
-                <img src={logoAntigo} alt="Foguete" className="h-10 w-auto hidden dark:block" />
-                <span className="text-lg font-bold">Foguete</span>
+      <footer className="border-t bg-card/80 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16">
+            {/* Logo e Descrição */}
+            <div className="sm:col-span-2 lg:col-span-1">
+              <div className="flex items-center gap-3 mb-4">
+                <img src={foguetinho} alt="Foguete" className="h-12 w-auto dark:hidden" />
+                <img src={logoAntigo} alt="Foguete" className="h-12 w-auto hidden dark:block" />
+                <span className="text-xl font-bold text-foreground">Foguete</span>
               </div>
-              <p className="text-sm text-muted-foreground">Sistema completo de gestão empresarial.</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Sistema completo de gestão empresarial para salões, clínicas, barbearias e prestadores de serviço.
+              </p>
             </div>
+
+            {/* Produto */}
             <div>
-              <h3 className="font-bold text-foreground mb-4">Produto</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><button onClick={() => scrollToSection("features")} className="hover:text-primary">Funcionalidades</button></li>
-                <li><button onClick={() => scrollToSection("pricing")} className="hover:text-primary">Preços</button></li>
-                <li><button onClick={() => scrollToSection("testimonials")} className="hover:text-primary">Depoimentos</button></li>
+              <h3 className="font-bold text-foreground mb-5 text-base">Produto</h3>
+              <ul className="space-y-3 text-sm">
+                <li>
+                  <button onClick={() => scrollToSection("features")} className="text-muted-foreground hover:text-primary transition-colors">
+                    Funcionalidades
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => scrollToSection("pricing")} className="text-muted-foreground hover:text-primary transition-colors">
+                    Preços
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => scrollToSection("testimonials")} className="text-muted-foreground hover:text-primary transition-colors">
+                    Depoimentos
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => scrollToSection("faq")} className="text-muted-foreground hover:text-primary transition-colors">
+                    FAQ
+                  </button>
+                </li>
               </ul>
             </div>
+
+            {/* Contato */}
             <div>
-              <h3 className="font-bold text-foreground mb-4">Contato</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="https://wa.me/5548988430812" target="_blank" rel="noopener noreferrer" className="hover:text-primary">Vendas: (48) 98843-0812</a></li>
-                <li><a href="https://wa.me/554899075189" target="_blank" rel="noopener noreferrer" className="hover:text-primary">Suporte: (48) 99075-1889</a></li>
+              <h3 className="font-bold text-foreground mb-5 text-base">Contato</h3>
+              <ul className="space-y-3 text-sm">
+                <li>
+                  <a 
+                    href="https://wa.me/5548988430812" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
+                  >
+                    <MessageCircle className="w-4 h-4 text-primary" />
+                    Vendas: (48) 98843-0812
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="https://wa.me/554899075189" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
+                  >
+                    <HeadphonesIcon className="w-4 h-4 text-primary" />
+                    Suporte: (48) 99075-1889
+                  </a>
+                </li>
               </ul>
             </div>
+
+            {/* Horário */}
             <div>
-              <h3 className="font-bold text-foreground mb-4">Horário</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" />Seg - Sex: 9h às 18h</li>
-                <li className="flex items-center gap-2"><Shield className="w-4 h-4 text-primary" />Suporte 24/7 via WhatsApp</li>
+              <h3 className="font-bold text-foreground mb-5 text-base">Horário</h3>
+              <ul className="space-y-3 text-sm">
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="w-4 h-4 text-primary flex-shrink-0" />
+                  Seg - Sex: 9h às 18h
+                </li>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Shield className="w-4 h-4 text-primary flex-shrink-0" />
+                  Suporte 24/7 via WhatsApp
+                </li>
               </ul>
             </div>
           </div>
-          <div className="border-t pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-sm text-muted-foreground">© 2025 Foguete Gestão Empresarial. Todos os direitos reservados.</div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <a href="/politica-privacidade" className="hover:text-primary">Privacidade</a>
-              <a href="/termos-servico" className="hover:text-primary">Termos</a>
-              <div className="flex items-center gap-2"><Lock className="w-4 h-4 text-primary" />LGPD</div>
+
+          {/* Divisor e Copyright */}
+          <div className="border-t mt-12 pt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-muted-foreground text-center sm:text-left">
+                © 2025 Foguete Gestão Empresarial. Todos os direitos reservados.
+              </p>
+              <div className="flex items-center gap-6 text-sm">
+                <a href="/politica-privacidade" className="text-muted-foreground hover:text-primary transition-colors">
+                  Privacidade
+                </a>
+                <a href="/termos-servico" className="text-muted-foreground hover:text-primary transition-colors">
+                  Termos
+                </a>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Lock className="w-4 h-4 text-primary" />
+                  LGPD
+                </div>
+              </div>
             </div>
           </div>
         </div>
