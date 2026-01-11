@@ -224,40 +224,37 @@ const TestimonialsSection = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-card rounded-2xl p-6 border shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col min-w-[320px] md:min-w-[380px] snap-center flex-shrink-0"
+                className="bg-card rounded-xl p-6 border border-border/50 shadow-sm hover:border-primary/20 transition-colors duration-200 flex flex-col min-w-[320px] md:min-w-[380px] snap-center flex-shrink-0"
               >
-                {/* Quote Icon */}
-                <Quote className="w-10 h-10 text-primary/20 mb-4" />
-
                 {/* Highlight Badge */}
                 <Badge variant="secondary" className="w-fit mb-4 bg-primary/10 text-primary border-primary/30">
                   {testimonial.highlight}
                 </Badge>
 
                 {/* Rating */}
-                <div className="flex gap-1 mb-4">
+                <div className="flex gap-1 mb-3">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
 
                 {/* Content */}
-                <p className="text-foreground mb-6 leading-relaxed flex-1">
+                <p className="text-foreground/90 mb-6 leading-relaxed flex-1 text-sm">
                   "{testimonial.content}"
                 </p>
 
                 {/* Author with Real Photo */}
-                <div className="flex items-center gap-4 pt-4 border-t">
+                <div className="flex items-center gap-3 pt-4 border-t border-border/50">
                   <img
                     src={testimonial.photo}
                     alt={testimonial.name}
-                    className="w-12 h-12 rounded-full object-cover shadow-lg ring-2 ring-primary/20"
+                    className="w-10 h-10 rounded-full object-cover ring-1 ring-border"
                     loading="lazy"
                     draggable={false}
                   />
                   <div>
-                    <div className="font-bold text-foreground">{testimonial.name}</div>
-                    <div className="text-sm text-muted-foreground">{testimonial.role}</div>
+                    <div className="font-semibold text-foreground text-sm">{testimonial.name}</div>
+                    <div className="text-xs text-muted-foreground">{testimonial.role}</div>
                   </div>
                 </div>
               </motion.div>
