@@ -578,16 +578,20 @@ const handler = async (req: Request): Promise<Response> => {
         // Isso evita que pagamentos da plataforma apareçam nos relatórios do usuário
         console.log(`ℹ️ Pagamento PIX de plataforma processado (sem criar transação financeira)`);
 
-        // Atualizar pix_charge se existir
-        if (payment.external_reference) {
-          console.log("🔍 STEP 20: Atualizando pix_charge com external_reference:", payment.external_reference);
+        // ✅ CORREÇÃO: Só atualizar pix_charge se for pagamento PIX
+        // Identificar se é PIX pelo payment_type_id ou payment_method_id
+        const isPixPayment = payment.payment_type_id === "bank_transfer" || 
+                             payment.payment_method_id === "pix";
+        
+        if (isPixPayment && payment.external_reference) {
+          console.log("🔍 STEP 20: Pagamento PIX detectado - atualizando pix_charge:", payment.external_reference);
           await updatePixCharge(
             supabaseClient,
             userId,
             payment.external_reference
           );
         } else {
-          console.log("ℹ️ STEP 20: Nenhum external_reference - pulando atualização de pix_charge");
+          console.log(`ℹ️ STEP 20: Pagamento via ${payment.payment_type_id || payment.payment_method_id} - não é PIX, pulando pix_charge`);
         }
 
         console.log("🎉 STEP 22: PROCESSAMENTO COMPLETO! Assinatura da plataforma ativada com sucesso!");
@@ -638,10 +642,11 @@ const handler = async (req: Request): Promise<Response> => {
       if (metadata?.type === "subscription_reactivation" && metadata?.subscription_id) {
         console.log("Processing subscription reactivation for:", metadata.subscription_id);
         
-        // Calcular próxima data de cobrança (1 mês + 7 dias de trial)
+        // ✅ CORREÇÃO: Calcular próxima data de cobrança SEM trial
+        // Pagamento confirmado = ciclo começa agora
         const nextBillingDate = new Date();
         nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
-        nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+        // ❌ REMOVIDO: nextBillingDate.setDate(nextBillingDate.getDate() + 7);
 
         // Reativar a assinatura
         const { error: reactivateError } = await supabaseClient
@@ -683,8 +688,8 @@ const handler = async (req: Request): Promise<Response> => {
         const nextBillingDate = new Date(startDate);
         nextBillingDate.setMonth(nextBillingDate.getMonth() + (metadata.months || 1));
         
-        // Adicionar 7 dias de trial
-        nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+        // ✅ CORREÇÃO: SEM trial - pagamento confirmado = ciclo começa agora
+        // ❌ REMOVIDO: nextBillingDate.setDate(nextBillingDate.getDate() + 7);
 
         if (existingSub) {
           // Update existing subscription
