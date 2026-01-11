@@ -108,7 +108,7 @@ const Landing = () => {
       </a>
 
       {/* Header */}
-      <header className="border-b glass-strong sticky top-0 z-50">
+      <header className="border-b glass-strong fixed top-0 left-0 right-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img alt="Foguete" className="h-14 w-auto dark:hidden" src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png" />
@@ -162,6 +162,9 @@ const Landing = () => {
           </div>
         )}
       </header>
+
+      {/* Spacer for fixed header */}
+      <div className="h-16" />
 
       {/* Hero Section */}
       <section id="home" className="relative min-h-[90vh] flex items-center py-16 md:py-24 overflow-hidden">
