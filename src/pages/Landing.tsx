@@ -236,49 +236,98 @@ const Landing = () => {
       {/* How It Works */}
       <HowItWorks />
 
-      {/* Features Grid */}
-      <FeatureGrid />
-
-      {/* Testimonials */}
-      <TestimonialsSection />
-
-      {/* Pricing */}
-      <PricingSection onGetStarted={handleGetStarted} />
-
-      {/* FAQ */}
-      <section id="faq" className="py-24 relative">
+      {/* Collapsible Sections */}
+      <section className="py-16 relative">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-16">
-              <Badge className="px-4 py-2 mb-6 bg-accent/10 text-accent border-accent/30">
-                <MessageCircle className="w-4 h-4 mr-2" />
-                FAQ
-              </Badge>
-              <h2 className="text-4xl md:text-5xl font-extrabold text-foreground mb-4">
-                Perguntas <span className="text-gradient-primary">Frequentes</span>
-              </h2>
-            </div>
+          <div className="max-w-5xl mx-auto">
+            <Accordion type="multiple" className="space-y-4">
+              {/* Recursos */}
+              <AccordionItem value="features" className="glass rounded-2xl border-0 shadow-lg overflow-hidden">
+                <AccordionTrigger className="px-8 py-6 text-xl font-bold text-foreground hover:text-primary hover:no-underline [&[data-state=open]]:bg-primary/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                    </div>
+                    <span>Recursos</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-0 pb-0">
+                  <div id="features">
+                    <FeatureGrid />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
 
-            <Accordion type="single" collapsible className="space-y-4">
-              {faqs.map((faq, index) => (
-                <AccordionItem key={index} value={`item-${index}`} className="glass rounded-xl px-6 border-0 shadow-sm">
-                  <AccordionTrigger className="text-left font-semibold text-foreground hover:text-primary py-6">
-                    {faq.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground pb-6">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
+              {/* Depoimentos */}
+              <AccordionItem value="testimonials" className="glass rounded-2xl border-0 shadow-lg overflow-hidden">
+                <AccordionTrigger className="px-8 py-6 text-xl font-bold text-foreground hover:text-primary hover:no-underline [&[data-state=open]]:bg-primary/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                      <MessageCircle className="w-5 h-5 text-accent" />
+                    </div>
+                    <span>Depoimentos</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-0 pb-0">
+                  <div id="testimonials">
+                    <TestimonialsSection />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Preços */}
+              <AccordionItem value="pricing" className="glass rounded-2xl border-0 shadow-lg overflow-hidden">
+                <AccordionTrigger className="px-8 py-6 text-xl font-bold text-foreground hover:text-primary hover:no-underline [&[data-state=open]]:bg-primary/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-emerald-500" />
+                    </div>
+                    <span>Preços</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-0 pb-0">
+                  <div id="pricing">
+                    <PricingSection onGetStarted={handleGetStarted} />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* FAQ */}
+              <AccordionItem value="faq" className="glass rounded-2xl border-0 shadow-lg overflow-hidden">
+                <AccordionTrigger className="px-8 py-6 text-xl font-bold text-foreground hover:text-primary hover:no-underline [&[data-state=open]]:bg-primary/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center">
+                      <HeadphonesIcon className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <span>Perguntas Frequentes</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-8 pb-8">
+                  <div id="faq">
+                    <Accordion type="single" collapsible className="space-y-3 mt-4">
+                      {faqs.map((faq, index) => (
+                        <AccordionItem key={index} value={`faq-${index}`} className="bg-background/50 rounded-xl px-5 border shadow-sm">
+                          <AccordionTrigger className="text-left font-semibold text-foreground hover:text-primary py-4 text-base">
+                            {faq.question}
+                          </AccordionTrigger>
+                          <AccordionContent className="text-muted-foreground pb-4">
+                            {faq.answer}
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+
+                    <div className="text-center mt-8">
+                      <p className="text-muted-foreground mb-4">Ainda tem dúvidas?</p>
+                      <Button variant="outline" className="gap-2 h-12 px-6 glass" onClick={() => window.open("https://wa.me/554899075189", "_blank")}>
+                        <MessageCircle className="w-4 h-4" />
+                        Falar com Suporte
+                      </Button>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
-
-            <div className="text-center mt-12">
-              <p className="text-muted-foreground mb-4">Ainda tem dúvidas?</p>
-              <Button variant="outline" className="gap-2 h-12 px-6 glass" onClick={() => window.open("https://wa.me/554899075189", "_blank")}>
-                <MessageCircle className="w-4 h-4" />
-                Falar com Suporte
-              </Button>
-            </div>
           </div>
         </div>
       </section>
