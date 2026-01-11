@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Star, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -57,45 +57,20 @@ const testimonials = [
 
 const TestimonialsSection = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [isPaused, setIsPaused] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-
-  // Auto-scroll effect
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) return;
-
-    let animationId: number;
-    let scrollSpeed = 0.5; // pixels per frame
-
-    const autoScroll = () => {
-      if (!isPaused && container) {
-        container.scrollLeft += scrollSpeed;
-        
-        // Reset scroll when reaching the end (loop effect)
-        if (container.scrollLeft >= container.scrollWidth - container.clientWidth) {
-          container.scrollLeft = 0;
-        }
-      }
-      animationId = requestAnimationFrame(autoScroll);
-    };
-
-    animationId = requestAnimationFrame(autoScroll);
-
-    return () => {
-      cancelAnimationFrame(animationId);
-    };
-  }, [isPaused]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
 
   // Update scroll buttons state
-  const updateScrollButtons = () => {
+  const updateScrollButtons = useCallback(() => {
     const container = scrollRef.current;
     if (container) {
-      setCanScrollLeft(container.scrollLeft > 0);
+      setCanScrollLeft(container.scrollLeft > 10);
       setCanScrollRight(container.scrollLeft < container.scrollWidth - container.clientWidth - 10);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const container = scrollRef.current;
@@ -104,17 +79,83 @@ const TestimonialsSection = () => {
       updateScrollButtons();
       return () => container.removeEventListener('scroll', updateScrollButtons);
     }
-  }, []);
+  }, [updateScrollButtons]);
 
   const scroll = (direction: 'left' | 'right') => {
     const container = scrollRef.current;
     if (container) {
-      const scrollAmount = 400;
+      const cardWidth = 400; // Approximate card width + gap
       container.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        left: direction === 'left' ? -cardWidth : cardWidth,
         behavior: 'smooth'
       });
     }
+  };
+
+  // Mouse drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    
+    setIsDragging(true);
+    setStartX(e.pageX - container.offsetLeft);
+    setScrollLeft(container.scrollLeft);
+    container.style.cursor = 'grabbing';
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    
+    const container = scrollRef.current;
+    if (!container) return;
+    
+    const x = e.pageX - container.offsetLeft;
+    const walk = (x - startX) * 1.5; // Adjust scroll speed
+    container.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    const container = scrollRef.current;
+    if (container) {
+      container.style.cursor = 'grab';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      const container = scrollRef.current;
+      if (container) {
+        container.style.cursor = 'grab';
+      }
+    }
+  };
+
+  // Touch handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    
+    setIsDragging(true);
+    setStartX(e.touches[0].pageX - container.offsetLeft);
+    setScrollLeft(container.scrollLeft);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    
+    const container = scrollRef.current;
+    if (!container) return;
+    
+    const x = e.touches[0].pageX - container.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    container.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
   };
 
   return (
@@ -142,7 +183,7 @@ const TestimonialsSection = () => {
               size="icon"
               onClick={() => scroll('left')}
               disabled={!canScrollLeft}
-              className="rounded-full"
+              className="rounded-full hover:bg-primary hover:text-primary-foreground disabled:opacity-40"
             >
               <ChevronLeft className="w-5 h-5" />
             </Button>
@@ -151,7 +192,7 @@ const TestimonialsSection = () => {
               size="icon"
               onClick={() => scroll('right')}
               disabled={!canScrollRight}
-              className="rounded-full"
+              className="rounded-full hover:bg-primary hover:text-primary-foreground disabled:opacity-40"
             >
               <ChevronRight className="w-5 h-5" />
             </Button>
@@ -160,25 +201,30 @@ const TestimonialsSection = () => {
           {/* Testimonials Carousel */}
           <div
             ref={scrollRef}
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
-            onTouchStart={() => setIsPaused(true)}
-            onTouchEnd={() => setIsPaused(false)}
-            className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 snap-x snap-mandatory cursor-grab active:cursor-grabbing"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            className={`flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory select-none ${
+              isDragging ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
             style={{
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
             }}
           >
-            {/* Duplicate cards for infinite scroll effect */}
-            {[...testimonials, ...testimonials].map((testimonial, index) => (
+            {testimonials.map((testimonial, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: (index % testimonials.length) * 0.1 }}
-                className="bg-card rounded-2xl p-6 border shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col min-w-[340px] md:min-w-[380px] snap-center flex-shrink-0"
+                transition={{ delay: index * 0.1 }}
+                className="bg-card rounded-2xl p-6 border shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col min-w-[320px] md:min-w-[380px] snap-center flex-shrink-0"
               >
                 {/* Quote Icon */}
                 <Quote className="w-10 h-10 text-primary/20 mb-4" />
@@ -207,6 +253,7 @@ const TestimonialsSection = () => {
                     alt={testimonial.name}
                     className="w-12 h-12 rounded-full object-cover shadow-lg ring-2 ring-primary/20"
                     loading="lazy"
+                    draggable={false}
                   />
                   <div>
                     <div className="font-bold text-foreground">{testimonial.name}</div>
@@ -217,19 +264,10 @@ const TestimonialsSection = () => {
             ))}
           </div>
 
-          {/* Scroll Indicator Dots */}
-          <div className="flex justify-center gap-2 mt-6 md:hidden">
-            {testimonials.map((_, i) => (
-              <div
-                key={i}
-                className="w-2 h-2 rounded-full bg-primary/30 transition-colors"
-              />
-            ))}
-          </div>
-
-          {/* Auto-scroll hint */}
-          <p className="text-center text-sm text-muted-foreground mt-4 hidden md:block">
-            Passe o mouse para pausar • Use as setas para navegar
+          {/* Drag hint */}
+          <p className="text-center text-sm text-muted-foreground mt-4">
+            <span className="hidden md:inline">Arraste para navegar • Use as setas para avançar</span>
+            <span className="md:hidden">Arraste para ver mais depoimentos</span>
           </p>
 
           {/* Stats */}
