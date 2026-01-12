@@ -131,8 +131,10 @@ const handler = async (req: Request): Promise<Response> => {
           payer: {
             first_name: payerData.first_name as string,
             last_name: payerData.last_name as string,
-            phone: payerPhone ? { area_code: payerPhone.slice(0, 2), number: payerPhone.slice(2) } : undefined,
-            registration_date: new Date().toISOString()
+            ...(payerPhone && payerPhone.length >= 10 ? {
+              phone: { area_code: payerPhone.slice(0, 2), number: payerPhone.slice(2) }
+            } : {}),
+            registration_date: new Date().toISOString().split('T')[0]
           }
         }
       };
@@ -162,6 +164,21 @@ const handler = async (req: Request): Promise<Response> => {
 
       const paymentResult = await paymentResponse.json();
 
+      // Check for HTTP error first (400, 401, etc.)
+      if (!paymentResponse.ok) {
+        console.error("❌ MP API HTTP Error:", paymentResponse.status, JSON.stringify(paymentResult));
+        
+        // Extract error details from MP error format
+        const mpError = paymentResult.message || paymentResult.error || "Erro na API do Mercado Pago";
+        const mpCause = paymentResult.cause ? paymentResult.cause.map((c: any) => c.description || c.code).join(", ") : "";
+        
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: `${mpError}${mpCause ? ` (${mpCause})` : ""}`,
+          details: paymentResult
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       console.log("📥 Payment response:", { id: paymentResult.id, status: paymentResult.status, status_detail: paymentResult.status_detail });
 
       if (paymentResult.status !== "approved") {
@@ -178,7 +195,6 @@ const handler = async (req: Request): Promise<Response> => {
 
         const errorMessage = errorMessages[paymentResult.status_detail] || `Pagamento recusado: ${paymentResult.status_detail}`;
 
-        // Return status_detail for better frontend diagnosis
         return new Response(JSON.stringify({ 
           success: false, 
           error: errorMessage, 
