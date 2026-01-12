@@ -109,17 +109,37 @@ const handler = async (req: Request): Promise<Response> => {
       // PASSO 1: Cobrar o valor integral AGORA via API de pagamentos
       console.log(`💰 STEP 1: Creating immediate payment of R$${selectedPlan.price}`);
       
+      // Preparar dados do pagador com validação
+      const payerEmail = requestData.payer_email || user.email || "";
+      const payerIdentification = requestData.payer_identification?.number || profile?.cpf?.replace(/\D/g, '') || "";
+      const payerName = profile?.full_name || "";
+      
+      console.log("📧 Payer email:", payerEmail);
+      console.log("🆔 Payer identification:", payerIdentification ? `${payerIdentification.slice(0, 3)}***` : "MISSING");
+      console.log("👤 Payer name:", payerName);
+
+      // Validar dados obrigatórios
+      if (!payerEmail || !payerEmail.includes("@")) {
+        throw new Error("Email válido é obrigatório para pagamento com cartão");
+      }
+      
+      if (!payerIdentification || payerIdentification.length < 11) {
+        throw new Error("CPF válido é obrigatório para pagamento com cartão");
+      }
+
       const paymentData = {
         transaction_amount: selectedPlan.price,
         token: requestData.card_token_id,
         description: selectedPlan.title,
         installments: 1,
-        payment_method_id: "master", // Será detectado automaticamente pelo token
+        // payment_method_id é detectado automaticamente pelo token do cartão
         payer: {
-          email: requestData.payer_email || user.email,
-          identification: requestData.payer_identification || {
-            type: "CPF",
-            number: profile?.cpf?.replace(/\D/g, '') || ""
+          email: payerEmail,
+          first_name: payerName.split(' ')[0] || "Cliente",
+          last_name: payerName.split(' ').slice(1).join(' ') || "Foguete",
+          identification: {
+            type: requestData.payer_identification?.type || "CPF",
+            number: payerIdentification
           }
         },
         external_reference: user.id,
@@ -130,7 +150,7 @@ const handler = async (req: Request): Promise<Response> => {
           planName: selectedPlan.title,
           months: selectedPlan.frequency,
           type: "platform_subscription",
-          payment_type: "first_payment" // Identifica como primeiro pagamento
+          payment_type: "first_payment"
         }
       };
 
@@ -171,7 +191,7 @@ const handler = async (req: Request): Promise<Response> => {
         
         // Mapeamento de códigos de erro do MP para mensagens amigáveis
         const errorMessages: Record<string, string> = {
-          "cc_rejected_high_risk": "Pagamento recusado pelo sistema de segurança do Mercado Pago. Isso pode acontecer com primeira compra, CPF diferente do titular, ou limite de segurança do cartão. Tente outro cartão ou use PIX.",
+          "cc_rejected_high_risk": "O Mercado Pago bloqueou este pagamento por segurança. Isso acontece com frequência em primeira compra ou quando os dados não coincidem com o titular. Recomendamos usar PIX (aprovação instantânea) ou pagar pelo site do Mercado Pago.",
           "cc_rejected_insufficient_amount": "Saldo insuficiente no cartão.",
           "cc_rejected_bad_filled_card_number": "Número do cartão incorreto.",
           "cc_rejected_bad_filled_date": "Data de validade incorreta.",

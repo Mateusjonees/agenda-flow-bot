@@ -168,6 +168,16 @@ export function CardSubscriptionDialog({
       return;
     }
 
+    if (!email.trim() || !email.includes("@")) {
+      toast.error("Email válido é obrigatório");
+      return;
+    }
+
+    console.log("🚀 Sending payment with:", {
+      email,
+      identification: { type: identificationType, number: cleanIdentification.slice(0, 3) + "***" }
+    });
+
     setLoading(true);
     setCardFormError(null);
 
