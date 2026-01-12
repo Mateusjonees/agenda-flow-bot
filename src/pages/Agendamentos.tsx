@@ -973,12 +973,12 @@ const Agendamentos = () => {
       <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
         <div className="overflow-x-auto">
           {/* Cabeçalho dos dias */}
-          <div className={cn(
-            "grid border-b bg-muted/50 min-w-[700px] lg:min-w-[900px] sticky top-0 z-10",
-            `grid-cols-${activeDays.length + 1}`
-          )} style={{ gridTemplateColumns: `100px repeat(${activeDays.length}, 1fr)` }}>
-            <div className="p-4 border-r">
-              <div className="text-xs text-muted-foreground uppercase tracking-wider">Horário</div>
+          <div 
+            className="grid border-b bg-muted/50 sticky top-0 z-10"
+            style={{ gridTemplateColumns: `60px repeat(${activeDays.length}, minmax(80px, 1fr))` }}
+          >
+            <div className="p-2 border-r">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Hora</div>
             </div>
             {activeDays.map((day) => {
               const isCurrentDay = isSameDay(day, new Date());
@@ -991,31 +991,31 @@ const Agendamentos = () => {
                 <div
                   key={day.toISOString()}
                   className={cn(
-                    "p-4 border-l text-center transition-all",
+                    "p-2 border-l text-center transition-all",
                     isCurrentDay ? "bg-primary/10" : "hover:bg-accent/5"
                   )}
                 >
-                  <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                     {format(day, "EEE", { locale: ptBR })}
                   </div>
                   <div className={cn(
-                    "flex items-center justify-center gap-2"
+                    "flex items-center justify-center"
                   )}>
                     <div className={cn(
-                      "text-2xl font-bold",
-                      isCurrentDay && "w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                      "text-lg font-bold",
+                      isCurrentDay && "w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm"
                     )}>
                       {format(day, "dd")}
                     </div>
                   </div>
                   {dayHours && (
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="text-[9px] text-muted-foreground mt-0.5 hidden lg:block">
                       {dayHours.start} - {dayHours.end}
                     </div>
                   )}
                   {dayAppointmentsCount > 0 && (
-                    <Badge variant="secondary" className="text-xs h-5 mt-2">
-                      {dayAppointmentsCount} {dayAppointmentsCount === 1 ? 'evento' : 'eventos'}
+                    <Badge variant="secondary" className="text-[9px] h-4 mt-1 px-1">
+                      {dayAppointmentsCount}
                     </Badge>
                   )}
                 </div>
@@ -1024,14 +1024,14 @@ const Agendamentos = () => {
           </div>
           
           {/* Grid de horários */}
-          <div className="divide-y min-w-[700px] lg:min-w-[900px]">
+          <div className="divide-y">
             {hours.map((hour) => (
               <div 
                 key={hour} 
                 className="grid"
-                style={{ gridTemplateColumns: `100px repeat(${activeDays.length}, 1fr)` }}
+                style={{ gridTemplateColumns: `60px repeat(${activeDays.length}, minmax(80px, 1fr))` }}
               >
-                <div className="p-3 text-sm text-muted-foreground border-r font-medium bg-muted/20 h-[80px]">
+                <div className="p-1.5 text-xs text-muted-foreground border-r font-medium bg-muted/20 h-[70px]">
                   {String(hour).padStart(2, "0")}:00
                 </div>
                 {activeDays.map((day) => {
@@ -1060,7 +1060,7 @@ const Agendamentos = () => {
                       date={day}
                       hour={hour}
                       className={cn(
-                        "p-1 border-l transition-colors h-[80px] overflow-y-auto",
+                        "p-0.5 border-l transition-colors h-[70px] overflow-y-auto",
                         isWithinBusinessHours ? "hover:bg-accent/5" : "bg-muted/40",
                         isCurrentDay && isWithinBusinessHours && "bg-primary/5"
                       )}
