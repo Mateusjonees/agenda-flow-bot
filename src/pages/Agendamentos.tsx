@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsSmallScreen } from "@/hooks/use-small-screen";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -147,6 +148,7 @@ const getStatusLabel = (status: string, timeDiff: number) => {
 
 const Agendamentos = () => {
   const isMobile = useIsMobile();
+  const isSmallScreen = useIsSmallScreen();
   const { isReadOnly } = useReadOnly();
   const { testNotification } = useAppointmentReminders();
   const { trackSchedule } = useFacebookPixel();
@@ -173,6 +175,7 @@ const Agendamentos = () => {
   const [selectedDayDate, setSelectedDayDate] = useState<Date>(new Date());
   const [selectedDayAppointments, setSelectedDayAppointments] = useState<Appointment[]>([]);
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
+  const [compactWeekSelectedDay, setCompactWeekSelectedDay] = useState<Date>(new Date());
   
   // Ctrl+K para busca rápida
   useEffect(() => {
@@ -832,138 +835,183 @@ const Agendamentos = () => {
     
     const hours = Array.from({ length: maxHour - minHour }, (_, i) => minHour + i);
 
-    // Mobile view - vertical cards per day
-    if (isMobile) {
+    // Mobile and Small Screen view - Compact Week with day selector
+    if (isMobile || isSmallScreen) {
+      // Get appointments for the selected day
+      const selectedDayAppointments = appointments.filter(apt => 
+        isSameDay(parseISO(apt.start_time), compactWeekSelectedDay)
+      ).sort((a, b) => parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime());
+
+      const selectedDayHours = getDayHours(compactWeekSelectedDay);
+      const isSelectedToday = isSameDay(compactWeekSelectedDay, new Date());
+
       return (
-        <div className="space-y-4">
-          {activeDays.map((day) => {
-            const isCurrentDay = isSameDay(day, new Date());
-            const dayHours = getDayHours(day);
-            const dayAppointments = appointments.filter(apt => 
-              isSameDay(parseISO(apt.start_time), day)
-            ).sort((a, b) => parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime());
-            
-            return (
-              <div 
-                key={day.toISOString()} 
-                className={cn(
-                  "rounded-2xl overflow-hidden bg-gradient-to-br from-card to-card/80 backdrop-blur-sm border border-border/50 shadow-lg transition-all duration-300",
-                  isCurrentDay && "ring-2 ring-primary/40 shadow-primary/10 shadow-xl"
-                )}
-              >
-                {/* Day header - Modern gradient */}
-                <div className={cn(
-                  "p-4 flex items-center justify-between relative overflow-hidden",
-                  isCurrentDay 
-                    ? "bg-gradient-to-r from-primary/20 via-primary/10 to-transparent" 
-                    : "bg-gradient-to-r from-muted/60 via-muted/30 to-transparent"
-                )}>
-                  <div className="flex items-center gap-4 relative z-10">
-                    <div className={cn(
-                      "flex items-center justify-center text-2xl font-bold transition-all duration-300",
-                      isCurrentDay 
-                        ? "w-12 h-12 rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/30" 
-                        : "w-12 h-12 rounded-xl bg-muted text-foreground"
-                    )}>
-                      {format(day, "dd")}
-                    </div>
-                    <div>
-                      <div className="font-bold text-lg capitalize text-foreground">
-                        {format(day, "EEEE", { locale: ptBR })}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {format(day, "MMMM yyyy", { locale: ptBR })}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    {dayHours && (
-                      <div className="text-xs text-muted-foreground flex items-center gap-1.5 bg-background/50 px-2 py-1 rounded-full backdrop-blur-sm">
-                        <Clock className="w-3 h-3" />
-                        {dayHours.start} - {dayHours.end}
-                      </div>
-                    )}
-                    {dayAppointments.length > 0 && (
-                      <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors">
-                        {dayAppointments.length} {dayAppointments.length === 1 ? 'evento' : 'eventos'}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Appointments list - Modern cards */}
-                <div className="p-3 space-y-2">
-                  {dayAppointments.length === 0 ? (
-                    <div className="py-8 text-center text-muted-foreground">
-                      <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-muted/50 flex items-center justify-center">
-                        <CalendarIcon className="w-7 h-7 opacity-50" />
-                      </div>
-                      <p className="text-sm font-medium">Nenhum agendamento</p>
-                      <p className="text-xs mt-1 opacity-70">Toque para agendar</p>
-                    </div>
-                  ) : (
-                    dayAppointments.map((apt) => {
-                      const statusConfig = {
-                        confirmed: { bg: "from-emerald-500/15 to-emerald-500/5", border: "border-emerald-500/30", dot: "bg-emerald-500" },
-                        pending: { bg: "from-amber-500/15 to-amber-500/5", border: "border-amber-500/30", dot: "bg-amber-500" },
-                        cancelled: { bg: "from-red-500/15 to-red-500/5", border: "border-red-500/30", dot: "bg-red-500" },
-                        completed: { bg: "from-violet-500/15 to-violet-500/5", border: "border-violet-500/30", dot: "bg-violet-500" }
-                      };
-                      const status = statusConfig[apt.status as keyof typeof statusConfig] || statusConfig.completed;
-                      
-                      return (
-                        <div 
-                          key={apt.id}
-                          className={cn(
-                            "p-4 rounded-xl flex items-center gap-4 transition-all duration-300 cursor-pointer",
-                            "bg-gradient-to-r border backdrop-blur-sm",
-                            "hover:shadow-md hover:scale-[1.01] active:scale-[0.99]",
-                            status.bg, status.border
-                          )}
-                          onClick={() => {
-                            setMobileSelectedAppointment(apt);
-                            setMobileMenuOpen(true);
-                          }}
-                        >
-                          {/* Time column */}
-                          <div className="flex flex-col items-center min-w-[52px]">
-                            <span className="text-lg font-bold text-foreground">{format(parseISO(apt.start_time), "HH:mm")}</span>
-                            <span className="text-xs text-muted-foreground">{format(parseISO(apt.end_time), "HH:mm")}</span>
-                          </div>
-                          
-                          {/* Divider with status dot */}
-                          <div className="flex flex-col items-center gap-1 h-full">
-                            <div className={cn("w-2.5 h-2.5 rounded-full shadow-lg", status.dot)} />
-                            <div className="w-px flex-1 bg-border/50 min-h-[20px]" />
-                          </div>
-                          
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-foreground truncate">
-                              {apt.title}
-                            </div>
-                            {apt.customers && (
-                              <div className="flex items-center gap-1.5 text-muted-foreground text-sm mt-1">
-                                <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center">
-                                  <User className="w-3 h-3" />
-                                </div>
-                                <span className="truncate">{apt.customers.name}</span>
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Arrow */}
-                          <div className="w-8 h-8 rounded-full bg-background/80 flex items-center justify-center shadow-sm">
-                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                          </div>
-                        </div>
-                      );
-                    })
+        <div className="space-y-3">
+          {/* Day selector chips - horizontal scroll */}
+          <div className="flex gap-2 overflow-x-auto pb-2 px-1 -mx-1 scrollbar-hide">
+            {activeDays.map((day) => {
+              const isCurrentDay = isSameDay(day, new Date());
+              const isSelected = isSameDay(day, compactWeekSelectedDay);
+              const dayAppointmentsCount = appointments.filter(apt => 
+                isSameDay(parseISO(apt.start_time), day)
+              ).length;
+              
+              return (
+                <button
+                  key={day.toISOString()}
+                  onClick={() => setCompactWeekSelectedDay(day)}
+                  className={cn(
+                    "flex flex-col items-center min-w-[56px] px-3 py-2 rounded-xl transition-all duration-200 border-2 flex-shrink-0",
+                    isSelected
+                      ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/25"
+                      : isCurrentDay
+                        ? "bg-primary/10 border-primary/30 text-primary"
+                        : "bg-card border-border hover:border-primary/30 hover:bg-accent/50"
                   )}
+                >
+                  <span className={cn(
+                    "text-[10px] uppercase font-semibold tracking-wider",
+                    isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                  )}>
+                    {format(day, "EEE", { locale: ptBR })}
+                  </span>
+                  <span className={cn(
+                    "text-lg font-bold",
+                    isSelected ? "text-primary-foreground" : ""
+                  )}>
+                    {format(day, "dd")}
+                  </span>
+                  {dayAppointmentsCount > 0 && (
+                    <div className={cn(
+                      "w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center mt-1",
+                      isSelected
+                        ? "bg-white/20 text-primary-foreground"
+                        : "bg-primary/15 text-primary"
+                    )}>
+                      {dayAppointmentsCount}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected day content */}
+          <div className={cn(
+            "rounded-2xl overflow-hidden bg-gradient-to-br from-card to-card/80 backdrop-blur-sm border border-border/50 shadow-lg transition-all duration-300",
+            isSelectedToday && "ring-2 ring-primary/40 shadow-primary/10 shadow-xl"
+          )}>
+            {/* Day header */}
+            <div className={cn(
+              "p-4 flex items-center justify-between relative overflow-hidden",
+              isSelectedToday 
+                ? "bg-gradient-to-r from-primary/20 via-primary/10 to-transparent" 
+                : "bg-gradient-to-r from-muted/60 via-muted/30 to-transparent"
+            )}>
+              <div className="flex items-center gap-4 relative z-10">
+                <div className={cn(
+                  "flex items-center justify-center text-2xl font-bold transition-all duration-300",
+                  isSelectedToday 
+                    ? "w-12 h-12 rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/30" 
+                    : "w-12 h-12 rounded-xl bg-muted text-foreground"
+                )}>
+                  {format(compactWeekSelectedDay, "dd")}
+                </div>
+                <div>
+                  <div className="font-bold text-lg capitalize text-foreground">
+                    {format(compactWeekSelectedDay, "EEEE", { locale: ptBR })}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {format(compactWeekSelectedDay, "MMMM yyyy", { locale: ptBR })}
+                  </div>
                 </div>
               </div>
-            );
-          })}
+              <div className="flex flex-col items-end gap-2">
+                {selectedDayHours && (
+                  <div className="text-xs text-muted-foreground flex items-center gap-1.5 bg-background/50 px-2 py-1 rounded-full backdrop-blur-sm">
+                    <Clock className="w-3 h-3" />
+                    {selectedDayHours.start} - {selectedDayHours.end}
+                  </div>
+                )}
+                {selectedDayAppointments.length > 0 && (
+                  <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors">
+                    {selectedDayAppointments.length} {selectedDayAppointments.length === 1 ? 'evento' : 'eventos'}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            
+            {/* Appointments list */}
+            <div className="p-3 space-y-2">
+              {selectedDayAppointments.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-muted/50 flex items-center justify-center">
+                    <CalendarIcon className="w-7 h-7 opacity-50" />
+                  </div>
+                  <p className="text-sm font-medium">Nenhum agendamento</p>
+                  <p className="text-xs mt-1 opacity-70">Toque para agendar</p>
+                </div>
+              ) : (
+                selectedDayAppointments.map((apt) => {
+                  const statusConfig = {
+                    confirmed: { bg: "from-emerald-500/15 to-emerald-500/5", border: "border-emerald-500/30", dot: "bg-emerald-500" },
+                    pending: { bg: "from-amber-500/15 to-amber-500/5", border: "border-amber-500/30", dot: "bg-amber-500" },
+                    cancelled: { bg: "from-red-500/15 to-red-500/5", border: "border-red-500/30", dot: "bg-red-500" },
+                    completed: { bg: "from-violet-500/15 to-violet-500/5", border: "border-violet-500/30", dot: "bg-violet-500" }
+                  };
+                  const status = statusConfig[apt.status as keyof typeof statusConfig] || statusConfig.completed;
+                  
+                  return (
+                    <div 
+                      key={apt.id}
+                      className={cn(
+                        "p-4 rounded-xl flex items-center gap-4 transition-all duration-300 cursor-pointer",
+                        "bg-gradient-to-r border backdrop-blur-sm",
+                        "hover:shadow-md hover:scale-[1.01] active:scale-[0.99]",
+                        status.bg, status.border
+                      )}
+                      onClick={() => {
+                        setMobileSelectedAppointment(apt);
+                        setMobileMenuOpen(true);
+                      }}
+                    >
+                      {/* Time column */}
+                      <div className="flex flex-col items-center min-w-[52px]">
+                        <span className="text-lg font-bold text-foreground">{format(parseISO(apt.start_time), "HH:mm")}</span>
+                        <span className="text-xs text-muted-foreground">{format(parseISO(apt.end_time), "HH:mm")}</span>
+                      </div>
+                      
+                      {/* Divider with status dot */}
+                      <div className="flex flex-col items-center gap-1 h-full">
+                        <div className={cn("w-2.5 h-2.5 rounded-full shadow-lg", status.dot)} />
+                        <div className="w-px flex-1 bg-border/50 min-h-[20px]" />
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-foreground truncate">
+                          {apt.title}
+                        </div>
+                        {apt.customers && (
+                          <div className="flex items-center gap-1.5 text-muted-foreground text-sm mt-1">
+                            <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center">
+                              <User className="w-3 h-3" />
+                            </div>
+                            <span className="truncate">{apt.customers.name}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Arrow */}
+                      <div className="w-8 h-8 rounded-full bg-background/80 flex items-center justify-center shadow-sm">
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
         </div>
       );
     }
