@@ -28,6 +28,7 @@ const routeMap: Record<string, RouteConfig> = {
   "/assinaturas": { label: "Contratos Recorrentes", icon: CreditCard },
   "/planos": { label: "Meu Plano", icon: CreditCard },
   "/pricing": { label: "Planos", icon: CreditCard },
+  "/historico-assinaturas": { label: "Histórico de Assinaturas", icon: CreditCard },
 };
 
 export function PageBreadcrumb() {
