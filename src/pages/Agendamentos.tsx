@@ -971,11 +971,11 @@ const Agendamentos = () => {
     // Desktop view - horizontal grid
     return (
       <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
-        <div className="overflow-x-auto">
+        <div>
           {/* Cabeçalho dos dias */}
           <div 
             className="grid border-b bg-muted/50 sticky top-0 z-10"
-            style={{ gridTemplateColumns: `60px repeat(${activeDays.length}, minmax(80px, 1fr))` }}
+            style={{ gridTemplateColumns: `50px repeat(${activeDays.length}, 1fr)` }}
           >
             <div className="p-2 border-r">
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Hora</div>
@@ -1029,7 +1029,7 @@ const Agendamentos = () => {
               <div 
                 key={hour} 
                 className="grid"
-                style={{ gridTemplateColumns: `60px repeat(${activeDays.length}, minmax(80px, 1fr))` }}
+                style={{ gridTemplateColumns: `50px repeat(${activeDays.length}, 1fr)` }}
               >
                 <div className="p-1.5 text-xs text-muted-foreground border-r font-medium bg-muted/20 h-[70px]">
                   {String(hour).padStart(2, "0")}:00

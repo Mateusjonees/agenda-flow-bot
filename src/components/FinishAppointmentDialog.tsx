@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, CheckCircle, DollarSign, Package, CreditCard, Banknote, Smartphone } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 type InventoryItem = {
   id: string;
@@ -28,6 +30,13 @@ interface FinishAppointmentDialogProps {
   appointmentTitle: string;
 }
 
+const paymentMethods = [
+  { value: "dinheiro", label: "Dinheiro", icon: Banknote, color: "text-green-500" },
+  { value: "pix", label: "PIX", icon: Smartphone, color: "text-teal-500" },
+  { value: "cartao_credito", label: "Crédito", icon: CreditCard, color: "text-blue-500" },
+  { value: "cartao_debito", label: "Débito", icon: CreditCard, color: "text-purple-500" },
+];
+
 export function FinishAppointmentDialog({
   open,
   onOpenChange,
@@ -43,7 +52,6 @@ export function FinishAppointmentDialog({
   useEffect(() => {
     if (open && appointmentId) {
       const fetchAppointmentData = async () => {
-        // Buscar appointment com proposal_id
         const { data: appointment } = await supabase
           .from("appointments")
           .select("proposal_id, price")
@@ -51,7 +59,6 @@ export function FinishAppointmentDialog({
           .single();
 
         if (appointment?.proposal_id) {
-          // Buscar valor da proposta
           const { data: proposal } = await supabase
             .from("proposals")
             .select("final_amount")
@@ -62,14 +69,12 @@ export function FinishAppointmentDialog({
             setAppointmentValue(proposal.final_amount.toString());
           }
         } else if (appointment?.price) {
-          // Se já tiver preço cadastrado no appointment, usar esse
           setAppointmentValue(appointment.price.toString());
         }
       };
 
       fetchAppointmentData();
     } else if (!open) {
-      // Limpar quando fechar
       setAppointmentValue("");
       setPaymentMethod("dinheiro");
       setStockUsages([]);
@@ -96,7 +101,6 @@ export function FinishAppointmentDialog({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Buscar informações do appointment antes de atualizar
       const { data: appointment } = await supabase
         .from("appointments")
         .select("customer_id")
@@ -105,7 +109,6 @@ export function FinishAppointmentDialog({
 
       if (!appointment) throw new Error("Agendamento não encontrado");
 
-      // Buscar cartão fidelidade antes da atualização
       const { data: loyaltyCardBefore } = await supabase
         .from("loyalty_cards")
         .select("current_stamps, stamps_required")
@@ -113,7 +116,6 @@ export function FinishAppointmentDialog({
         .eq("customer_id", appointment.customer_id)
         .single();
 
-      // 1. Atualizar status do agendamento (com valor opcional)
       const updateData: any = { 
         status: "completed",
         payment_status: "paid"
@@ -131,7 +133,6 @@ export function FinishAppointmentDialog({
 
       if (updateError) throw updateError;
 
-      // 1.5 Criar transação financeira se houver valor
       if (appointmentValue && parseFloat(appointmentValue) > 0) {
         const { error: transactionError } = await supabase
           .from("financial_transactions")
@@ -149,10 +150,8 @@ export function FinishAppointmentDialog({
         if (transactionError) throw transactionError;
       }
 
-      // Aguardar um pouco para o trigger executar
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Buscar cartão fidelidade após a atualização
       const { data: loyaltyCardAfter } = await supabase
         .from("loyalty_cards")
         .select("current_stamps, stamps_required, rewards_redeemed")
@@ -160,7 +159,6 @@ export function FinishAppointmentDialog({
         .eq("customer_id", appointment.customer_id)
         .single();
 
-      // 2. Atualizar estoque para cada item usado
       for (const usage of stockUsages) {
         const { error: stockError } = await supabase.rpc("update_inventory_stock", {
           p_item_id: usage.item_id,
@@ -177,7 +175,6 @@ export function FinishAppointmentDialog({
       return { loyaltyCardBefore, loyaltyCardAfter };
     },
     onSuccess: (data) => {
-      // Invalidar todas as queries relacionadas para atualizar a UI
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
       queryClient.invalidateQueries({ queryKey: ["loyalty-cards"] });
@@ -186,7 +183,6 @@ export function FinishAppointmentDialog({
       queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       
-      // Verificar se o cartão foi completado
       const { loyaltyCardBefore, loyaltyCardAfter } = data;
       
       if (loyaltyCardBefore && loyaltyCardAfter) {
@@ -233,27 +229,47 @@ export function FinishAppointmentDialog({
     finishAppointment.mutate();
   };
 
+  const selectedPaymentMethod = paymentMethods.find(m => m.value === paymentMethod);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">Finalizar Atendimento</DialogTitle>
-          <DialogDescription className="text-sm">
-            Registre os itens do estoque utilizados e finalize o atendimento
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          <div className="bg-muted p-3 rounded-lg">
-            <p className="text-sm font-medium">{appointmentTitle}</p>
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl border-0 shadow-2xl">
+        {/* Header com gradiente */}
+        <div className="relative bg-gradient-to-br from-green-500 to-emerald-600 p-6 pb-8 rounded-t-2xl">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRoLTJ2LTRoMnY0em0wLTZoLTJ2LTRoMnY0em0tNiA2aC0ydi00aDJ2NHptMC02aC0ydi00aDJ2NHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30 rounded-t-2xl" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <CheckCircle className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Finalizar Atendimento</h2>
+                <p className="text-white/80 text-sm">Confirme os detalhes e finalize</p>
+              </div>
+            </div>
+            <div className="mt-4 bg-white/20 backdrop-blur-sm rounded-xl p-3">
+              <p className="text-white font-medium truncate">{appointmentTitle}</p>
+            </div>
           </div>
+        </div>
 
-          {/* Campo opcional de valor */}
-          <div className="space-y-3 sm:space-y-4 border rounded-lg p-3 sm:p-4 bg-muted/30">
-            <h4 className="text-sm font-semibold">Valor do Atendimento (Opcional)</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-sm">Valor (R$)</Label>
+        {/* Conteúdo */}
+        <div className="p-5 space-y-5 bg-background">
+          {/* Seção de Valor */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm">Valor do Atendimento</h3>
+                <p className="text-xs text-muted-foreground">Opcional - registra no financeiro</p>
+              </div>
+            </div>
+            
+            <div className="bg-muted/30 rounded-xl p-4 space-y-4 border border-border/50">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">R$</span>
                 <Input
                   type="number"
                   min="0"
@@ -261,119 +277,169 @@ export function FinishAppointmentDialog({
                   placeholder="0,00"
                   value={appointmentValue}
                   onChange={(e) => setAppointmentValue(e.target.value)}
-                  className="h-11"
+                  className="pl-10 h-12 text-lg font-semibold rounded-xl border-border/50 focus:border-primary"
                 />
               </div>
+
+              {/* Forma de pagamento - botões visuais */}
               <div className="space-y-2">
-                <Label className="text-sm">Forma de Pagamento</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="pix">PIX</SelectItem>
-                    <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
-                    <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs text-muted-foreground">Forma de Pagamento</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {paymentMethods.map((method) => {
+                    const Icon = method.icon;
+                    const isSelected = paymentMethod === method.value;
+                    return (
+                      <button
+                        key={method.value}
+                        type="button"
+                        onClick={() => setPaymentMethod(method.value)}
+                        className={cn(
+                          "flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all",
+                          isSelected
+                            ? "border-primary bg-primary/5 shadow-sm"
+                            : "border-border/50 hover:border-border hover:bg-muted/50"
+                        )}
+                      >
+                        <Icon className={cn("w-5 h-5", isSelected ? method.color : "text-muted-foreground")} />
+                        <span className={cn(
+                          "text-[10px] font-medium",
+                          isSelected ? "text-foreground" : "text-muted-foreground"
+                        )}>
+                          {method.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Preencha para registrar o valor no relatório e criar transação financeira automaticamente
-            </p>
           </div>
 
+          {/* Seção de Estoque */}
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <Label className="text-sm">Itens Utilizados</Label>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                  <Package className="w-4 h-4 text-orange-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Itens Utilizados</h3>
+                  <p className="text-xs text-muted-foreground">Baixa automática no estoque</p>
+                </div>
+              </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={addStockUsage}
-                className="gap-2 h-10 w-full sm:w-auto"
+                className="gap-1.5 h-9 rounded-lg text-xs"
               >
-                <Plus className="w-4 h-4" />
-                Adicionar Item
+                <Plus className="w-3.5 h-3.5" />
+                Adicionar
               </Button>
             </div>
 
             {stockUsages.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhum item adicionado. Clique em "Adicionar Item" para registrar uso de estoque.
-              </p>
+              <div className="bg-muted/30 rounded-xl p-6 text-center border border-dashed border-border/50">
+                <Package className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Nenhum item adicionado
+                </p>
+                <p className="text-xs text-muted-foreground/70">
+                  Clique em "Adicionar" para registrar uso de estoque
+                </p>
+              </div>
             ) : (
-              <div className="space-y-3">
-                {stockUsages.map((usage, index) => (
-                  <div key={index} className="flex gap-2 items-end">
-                    <div className="flex-1 space-y-2">
-                      <Label>Item</Label>
-                      <Select
-                        value={usage.item_id}
-                        onValueChange={(value) => updateStockUsage(index, "item_id", value)}
+              <div className="space-y-2">
+                {stockUsages.map((usage, index) => {
+                  const selectedItem = inventoryItems.find(i => i.id === usage.item_id);
+                  return (
+                    <div key={index} className="flex gap-2 items-center bg-muted/30 p-3 rounded-xl border border-border/50">
+                      <div className="flex-1">
+                        <Select
+                          value={usage.item_id}
+                          onValueChange={(value) => updateStockUsage(index, "item_id", value)}
+                        >
+                          <SelectTrigger className="h-10 rounded-lg border-border/50">
+                            <SelectValue placeholder="Selecione um item" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {inventoryItems.map((item) => (
+                              <SelectItem key={item.id} value={item.id}>
+                                <div className="flex items-center justify-between gap-2">
+                                  <span>{item.name}</span>
+                                  <Badge variant="secondary" className="text-[10px]">
+                                    {item.current_stock} {item.unit}
+                                  </Badge>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="w-24">
+                        <Input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={usage.quantity}
+                          onChange={(e) => updateStockUsage(index, "quantity", parseFloat(e.target.value) || 0)}
+                          className="h-10 text-center rounded-lg border-border/50"
+                        />
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeStockUsage(index)}
+                        className="h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg"
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um item" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {inventoryItems.map((item) => (
-                            <SelectItem key={item.id} value={item.id}>
-                              {item.name} (Estoque: {item.current_stock} {item.unit})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
-
-                    <div className="w-32 space-y-2">
-                      <Label>Quantidade</Label>
-                      <Input
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        value={usage.quantity}
-                        onChange={(e) => updateStockUsage(index, "quantity", parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeStockUsage(index)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              onOpenChange(false);
-              setStockUsages([]);
-              setAppointmentValue("");
-              setPaymentMethod("dinheiro");
-            }}
-            className="h-11 w-full sm:w-auto"
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleFinish}
-            disabled={finishAppointment.isPending}
-            className="h-11 w-full sm:w-auto"
-          >
-            {finishAppointment.isPending ? "Finalizando..." : "Finalizar Atendimento"}
-          </Button>
+        {/* Footer com botões */}
+        <div className="p-5 pt-0 bg-background">
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                onOpenChange(false);
+                setStockUsages([]);
+                setAppointmentValue("");
+                setPaymentMethod("dinheiro");
+              }}
+              className="flex-1 h-12 rounded-xl font-medium"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleFinish}
+              disabled={finishAppointment.isPending}
+              className="flex-1 h-12 rounded-xl font-semibold bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/25"
+            >
+              {finishAppointment.isPending ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                  Finalizando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Finalizar
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
