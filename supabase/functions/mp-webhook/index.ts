@@ -6,6 +6,7 @@ import {
   createFinancialTransaction,
   updatePixCharge,
   processSubscriptionRenewal,
+  calculateAccumulatedNextBillingDate,
 } from "../_shared/platform-subscription-helpers.ts";
 
 const corsHeaders = {
@@ -300,23 +301,26 @@ const handler = async (req: Request): Promise<Response> => {
         // Usar data de criação do MP ao invés de data atual
         const startDate = new Date(preapprovalData.date_created || preapprovalData.auto_recurring?.start_date || new Date());
         const months = parseInt(metadata.months || "1");
-        const nextBillingDate = new Date(startDate);
-        nextBillingDate.setMonth(nextBillingDate.getMonth() + months);
         
-        // ✅ CORREÇÃO: Não adicionar dias de trial para usuários PAGANTES
-        // Trial é apenas para novos usuários que ainda não pagaram
-        
-        console.log(`📅 Next billing date calculated: ${nextBillingDate.toISOString()} (start: ${startDate.toISOString()} + ${months} months)`);
-
-        // Verificar subscription existente
+        // Buscar subscription existente ANTES de calcular datas (para acumular)
         const { data: existingSub } = await supabaseClient
           .from("subscriptions")
           .select("*")
           .eq("user_id", userId)
           .is("customer_id", null)
+          .is("plan_id", null)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
+        
+        // ✅ ACUMULAR dias restantes se existir assinatura ativa
+        const { nextBillingDate, accumulatedDays } = calculateAccumulatedNextBillingDate(
+          startDate,
+          months,
+          existingSub?.next_billing_date
+        );
+        
+        console.log(`📅 Next billing date: ${nextBillingDate.toISOString()} (${months} meses${accumulatedDays > 0 ? ` + ${accumulatedDays} dias acumulados` : ''})`);
 
         if (existingSub) {
           // Atualizar subscription existente
@@ -467,33 +471,35 @@ const handler = async (req: Request): Promise<Response> => {
 
         console.log(`✅ STEP 12: Processando pagamento PIX da plataforma para user ${userId}`);
 
-        const startDate = new Date();
-        const months = parseInt(metadata.months || "1");
-        const nextBillingDate = new Date(startDate);
-        nextBillingDate.setMonth(nextBillingDate.getMonth() + months);
+        // Buscar subscription existente ANTES de calcular datas (para acumular)
+        console.log("🔍 STEP 13: Buscando subscription existente para acúmulo de dias...");
         
-        // ✅ CORREÇÃO: Não adicionar dias de trial para usuários PAGANTES
-        // Trial é apenas para novos usuários que ainda não pagaram
-
-        console.log("🔍 STEP 13: Calculando datas da assinatura:", {
-          startDate: startDate.toISOString(),
-          months,
-          nextBillingDate: nextBillingDate.toISOString()
-        });
-
-        // Verificar subscription existente da plataforma (assinatura do sistema, não de cliente)
-        console.log("🔍 STEP 14: Buscando subscription existente para user:", userId);
-        
-        // Primeira tentativa: buscar com customer_id null (padrão correto)
         let { data: existingSub, error: findSubError } = await supabaseClient
           .from("subscriptions")
           .select("*")
           .eq("user_id", userId)
           .is("customer_id", null)
+          .is("plan_id", null)
           .order("created_at", { ascending: false })
-          .is("plan_id", null)  // ✅ SEGURANÇA: Garantir que é subscription de PLATAFORMA
           .limit(1)
           .maybeSingle();
+
+        const startDate = new Date();
+        const months = parseInt(metadata.months || "1");
+        
+        // ✅ ACUMULAR dias restantes se existir assinatura ativa
+        const { nextBillingDate, accumulatedDays } = calculateAccumulatedNextBillingDate(
+          startDate,
+          months,
+          existingSub?.next_billing_date
+        );
+
+        console.log("🔍 STEP 14: Calculando datas da assinatura:", {
+          startDate: startDate.toISOString(),
+          months,
+          nextBillingDate: nextBillingDate.toISOString(),
+          accumulatedDays
+        });
 
         if (findSubError) {
           console.error("❌ STEP 15: Erro ao buscar subscription:", findSubError);
@@ -501,8 +507,8 @@ const handler = async (req: Request): Promise<Response> => {
           console.log("✅ STEP 15: Subscription existente encontrada:", {
             id: existingSub.id,
             status: existingSub.status,
-            customer_id: existingSub.customer_id,
-            created_at: existingSub.created_at
+            next_billing_date: existingSub.next_billing_date,
+            accumulated_days: accumulatedDays
           });
         } else {
           console.log("ℹ️ STEP 15: Nenhuma subscription existente encontrada - será criada uma nova");
@@ -531,7 +537,7 @@ const handler = async (req: Request): Promise<Response> => {
           if (subError) {
             console.error("❌ STEP 17: Erro ao atualizar subscription:", subError);
           } else {
-            console.log(`✅ STEP 17: Subscription ${existingSub.id} atualizada para ACTIVE com sucesso!`);
+            console.log(`✅ STEP 17: Subscription ${existingSub.id} atualizada para ACTIVE com sucesso!${accumulatedDays > 0 ? ` (+${accumulatedDays} dias acumulados)` : ''}`);
           }
         } else {
           // Criar nova subscription da plataforma
@@ -675,21 +681,28 @@ const handler = async (req: Request): Promise<Response> => {
       }
       // Pagamento de assinatura normal da plataforma
       else if (metadata?.userId) {
-        // Check if subscription already exists
+        // Buscar subscription existente ANTES de calcular datas (para acumular)
         const { data: existingSub } = await supabaseClient
           .from("subscriptions")
           .select("*")
           .eq("user_id", metadata.userId)
+          .is("customer_id", null)
+          .is("plan_id", null)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
         const startDate = new Date();
-        const nextBillingDate = new Date(startDate);
-        nextBillingDate.setMonth(nextBillingDate.getMonth() + (metadata.months || 1));
+        const months = metadata.months || 1;
         
-        // ✅ CORREÇÃO: SEM trial - pagamento confirmado = ciclo começa agora
-        // ❌ REMOVIDO: nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+        // ✅ ACUMULAR dias restantes se existir assinatura ativa
+        const { nextBillingDate, accumulatedDays } = calculateAccumulatedNextBillingDate(
+          startDate,
+          months,
+          existingSub?.next_billing_date
+        );
+        
+        console.log(`📅 Next billing date: ${nextBillingDate.toISOString()} (${months} meses${accumulatedDays > 0 ? ` + ${accumulatedDays} dias acumulados` : ''})`);
 
         if (existingSub) {
           // Update existing subscription

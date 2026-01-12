@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { calculateAccumulatedNextBillingDate } from "../_shared/platform-subscription-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,13 +66,16 @@ const handler = async (req: Request): Promise<Response> => {
           console.log(`📝 Criando subscription da plataforma para user ${userId}`);
 
           const startDate = new Date(charge.paid_at || charge.created_at);
-          const nextBillingDate = new Date(startDate);
-          nextBillingDate.setMonth(nextBillingDate.getMonth() + (months || 1));
+          const monthsToAdd = months || 1;
           
-          // Adicionar 7 dias de trial
-          nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+          // ✅ ACUMULAR dias restantes (mesmo para nova criação, pode haver subscription antiga)
+          const { nextBillingDate, accumulatedDays } = calculateAccumulatedNextBillingDate(
+            startDate,
+            monthsToAdd,
+            null // Nova criação, sem assinatura existente
+          );
           
-          console.log(`📅 Next billing date: ${nextBillingDate.toISOString()} (start: ${startDate.toISOString()} + ${months || 1} months + 7 days trial)`);
+          console.log(`📅 Next billing date: ${nextBillingDate.toISOString()} (start: ${startDate.toISOString()} + ${monthsToAdd} meses)`);
 
           // Criar subscription da plataforma
           const { error: subError } = await supabaseClient
@@ -113,37 +117,40 @@ const handler = async (req: Request): Promise<Response> => {
         } else {
           console.log(`ℹ️ User ${userId} já possui subscription da plataforma`);
           
-          // Verificar se precisa atualizar as datas
+          // ✅ SEMPRE recalcular com acúmulo de dias restantes
           const chargeDate = new Date(charge.paid_at || charge.created_at);
-          const subNextBilling = new Date(existingSub.next_billing_date);
+          const monthsToAdd = months || 1;
           
-          if (chargeDate > subNextBilling) {
-            console.log(`📅 Atualizando datas da subscription ${existingSub.id}`);
-            
-            const newNextBilling = new Date(chargeDate);
-            newNextBilling.setMonth(newNextBilling.getMonth() + (months || 1));
+          // ✅ ACUMULAR dias restantes se next_billing_date está no futuro
+          const { nextBillingDate, accumulatedDays } = calculateAccumulatedNextBillingDate(
+            chargeDate,
+            monthsToAdd,
+            existingSub.next_billing_date
+          );
+          
+          console.log(`📅 Atualizando subscription ${existingSub.id} - ${monthsToAdd} meses${accumulatedDays > 0 ? ` + ${accumulatedDays} dias acumulados` : ''}`);
 
-            const { error: updateError } = await supabaseClient
-              .from("subscriptions")
-              .update({
-                type: "platform",  // ✅ GARANTIR type correto
-                last_billing_date: chargeDate.toISOString(),
-                next_billing_date: newNextBilling.toISOString(),
-                status: "active",
-                failed_payments_count: 0,
-                updated_at: new Date().toISOString()
-              })
-              .eq("id", existingSub.id);
+          const { error: updateError } = await supabaseClient
+            .from("subscriptions")
+            .update({
+              type: "platform",  // ✅ GARANTIR type correto
+              last_billing_date: chargeDate.toISOString(),
+              next_billing_date: nextBillingDate.toISOString(),
+              status: "active",
+              failed_payments_count: 0,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", existingSub.id);
 
-            if (updateError) {
-              console.error("❌ Erro ao atualizar subscription:", updateError);
-            } else {
-              results.push({
-                charge_id: charge.id,
-                user_id: userId,
-                status: "updated"
-              });
-            }
+          if (updateError) {
+            console.error("❌ Erro ao atualizar subscription:", updateError);
+          } else {
+            results.push({
+              charge_id: charge.id,
+              user_id: userId,
+              status: "updated",
+              accumulated_days: accumulatedDays
+            });
           }
         }
       } catch (error: any) {

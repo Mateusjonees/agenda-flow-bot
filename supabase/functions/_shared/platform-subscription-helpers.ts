@@ -10,6 +10,44 @@ export interface PlatformSubscriptionData {
 }
 
 /**
+ * ✅ FUNÇÃO HELPER: Calcula next_billing_date ACUMULANDO dias restantes
+ * 
+ * Regra:
+ * - Se existe assinatura com next_billing_date no futuro → baseDate = next_billing_date (acumula)
+ * - Senão → baseDate = paidAt (sem dias extras)
+ * - newNextBillingDate = baseDate + months
+ */
+export function calculateAccumulatedNextBillingDate(
+  paidAt: Date,
+  months: number,
+  existingNextBillingDate?: string | null
+): { baseDate: Date; nextBillingDate: Date; accumulatedDays: number } {
+  let baseDate = new Date(paidAt);
+  let accumulatedDays = 0;
+
+  // Se existe assinatura com dias restantes, acumular
+  if (existingNextBillingDate) {
+    const existingDate = new Date(existingNextBillingDate);
+    const now = new Date();
+    
+    // Se next_billing_date ainda está no futuro, acumular
+    if (existingDate > now) {
+      accumulatedDays = Math.ceil((existingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      baseDate = existingDate;
+      console.log(`📅 Acumulando ${accumulatedDays} dias restantes. Base: ${baseDate.toISOString()}`);
+    }
+  }
+
+  // Calcular próximo billing a partir da base (acumulada ou atual)
+  const nextBillingDate = new Date(baseDate);
+  nextBillingDate.setMonth(nextBillingDate.getMonth() + months);
+
+  console.log(`📆 Período calculado: base=${baseDate.toISOString()}, next=${nextBillingDate.toISOString()}, months=${months}, acumulados=${accumulatedDays} dias`);
+
+  return { baseDate, nextBillingDate, accumulatedDays };
+}
+
+/**
  * Processa pagamento de assinatura de plataforma
  * Consolida lógica duplicada de PIX e Cartão
  * 
