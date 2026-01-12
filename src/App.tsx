@@ -36,6 +36,7 @@ import PedidosWhatsApp from "./pages/PedidosWhatsApp";
 import TreinamentoIA from "./pages/TreinamentoIA";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosServico from "./pages/TermosServico";
+import HistoricoAssinaturas from "./pages/HistoricoAssinaturas";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const App = () => (
                 {/* Página de configurações (fora do guard para permitir renovação) */}
                 <Route path="/configuracoes" element={<Layout><Configuracoes /></Layout>} />
                 <Route path="/historico-pagamentos" element={<Layout><HistoricoPagamentos /></Layout>} />
+                <Route path="/historico-assinaturas" element={<Layout><HistoricoAssinaturas /></Layout>} />
                 
                 {/* Rotas protegidas (com guard) */}
                 <Route path="/dashboard" element={<Layout><SubscriptionGuard><Dashboard /></SubscriptionGuard></Layout>} />
