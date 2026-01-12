@@ -110,7 +110,8 @@ const handler = async (req: Request): Promise<Response> => {
         payerData.phone = { area_code: payerPhone.slice(0, 2), number: payerPhone.slice(2) };
       }
 
-      const paymentData = {
+      // Build payment data with device_id in body (in addition to header)
+      const paymentData: Record<string, unknown> = {
         transaction_amount: selectedPlan.price,
         token: requestData.card_token_id,
         description: selectedPlan.title,
@@ -135,6 +136,12 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
       };
+
+      // Add device_id to payment body (some MP integrations use this instead of/in addition to header)
+      if (deviceSessionId) {
+        paymentData.device_id = deviceSessionId;
+        console.log("🔐 Added device_id to payment body");
+      }
 
       const mpHeaders: Record<string, string> = {
         "Content-Type": "application/json",
@@ -171,8 +178,13 @@ const handler = async (req: Request): Promise<Response> => {
 
         const errorMessage = errorMessages[paymentResult.status_detail] || `Pagamento recusado: ${paymentResult.status_detail}`;
 
+        // Return status_detail for better frontend diagnosis
         return new Response(JSON.stringify({ 
-          success: false, error: errorMessage, payment_id: paymentResult.id, status: paymentResult.status
+          success: false, 
+          error: errorMessage, 
+          payment_id: paymentResult.id, 
+          status: paymentResult.status,
+          status_detail: paymentResult.status_detail
         }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
