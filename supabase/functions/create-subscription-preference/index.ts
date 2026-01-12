@@ -202,11 +202,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       console.log("✅ Payment approved! ID:", paymentResult.id);
 
-      // Activate subscription
-      const startDate = new Date();
-      const nextBillingDate = new Date(startDate);
-      nextBillingDate.setMonth(nextBillingDate.getMonth() + selectedPlan.frequency);
-
+      // Buscar assinatura existente ANTES de calcular as datas
       const { data: existingSub } = await supabaseClient
         .from("subscriptions")
         .select("*")
@@ -216,6 +212,30 @@ const handler = async (req: Request): Promise<Response> => {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      // Calcular data base para o novo período (acumulando dias restantes)
+      let baseDate = new Date();
+      const now = new Date();
+
+      if (existingSub && existingSub.next_billing_date) {
+        const existingNextBilling = new Date(existingSub.next_billing_date);
+        
+        // Se ainda tem dias restantes (next_billing_date > agora), acumular
+        if (existingNextBilling > now) {
+          baseDate = existingNextBilling;
+          const remainingDays = Math.ceil((existingNextBilling.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          console.log(`📅 Acumulando ${remainingDays} dias restantes. Nova base: ${baseDate.toISOString()}`);
+        }
+      }
+
+      // Calcular próximo billing a partir da base (acumulada ou atual)
+      const nextBillingDate = new Date(baseDate);
+      nextBillingDate.setMonth(nextBillingDate.getMonth() + selectedPlan.frequency);
+
+      // start_date = quando pagou (data atual), last_billing_date = quando pagou
+      const startDate = new Date();
+
+      console.log(`📆 Período: ${startDate.toISOString()} até ${nextBillingDate.toISOString()}`);
 
       if (existingSub) {
         await supabaseClient.from("subscriptions").update({
