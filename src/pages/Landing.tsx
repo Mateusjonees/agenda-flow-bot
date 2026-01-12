@@ -61,7 +61,7 @@ const Landing = () => {
     if (isAuthenticated) {
       navigate("/dashboard");
     } else {
-      navigate("/auth");
+      navigate("/auth?mode=signup");
     }
   };
 
@@ -148,7 +148,7 @@ const Landing = () => {
             {!isAuthenticated ? (
               <>
                 <Button onClick={() => navigate("/auth")} variant="ghost" className="hidden md:flex">Entrar</Button>
-                <Button onClick={() => navigate("/auth")} className="hidden md:flex gap-2 bg-primary shadow-lg">
+                <Button onClick={() => navigate("/auth?mode=signup")} className="hidden md:flex gap-2 bg-primary shadow-lg">
                   Começe Grátis <ArrowRight className="w-4 h-4" />
                 </Button>
               </>
@@ -171,7 +171,7 @@ const Landing = () => {
                   {item === "home" ? "Início" : item === "features" ? "Recursos" : item === "testimonials" ? "Depoimentos" : item === "pricing" ? "Preços" : "FAQ"}
                 </button>
               ))}
-              <Button onClick={() => navigate("/auth")} className="w-full gap-2 bg-primary mt-2">
+              <Button onClick={() => navigate("/auth?mode=signup")} className="w-full gap-2 bg-primary mt-2">
                 Começe Grátis <ArrowRight className="w-4 h-4" />
               </Button>
             </nav>
