@@ -14,13 +14,13 @@ interface PreferenceRequest {
   months?: number;
   user_id?: string;
   planType?: "monthly" | "semestral" | "annual";
-  // Checkout transparente
   card_token_id?: string;
   payer_email?: string;
   payer_identification?: {
     type: string;
     number: string;
   };
+  device_session_id?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -48,46 +48,24 @@ const handler = async (req: Request): Promise<Response> => {
 
     const requestData: PreferenceRequest = await req.json();
     
-    // Mapear billing_frequency do frontend para planType interno
     const billingToTypeMap: Record<string, string> = {
       "monthly": "monthly",
       "semiannual": "semestral",
       "annual": "annual"
     };
     
-    // Suporta tanto o formato antigo (planType) quanto o novo (billing_frequency)
     const planType = requestData.planType || billingToTypeMap[requestData.billing_frequency || ""] || "monthly";
 
-    console.log(`Creating subscription preference for user ${user.id} with plan ${planType}`, requestData);
+    console.log(`Creating subscription preference for user ${user.id} with plan ${planType}`);
 
-  // Definir preços e descrições baseado no plano
     const planDetails: Record<string, { price: number; title: string; description: string; frequency: number; frequency_type: string }> = {
-      monthly: { 
-        price: 49.00, 
-        title: "Plano Mensal", 
-        description: "Assinatura mensal da plataforma - Ideal para começar",
-        frequency: 1,
-        frequency_type: "months"
-      },
-      semestral: { 
-        price: 259.00, 
-        title: "Plano Semestral", 
-        description: "Assinatura semestral da plataforma - Economia de 12%",
-        frequency: 6,
-        frequency_type: "months"
-      },
-      annual: { 
-        price: 475.00, 
-        title: "Plano Anual", 
-        description: "Assinatura anual da plataforma - Economia de 19%",
-        frequency: 12,
-        frequency_type: "months"
-      }
+      monthly: { price: 49.00, title: "Plano Mensal", description: "Assinatura mensal", frequency: 1, frequency_type: "months" },
+      semestral: { price: 259.00, title: "Plano Semestral", description: "Assinatura semestral", frequency: 6, frequency_type: "months" },
+      annual: { price: 475.00, title: "Plano Anual", description: "Assinatura anual", frequency: 12, frequency_type: "months" }
     };
 
     const selectedPlan = planDetails[planType] || planDetails.monthly;
 
-    // Buscar dados do perfil do usuário
     const { data: profile } = await supabaseClient
       .from("profiles")
       .select("full_name, phone, cpf")
@@ -95,30 +73,24 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
-    
     if (!accessToken) {
       throw new Error("Mercado Pago access token not configured");
     }
 
-    // ============================================================
-    // FLUXO DE CARTÃO: Pagamento único imediato + assinatura recorrente
-    // ============================================================
+    // CARD PAYMENT FLOW
     if (requestData.card_token_id) {
-      console.log("💳 Processing card payment: immediate charge + recurring subscription");
+      console.log("💳 Processing card payment");
       
-      // PASSO 1: Cobrar o valor integral AGORA via API de pagamentos
-      console.log(`💰 STEP 1: Creating immediate payment of R$${selectedPlan.price}`);
-      
-      // Preparar dados do pagador com validação
       const payerEmail = requestData.payer_email || user.email || "";
       const payerIdentification = requestData.payer_identification?.number || profile?.cpf?.replace(/\D/g, '') || "";
       const payerName = profile?.full_name || "";
+      const payerPhone = profile?.phone?.replace(/\D/g, '') || "";
+      const deviceSessionId = requestData.device_session_id || "";
       
       console.log("📧 Payer email:", payerEmail);
-      console.log("🆔 Payer identification:", payerIdentification ? `${payerIdentification.slice(0, 3)}***` : "MISSING");
-      console.log("👤 Payer name:", payerName);
+      console.log("🆔 Payer ID:", payerIdentification ? `${payerIdentification.slice(0, 3)}***` : "MISSING");
+      console.log("🔐 Device session:", deviceSessionId ? `${deviceSessionId.slice(0, 8)}...` : "NOT_PROVIDED");
 
-      // Validar dados obrigatórios
       if (!payerEmail || !payerEmail.includes("@")) {
         throw new Error("Email válido é obrigatório para pagamento com cartão");
       }
@@ -127,115 +99,74 @@ const handler = async (req: Request): Promise<Response> => {
         throw new Error("CPF válido é obrigatório para pagamento com cartão");
       }
 
+      const payerData: Record<string, unknown> = {
+        email: payerEmail,
+        first_name: payerName.split(' ')[0] || "Cliente",
+        last_name: payerName.split(' ').slice(1).join(' ') || "Foguete",
+        identification: { type: "CPF", number: payerIdentification }
+      };
+
+      if (payerPhone && payerPhone.length >= 10) {
+        payerData.phone = { area_code: payerPhone.slice(0, 2), number: payerPhone.slice(2) };
+      }
+
       const paymentData = {
         transaction_amount: selectedPlan.price,
         token: requestData.card_token_id,
         description: selectedPlan.title,
         installments: 1,
-        // payment_method_id é detectado automaticamente pelo token do cartão
-        payer: {
-          email: payerEmail,
-          first_name: payerName.split(' ')[0] || "Cliente",
-          last_name: payerName.split(' ').slice(1).join(' ') || "Foguete",
-          identification: {
-            type: requestData.payer_identification?.type || "CPF",
-            number: payerIdentification
-          }
-        },
+        payer: payerData,
         external_reference: user.id,
-        metadata: {
-          userId: user.id,
-          planId: planType,
-          billingFrequency: planType,
-          planName: selectedPlan.title,
-          months: selectedPlan.frequency,
-          type: "platform_subscription",
-          payment_type: "first_payment"
-        }
+        metadata: { userId: user.id, planId: planType, type: "platform_subscription" }
       };
 
-      console.log("📤 Sending payment request to Mercado Pago:", { 
-        ...paymentData, 
-        token: "[REDACTED]" 
-      });
+      const mpHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+        "X-Idempotency-Key": `${user.id}-${Date.now()}`
+      };
+
+      if (deviceSessionId) {
+        mpHeaders["X-meli-session-id"] = deviceSessionId;
+        console.log("🔐 Added X-meli-session-id header");
+      }
 
       const paymentResponse = await fetch("https://api.mercadopago.com/v1/payments", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-          "X-Idempotency-Key": `${user.id}-${Date.now()}` // Evita cobranças duplicadas
-        },
+        headers: mpHeaders,
         body: JSON.stringify(paymentData),
       });
 
-      const paymentResponseText = await paymentResponse.text();
-      let paymentResult;
-      
-      try {
-        paymentResult = JSON.parse(paymentResponseText);
-      } catch {
-        console.error("Failed to parse payment response:", paymentResponseText);
-        throw new Error("Resposta inválida do Mercado Pago");
-      }
+      const paymentResult = await paymentResponse.json();
 
-      console.log("📥 Payment response:", {
-        id: paymentResult.id,
-        status: paymentResult.status,
-        status_detail: paymentResult.status_detail
-      });
+      console.log("📥 Payment response:", { id: paymentResult.id, status: paymentResult.status, status_detail: paymentResult.status_detail });
 
-      // Se o pagamento NÃO foi aprovado, retornar erro
       if (paymentResult.status !== "approved") {
-        console.error("❌ Payment not approved:", paymentResult);
+        console.error("❌ Payment not approved:", paymentResult.status_detail);
         
-        // Mapeamento de códigos de erro do MP para mensagens amigáveis
         const errorMessages: Record<string, string> = {
-          "cc_rejected_high_risk": "O Mercado Pago bloqueou este pagamento por segurança. Isso acontece com frequência em primeira compra ou quando os dados não coincidem com o titular. Recomendamos usar PIX (aprovação instantânea) ou pagar pelo site do Mercado Pago.",
+          "cc_rejected_high_risk": "O Mercado Pago bloqueou este pagamento por segurança. Recomendamos usar PIX.",
           "cc_rejected_insufficient_amount": "Saldo insuficiente no cartão.",
           "cc_rejected_bad_filled_card_number": "Número do cartão incorreto.",
-          "cc_rejected_bad_filled_date": "Data de validade incorreta.",
-          "cc_rejected_bad_filled_security_code": "Código de segurança (CVV) incorreto.",
-          "cc_rejected_bad_filled_other": "Dados do cartão incorretos. Verifique e tente novamente.",
-          "cc_rejected_blacklist": "Cartão não permitido. Use outro cartão.",
-          "cc_rejected_call_for_authorize": "Você precisa autorizar o pagamento com seu banco antes de continuar.",
-          "cc_rejected_card_disabled": "Cartão desabilitado. Entre em contato com seu banco.",
-          "cc_rejected_duplicated_payment": "Pagamento duplicado. Já existe uma transação recente com este cartão.",
-          "cc_rejected_max_attempts": "Limite de tentativas atingido. Aguarde alguns minutos e tente novamente.",
-          "cc_rejected_card_error": "Erro no cartão. Tente outro cartão.",
-          "cc_rejected_other_reason": "Pagamento recusado. Tente outro cartão ou método de pagamento.",
-          "pending_contingency": "O pagamento está sendo processado. Aguarde a confirmação.",
-          "pending_review_manual": "O pagamento está em análise. Aguarde até 2 dias úteis.",
+          "cc_rejected_bad_filled_security_code": "CVV incorreto.",
+          "cc_rejected_call_for_authorize": "Autorize o pagamento com seu banco.",
+          "cc_rejected_card_disabled": "Cartão desabilitado.",
         };
 
-        const errorCode = paymentResult.status_detail || paymentResult.error || "";
-        let userFriendlyMessage = errorMessages[errorCode] || 
-          "Não foi possível processar o pagamento. Verifique os dados do cartão ou tente outro método.";
+        const errorMessage = errorMessages[paymentResult.status_detail] || `Pagamento recusado: ${paymentResult.status_detail}`;
 
-        return new Response(
-          JSON.stringify({ 
-            success: false,
-            error: userFriendlyMessage,
-            error_code: errorCode,
-            status: paymentResult.status
-          }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        return new Response(JSON.stringify({ 
+          success: false, error: errorMessage, payment_id: paymentResult.id, status: paymentResult.status
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      console.log("✅ STEP 1 COMPLETE: Payment approved! ID:", paymentResult.id);
+      console.log("✅ Payment approved! ID:", paymentResult.id);
 
-      // PASSO 2: Ativar assinatura no banco de dados (pagamento confirmado)
+      // Activate subscription
       const startDate = new Date();
       const nextBillingDate = new Date(startDate);
       nextBillingDate.setMonth(nextBillingDate.getMonth() + selectedPlan.frequency);
 
-      console.log(`📅 STEP 2: Activating subscription. Start: ${startDate.toISOString()}, Next: ${nextBillingDate.toISOString()}`);
-
-      // Buscar subscription existente
       const { data: existingSub } = await supabaseClient
         .from("subscriptions")
         .select("*")
@@ -247,79 +178,28 @@ const handler = async (req: Request): Promise<Response> => {
         .maybeSingle();
 
       if (existingSub) {
-        // Atualizar subscription existente
-        const { error: updateError } = await supabaseClient
-          .from("subscriptions")
-          .update({
-            status: "active",
-            type: "platform",
-            billing_frequency: planType,
-            payment_method: "credit_card",
-            plan_name: selectedPlan.title,
-            start_date: startDate.toISOString(),
-            next_billing_date: nextBillingDate.toISOString(),
-            last_billing_date: startDate.toISOString(),
-            failed_payments_count: 0,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", existingSub.id);
-
-        if (updateError) {
-          console.error("❌ Error updating subscription:", updateError);
-        } else {
-          console.log(`✅ Subscription ${existingSub.id} updated to ACTIVE`);
-        }
+        await supabaseClient.from("subscriptions").update({
+          status: "active", type: "platform", billing_frequency: planType,
+          payment_method: "credit_card", plan_name: selectedPlan.title,
+          start_date: startDate.toISOString(), next_billing_date: nextBillingDate.toISOString(),
+          last_billing_date: startDate.toISOString(), failed_payments_count: 0
+        }).eq("id", existingSub.id);
       } else {
-        // Criar nova subscription
-        const { error: insertError } = await supabaseClient
-          .from("subscriptions")
-          .insert({
-            user_id: user.id,
-            customer_id: null,
-            plan_id: null,
-            type: "platform",
-            status: "active",
-            billing_frequency: planType,
-            payment_method: "credit_card",
-            plan_name: selectedPlan.title,
-            start_date: startDate.toISOString(),
-            next_billing_date: nextBillingDate.toISOString(),
-            last_billing_date: startDate.toISOString(),
-            failed_payments_count: 0
-          });
-
-        if (insertError) {
-          console.error("❌ Error creating subscription:", insertError);
-        } else {
-          console.log("✅ New platform subscription created");
-        }
+        await supabaseClient.from("subscriptions").insert({
+          user_id: user.id, type: "platform", status: "active", billing_frequency: planType,
+          payment_method: "credit_card", plan_name: selectedPlan.title,
+          start_date: startDate.toISOString(), next_billing_date: nextBillingDate.toISOString(),
+          last_billing_date: startDate.toISOString(), failed_payments_count: 0
+        });
       }
 
-      // PASSO 3 (OPCIONAL): Criar assinatura recorrente para próximos meses
-      // Nota: Podemos pular isso e processar renovações manualmente ou via cron
-      // Por enquanto, vamos deixar só o pagamento único ativando a assinatura
-      // A renovação pode ser tratada quando a next_billing_date chegar
-
-      console.log("🎉 Card payment flow complete! Subscription activated.");
-
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          payment_id: paymentResult.id,
-          status: "approved",
-          message: "Assinatura ativada com sucesso! Pagamento de R$" + selectedPlan.price.toFixed(2) + " confirmado.",
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ 
+        success: true, payment_id: paymentResult.id, status: "approved",
+        message: `Assinatura ativada! Pagamento de R$${selectedPlan.price.toFixed(2)} confirmado.`
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ============================================================
-    // FLUXO DE REDIRECT (PIX ou checkout externo)
-    // ============================================================
-    // Criar data de início com buffer de 5 minutos no futuro
+    // REDIRECT FLOW (PIX/external checkout)
     const startDate = new Date();
     startDate.setMinutes(startDate.getMinutes() + 5);
 
@@ -336,60 +216,29 @@ const handler = async (req: Request): Promise<Response> => {
       back_url: `${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovableproject.com") || ""}/configuracoes`,
       payer_email: user.email,
       external_reference: user.id,
-      metadata: {
-        userId: user.id,
-        planId: planType,
-        billingFrequency: planType,
-        planName: selectedPlan.title,
-        months: selectedPlan.frequency,
-        type: "platform_subscription"
-      }
     };
-
-    console.log("Creating Mercado Pago subscription preference with data:", preferenceData);
 
     const mpResponse = await fetch("https://api.mercadopago.com/preapproval", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`,
-      },
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
       body: JSON.stringify(preferenceData),
     });
 
     if (!mpResponse.ok) {
       const errorText = await mpResponse.text();
-      console.error("Mercado Pago error:", errorText);
-      throw new Error(`Erro ao criar preferência no Mercado Pago: ${errorText}`);
+      throw new Error(`Erro ao criar preferência: ${errorText}`);
     }
 
     const preferenceResponse = await mpResponse.json();
 
-    console.log(`Subscription preference created successfully: ${preferenceResponse.id}`);
+    return new Response(JSON.stringify({ 
+      success: true, init_point: preferenceResponse.init_point, preference_id: preferenceResponse.id
+    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        init_point: preferenceResponse.init_point,
-        preference_id: preferenceResponse.id,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
   } catch (error: any) {
-    console.error("Error creating subscription preference:", error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message || "Erro ao criar preferência de assinatura",
-        success: false 
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    console.error("Error:", error);
+    return new Response(JSON.stringify({ error: error.message, success: false }), 
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 };
 
