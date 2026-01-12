@@ -117,7 +117,23 @@ const handler = async (req: Request): Promise<Response> => {
         installments: 1,
         payer: payerData,
         external_reference: user.id,
-        metadata: { userId: user.id, planId: planType, type: "platform_subscription" }
+        metadata: { userId: user.id, planId: planType, type: "platform_subscription" },
+        additional_info: {
+          items: [{
+            id: `plan_${planType}`,
+            title: `${selectedPlan.title} - Foguete`,
+            description: `${selectedPlan.description} do sistema de gestão Foguete. Acesso completo a todas as funcionalidades por ${selectedPlan.frequency} mês(es).`,
+            category_id: "services",
+            quantity: 1,
+            unit_price: selectedPlan.price
+          }],
+          payer: {
+            first_name: payerData.first_name as string,
+            last_name: payerData.last_name as string,
+            phone: payerPhone ? { area_code: payerPhone.slice(0, 2), number: payerPhone.slice(2) } : undefined,
+            registration_date: new Date().toISOString()
+          }
+        }
       };
 
       const mpHeaders: Record<string, string> = {
