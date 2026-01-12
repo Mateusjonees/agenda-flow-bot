@@ -970,168 +970,149 @@ const Agendamentos = () => {
 
     // Desktop view - horizontal grid
     return (
-      <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
-        <div>
-          {/* Cabeçalho dos dias */}
-          <div 
-            className="grid border-b bg-muted/50 sticky top-0 z-10"
-            style={{ gridTemplateColumns: `50px repeat(${activeDays.length}, 1fr)` }}
-          >
-            <div className="p-2 border-r">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Hora</div>
-            </div>
-            {activeDays.map((day) => {
-              const isCurrentDay = isSameDay(day, new Date());
-              const dayAppointmentsCount = appointments.filter(apt => 
-                isSameDay(parseISO(apt.start_time), day)
-              ).length;
-              const dayHours = getDayHours(day);
-              
-              return (
-                <div
-                  key={day.toISOString()}
-                  className={cn(
-                    "p-2 border-l text-center transition-all",
-                    isCurrentDay ? "bg-primary/10" : "hover:bg-accent/5"
-                  )}
-                >
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                    {format(day, "EEE", { locale: ptBR })}
-                  </div>
-                  <div className={cn(
-                    "flex items-center justify-center"
-                  )}>
-                    <div className={cn(
-                      "text-lg font-bold",
-                      isCurrentDay && "w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm"
-                    )}>
-                      {format(day, "dd")}
-                    </div>
-                  </div>
-                  {dayHours && (
-                    <div className="text-[9px] text-muted-foreground mt-0.5 hidden lg:block">
-                      {dayHours.start} - {dayHours.end}
-                    </div>
-                  )}
-                  {dayAppointmentsCount > 0 && (
-                    <Badge variant="secondary" className="text-[9px] h-4 mt-1 px-1">
-                      {dayAppointmentsCount}
-                    </Badge>
-                  )}
-                </div>
-              );
-            })}
+      <div className="border rounded-lg overflow-hidden bg-card shadow-sm w-full">
+        {/* Cabeçalho dos dias */}
+        <div 
+          className="grid border-b bg-muted/50 sticky top-0 z-10"
+          style={{ gridTemplateColumns: `40px repeat(${activeDays.length}, 1fr)` }}
+        >
+          <div className="p-1 border-r flex items-center justify-center">
+            <Clock className="w-3 h-3 text-muted-foreground" />
           </div>
-          
-          {/* Grid de horários */}
-          <div className="divide-y">
-            {hours.map((hour) => (
-              <div 
-                key={hour} 
-                className="grid"
-                style={{ gridTemplateColumns: `50px repeat(${activeDays.length}, 1fr)` }}
+          {activeDays.map((day) => {
+            const isCurrentDay = isSameDay(day, new Date());
+            const dayAppointmentsCount = appointments.filter(apt => 
+              isSameDay(parseISO(apt.start_time), day)
+            ).length;
+            
+            return (
+              <div
+                key={day.toISOString()}
+                className={cn(
+                  "py-2 px-1 border-l text-center transition-all",
+                  isCurrentDay ? "bg-primary/10" : "hover:bg-accent/5"
+                )}
               >
-                <div className="p-1.5 text-xs text-muted-foreground border-r font-medium bg-muted/20 h-[70px]">
-                  {String(hour).padStart(2, "0")}:00
+                <div className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {format(day, "EEE", { locale: ptBR })}
                 </div>
-                {activeDays.map((day) => {
-                  const isCurrentDay = isSameDay(day, new Date());
-                  const dayHours = getDayHours(day);
-                  
-                  // Verificar se este horário está dentro do horário de funcionamento do dia
-                  const isWithinBusinessHours = dayHours && (() => {
-                    const [startHour] = dayHours.start.split(':').map(Number);
-                    const [endHour] = dayHours.end.split(':').map(Number);
-                    return hour >= startHour && hour < endHour;
-                  })();
-                  
-                  // Filtrar agendamentos para este dia e hora usando hora LOCAL
-                  const dayHourAppointments = appointments.filter(apt => {
-                    const aptDate = parseISO(apt.start_time);
-                    // getHours() já retorna a hora LOCAL do navegador
-                    const aptHour = aptDate.getHours();
-                    return isSameDay(aptDate, day) && aptHour === hour;
-                  });
-
-                  return (
-                    <DroppableTimeSlot
-                      key={`${day.toISOString()}-${hour}`}
-                      id={`week-${format(day, 'yyyy-MM-dd')}-${hour}`}
-                      date={day}
-                      hour={hour}
-                      className={cn(
-                        "p-0.5 border-l transition-colors h-[70px] overflow-y-auto",
-                        isWithinBusinessHours ? "hover:bg-accent/5" : "bg-muted/40",
-                        isCurrentDay && isWithinBusinessHours && "bg-primary/5"
-                      )}
-                    >
-                      {/* Mostrar agendamentos sempre, mesmo fora do horário de funcionamento */}
-                      <div className="space-y-1">
-                        {dayHourAppointments.map((apt) => {
-                          const statusConfig = {
-                            confirmed: { bg: "from-emerald-500/20 to-emerald-500/5", border: "border-emerald-500/40", accent: "bg-emerald-500" },
-                            pending: { bg: "from-amber-500/20 to-amber-500/5", border: "border-amber-500/40", accent: "bg-amber-500" },
-                            cancelled: { bg: "from-red-500/20 to-red-500/5", border: "border-red-500/40", accent: "bg-red-500" },
-                            completed: { bg: "from-violet-500/20 to-violet-500/5", border: "border-violet-500/40", accent: "bg-violet-500" }
-                          };
-                          const status = statusConfig[apt.status as keyof typeof statusConfig] || statusConfig.completed;
-                          
-                          return (
-                            <DraggableAppointment
-                              key={apt.id}
-                              id={apt.id}
-                              type="appointment"
-                              currentStartTime={parseISO(apt.start_time)}
-                              currentEndTime={parseISO(apt.end_time)}
-                            >
-                              <div 
-                                className={cn(
-                                  "p-1.5 rounded-lg cursor-pointer transition-all duration-200 border",
-                                  "bg-gradient-to-br backdrop-blur-sm shadow-sm",
-                                  "hover:shadow-md hover:scale-[1.01]",
-                                  status.bg, status.border
-                                )}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMobileSelectedAppointment(apt);
-                                  setMobileMenuOpen(true);
-                                }}
-                              >
-                                <div className="flex items-center gap-1.5">
-                                  {/* Status indicator */}
-                                  <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", status.accent)} />
-                                  
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1">
-                                      <span className="font-semibold text-foreground text-xs">
-                                        {format(parseISO(apt.start_time), "HH:mm")}
-                                      </span>
-                                      <span className="text-[9px] text-muted-foreground">
-                                        - {format(parseISO(apt.end_time), "HH:mm")}
-                                      </span>
-                                    </div>
-                                    <div className="font-medium text-foreground truncate text-xs leading-tight">
-                                      {apt.title}
-                                    </div>
-                                    {apt.customers && (
-                                      <div className="flex items-center gap-1 text-muted-foreground">
-                                        <User className="w-2.5 h-2.5 flex-shrink-0" />
-                                        <span className="truncate text-[10px]">{apt.customers.name}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </DraggableAppointment>
-                          );
-                        })}
-                      </div>
-                    </DroppableTimeSlot>
-                  );
-                })}
+                <div className={cn(
+                  "flex items-center justify-center mt-0.5"
+                )}>
+                  <div className={cn(
+                    "text-sm font-bold",
+                    isCurrentDay && "w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs"
+                  )}>
+                    {format(day, "dd")}
+                  </div>
+                </div>
+                {dayAppointmentsCount > 0 && (
+                  <div className="flex justify-center mt-1">
+                    <div className="w-4 h-4 rounded-full bg-primary/20 text-primary text-[9px] font-bold flex items-center justify-center">
+                      {dayAppointmentsCount}
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
+            );
+          })}
+        </div>
+        
+        {/* Grid de horários */}
+        <div className="divide-y">
+          {hours.map((hour) => (
+            <div 
+              key={hour} 
+              className="grid"
+              style={{ gridTemplateColumns: `40px repeat(${activeDays.length}, 1fr)` }}
+            >
+              <div className="p-1 text-[10px] text-muted-foreground border-r font-medium bg-muted/20 h-[60px] flex items-start justify-center">
+                {String(hour).padStart(2, "0")}h
+              </div>
+              {activeDays.map((day) => {
+                const isCurrentDay = isSameDay(day, new Date());
+                const dayHours = getDayHours(day);
+                
+                const isWithinBusinessHours = dayHours && (() => {
+                  const [startHour] = dayHours.start.split(':').map(Number);
+                  const [endHour] = dayHours.end.split(':').map(Number);
+                  return hour >= startHour && hour < endHour;
+                })();
+                
+                const dayHourAppointments = appointments.filter(apt => {
+                  const aptDate = parseISO(apt.start_time);
+                  const aptHour = aptDate.getHours();
+                  return isSameDay(aptDate, day) && aptHour === hour;
+                });
+
+                return (
+                  <DroppableTimeSlot
+                    key={`${day.toISOString()}-${hour}`}
+                    id={`week-${format(day, 'yyyy-MM-dd')}-${hour}`}
+                    date={day}
+                    hour={hour}
+                    className={cn(
+                      "p-0.5 border-l transition-colors h-[60px] overflow-hidden",
+                      isWithinBusinessHours ? "hover:bg-accent/5" : "bg-muted/40",
+                      isCurrentDay && isWithinBusinessHours && "bg-primary/5"
+                    )}
+                  >
+                    <div className="space-y-0.5 h-full">
+                      {dayHourAppointments.slice(0, 2).map((apt) => {
+                        const statusColors: Record<string, string> = {
+                          confirmed: "bg-emerald-500",
+                          pending: "bg-amber-500",
+                          cancelled: "bg-red-500",
+                          completed: "bg-violet-500"
+                        };
+                        const dotColor = statusColors[apt.status || ""] || "bg-primary";
+                        
+                        return (
+                          <DraggableAppointment
+                            key={apt.id}
+                            id={apt.id}
+                            type="appointment"
+                            currentStartTime={parseISO(apt.start_time)}
+                            currentEndTime={parseISO(apt.end_time)}
+                          >
+                            <div 
+                              className="bg-card hover:bg-accent/50 border rounded p-1 cursor-pointer transition-all shadow-sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMobileSelectedAppointment(apt);
+                                setMobileMenuOpen(true);
+                              }}
+                            >
+                              <div className="flex items-center gap-1">
+                                <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", dotColor)} />
+                                <span className="text-[9px] font-semibold text-foreground truncate">
+                                  {format(parseISO(apt.start_time), "HH:mm")}
+                                </span>
+                              </div>
+                              <div className="text-[9px] font-medium text-foreground truncate leading-tight">
+                                {apt.title}
+                              </div>
+                            </div>
+                          </DraggableAppointment>
+                        );
+                      })}
+                      {dayHourAppointments.length > 2 && (
+                        <div 
+                          className="text-[8px] text-center text-muted-foreground font-medium cursor-pointer hover:text-primary"
+                          onClick={() => {
+                            setSelectedDayDate(day);
+                            setDayDialogOpen(true);
+                          }}
+                        >
+                          +{dayHourAppointments.length - 2} mais
+                        </div>
+                      )}
+                    </div>
+                  </DroppableTimeSlot>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
     );
