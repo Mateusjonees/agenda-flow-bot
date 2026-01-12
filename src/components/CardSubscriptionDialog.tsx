@@ -85,18 +85,34 @@ export function CardSubscriptionDialog({
     };
   }, [open, plan]);
 
-  // Capture the device session ID from Mercado Pago security script
+  // Capture the device session ID from Mercado Pago security script with polling
   const captureDeviceSessionId = () => {
-    // Wait a bit for the security script to generate the session ID
-    setTimeout(() => {
+    let attempts = 0;
+    const maxAttempts = 15; // Try for up to 4.5 seconds (15 * 300ms)
+    
+    const tryCapture = () => {
       const sessionId = window.MP_DEVICE_SESSION_ID;
       if (sessionId) {
         setDeviceSessionId(sessionId);
-        console.log("🔐 Device Session ID captured:", sessionId.slice(0, 8) + "...");
-      } else {
-        console.warn("⚠️ Device Session ID not available");
+        console.log("🔐 Device Session ID captured:", sessionId.slice(0, 8) + "...", `(attempt ${attempts + 1})`);
+        return true;
       }
-    }, 500);
+      return false;
+    };
+
+    // Try immediately first
+    if (tryCapture()) return;
+
+    // Then poll every 300ms
+    const intervalId = setInterval(() => {
+      attempts++;
+      if (tryCapture() || attempts >= maxAttempts) {
+        clearInterval(intervalId);
+        if (attempts >= maxAttempts && !window.MP_DEVICE_SESSION_ID) {
+          console.warn("⚠️ Device Session ID not available after", maxAttempts, "attempts");
+        }
+      }
+    }, 300);
   };
 
   const loadUserData = async () => {

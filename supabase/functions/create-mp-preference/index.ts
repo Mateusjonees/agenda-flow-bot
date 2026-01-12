@@ -107,11 +107,25 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Mercado Pago access token not configured");
     }
 
-    // Create preference with Mercado Pago API
-    const preferenceData = {
+    // Get user profile for additional payer data
+    const { data: profile } = await adminClient
+      .from("profiles")
+      .select("full_name, phone, cpf")
+      .eq("id", user.id)
+      .single();
+
+    const payerName = profile?.full_name || body.payer.name || body.payer.email;
+    const payerPhone = profile?.phone?.replace(/\D/g, '') || "";
+    const payerCpf = profile?.cpf?.replace(/\D/g, '') || "";
+
+    // Create preference with Mercado Pago API - including all required fields for approval
+    const preferenceData: Record<string, unknown> = {
       items: [
         {
+          id: `plan_${body.metadata.planId || body.metadata.billingFrequency}`,
           title: body.title,
+          description: body.description || `Assinatura ${body.title} - Sistema de gestão Foguete`,
+          category_id: "services",
           quantity: body.quantity,
           unit_price: body.unit_price,
           currency_id: "BRL",
@@ -119,7 +133,13 @@ const handler = async (req: Request): Promise<Response> => {
       ],
       payer: {
         email: body.payer.email,
-        name: body.payer.name || body.payer.email,
+        name: payerName,
+        surname: payerName.split(' ').slice(1).join(' ') || "",
+        identification: payerCpf ? { type: "CPF", number: payerCpf } : undefined,
+        phone: payerPhone ? { 
+          area_code: payerPhone.slice(0, 2), 
+          number: payerPhone.slice(2) 
+        } : undefined,
       },
       back_urls: {
         success: "https://www.sistemafoguete.com.br/dashboard?payment=success",
@@ -132,6 +152,13 @@ const handler = async (req: Request): Promise<Response> => {
       statement_descriptor: "FOGUETE GESTAO",
       external_reference: `${body.metadata.userId}_${Date.now()}`,
     };
+
+    console.log("📦 Preference items:", JSON.stringify(preferenceData.items));
+    console.log("👤 Payer data:", JSON.stringify({ 
+      email: body.payer.email, 
+      hasPhone: !!payerPhone, 
+      hasCpf: !!payerCpf 
+    }));
 
     const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
