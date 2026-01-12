@@ -16,6 +16,7 @@ import { CreditCard, Lock, Check, AlertCircle, Loader2, Shield, ExternalLink, Qr
 import { Badge } from "@/components/ui/badge";
 import { MERCADO_PAGO_PUBLIC_KEY } from "@/config/mercadoPago";
 import { Separator } from "@/components/ui/separator";
+import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
 declare global {
   interface Window {
@@ -44,6 +45,7 @@ export function CardSubscriptionDialog({
   plan,
   onSuccess,
 }: CardSubscriptionDialogProps) {
+  const { trackPurchase, trackSubscribe, trackAddPaymentInfo } = useFacebookPixel();
   const [loading, setLoading] = useState(false);
   const [cardFormReady, setCardFormReady] = useState(false);
   const [cardFormError, setCardFormError] = useState<string | null>(null);
@@ -277,6 +279,19 @@ export function CardSubscriptionDialog({
       }
 
       console.log("Subscription created:", data);
+      
+      // Track Facebook Pixel events for card payment success
+      trackAddPaymentInfo('credit_card');
+      trackPurchase({
+        value: plan.price,
+        content_name: plan.name,
+        content_type: 'subscription',
+      });
+      trackSubscribe({
+        value: plan.price,
+        predicted_ltv: plan.price * 12,
+      });
+      
       toast.success("🎉 Pagamento aprovado!", {
         description: "Sua assinatura foi ativada com sucesso.",
       });

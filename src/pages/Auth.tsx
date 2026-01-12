@@ -46,7 +46,7 @@ const formatCPF = (value: string): string => {
 };
 
 const Auth = () => {
-  const { trackCompleteRegistration, trackLead, trackViewContent } = useFacebookPixel();
+  const { trackCompleteRegistration, trackLead, trackViewContent, trackStartTrial } = useFacebookPixel();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -169,8 +169,9 @@ const Auth = () => {
         toast.error(error.message);
       }
     } else {
-      // Track successful registration
+      // Track successful registration + trial start
       trackCompleteRegistration('email');
+      trackStartTrial({ value: 0 });
       trackLead({ content_name: 'signup', content_category: 'registration' });
       toast.success("Conta criada! Verifique seu e-mail para confirmar.");
     }

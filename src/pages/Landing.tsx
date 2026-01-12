@@ -112,15 +112,16 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       {/* WhatsApp Floating Button */}
-      <a
-        href="https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão"
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
+        onClick={() => {
+          trackContact('whatsapp_floating');
+          window.open("https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão", "_blank");
+        }}
         className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-full p-4 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110"
         aria-label="Fale conosco no WhatsApp"
       >
         <MessageCircle className="w-6 h-6" />
-      </a>
+      </button>
 
       {/* Header */}
       <header className="border-b glass-strong fixed top-0 left-0 right-0 z-50">
