@@ -11,6 +11,40 @@ import { FaGoogle, FaFacebook } from "react-icons/fa";
 import logo from "@/assets/logo.png";
 import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
+// Função para validar CPF
+const validateCPF = (cpf: string): boolean => {
+  const cleanCPF = cpf.replace(/\D/g, '');
+  if (cleanCPF.length !== 11) return false;
+  if (/^(\d)\1+$/.test(cleanCPF)) return false;
+  
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cleanCPF.charAt(i)) * (10 - i);
+  }
+  let remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(cleanCPF.charAt(9))) return false;
+  
+  sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += parseInt(cleanCPF.charAt(i)) * (11 - i);
+  }
+  remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(cleanCPF.charAt(10))) return false;
+  
+  return true;
+};
+
+// Função para formatar CPF
+const formatCPF = (value: string): string => {
+  const cleanValue = value.replace(/\D/g, '').slice(0, 11);
+  if (cleanValue.length <= 3) return cleanValue;
+  if (cleanValue.length <= 6) return `${cleanValue.slice(0, 3)}.${cleanValue.slice(3)}`;
+  if (cleanValue.length <= 9) return `${cleanValue.slice(0, 3)}.${cleanValue.slice(3, 6)}.${cleanValue.slice(6)}`;
+  return `${cleanValue.slice(0, 3)}.${cleanValue.slice(3, 6)}.${cleanValue.slice(6, 9)}-${cleanValue.slice(9)}`;
+};
+
 const Auth = () => {
   const { trackCompleteRegistration, trackLead, trackViewContent } = useFacebookPixel();
   const navigate = useNavigate();
@@ -18,6 +52,8 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [cpfError, setCpfError] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
 
@@ -76,10 +112,16 @@ const Auth = () => {
     }
   };
 
+  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCPF(e.target.value);
+    setCpf(formatted);
+    setCpfError("");
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password || !name) {
+    if (!email || !password || !name || !cpf) {
       toast.error("Preencha todos os campos");
       return;
     }
@@ -89,18 +131,34 @@ const Auth = () => {
       return;
     }
 
+    if (!validateCPF(cpf)) {
+      setCpfError("CPF inválido");
+      toast.error("CPF inválido. Verifique o número digitado.");
+      return;
+    }
+
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
         data: {
           name,
+          cpf: cpf.replace(/\D/g, ''),
         },
       },
     });
+
+    if (!error && data.user) {
+      // Save CPF to profile
+      await supabase.from("profiles").upsert({
+        id: data.user.id,
+        full_name: name,
+        cpf: cpf.replace(/\D/g, ''),
+      });
+    }
 
     setLoading(false);
 
@@ -333,6 +391,24 @@ const Auth = () => {
                     required
                     className="h-12"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-cpf" className="text-foreground font-medium">
+                    CPF
+                  </Label>
+                  <Input
+                    id="signup-cpf"
+                    type="text"
+                    placeholder="000.000.000-00"
+                    value={cpf}
+                    onChange={handleCpfChange}
+                    disabled={loading}
+                    required
+                    className={`h-12 ${cpfError ? 'border-destructive' : ''}`}
+                  />
+                  {cpfError && (
+                    <p className="text-sm text-destructive">{cpfError}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email" className="text-foreground font-medium">
