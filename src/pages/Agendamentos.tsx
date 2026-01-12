@@ -32,6 +32,7 @@ import { DayAppointmentsDialog } from "@/components/DayAppointmentsDialog";
 import { AppointmentQuickSearch } from "@/components/AppointmentQuickSearch";
 import { Search, Bell } from "lucide-react";
 import { useAppointmentReminders } from "@/hooks/useAppointmentReminders";
+import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
 type Customer = {
   id: string;
@@ -148,6 +149,7 @@ const Agendamentos = () => {
   const isMobile = useIsMobile();
   const { isReadOnly } = useReadOnly();
   const { testNotification } = useAppointmentReminders();
+  const { trackSchedule } = useFacebookPixel();
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState("");
   const [service, setService] = useState("");
@@ -421,8 +423,12 @@ const Agendamentos = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      // Track schedule event for Facebook Pixel
+      trackSchedule({
+        content_name: data?.title || 'Appointment',
+      });
       toast.success("Agendamento criado com sucesso!");
       setOpen(false);
       setCustomerId("");

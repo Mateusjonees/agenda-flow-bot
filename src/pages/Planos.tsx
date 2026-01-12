@@ -16,6 +16,7 @@ import { ptBR } from "date-fns/locale";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useConfetti } from "@/hooks/useConfetti";
 import { PaymentMethodBadge } from "@/components/PaymentMethodBadge";
+import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
 declare global {
   interface Window {
@@ -40,6 +41,7 @@ interface PricingPlan {
 
 const Planos = () => {
   const navigate = useNavigate();
+  const { trackInitiateCheckout, trackAddPaymentInfo, trackPurchase, trackSubscribe, trackViewContent } = useFacebookPixel();
   const [loading, setLoading] = useState(false);
   const [mpLoaded, setMpLoaded] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
@@ -197,7 +199,12 @@ const Planos = () => {
 
   useEffect(() => {
     loadMercadoPagoScript();
-  }, []);
+    // Track page view for pricing page
+    trackViewContent({
+      content_name: 'Pricing Page',
+      content_category: 'subscription',
+    });
+  }, [trackViewContent]);
 
   // Monitorar confirmação automática de PIX
   useEffect(() => {
@@ -242,6 +249,18 @@ const Planos = () => {
           // Se o PIX foi pago agora
           if (payload.new.status === 'paid' && payload.old.status !== 'paid') {
             console.log('🎉 Pagamento PIX confirmado!');
+            
+            // Track purchase event for Facebook Pixel
+            const pixAmount = payload.new.amount || 0;
+            const pixMetadata = payload.new.metadata || {};
+            trackPurchase({
+              value: pixAmount,
+              content_name: pixMetadata.planName || 'Subscription',
+              content_type: 'subscription',
+            });
+            trackSubscribe({
+              value: pixAmount,
+            });
             
             // Dispara confetti
             fireSuccess();
@@ -460,6 +479,15 @@ const Planos = () => {
 
     setLoading(true);
     setSelectedPlan(plan);
+
+    // Track checkout initiation
+    trackInitiateCheckout({
+      value: plan.price,
+      content_name: plan.name,
+      content_ids: [plan.id],
+      num_items: 1,
+    });
+    trackAddPaymentInfo(paymentMethod);
 
     try {
       if (paymentMethod === "pix") {

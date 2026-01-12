@@ -21,6 +21,7 @@ import logoAntigo from "@/assets/logo.png";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
 // Componentes da Landing
 import HeroMockup from "@/components/landing/HeroMockup";
@@ -34,8 +35,15 @@ const Landing = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { trackViewContent, trackLead, trackContact } = useFacebookPixel();
 
   useEffect(() => {
+    // Track landing page view
+    trackViewContent({
+      content_name: 'Landing Page',
+      content_category: 'marketing',
+    });
+
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
@@ -45,14 +53,21 @@ const Landing = () => {
       setIsAuthenticated(!!session);
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [trackViewContent]);
 
   const handleGetStarted = () => {
+    // Track lead when user clicks to get started
+    trackLead({ content_name: 'cta_click', content_category: 'conversion' });
     if (isAuthenticated) {
       navigate("/dashboard");
     } else {
       navigate("/auth");
     }
+  };
+
+  const handleContactWhatsApp = () => {
+    trackContact('whatsapp');
+    window.open("https://wa.me/554899075189", "_blank");
   };
 
   const scrollToSection = (id: string) => {
