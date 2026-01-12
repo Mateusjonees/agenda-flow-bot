@@ -9,8 +9,10 @@ import { toast } from "sonner";
 import { Loader2, Rocket, Mail, ArrowLeft } from "lucide-react";
 import { FaGoogle, FaFacebook } from "react-icons/fa";
 import logo from "@/assets/logo.png";
+import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
 const Auth = () => {
+  const { trackCompleteRegistration, trackLead, trackViewContent } = useFacebookPixel();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -20,6 +22,12 @@ const Auth = () => {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
 
   useEffect(() => {
+    // Track page view for auth page
+    trackViewContent({
+      content_name: 'Auth Page',
+      content_category: 'authentication',
+    });
+
     // Check if user is already logged in
     const checkSession = async () => {
       const {
@@ -42,7 +50,7 @@ const Auth = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, trackViewContent]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +111,9 @@ const Auth = () => {
         toast.error(error.message);
       }
     } else {
+      // Track successful registration
+      trackCompleteRegistration('email');
+      trackLead({ content_name: 'signup', content_category: 'registration' });
       toast.success("Conta criada! Verifique seu e-mail para confirmar.");
     }
   };
