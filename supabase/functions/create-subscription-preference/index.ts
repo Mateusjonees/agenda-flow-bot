@@ -139,11 +139,7 @@ const handler = async (req: Request): Promise<Response> => {
         }
       };
 
-      // Add device_id to payment body (some MP integrations use this instead of/in addition to header)
-      if (deviceSessionId) {
-        paymentData.device_id = deviceSessionId;
-        console.log("🔐 Added device_id to payment body");
-      }
+      // Note: device_id is sent via X-meli-session-id header only (not in body)
 
       const mpHeaders: Record<string, string> = {
         "Content-Type": "application/json",
