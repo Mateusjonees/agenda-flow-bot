@@ -16,8 +16,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import foguetinho from "@/assets/foguetinho.png";
-import logoAntigo from "@/assets/logo.png";
+import logo from "@/assets/logo.png";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -111,8 +110,7 @@ const Landing = () => {
       <header className="border-b glass-strong fixed top-0 left-0 right-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img alt="Foguete" className="h-14 w-auto dark:hidden" src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png" />
-            <img src={logoAntigo} alt="Foguete" className="h-14 w-auto hidden dark:block" />
+            <img src={logo} alt="Foguete" className="h-14 w-auto" />
           </div>
 
           <nav className="hidden md:flex items-center gap-8">
@@ -313,8 +311,7 @@ const Landing = () => {
             {/* Logo e Descrição */}
             <div className="sm:col-span-2 lg:col-span-1">
               <div className="flex items-center gap-3 mb-4">
-                <img src={foguetinho} alt="Foguete" className="h-12 w-auto dark:hidden" />
-                <img src={logoAntigo} alt="Foguete" className="h-12 w-auto hidden dark:block" />
+                <img src={logo} alt="Foguete" className="h-12 w-auto" />
                 <span className="text-xl font-bold text-foreground">Foguete</span>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">

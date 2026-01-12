@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { Calendar, Users, Settings, LayoutDashboard, DollarSign, BarChart3, FileText, Repeat, ListTodo, Package, MessageCircle, FolderOpen, CreditCard, MessageSquare, ShoppingCart, Package2, Bot } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
-import logo from "@/assets/logo-menu.png";
+import logo from "@/assets/logo.png";
 const navItems = [{
   path: "/dashboard",
   label: "Painel",

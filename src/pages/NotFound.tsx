@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Rocket, Home, ArrowLeft, Sparkles } from "lucide-react";
-import logoFoguete from "@/assets/logo-foguete.png";
+import logo from "@/assets/logo.png";
 
 const NotFound = () => {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ const NotFound = () => {
             <div className="flex justify-center mb-6 relative">
               <div className="relative animate-fade-in">
                 <img 
-                  src={logoFoguete} 
+                  src={logo} 
                   alt="Foguete Gestão Empresarial" 
                   className="h-32 w-auto relative z-10 drop-shadow-2xl"
                 />
