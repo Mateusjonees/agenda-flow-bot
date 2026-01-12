@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Calendar, Users, Settings, LayoutDashboard, DollarSign, BarChart3, FileText, Repeat, ListTodo, Package, MessageCircle, FolderOpen, CreditCard, MessageSquare, ShoppingCart, Package2, Bot, History } from "lucide-react";
+import { Calendar, Users, Settings, LayoutDashboard, DollarSign, BarChart3, FileText, Repeat, ListTodo, Package, MessageCircle, FolderOpen, CreditCard, MessageSquare, ShoppingCart, Package2, Bot } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
 import logo from "@/assets/logo-menu.png";
 const navItems = [{
@@ -46,10 +46,6 @@ const navItems = [{
   path: "/planos",
   label: "Meu Plano",
   icon: CreditCard
-}, {
-  path: "/historico-assinaturas",
-  label: "Histórico Assinatura",
-  icon: History
 }];
 const whatsappNavItems = [{
   path: "/conversas-whatsapp",
