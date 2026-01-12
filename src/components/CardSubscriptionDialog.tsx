@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 declare global {
   interface Window {
     MercadoPago: any;
+    MP_DEVICE_SESSION_ID?: string;
   }
 }
 
@@ -49,6 +50,8 @@ export function CardSubscriptionDialog({
   const [cardErrorCode, setCardErrorCode] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [loadingFallback, setLoadingFallback] = useState(false);
+  const [deviceSessionId, setDeviceSessionId] = useState<string | null>(null);
+  const [lastPaymentId, setLastPaymentId] = useState<string | null>(null);
   const cardFormRef = useRef<any>(null);
   const mpInstanceRef = useRef<any>(null);
   const formContainerRef = useRef<HTMLDivElement>(null);
@@ -67,6 +70,7 @@ export function CardSubscriptionDialog({
     if (open && plan) {
       initializeCardForm();
       loadUserData();
+      captureDeviceSessionId();
     }
     
     return () => {
@@ -80,6 +84,20 @@ export function CardSubscriptionDialog({
       }
     };
   }, [open, plan]);
+
+  // Capture the device session ID from Mercado Pago security script
+  const captureDeviceSessionId = () => {
+    // Wait a bit for the security script to generate the session ID
+    setTimeout(() => {
+      const sessionId = window.MP_DEVICE_SESSION_ID;
+      if (sessionId) {
+        setDeviceSessionId(sessionId);
+        console.log("🔐 Device Session ID captured:", sessionId.slice(0, 8) + "...");
+      } else {
+        console.warn("⚠️ Device Session ID not available");
+      }
+    }, 500);
+  };
 
   const loadUserData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -175,11 +193,14 @@ export function CardSubscriptionDialog({
 
     console.log("🚀 Sending payment with:", {
       email,
-      identification: { type: identificationType, number: cleanIdentification.slice(0, 3) + "***" }
+      identification: { type: identificationType, number: cleanIdentification.slice(0, 3) + "***" },
+      deviceSessionId: deviceSessionId ? deviceSessionId.slice(0, 8) + "..." : "NOT_AVAILABLE"
     });
 
     setLoading(true);
+    setLastPaymentId(null);
     setCardFormError(null);
+    setCardErrorCode(null);
 
     try {
       // Create card token using MP SDK
@@ -203,7 +224,7 @@ export function CardSubscriptionDialog({
 
       console.log("Card token created:", tokenResponse.id);
 
-      // Call edge function with card token
+      // Call edge function with card token and device session ID
       const { data, error } = await supabase.functions.invoke("create-subscription-preference", {
         body: {
           plan_id: plan.id,
@@ -217,6 +238,7 @@ export function CardSubscriptionDialog({
             type: identificationType,
             number: cleanIdentification,
           },
+          device_session_id: deviceSessionId || undefined,
         },
       });
 
@@ -226,12 +248,19 @@ export function CardSubscriptionDialog({
       }
 
       if (data.error) {
+        // Capture payment ID for support reference if available
+        if (data.payment_id) {
+          setLastPaymentId(data.payment_id);
+        }
         throw new Error(data.error_description || data.error || "Erro ao processar pagamento");
       }
 
-      console.log("Subscription created:", data);
+      // Also capture successful payment ID
+      if (data.payment_id) {
+        setLastPaymentId(data.payment_id);
+      }
 
-      setPaymentSuccess(true);
+      console.log("Subscription created:", data);
       toast.success("🎉 Pagamento aprovado!", {
         description: "Sua assinatura foi ativada com sucesso.",
       });
