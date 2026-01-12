@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { calculateAccumulatedNextBillingDate } from "../_shared/platform-subscription-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,26 +80,37 @@ const handler = async (req: Request): Promise<Response> => {
       if (metadata?.userId && metadata?.planId) {
         console.log("Processing platform subscription payment for user:", metadata.userId);
 
-        // Check if subscription exists
+        // ✅ Buscar subscription de PLATAFORMA (customer_id e plan_id NULL)
         const { data: existingSub } = await supabaseClient
           .from("subscriptions")
           .select("*")
           .eq("user_id", metadata.userId)
+          .is("customer_id", null)  // ✅ FILTRO: Apenas plataforma
+          .is("plan_id", null)      // ✅ FILTRO: Apenas plataforma
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
         const startDate = new Date();
-        const nextBillingDate = new Date(startDate);
-        nextBillingDate.setMonth(nextBillingDate.getMonth() + (metadata.months || 1));
+        const months = metadata.months || 1;
+        
+        // ✅ ACUMULAR dias restantes se existir assinatura ativa
+        const { nextBillingDate, accumulatedDays } = calculateAccumulatedNextBillingDate(
+          startDate,
+          months,
+          existingSub?.next_billing_date
+        );
+        
+        console.log(`📅 Next billing date: ${nextBillingDate.toISOString()} (${months} meses${accumulatedDays > 0 ? ` + ${accumulatedDays} dias acumulados` : ''})`);
 
         if (existingSub) {
-          // Update existing subscription
+          // Update existing subscription - ✅ NÃO usar plan_id para plataforma
           const { error: subUpdateError } = await supabaseClient
             .from("subscriptions")
             .update({
               status: "active",
-              plan_id: metadata.planId || existingSub.plan_id,
+              type: "platform",  // ✅ GARANTIR type correto
+              plan_id: null,  // ✅ Assinatura de plataforma usa plan_id=null
               billing_frequency: metadata.billingFrequency,
               payment_method: "pix",
               plan_name: metadata.planName,
@@ -113,17 +125,18 @@ const handler = async (req: Request): Promise<Response> => {
             console.error("Error updating subscription:", subUpdateError);
            } else {
              console.log("Subscription updated successfully");
-             console.log("✅ Pagamento confirmado para assinatura:", existingSub.id);
+             console.log(`✅ Pagamento confirmado para assinatura: ${existingSub.id}${accumulatedDays > 0 ? ` (+${accumulatedDays} dias acumulados)` : ''}`);
              console.log("Status atualizado para: active");
              console.log("Método de pagamento: pix");
            }
          } else {
-           // Create new subscription
+           // Create new subscription - ✅ Assinatura de plataforma
           const { error: subCreateError } = await supabaseClient
             .from("subscriptions")
             .insert({
               user_id: metadata.userId,
-              plan_id: metadata.planId,
+              plan_id: null,  // ✅ Assinatura de plataforma usa plan_id=null
+              customer_id: null,  // ✅ Assinatura de plataforma usa customer_id=null
               billing_frequency: metadata.billingFrequency,
               payment_method: "pix",
               plan_name: metadata.planName,

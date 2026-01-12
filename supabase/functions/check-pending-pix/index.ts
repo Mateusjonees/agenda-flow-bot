@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isPlatformSubscription, isClientSubscription } from "../_shared/subscription-validation.ts";
+import { calculateAccumulatedNextBillingDate } from "../_shared/platform-subscription-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -111,13 +112,16 @@ const handler = async (req: Request): Promise<Response> => {
               .maybeSingle();
 
             const startDate = new Date();
-            const nextBillingDate = new Date(startDate);
-            nextBillingDate.setMonth(nextBillingDate.getMonth() + (metadata.months || 1));
+            const months = metadata.months || 1;
             
-            // Adicionar 7 dias de trial
-            nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+            // ✅ ACUMULAR dias restantes se existir assinatura ativa
+            const { nextBillingDate, accumulatedDays } = calculateAccumulatedNextBillingDate(
+              startDate,
+              months,
+              existingSub?.next_billing_date
+            );
             
-            console.log(`📅 Next billing date: ${nextBillingDate.toISOString()} (${metadata.months || 1} months + 7 days trial)`);
+            console.log(`📅 Next billing date: ${nextBillingDate.toISOString()} (${months} meses${accumulatedDays > 0 ? ` + ${accumulatedDays} dias acumulados` : ''})`);
 
             if (existingSub) {
               // Atualizar
