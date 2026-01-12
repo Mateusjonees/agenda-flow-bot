@@ -841,89 +841,115 @@ const Agendamentos = () => {
               <div 
                 key={day.toISOString()} 
                 className={cn(
-                  "border rounded-lg overflow-hidden bg-card shadow-sm",
-                  isCurrentDay && "ring-2 ring-primary/50"
+                  "rounded-2xl overflow-hidden bg-gradient-to-br from-card to-card/80 backdrop-blur-sm border border-border/50 shadow-lg transition-all duration-300",
+                  isCurrentDay && "ring-2 ring-primary/40 shadow-primary/10 shadow-xl"
                 )}
               >
-                {/* Day header */}
+                {/* Day header - Modern gradient */}
                 <div className={cn(
-                  "p-4 border-b flex items-center justify-between",
-                  isCurrentDay ? "bg-primary/10" : "bg-muted/50"
+                  "p-4 flex items-center justify-between relative overflow-hidden",
+                  isCurrentDay 
+                    ? "bg-gradient-to-r from-primary/20 via-primary/10 to-transparent" 
+                    : "bg-gradient-to-r from-muted/60 via-muted/30 to-transparent"
                 )}>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-4 relative z-10">
                     <div className={cn(
-                      "text-2xl font-bold flex items-center justify-center",
-                      isCurrentDay && "w-10 h-10 rounded-full bg-primary text-primary-foreground"
+                      "flex items-center justify-center text-2xl font-bold transition-all duration-300",
+                      isCurrentDay 
+                        ? "w-12 h-12 rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/30" 
+                        : "w-12 h-12 rounded-xl bg-muted text-foreground"
                     )}>
                       {format(day, "dd")}
                     </div>
                     <div>
-                      <div className="font-semibold capitalize">
+                      <div className="font-bold text-lg capitalize text-foreground">
                         {format(day, "EEEE", { locale: ptBR })}
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-sm text-muted-foreground">
                         {format(day, "MMMM yyyy", { locale: ptBR })}
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
+                  <div className="flex flex-col items-end gap-2">
                     {dayHours && (
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <div className="text-xs text-muted-foreground flex items-center gap-1.5 bg-background/50 px-2 py-1 rounded-full backdrop-blur-sm">
                         <Clock className="w-3 h-3" />
                         {dayHours.start} - {dayHours.end}
                       </div>
                     )}
                     {dayAppointments.length > 0 && (
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors">
                         {dayAppointments.length} {dayAppointments.length === 1 ? 'evento' : 'eventos'}
                       </Badge>
                     )}
                   </div>
                 </div>
                 
-                {/* Appointments list */}
-                <div className="divide-y">
+                {/* Appointments list - Modern cards */}
+                <div className="p-3 space-y-2">
                   {dayAppointments.length === 0 ? (
-                    <div className="p-6 text-center text-muted-foreground text-sm">
-                      <CalendarIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      Nenhum agendamento
+                    <div className="py-8 text-center text-muted-foreground">
+                      <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-muted/50 flex items-center justify-center">
+                        <CalendarIcon className="w-7 h-7 opacity-50" />
+                      </div>
+                      <p className="text-sm font-medium">Nenhum agendamento</p>
+                      <p className="text-xs mt-1 opacity-70">Toque para agendar</p>
                     </div>
                   ) : (
                     dayAppointments.map((apt) => {
-                      const statusColors = {
-                        confirmed: "hsl(142 71% 45%)",
-                        pending: "hsl(48 96% 53%)",
-                        cancelled: "hsl(0 84% 60%)",
-                        completed: "hsl(271 81% 56%)"
+                      const statusConfig = {
+                        confirmed: { bg: "from-emerald-500/15 to-emerald-500/5", border: "border-emerald-500/30", dot: "bg-emerald-500" },
+                        pending: { bg: "from-amber-500/15 to-amber-500/5", border: "border-amber-500/30", dot: "bg-amber-500" },
+                        cancelled: { bg: "from-red-500/15 to-red-500/5", border: "border-red-500/30", dot: "bg-red-500" },
+                        completed: { bg: "from-violet-500/15 to-violet-500/5", border: "border-violet-500/30", dot: "bg-violet-500" }
                       };
-                      const borderColor = statusColors[apt.status as keyof typeof statusColors] || statusColors.completed;
+                      const status = statusConfig[apt.status as keyof typeof statusConfig] || statusConfig.completed;
                       
                       return (
                         <div 
                           key={apt.id}
-                          className="p-4 flex items-start gap-4 hover:bg-accent/5 transition-colors cursor-pointer border-l-4"
-                          style={{ borderLeftColor: borderColor }}
+                          className={cn(
+                            "p-4 rounded-xl flex items-center gap-4 transition-all duration-300 cursor-pointer",
+                            "bg-gradient-to-r border backdrop-blur-sm",
+                            "hover:shadow-md hover:scale-[1.01] active:scale-[0.99]",
+                            status.bg, status.border
+                          )}
                           onClick={() => {
                             setMobileSelectedAppointment(apt);
                             setMobileMenuOpen(true);
                           }}
                         >
-                          <div className="flex flex-col items-center text-sm font-medium text-muted-foreground min-w-[50px]">
-                            <span className="text-foreground font-bold">{format(parseISO(apt.start_time), "HH:mm")}</span>
-                            <span className="text-xs">{format(parseISO(apt.end_time), "HH:mm")}</span>
+                          {/* Time column */}
+                          <div className="flex flex-col items-center min-w-[52px]">
+                            <span className="text-lg font-bold text-foreground">{format(parseISO(apt.start_time), "HH:mm")}</span>
+                            <span className="text-xs text-muted-foreground">{format(parseISO(apt.end_time), "HH:mm")}</span>
                           </div>
+                          
+                          {/* Divider with status dot */}
+                          <div className="flex flex-col items-center gap-1 h-full">
+                            <div className={cn("w-2.5 h-2.5 rounded-full shadow-lg", status.dot)} />
+                            <div className="w-px flex-1 bg-border/50 min-h-[20px]" />
+                          </div>
+                          
+                          {/* Content */}
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold text-foreground truncate">
                               {apt.title}
                             </div>
                             {apt.customers && (
-                              <div className="flex items-center gap-1 text-muted-foreground text-sm mt-1">
-                                <User className="w-3 h-3 flex-shrink-0" />
+                              <div className="flex items-center gap-1.5 text-muted-foreground text-sm mt-1">
+                                <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center">
+                                  <User className="w-3 h-3" />
+                                </div>
                                 <span className="truncate">{apt.customers.name}</span>
                               </div>
                             )}
                           </div>
-                          <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          
+                          {/* Arrow */}
+                          <div className="w-8 h-8 rounded-full bg-background/80 flex items-center justify-center shadow-sm">
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                          </div>
                         </div>
                       );
                     })
@@ -1035,14 +1061,13 @@ const Agendamentos = () => {
                     >
                       {/* Mostrar agendamentos sempre, mesmo fora do horário de funcionamento */}
                       {dayHourAppointments.map((apt) => {
-                        const statusColors = {
-                          confirmed: "hsl(142 71% 45%)",
-                          pending: "hsl(48 96% 53%)",
-                          cancelled: "hsl(0 84% 60%)",
-                          completed: "hsl(271 81% 56%)"
+                        const statusConfig = {
+                          confirmed: { bg: "from-emerald-500/20 to-emerald-500/5", border: "border-emerald-500/40", accent: "bg-emerald-500" },
+                          pending: { bg: "from-amber-500/20 to-amber-500/5", border: "border-amber-500/40", accent: "bg-amber-500" },
+                          cancelled: { bg: "from-red-500/20 to-red-500/5", border: "border-red-500/40", accent: "bg-red-500" },
+                          completed: { bg: "from-violet-500/20 to-violet-500/5", border: "border-violet-500/40", accent: "bg-violet-500" }
                         };
-                        
-                        const borderColor = statusColors[apt.status as keyof typeof statusColors] || statusColors.completed;
+                        const status = statusConfig[apt.status as keyof typeof statusConfig] || statusConfig.completed;
                         
                         return (
                           <DraggableAppointment
@@ -1054,29 +1079,42 @@ const Agendamentos = () => {
                           >
                             <div 
                               className={cn(
-                                "p-2 rounded-md mb-2 text-xs cursor-pointer transition-all border-l-[3px]",
-                                "hover:shadow-md hover:scale-[1.02] bg-card/80 backdrop-blur-sm"
+                                "p-3 rounded-xl mb-2 cursor-pointer transition-all duration-300 border",
+                                "bg-gradient-to-br backdrop-blur-sm shadow-sm",
+                                "hover:shadow-lg hover:scale-[1.02] hover:-translate-y-0.5",
+                                status.bg, status.border
                               )}
-                              style={{ borderLeftColor: borderColor }}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setMobileSelectedAppointment(apt);
                                 setMobileMenuOpen(true);
                               }}
                             >
-                              <div className="space-y-1">
-                                <div className="font-bold text-foreground text-sm">
-                                  {format(parseISO(apt.start_time), "HH:mm")}
-                                </div>
-                                <div className="font-semibold text-foreground truncate">
-                                  {apt.title}
-                                </div>
-                                {apt.customers && (
-                                  <div className="flex items-center gap-1 text-muted-foreground">
-                                    <User className="w-3 h-3" />
-                                    <span className="truncate text-xs">{apt.customers.name}</span>
+                              <div className="flex items-start gap-2">
+                                {/* Status indicator */}
+                                <div className={cn("w-2 h-2 rounded-full mt-1.5 shadow-lg flex-shrink-0", status.accent)} />
+                                
+                                <div className="flex-1 min-w-0 space-y-1">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="font-bold text-foreground text-sm">
+                                      {format(parseISO(apt.start_time), "HH:mm")}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded-full">
+                                      {format(parseISO(apt.end_time), "HH:mm")}
+                                    </span>
                                   </div>
-                                )}
+                                  <div className="font-semibold text-foreground truncate text-sm">
+                                    {apt.title}
+                                  </div>
+                                  {apt.customers && (
+                                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                                      <div className="w-4 h-4 rounded-full bg-muted/80 flex items-center justify-center">
+                                        <User className="w-2.5 h-2.5" />
+                                      </div>
+                                      <span className="truncate text-xs">{apt.customers.name}</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </DraggableAppointment>
