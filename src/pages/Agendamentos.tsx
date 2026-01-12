@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -144,6 +145,7 @@ const getStatusLabel = (status: string, timeDiff: number) => {
 };
 
 const Agendamentos = () => {
+  const isMobile = useIsMobile();
   const { isReadOnly } = useReadOnly();
   const { testNotification } = useAppointmentReminders();
   const [open, setOpen] = useState(false);
@@ -824,6 +826,117 @@ const Agendamentos = () => {
     
     const hours = Array.from({ length: maxHour - minHour }, (_, i) => minHour + i);
 
+    // Mobile view - vertical cards per day
+    if (isMobile) {
+      return (
+        <div className="space-y-4">
+          {activeDays.map((day) => {
+            const isCurrentDay = isSameDay(day, new Date());
+            const dayHours = getDayHours(day);
+            const dayAppointments = appointments.filter(apt => 
+              isSameDay(parseISO(apt.start_time), day)
+            ).sort((a, b) => parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime());
+            
+            return (
+              <div 
+                key={day.toISOString()} 
+                className={cn(
+                  "border rounded-lg overflow-hidden bg-card shadow-sm",
+                  isCurrentDay && "ring-2 ring-primary/50"
+                )}
+              >
+                {/* Day header */}
+                <div className={cn(
+                  "p-4 border-b flex items-center justify-between",
+                  isCurrentDay ? "bg-primary/10" : "bg-muted/50"
+                )}>
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "text-2xl font-bold flex items-center justify-center",
+                      isCurrentDay && "w-10 h-10 rounded-full bg-primary text-primary-foreground"
+                    )}>
+                      {format(day, "dd")}
+                    </div>
+                    <div>
+                      <div className="font-semibold capitalize">
+                        {format(day, "EEEE", { locale: ptBR })}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {format(day, "MMMM yyyy", { locale: ptBR })}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    {dayHours && (
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {dayHours.start} - {dayHours.end}
+                      </div>
+                    )}
+                    {dayAppointments.length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {dayAppointments.length} {dayAppointments.length === 1 ? 'evento' : 'eventos'}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Appointments list */}
+                <div className="divide-y">
+                  {dayAppointments.length === 0 ? (
+                    <div className="p-6 text-center text-muted-foreground text-sm">
+                      <CalendarIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      Nenhum agendamento
+                    </div>
+                  ) : (
+                    dayAppointments.map((apt) => {
+                      const statusColors = {
+                        confirmed: "hsl(142 71% 45%)",
+                        pending: "hsl(48 96% 53%)",
+                        cancelled: "hsl(0 84% 60%)",
+                        completed: "hsl(271 81% 56%)"
+                      };
+                      const borderColor = statusColors[apt.status as keyof typeof statusColors] || statusColors.completed;
+                      
+                      return (
+                        <div 
+                          key={apt.id}
+                          className="p-4 flex items-start gap-4 hover:bg-accent/5 transition-colors cursor-pointer border-l-4"
+                          style={{ borderLeftColor: borderColor }}
+                          onClick={() => {
+                            setMobileSelectedAppointment(apt);
+                            setMobileMenuOpen(true);
+                          }}
+                        >
+                          <div className="flex flex-col items-center text-sm font-medium text-muted-foreground min-w-[50px]">
+                            <span className="text-foreground font-bold">{format(parseISO(apt.start_time), "HH:mm")}</span>
+                            <span className="text-xs">{format(parseISO(apt.end_time), "HH:mm")}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground truncate">
+                              {apt.title}
+                            </div>
+                            {apt.customers && (
+                              <div className="flex items-center gap-1 text-muted-foreground text-sm mt-1">
+                                <User className="w-3 h-3 flex-shrink-0" />
+                                <span className="truncate">{apt.customers.name}</span>
+                              </div>
+                            )}
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // Desktop view - horizontal grid
     return (
       <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
         <div className="overflow-x-auto">
