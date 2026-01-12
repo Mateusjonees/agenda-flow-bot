@@ -89,6 +89,7 @@ const App = () => (
               </Routes>
             </MaintenanceGuard>
             </PasswordResetGuard>
+            <CookieConsent />
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
