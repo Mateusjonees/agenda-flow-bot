@@ -882,7 +882,7 @@ const Planos = () => {
           return (
             <Card 
               key={plan.id}
-              className={`relative transition-all duration-300 hover:shadow-xl flex flex-col ${
+              className={`relative overflow-hidden rounded-lg transition-all duration-300 hover:shadow-xl flex flex-col ${
                 plan.popular 
                   ? 'border-2 border-primary ring-1 ring-primary/20' 
                   : isCurrentPlan
