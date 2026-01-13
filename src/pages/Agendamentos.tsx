@@ -1105,8 +1105,8 @@ const Agendamentos = () => {
                       isCurrentDay && isWithinBusinessHours && "bg-primary/5"
                     )}
                   >
-                    <div className="space-y-0.5 h-full">
-                      {dayHourAppointments.slice(0, 2).map((apt) => {
+                    <div className="flex gap-0.5 h-full">
+                      {dayHourAppointments.map((apt, index) => {
                         const statusColors: Record<string, string> = {
                           confirmed: "bg-emerald-500",
                           pending: "bg-amber-500",
@@ -1114,6 +1114,19 @@ const Agendamentos = () => {
                           completed: "bg-violet-500"
                         };
                         const dotColor = statusColors[apt.status || ""] || "bg-primary";
+                        const totalAppts = dayHourAppointments.length;
+                        const isCompact = totalAppts >= 3;
+                        
+                        // Calcular largura baseada na quantidade de agendamentos
+                        const widthStyle = { 
+                          width: `calc(${100 / totalAppts}% - ${(totalAppts - 1) * 2 / totalAppts}px)`,
+                          minWidth: 0
+                        };
+                        
+                        // Pegar iniciais do cliente para modo compacto
+                        const getInitials = (name: string) => {
+                          return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+                        };
                         
                         return (
                           <DraggableAppointment
@@ -1124,37 +1137,44 @@ const Agendamentos = () => {
                             currentEndTime={parseISO(apt.end_time)}
                           >
                             <div 
-                              className="bg-card hover:bg-accent/50 border rounded p-1 cursor-pointer transition-all shadow-sm"
+                              style={widthStyle}
+                              className={cn(
+                                "bg-card hover:bg-accent/50 border rounded cursor-pointer transition-all shadow-sm h-full flex flex-col justify-center",
+                                isCompact ? "p-0.5" : "p-1"
+                              )}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setMobileSelectedAppointment(apt);
                                 setMobileMenuOpen(true);
                               }}
+                              title={`${format(parseISO(apt.start_time), "HH:mm")} - ${apt.title}${apt.customers?.name ? ` (${apt.customers.name})` : ''}`}
                             >
-                              <div className="flex items-center gap-1">
-                                <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", dotColor)} />
-                                <span className="text-[9px] font-semibold text-foreground truncate">
-                                  {format(parseISO(apt.start_time), "HH:mm")}
-                                </span>
-                              </div>
-                              <div className="text-[9px] font-medium text-foreground truncate leading-tight">
-                                {apt.title}
-                              </div>
+                              {isCompact ? (
+                                // Modo compacto: apenas cor de status + iniciais
+                                <div className="flex flex-col items-center justify-center gap-0.5">
+                                  <div className={cn("w-2 h-2 rounded-full flex-shrink-0", dotColor)} />
+                                  <span className="text-[8px] font-bold text-foreground truncate w-full text-center">
+                                    {getInitials(apt.customers?.name || apt.title)}
+                                  </span>
+                                </div>
+                              ) : (
+                                // Modo normal: horário + nome
+                                <>
+                                  <div className="flex items-center gap-1">
+                                    <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", dotColor)} />
+                                    <span className="text-[9px] font-semibold text-foreground truncate">
+                                      {format(parseISO(apt.start_time), "HH:mm")}
+                                    </span>
+                                  </div>
+                                  <div className="text-[9px] font-medium text-foreground truncate leading-tight">
+                                    {apt.customers?.name || apt.title}
+                                  </div>
+                                </>
+                              )}
                             </div>
                           </DraggableAppointment>
                         );
                       })}
-                      {dayHourAppointments.length > 2 && (
-                        <div 
-                          className="text-[8px] text-center text-muted-foreground font-medium cursor-pointer hover:text-primary"
-                          onClick={() => {
-                            setSelectedDayDate(day);
-                            setDayDialogOpen(true);
-                          }}
-                        >
-                          +{dayHourAppointments.length - 2} mais
-                        </div>
-                      )}
                     </div>
                   </DroppableTimeSlot>
                 );
