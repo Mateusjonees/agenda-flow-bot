@@ -38,6 +38,9 @@ import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosServico from "./pages/TermosServico";
 import HistoricoAssinaturas from "./pages/HistoricoAssinaturas";
 import FAQ from "./pages/FAQ";
+import Recursos from "./pages/Recursos";
+import Depoimentos from "./pages/Depoimentos";
+import Precos from "./pages/Precos";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +64,9 @@ const App = () => (
                 <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/termos-servico" element={<TermosServico />} />
                 <Route path="/faq" element={<FAQ />} />
+                <Route path="/recursos" element={<Recursos />} />
+                <Route path="/depoimentos" element={<Depoimentos />} />
+                <Route path="/precos" element={<Precos />} />
                 
                 {/* Página de configurações (fora do guard para permitir renovação) */}
                 <Route path="/configuracoes" element={<Layout><Configuracoes /></Layout>} />
