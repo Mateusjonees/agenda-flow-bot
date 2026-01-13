@@ -1,13 +1,37 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MessageCircle, Sparkles, HeadphonesIcon, Clock, Shield, Lock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { MessageCircle, Sparkles, HeadphonesIcon, Clock, Shield, Lock, Menu, X, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import foguetinho from "@/assets/foguetinho.png";
 import logoAntigo from "@/assets/logo.png";
 
 const FAQ = () => {
   const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+    checkAuth();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setIsAuthenticated(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const scrollToSection = (id: string) => {
+    navigate("/");
+    setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  };
 
   const faqs = [
     {
@@ -55,48 +79,93 @@ const FAQ = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b glass-strong fixed top-0 left-0 right-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={foguetinho} alt="Foguete" className="h-8 w-auto dark:hidden" />
-            <img src={logoAntigo} alt="Foguete" className="h-8 w-auto hidden dark:block" />
-            <span className="text-lg font-bold text-foreground hidden sm:inline">Foguete</span>
+            <img alt="Foguete" className="h-14 w-auto dark:hidden" src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png" />
+            <img src={logoAntigo} alt="Foguete" className="h-14 w-auto hidden dark:block" />
           </div>
-          
-          <nav className="flex items-center gap-1 sm:gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => navigate("/")} 
-              className="text-sm"
+
+          <nav className="hidden md:flex items-center gap-8">
+            <button
+              onClick={() => scrollToSection("home")}
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-300"
             >
               Início
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => navigate("/pricing")} 
-              className="text-sm"
+            </button>
+            <button
+              onClick={() => scrollToSection("features")}
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-300"
+            >
+              Recursos
+            </button>
+            <button
+              onClick={() => scrollToSection("testimonials")}
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-300"
+            >
+              Depoimentos
+            </button>
+            <button
+              onClick={() => scrollToSection("pricing")}
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-300"
             >
               Preços
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="text-sm text-primary font-medium"
+            </button>
+            <button
+              className="text-sm font-medium text-primary transition-all duration-300"
             >
               FAQ
-            </Button>
-            <Button 
-              onClick={() => navigate("/auth")} 
-              size="sm"
-              className="ml-2"
-            >
-              Entrar
-            </Button>
+            </button>
           </nav>
+
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            {!isAuthenticated ? (
+              <>
+                <Button onClick={() => navigate("/auth")} variant="ghost" className="hidden md:flex">Entrar</Button>
+                <Button onClick={() => navigate("/auth?mode=signup")} className="hidden md:flex gap-2 bg-primary shadow-lg">
+                  Começe Grátis <ArrowRight className="w-4 h-4" />
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => navigate("/dashboard")} className="hidden md:flex gap-2 shadow-lg">
+                Ir para Dashboard <ArrowRight className="w-4 h-4" />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+          </div>
         </div>
+
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t glass">
+            <nav className="container mx-auto px-4 py-4 flex flex-col gap-3">
+              <button onClick={() => { setMobileMenuOpen(false); scrollToSection("home"); }} className="text-left text-sm font-medium text-muted-foreground hover:text-primary py-2">
+                Início
+              </button>
+              <button onClick={() => { setMobileMenuOpen(false); scrollToSection("features"); }} className="text-left text-sm font-medium text-muted-foreground hover:text-primary py-2">
+                Recursos
+              </button>
+              <button onClick={() => { setMobileMenuOpen(false); scrollToSection("testimonials"); }} className="text-left text-sm font-medium text-muted-foreground hover:text-primary py-2">
+                Depoimentos
+              </button>
+              <button onClick={() => { setMobileMenuOpen(false); scrollToSection("pricing"); }} className="text-left text-sm font-medium text-muted-foreground hover:text-primary py-2">
+                Preços
+              </button>
+              <button className="text-left text-sm font-medium text-primary py-2">
+                FAQ
+              </button>
+              <Button onClick={() => navigate("/auth?mode=signup")} className="w-full gap-2 bg-primary mt-2">
+                Começe Grátis <ArrowRight className="w-4 h-4" />
+              </Button>
+            </nav>
+          </div>
+        )}
       </header>
+
+      {/* Spacer for fixed header */}
+      <div className="h-16" />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12 flex-1">
