@@ -12,37 +12,71 @@ export interface PlatformSubscriptionData {
 /**
  * ✅ FUNÇÃO HELPER: Calcula next_billing_date ACUMULANDO dias restantes
  * 
- * Regra:
- * - Se existe assinatura com next_billing_date no futuro → baseDate = next_billing_date (acumula)
- * - Senão → baseDate = paidAt (sem dias extras)
+ * Regra CORRIGIDA:
+ * - Se existe assinatura com next_billing_date no futuro → acumula a partir de next_billing_date
+ * - Se existe assinatura com next_billing_date no passado → usa paidAt como base
  * - newNextBillingDate = baseDate + months
+ * 
+ * ⚠️ GUARD-RAIL: Limita acúmulo máximo a 400 dias no futuro para evitar bugs
  */
 export function calculateAccumulatedNextBillingDate(
   paidAt: Date,
   months: number,
   existingNextBillingDate?: string | null
 ): { baseDate: Date; nextBillingDate: Date; accumulatedDays: number } {
+  const now = new Date();
   let baseDate = new Date(paidAt);
   let accumulatedDays = 0;
+
+  // Normalizar months para valores válidos (1, 6, 12)
+  const normalizedMonths = [1, 6, 12].includes(months) ? months : 
+    (months <= 3 ? 1 : months <= 9 ? 6 : 12);
+
+  if (normalizedMonths !== months) {
+    console.warn(`⚠️ Meses normalizados de ${months} para ${normalizedMonths}`);
+  }
 
   // Se existe assinatura com dias restantes, acumular
   if (existingNextBillingDate) {
     const existingDate = new Date(existingNextBillingDate);
-    const now = new Date();
     
     // Se next_billing_date ainda está no futuro, acumular
     if (existingDate > now) {
       accumulatedDays = Math.ceil((existingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      baseDate = existingDate;
+      
+      // ✅ GUARD-RAIL: Limitar acúmulo máximo para evitar datas absurdas
+      const maxAccumulatedDays = 400; // ~13 meses máximo acumulado
+      if (accumulatedDays > maxAccumulatedDays) {
+        console.warn(`⚠️ Acúmulo limitado de ${accumulatedDays} para ${maxAccumulatedDays} dias`);
+        accumulatedDays = maxAccumulatedDays;
+        // Recalcular existingDate baseado no limite
+        baseDate = new Date(now);
+        baseDate.setDate(baseDate.getDate() + maxAccumulatedDays);
+      } else {
+        baseDate = existingDate;
+      }
       console.log(`📅 Acumulando ${accumulatedDays} dias restantes. Base: ${baseDate.toISOString()}`);
+    } else {
+      // Assinatura vencida - começar do pagamento
+      console.log(`📅 Assinatura vencida em ${existingDate.toISOString()}, usando data do pagamento: ${paidAt.toISOString()}`);
     }
   }
 
   // Calcular próximo billing a partir da base (acumulada ou atual)
   const nextBillingDate = new Date(baseDate);
-  nextBillingDate.setMonth(nextBillingDate.getMonth() + months);
+  nextBillingDate.setMonth(nextBillingDate.getMonth() + normalizedMonths);
 
-  console.log(`📆 Período calculado: base=${baseDate.toISOString()}, next=${nextBillingDate.toISOString()}, months=${months}, acumulados=${accumulatedDays} dias`);
+  // ✅ GUARD-RAIL FINAL: Garantir que next_billing_date não ultrapasse limite razoável
+  const maxFutureDays = 400;
+  const daysFromNow = Math.ceil((nextBillingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysFromNow > maxFutureDays) {
+    console.warn(`⚠️ Next billing date limitado de ${daysFromNow} para ${maxFutureDays} dias no futuro`);
+    const limitedDate = new Date(now);
+    limitedDate.setDate(limitedDate.getDate() + maxFutureDays);
+    return { baseDate, nextBillingDate: limitedDate, accumulatedDays: Math.min(accumulatedDays, maxFutureDays - (normalizedMonths * 30)) };
+  }
+
+  console.log(`📆 Período calculado: base=${baseDate.toISOString()}, next=${nextBillingDate.toISOString()}, months=${normalizedMonths}, acumulados=${accumulatedDays} dias`);
 
   return { baseDate, nextBillingDate, accumulatedDays };
 }
@@ -59,13 +93,15 @@ export async function processPlatformSubscriptionPayment(
 ): Promise<{ success: boolean; subscriptionId?: string; error?: string }> {
   
   try {
-    // ✅ CORREÇÃO: Calcular next_billing_date SEM adicionar dias de trial
-    // Quando o usuário PAGA, o ciclo começa AGORA
-    const nextBillingDate = new Date(data.startDate);
-    nextBillingDate.setMonth(nextBillingDate.getMonth() + data.months);
-    // ❌ REMOVIDO: nextBillingDate.setDate(nextBillingDate.getDate() + 7); // Trial
+    // Normalizar months
+    const normalizedMonths = [1, 6, 12].includes(data.months) ? data.months : 
+      (data.months <= 3 ? 1 : data.months <= 9 ? 6 : 12);
 
-    console.log(`📅 Processando pagamento para ${data.userId}: ${data.months} meses (sem trial - pagamento confirmado)`);
+    // ✅ CORREÇÃO: Calcular next_billing_date SEM adicionar dias de trial
+    const nextBillingDate = new Date(data.startDate);
+    nextBillingDate.setMonth(nextBillingDate.getMonth() + normalizedMonths);
+
+    console.log(`📅 Processando pagamento para ${data.userId}: ${normalizedMonths} meses (sem trial - pagamento confirmado)`);
 
     // Buscar subscription existente de PLATAFORMA
     const { data: existingSub, error: findError } = await supabaseClient
@@ -84,15 +120,22 @@ export async function processPlatformSubscriptionPayment(
     }
 
     if (existingSub) {
-      // ✅ Atualizar subscription existente (trial -> active)
-      console.log(`✅ Atualizando subscription existente: ${existingSub.id}`);
+      // ✅ Usar acumulação correta
+      const { nextBillingDate: accumulatedNextBilling, accumulatedDays } = calculateAccumulatedNextBillingDate(
+        data.startDate,
+        normalizedMonths,
+        existingSub.next_billing_date
+      );
+
+      console.log(`✅ Atualizando subscription existente: ${existingSub.id} (+${accumulatedDays} dias acumulados)`);
       
       const { error: updateError } = await supabaseClient
         .from("subscriptions")
         .update({
           status: "active",
+          type: "platform",
           start_date: data.startDate.toISOString(),
-          next_billing_date: nextBillingDate.toISOString(),
+          next_billing_date: accumulatedNextBilling.toISOString(),
           last_billing_date: data.startDate.toISOString(),
           failed_payments_count: 0,
           updated_at: new Date().toISOString()
@@ -111,8 +154,9 @@ export async function processPlatformSubscriptionPayment(
         .from("subscriptions")
         .insert({
           user_id: data.userId,
-          customer_id: null,  // ✅ EXPLÍCITO: Assinatura de plataforma
-          plan_id: null,      // ✅ EXPLÍCITO: Assinatura de plataforma
+          customer_id: null,
+          plan_id: null,
+          type: "platform",
           status: "active",
           start_date: data.startDate.toISOString(),
           next_billing_date: nextBillingDate.toISOString(),
@@ -147,34 +191,42 @@ export async function createFinancialTransaction(
 ): Promise<{ success: boolean; error?: string }> {
   
   // ✅ NÃO criar transações para pagamentos de assinatura da plataforma
-  // Isso evita que apareçam nos relatórios financeiros dos usuários
   console.log(`ℹ️ Pagamento de plataforma registrado (sem criar transação financeira): ${description} - R$${amount}`);
   return { success: true };
 }
 
 /**
- * Atualiza PIX charge para status "paid"
+ * Atualiza PIX charge para status "paid" e marca como processado
  */
 export async function updatePixCharge(
   supabaseClient: any,
   userId: string,
-  txid: string
+  txid: string,
+  processedFor?: string
 ): Promise<{ success: boolean; error?: string }> {
   
   try {
+    const updateData: any = {
+      status: "paid",
+      paid_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    // Se processedFor informado, marcar como processado
+    if (processedFor) {
+      updateData.processed_at = new Date().toISOString();
+      updateData.processed_for = processedFor;
+    }
+
     const { error } = await supabaseClient
       .from("pix_charges")
-      .update({
-        status: "paid",
-        paid_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq("txid", txid)
       .eq("user_id", userId);
 
     if (error) throw error;
     
-    console.log("✅ PIX charge atualizado para 'paid'");
+    console.log("✅ PIX charge atualizado para 'paid'" + (processedFor ? ` (processado para: ${processedFor})` : ''));
     return { success: true };
     
   } catch (error: any) {
@@ -195,6 +247,10 @@ export async function processSubscriptionRenewal(
 ): Promise<{ success: boolean; error?: string }> {
   
   try {
+    // Normalizar months
+    const normalizedMonths = [1, 6, 12].includes(months) ? months : 
+      (months <= 3 ? 1 : months <= 9 ? 6 : 12);
+
     // Buscar subscription de plataforma
     const { data: subscription, error: findError } = await supabaseClient
       .from("subscriptions")
@@ -210,28 +266,31 @@ export async function processSubscriptionRenewal(
 
     console.log(`🔄 Processando renovação para subscription ${subscription.id}`);
 
-    // Calcular nova data de cobrança
-    const currentBillingDate = new Date(subscription.next_billing_date);
-    const newBillingDate = new Date(currentBillingDate);
-    newBillingDate.setMonth(newBillingDate.getMonth() + months);
+    // Usar função de acumulação
+    const { nextBillingDate, accumulatedDays } = calculateAccumulatedNextBillingDate(
+      new Date(),
+      normalizedMonths,
+      subscription.next_billing_date
+    );
+
+    console.log(`📅 Nova data de billing: ${nextBillingDate.toISOString()} (+${accumulatedDays} dias acumulados)`);
 
     // Atualizar subscription
     const { error: updateError } = await supabaseClient
       .from("subscriptions")
       .update({
-        next_billing_date: newBillingDate.toISOString(),
+        next_billing_date: nextBillingDate.toISOString(),
         last_billing_date: new Date().toISOString(),
         failed_payments_count: 0,
         status: "active",
+        type: "platform",
         updated_at: new Date().toISOString()
       })
       .eq("id", subscription.id);
 
     if (updateError) throw updateError;
 
-    // ✅ NÃO criar transação financeira para renovações de plataforma
     console.log(`ℹ️ Renovação processada (sem criar transação financeira): ${description} - R$${amount}`);
-
     console.log("✅ Renovação processada com sucesso");
     return { success: true };
     
@@ -239,4 +298,35 @@ export async function processSubscriptionRenewal(
     console.error("❌ Erro ao processar renovação:", error);
     return { success: false, error: error.message };
   }
+}
+
+/**
+ * ✅ NOVA FUNÇÃO: Marca PIX charge como processado atomicamente
+ * Retorna true se conseguiu o lock (pode processar), false se já foi processado
+ */
+export async function tryLockPixCharge(
+  supabaseClient: any,
+  chargeId: string,
+  processedFor: string
+): Promise<{ locked: boolean; charge?: any }> {
+  
+  const { data: lockedCharge, error } = await supabaseClient
+    .from("pix_charges")
+    .update({ 
+      processed_at: new Date().toISOString(),
+      processed_for: processedFor,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", chargeId)
+    .is("processed_at", null)
+    .select()
+    .maybeSingle();
+
+  if (error || !lockedCharge) {
+    console.log(`⏭️ Charge ${chargeId} já foi processado, pulando...`);
+    return { locked: false };
+  }
+
+  console.log(`🔒 Lock adquirido para charge ${chargeId} (${processedFor})`);
+  return { locked: true, charge: lockedCharge };
 }

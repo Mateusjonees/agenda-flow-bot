@@ -18,24 +18,35 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    console.log("🔍 Verificando pagamentos da plataforma pendentes...");
+    console.log("🔍 Verificando pagamentos da plataforma pendentes de processamento...");
 
-    // Buscar PIX charges pagos que têm metadata.userId mas não têm subscription correspondente
+    // ✅ CORREÇÃO CRÍTICA: Buscar APENAS charges que ainda NÃO foram processados
+    // processed_at IS NULL garante idempotência - cada pagamento só é processado 1x
     const { data: paidCharges, error: fetchError } = await supabaseClient
       .from("pix_charges")
       .select("*")
       .eq("status", "paid")
-      .order("paid_at", { ascending: false });
+      .is("processed_at", null)           // ✅ IDEMPOTÊNCIA: Só não-processados
+      .is("appointment_id", null)         // Não é agendamento
+      .order("paid_at", { ascending: true }); // Processar na ordem cronológica
 
     if (fetchError) {
       throw fetchError;
     }
 
-    console.log(`📋 Encontradas ${paidCharges?.length || 0} cobranças pagas`);
+    // Filtrar apenas charges de plataforma (têm userId no metadata)
+    const platformCharges = (paidCharges || []).filter(charge => {
+      const metadata = typeof charge.metadata === 'string' 
+        ? JSON.parse(charge.metadata) 
+        : charge.metadata;
+      return metadata?.userId && !charge.customer_id;
+    });
+
+    console.log(`📋 Encontradas ${platformCharges.length} cobranças de plataforma pendentes de processamento`);
 
     const results = [];
 
-    for (const charge of paidCharges || []) {
+    for (const charge of platformCharges) {
       try {
         const metadata = typeof charge.metadata === 'string' 
           ? JSON.parse(charge.metadata) 
@@ -43,14 +54,38 @@ const handler = async (req: Request): Promise<Response> => {
 
         const userId = metadata?.userId;
         const planId = metadata?.planId;
-        const months = metadata?.months;
+        const months = metadata?.months || 1;
 
-        // Ignorar se não tiver userId ou se for de cliente
-        if (!userId || charge.customer_id) {
+        // Normalizar months para valores válidos (1, 6, 12)
+        const normalizedMonths = [1, 6, 12].includes(months) ? months : 
+          (months <= 3 ? 1 : months <= 9 ? 6 : 12);
+
+        if (normalizedMonths !== months) {
+          console.warn(`⚠️ Meses normalizados de ${months} para ${normalizedMonths}`);
+        }
+
+        console.log(`🔎 Processando charge ${charge.id} do user ${userId} (${normalizedMonths} meses)`);
+
+        // ✅ LOCK ATÔMICO: Marcar como processado ANTES de qualquer operação
+        // Se outro processo tentar ao mesmo tempo, só um consegue o lock
+        const { data: lockedCharge, error: lockError } = await supabaseClient
+          .from("pix_charges")
+          .update({ 
+            processed_at: new Date().toISOString(),
+            processed_for: "platform",
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", charge.id)
+          .is("processed_at", null)  // ✅ Só atualiza se ainda não processado
+          .select()
+          .maybeSingle();
+
+        if (lockError || !lockedCharge) {
+          console.log(`⏭️ Charge ${charge.id} já foi processado por outro processo, pulando...`);
           continue;
         }
 
-        console.log(`🔎 Verificando charge ${charge.id} do user ${userId}`);
+        console.log(`🔒 Lock adquirido para charge ${charge.id}`);
 
         // Verificar se já existe subscription da plataforma para este usuário
         const { data: existingSub } = await supabaseClient
@@ -58,37 +93,34 @@ const handler = async (req: Request): Promise<Response> => {
           .select("*")
           .eq("user_id", userId)
           .is("customer_id", null)
+          .is("plan_id", null)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
+        const chargeDate = new Date(charge.paid_at || charge.created_at);
+
         if (!existingSub) {
           console.log(`📝 Criando subscription da plataforma para user ${userId}`);
 
-          const startDate = new Date(charge.paid_at || charge.created_at);
-          const monthsToAdd = months || 1;
+          // Para nova criação, não acumular
+          const nextBillingDate = new Date(chargeDate);
+          nextBillingDate.setMonth(nextBillingDate.getMonth() + normalizedMonths);
           
-          // ✅ ACUMULAR dias restantes (mesmo para nova criação, pode haver subscription antiga)
-          const { nextBillingDate, accumulatedDays } = calculateAccumulatedNextBillingDate(
-            startDate,
-            monthsToAdd,
-            null // Nova criação, sem assinatura existente
-          );
-          
-          console.log(`📅 Next billing date: ${nextBillingDate.toISOString()} (start: ${startDate.toISOString()} + ${monthsToAdd} meses)`);
+          console.log(`📅 Next billing date: ${nextBillingDate.toISOString()} (start: ${chargeDate.toISOString()} + ${normalizedMonths} meses)`);
 
           // Criar subscription da plataforma
           const { error: subError } = await supabaseClient
             .from("subscriptions")
             .insert({
               user_id: userId,
-              customer_id: null,  // ✅ Assinatura de plataforma
-              plan_id: null,  // ✅ Assinatura de plataforma
-              type: "platform",  // ✅ GARANTIR type correto
+              customer_id: null,
+              plan_id: null,
+              type: "platform",
               status: "active",
-              start_date: startDate.toISOString(),
+              start_date: chargeDate.toISOString(),
               next_billing_date: nextBillingDate.toISOString(),
-              last_billing_date: startDate.toISOString(),
+              last_billing_date: chargeDate.toISOString(),
               failed_payments_count: 0
             });
 
@@ -102,38 +134,31 @@ const handler = async (req: Request): Promise<Response> => {
             });
           } else {
             console.log(`✅ Subscription da plataforma criada para user ${userId}`);
-
-            // ✅ NÃO criar transação financeira para assinaturas de PLATAFORMA
-            // Isso evita que pagamentos da plataforma apareçam nos relatórios do usuário
-            console.log("ℹ️ Assinatura de plataforma - não criar transação financeira no relatório do usuário");
-
             results.push({
               charge_id: charge.id,
               user_id: userId,
               status: "created",
-              plan_id: planId
+              plan_id: planId,
+              months: normalizedMonths
             });
           }
         } else {
           console.log(`ℹ️ User ${userId} já possui subscription da plataforma`);
           
-          // ✅ SEMPRE recalcular com acúmulo de dias restantes
-          const chargeDate = new Date(charge.paid_at || charge.created_at);
-          const monthsToAdd = months || 1;
-          
-          // ✅ ACUMULAR dias restantes se next_billing_date está no futuro
+          // ✅ CORREÇÃO: Usar lógica de acumulação correta
+          // Acumular a partir do MAIOR entre (data do pagamento, next_billing_date existente)
           const { nextBillingDate, accumulatedDays } = calculateAccumulatedNextBillingDate(
             chargeDate,
-            monthsToAdd,
+            normalizedMonths,
             existingSub.next_billing_date
           );
           
-          console.log(`📅 Atualizando subscription ${existingSub.id} - ${monthsToAdd} meses${accumulatedDays > 0 ? ` + ${accumulatedDays} dias acumulados` : ''}`);
+          console.log(`📅 Atualizando subscription ${existingSub.id} - ${normalizedMonths} meses${accumulatedDays > 0 ? ` + ${accumulatedDays} dias acumulados` : ''}`);
 
           const { error: updateError } = await supabaseClient
             .from("subscriptions")
             .update({
-              type: "platform",  // ✅ GARANTIR type correto
+              type: "platform",
               last_billing_date: chargeDate.toISOString(),
               next_billing_date: nextBillingDate.toISOString(),
               status: "active",
@@ -144,12 +169,19 @@ const handler = async (req: Request): Promise<Response> => {
 
           if (updateError) {
             console.error("❌ Erro ao atualizar subscription:", updateError);
+            results.push({
+              charge_id: charge.id,
+              user_id: userId,
+              status: "error",
+              error: updateError.message
+            });
           } else {
             results.push({
               charge_id: charge.id,
               user_id: userId,
               status: "updated",
-              accumulated_days: accumulatedDays
+              accumulated_days: accumulatedDays,
+              months: normalizedMonths
             });
           }
         }
@@ -166,7 +198,8 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({
         success: true,
-        total_checked: paidCharges?.length || 0,
+        total_paid: paidCharges?.length || 0,
+        total_platform_pending: platformCharges.length,
         processed: results.length,
         results: results
       }),
