@@ -1038,7 +1038,7 @@ const Agendamentos = () => {
         {/* Cabeçalho dos dias */}
         <div 
           className="grid border-b bg-muted/50 sticky top-0 z-10"
-          style={{ gridTemplateColumns: `40px repeat(${activeDays.length}, 1fr)` }}
+          style={{ gridTemplateColumns: `50px repeat(${activeDays.length}, 1fr)` }}
         >
           <div className="p-1 border-r flex items-center justify-center">
             <Clock className="w-3 h-3 text-muted-foreground" />
