@@ -18,7 +18,7 @@ export default function Depoimentos() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-background">
       <PublicNavbar />
       
       {/* Floating WhatsApp Button */}
@@ -49,18 +49,18 @@ export default function Depoimentos() {
                   />
                 ))}
               </div>
-              <span className="text-yellow-400 text-sm font-medium">
+              <span className="text-yellow-600 dark:text-yellow-400 text-sm font-medium">
                 4.9 de avaliação média
               </span>
             </div>
 
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
+            <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-4">
               O que nossos{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-500">
                 clientes dizem
               </span>
             </h1>
-            <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Descubra como o Foguete Gestão está transformando negócios em todo o Brasil. 
               Histórias reais de sucesso de empreendedores como você.
             </p>
@@ -76,13 +76,13 @@ export default function Depoimentos() {
             {stats.map((stat, index) => (
               <div
                 key={index}
-                className="bg-slate-900/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50 text-center"
+                className="bg-card backdrop-blur-sm rounded-xl p-4 border border-border text-center shadow-sm"
               >
                 <stat.icon className="w-6 h-6 text-primary mx-auto mb-2" />
-                <div className="text-2xl md:text-3xl font-bold text-white">
+                <div className="text-2xl md:text-3xl font-bold text-foreground">
                   {stat.value}
                 </div>
-                <div className="text-xs md:text-sm text-slate-400">
+                <div className="text-xs md:text-sm text-muted-foreground">
                   {stat.label}
                 </div>
               </div>
@@ -128,10 +128,10 @@ export default function Depoimentos() {
             transition={{ duration: 0.5 }}
             className="bg-gradient-to-r from-primary/20 to-orange-500/20 rounded-3xl p-8 md:p-12 border border-primary/30 text-center"
           >
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
               Pronto para ter sua história de sucesso?
             </h2>
-            <p className="text-slate-300 mb-8 max-w-xl mx-auto">
+            <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
               Junte-se a centenas de empreendedores que já transformaram seus negócios com o Foguete Gestão.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -146,7 +146,6 @@ export default function Depoimentos() {
                 size="lg"
                 variant="outline"
                 onClick={() => navigate("/recursos")}
-                className="border-slate-600 text-white hover:bg-slate-800"
               >
                 Ver Recursos
               </Button>

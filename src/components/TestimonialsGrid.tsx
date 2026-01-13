@@ -122,7 +122,7 @@ export function TestimonialsGrid() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="bg-slate-900/80 rounded-2xl p-6 border border-slate-700/50">
+          <div key={i} className="bg-card rounded-2xl p-6 border border-border shadow-sm">
             <div className="flex items-center gap-3 mb-4">
               <Skeleton className="w-12 h-12 rounded-full" />
               <div>

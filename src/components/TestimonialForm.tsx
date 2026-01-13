@@ -160,15 +160,15 @@ export function TestimonialForm() {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-slate-900/80 backdrop-blur-sm rounded-2xl p-8 border border-green-500/30 text-center"
+        className="bg-card backdrop-blur-sm rounded-2xl p-8 border border-green-500/30 text-center shadow-sm"
       >
         <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle className="w-8 h-8 text-green-400" />
+          <CheckCircle className="w-8 h-8 text-green-500" />
         </div>
-        <h3 className="text-xl font-semibold text-white mb-2">
+        <h3 className="text-xl font-semibold text-foreground mb-2">
           Obrigado pelo seu depoimento!
         </h3>
-        <p className="text-slate-400 mb-4">
+        <p className="text-muted-foreground mb-4">
           Seu depoimento foi enviado e será publicado após nossa revisão.
         </p>
         <Button variant="outline" onClick={resetForm}>
@@ -183,13 +183,13 @@ export function TestimonialForm() {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-slate-700/50"
+      className="bg-card backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-border shadow-sm"
     >
       <div className="text-center mb-6">
-        <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
+        <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">
           📝 Compartilhe sua Experiência
         </h3>
-        <p className="text-slate-400 text-sm">
+        <p className="text-muted-foreground text-sm">
           Conte como o Foguete Gestão ajudou seu negócio
         </p>
       </div>
@@ -197,7 +197,7 @@ export function TestimonialForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Foto/Logo Upload */}
         <div className="space-y-2">
-          <Label className="text-white">Sua Foto ou Logo (opcional)</Label>
+          <Label className="text-foreground">Sua Foto ou Logo (opcional)</Label>
           <div className="flex items-center gap-4">
             {photoPreview ? (
               <div className="relative">
@@ -217,9 +217,9 @@ export function TestimonialForm() {
             ) : (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="w-16 h-16 rounded-full border-2 border-dashed border-slate-600 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-slate-800/50 transition-all"
+                className="w-16 h-16 rounded-full border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all"
               >
-                <Image className="w-5 h-5 text-slate-500" />
+                <Image className="w-5 h-5 text-muted-foreground" />
               </div>
             )}
             <div className="flex-1">
@@ -235,12 +235,12 @@ export function TestimonialForm() {
                 variant="outline"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="gap-2 bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
+                className="gap-2"
               >
                 <Upload className="w-4 h-4" />
                 {photoPreview ? "Trocar foto" : "Escolher foto"}
               </Button>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 JPG, PNG. Máximo 2MB
               </p>
             </div>
@@ -249,7 +249,7 @@ export function TestimonialForm() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-white">
+            <Label htmlFor="name" className="text-foreground">
               Seu Nome *
             </Label>
             <Input
@@ -257,12 +257,11 @@ export function TestimonialForm() {
               placeholder="Ex: João Silva"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="businessName" className="text-white">
+            <Label htmlFor="businessName" className="text-foreground">
               Nome da Empresa *
             </Label>
             <Input
@@ -270,19 +269,18 @@ export function TestimonialForm() {
               placeholder="Ex: Barbearia Premium"
               value={formData.businessName}
               onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-              className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-white">Tipo de Negócio *</Label>
+            <Label className="text-foreground">Tipo de Negócio *</Label>
             <Select
               value={formData.businessType}
               onValueChange={(value) => setFormData({ ...formData, businessType: value })}
             >
-              <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+              <SelectTrigger>
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
@@ -296,7 +294,7 @@ export function TestimonialForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="highlight" className="text-white">
+            <Label htmlFor="highlight" className="text-foreground">
               Destaque (opcional)
             </Label>
             <Input
@@ -304,14 +302,13 @@ export function TestimonialForm() {
               placeholder="Ex: +30% vendas"
               value={formData.highlight}
               onChange={(e) => setFormData({ ...formData, highlight: e.target.value })}
-              className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
             />
           </div>
         </div>
 
         {/* Rating Stars */}
         <div className="space-y-2">
-          <Label className="text-white">Sua Avaliação *</Label>
+          <Label className="text-foreground">Sua Avaliação *</Label>
           <div className="flex items-center gap-1">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
@@ -326,19 +323,19 @@ export function TestimonialForm() {
                   className={`w-8 h-8 ${
                     star <= (hoveredRating || rating)
                       ? "text-yellow-400 fill-yellow-400"
-                      : "text-slate-600"
+                      : "text-muted-foreground/30"
                   }`}
                 />
               </button>
             ))}
-            <span className="ml-2 text-slate-400 text-sm">
+            <span className="ml-2 text-muted-foreground text-sm">
               {rating} de 5 estrelas
             </span>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="content" className="text-white">
+          <Label htmlFor="content" className="text-foreground">
             Seu Depoimento * (mínimo 20 caracteres)
           </Label>
           <Textarea
@@ -347,9 +344,9 @@ export function TestimonialForm() {
             value={formData.content}
             onChange={(e) => setFormData({ ...formData, content: e.target.value })}
             rows={4}
-            className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500 resize-none"
+            className="resize-none"
           />
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             {formData.content.length}/20 caracteres mínimos
           </p>
         </div>
@@ -372,7 +369,7 @@ export function TestimonialForm() {
           )}
         </Button>
 
-        <p className="text-xs text-center text-slate-500">
+        <p className="text-xs text-center text-muted-foreground">
           Não é necessário criar conta. Seu depoimento será publicado após aprovação.
         </p>
       </form>
