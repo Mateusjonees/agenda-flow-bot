@@ -19,7 +19,6 @@ import {
 import foguetinho from "@/assets/foguetinho.png";
 import logoAntigo from "@/assets/logo.png";
 import { Badge } from "@/components/ui/badge";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
@@ -75,33 +74,6 @@ const Landing = () => {
     setMobileMenuOpen(false);
   };
 
-  const faqs = [
-    {
-      question: "Como funciona o período de teste?",
-      answer: "Você tem 7 dias grátis para testar todas as funcionalidades sem compromisso. Não precisa cadastrar cartão de crédito.",
-    },
-    {
-      question: "Posso cancelar a qualquer momento?",
-      answer: "Sim! Você pode cancelar quando quiser, sem multas ou taxas. Seu acesso continua até o fim do período pago.",
-    },
-    {
-      question: "Os dados estão seguros?",
-      answer: "Absolutamente! Usamos criptografia de ponta e backups diários. Seus dados ficam em servidores seguros na nuvem.",
-    },
-    {
-      question: "Preciso instalar algum programa?",
-      answer: "Não! O Foguete funciona 100% online. Acesse de qualquer navegador, computador, tablet ou celular.",
-    },
-    {
-      question: "Tem limite de agendamentos?",
-      answer: "Não! Todos os planos têm agendamentos ilimitados para você crescer sem preocupações.",
-    },
-    {
-      question: "Como funciona o suporte?",
-      answer: "Oferecemos suporte via email, chat e WhatsApp. Planos Semestral e Anual têm suporte prioritário.",
-    },
-  ];
-
   const guaranteeBadges = [
     { icon: Shield, text: "7 Dias Grátis" },
     { icon: XCircle, text: "Cancele Quando Quiser" },
@@ -132,15 +104,21 @@ const Landing = () => {
           </div>
 
           <nav className="hidden md:flex items-center gap-8">
-            {["home", "features", "testimonials", "pricing", "faq"].map((item) => (
+            {["home", "features", "testimonials", "pricing"].map((item) => (
               <button
                 key={item}
                 onClick={() => scrollToSection(item)}
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-300"
               >
-                {item === "home" ? "Início" : item === "features" ? "Recursos" : item === "testimonials" ? "Depoimentos" : item === "pricing" ? "Preços" : "FAQ"}
+                {item === "home" ? "Início" : item === "features" ? "Recursos" : item === "testimonials" ? "Depoimentos" : "Preços"}
               </button>
             ))}
+            <button
+              onClick={() => navigate("/faq")}
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-300"
+            >
+              FAQ
+            </button>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -166,11 +144,17 @@ const Landing = () => {
         {mobileMenuOpen && (
           <div className="md:hidden border-t glass">
             <nav className="container mx-auto px-4 py-4 flex flex-col gap-3">
-              {["home", "features", "testimonials", "pricing", "faq"].map((item) => (
+              {["home", "features", "testimonials", "pricing"].map((item) => (
                 <button key={item} onClick={() => scrollToSection(item)} className="text-left text-sm font-medium text-muted-foreground hover:text-primary py-2">
-                  {item === "home" ? "Início" : item === "features" ? "Recursos" : item === "testimonials" ? "Depoimentos" : item === "pricing" ? "Preços" : "FAQ"}
+                  {item === "home" ? "Início" : item === "features" ? "Recursos" : item === "testimonials" ? "Depoimentos" : "Preços"}
                 </button>
               ))}
+              <button 
+                onClick={() => { setMobileMenuOpen(false); navigate("/faq"); }} 
+                className="text-left text-sm font-medium text-muted-foreground hover:text-primary py-2"
+              >
+                FAQ
+              </button>
               <Button onClick={() => navigate("/auth?mode=signup")} className="w-full gap-2 bg-primary mt-2">
                 Começe Grátis <ArrowRight className="w-4 h-4" />
               </Button>
@@ -261,43 +245,6 @@ const Landing = () => {
       {/* Pricing */}
       <PricingSection onGetStarted={handleGetStarted} />
 
-      {/* FAQ */}
-      <section id="faq" className="py-24 relative">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-16">
-              <Badge className="px-4 py-2 mb-6 bg-accent/10 text-accent border-accent/30">
-                <MessageCircle className="w-4 h-4 mr-2" />
-                FAQ
-              </Badge>
-              <h2 className="text-4xl md:text-5xl font-extrabold text-foreground mb-4">
-                Perguntas <span className="text-gradient-primary">Frequentes</span>
-              </h2>
-            </div>
-
-            <Accordion type="single" collapsible className="space-y-4">
-              {faqs.map((faq, index) => (
-                <AccordionItem key={index} value={`item-${index}`} className="glass rounded-xl px-6 border-0 shadow-sm">
-                  <AccordionTrigger className="text-left font-semibold text-foreground hover:text-primary py-6">
-                    {faq.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground pb-6">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-
-            <div className="text-center mt-12">
-              <p className="text-muted-foreground mb-4">Ainda tem dúvidas?</p>
-              <Button variant="outline" className="gap-2 h-12 px-6 glass" onClick={() => window.open("https://wa.me/554899075189", "_blank")}>
-                <MessageCircle className="w-4 h-4" />
-                Falar com Suporte
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Final CTA */}
       <section className="py-24 relative overflow-hidden">
@@ -358,7 +305,7 @@ const Landing = () => {
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => scrollToSection("faq")} className="text-muted-foreground hover:text-primary transition-colors">
+                  <button onClick={() => navigate("/faq")} className="text-muted-foreground hover:text-primary transition-colors">
                     FAQ
                   </button>
                 </li>

@@ -37,6 +37,7 @@ import TreinamentoIA from "./pages/TreinamentoIA";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosServico from "./pages/TermosServico";
 import HistoricoAssinaturas from "./pages/HistoricoAssinaturas";
+import FAQ from "./pages/FAQ";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ const App = () => (
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/termos-servico" element={<TermosServico />} />
+                <Route path="/faq" element={<FAQ />} />
                 
                 {/* Página de configurações (fora do guard para permitir renovação) */}
                 <Route path="/configuracoes" element={<Layout><Configuracoes /></Layout>} />
