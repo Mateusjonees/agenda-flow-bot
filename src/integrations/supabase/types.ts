@@ -2085,6 +2085,54 @@ export type Database = {
           },
         ]
       }
+      testimonials: {
+        Row: {
+          business_name: string
+          business_type: string
+          content: string
+          created_at: string
+          highlight: string | null
+          id: string
+          is_approved: boolean
+          is_featured: boolean
+          name: string
+          photo_url: string | null
+          rating: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          business_name: string
+          business_type?: string
+          content: string
+          created_at?: string
+          highlight?: string | null
+          id?: string
+          is_approved?: boolean
+          is_featured?: boolean
+          name: string
+          photo_url?: string | null
+          rating?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          business_name?: string
+          business_type?: string
+          content?: string
+          created_at?: string
+          highlight?: string | null
+          id?: string
+          is_approved?: boolean
+          is_featured?: boolean
+          name?: string
+          photo_url?: string | null
+          rating?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
