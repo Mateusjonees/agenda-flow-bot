@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { calculateAccumulatedNextBillingDate } from "../_shared/platform-subscription-helpers.ts";
+import { calculateAccumulatedNextBillingDate, tryLockPixCharge } from "../_shared/platform-subscription-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,13 +80,23 @@ const handler = async (req: Request): Promise<Response> => {
       if (metadata?.userId && metadata?.planId) {
         console.log("Processing platform subscription payment for user:", metadata.userId);
 
+        // ✅ IDEMPOTÊNCIA: Tentar adquirir lock antes de processar
+        const { locked } = await tryLockPixCharge(supabaseClient, pixCharge.id, "platform");
+        if (!locked) {
+          console.log("⏭️ Pagamento já processado, retornando sucesso");
+          return new Response(
+            JSON.stringify({ success: true, message: "Already processed" }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
         // ✅ Buscar subscription de PLATAFORMA (customer_id e plan_id NULL)
         const { data: existingSub } = await supabaseClient
           .from("subscriptions")
           .select("*")
           .eq("user_id", metadata.userId)
-          .is("customer_id", null)  // ✅ FILTRO: Apenas plataforma
-          .is("plan_id", null)      // ✅ FILTRO: Apenas plataforma
+          .is("customer_id", null)
+          .is("plan_id", null)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -94,23 +104,28 @@ const handler = async (req: Request): Promise<Response> => {
         const startDate = new Date();
         const months = metadata.months || 1;
         
+        // Normalizar months
+        const normalizedMonths = [1, 6, 12].includes(months) ? months : 
+          (months <= 3 ? 1 : months <= 9 ? 6 : 12);
+        
         // ✅ ACUMULAR dias restantes se existir assinatura ativa
         const { nextBillingDate, accumulatedDays } = calculateAccumulatedNextBillingDate(
           startDate,
-          months,
+          normalizedMonths,
           existingSub?.next_billing_date
         );
         
-        console.log(`📅 Next billing date: ${nextBillingDate.toISOString()} (${months} meses${accumulatedDays > 0 ? ` + ${accumulatedDays} dias acumulados` : ''})`);
+        console.log(`📅 Next billing date: ${nextBillingDate.toISOString()} (${normalizedMonths} meses${accumulatedDays > 0 ? ` + ${accumulatedDays} dias acumulados` : ''})`);
 
         if (existingSub) {
-          // Update existing subscription - ✅ NÃO usar plan_id para plataforma
+          // Update existing subscription
           const { error: subUpdateError } = await supabaseClient
             .from("subscriptions")
             .update({
               status: "active",
-              type: "platform",  // ✅ GARANTIR type correto
-              plan_id: null,  // ✅ Assinatura de plataforma usa plan_id=null
+              type: "platform",
+              plan_id: null,
+              customer_id: null,
               billing_frequency: metadata.billingFrequency,
               payment_method: "pix",
               plan_name: metadata.planName,
@@ -118,25 +133,24 @@ const handler = async (req: Request): Promise<Response> => {
               next_billing_date: nextBillingDate.toISOString(),
               last_billing_date: startDate.toISOString(),
               failed_payments_count: 0,
+              updated_at: new Date().toISOString()
             })
             .eq("id", existingSub.id);
 
           if (subUpdateError) {
             console.error("Error updating subscription:", subUpdateError);
-           } else {
-             console.log("Subscription updated successfully");
-             console.log(`✅ Pagamento confirmado para assinatura: ${existingSub.id}${accumulatedDays > 0 ? ` (+${accumulatedDays} dias acumulados)` : ''}`);
-             console.log("Status atualizado para: active");
-             console.log("Método de pagamento: pix");
-           }
-         } else {
-           // Create new subscription - ✅ Assinatura de plataforma
+          } else {
+            console.log("Subscription updated successfully");
+            console.log(`✅ Pagamento confirmado para assinatura: ${existingSub.id}${accumulatedDays > 0 ? ` (+${accumulatedDays} dias acumulados)` : ''}`);
+          }
+        } else {
+          // Create new subscription
           const { error: subCreateError } = await supabaseClient
             .from("subscriptions")
             .insert({
               user_id: metadata.userId,
-              plan_id: null,  // ✅ Assinatura de plataforma usa plan_id=null
-              customer_id: null,  // ✅ Assinatura de plataforma usa customer_id=null
+              plan_id: null,
+              customer_id: null,
               billing_frequency: metadata.billingFrequency,
               payment_method: "pix",
               plan_name: metadata.planName,
@@ -145,26 +159,33 @@ const handler = async (req: Request): Promise<Response> => {
               start_date: startDate.toISOString(),
               next_billing_date: nextBillingDate.toISOString(),
               last_billing_date: startDate.toISOString(),
+              failed_payments_count: 0
             });
 
-           if (subCreateError) {
-             console.error("Error creating subscription:", subCreateError);
-           } else {
-             console.log("Subscription created successfully");
-             console.log("✅ Nova assinatura criada com pagamento confirmado");
-             console.log("Status: active, Método: pix");
-           }
+          if (subCreateError) {
+            console.error("Error creating subscription:", subCreateError);
+          } else {
+            console.log("Subscription created successfully");
+            console.log("✅ Nova assinatura criada com pagamento confirmado");
+          }
         }
 
-        // ✅ NÃO criar transação financeira para assinaturas de PLATAFORMA
-        // Pagamentos à plataforma Foguetinho não devem aparecer como receita do negócio do usuário
-        // Esses pagamentos são para a plataforma, não são receitas do cliente
-        console.log("ℹ️ Assinatura de plataforma processada - NÃO criar transação financeira (pagamento à plataforma)");
+        console.log("ℹ️ Assinatura de plataforma processada - NÃO criar transação financeira");
       }
       
       // Pagamento de assinatura de cliente (Assinaturas da aba Assinaturas)
       else if (metadata?.subscription_id) {
         console.log("Processing customer subscription payment, subscription_id:", metadata.subscription_id);
+
+        // ✅ IDEMPOTÊNCIA: Tentar adquirir lock
+        const { locked } = await tryLockPixCharge(supabaseClient, pixCharge.id, "customer");
+        if (!locked) {
+          console.log("⏭️ Pagamento já processado, retornando sucesso");
+          return new Response(
+            JSON.stringify({ success: true, message: "Already processed" }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
 
         // Get subscription details
         const { data: subscription } = await supabaseClient
@@ -231,12 +252,22 @@ const handler = async (req: Request): Promise<Response> => {
       else if (metadata?.order_id) {
         console.log("Processing WhatsApp order payment, order_id:", metadata.order_id);
 
+        // ✅ IDEMPOTÊNCIA: Tentar adquirir lock
+        const { locked } = await tryLockPixCharge(supabaseClient, pixCharge.id, "order");
+        if (!locked) {
+          console.log("⏭️ Pagamento já processado, retornando sucesso");
+          return new Response(
+            JSON.stringify({ success: true, message: "Already processed" }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
         // Get order details
         const { data: order } = await supabaseClient
           .from("orders")
           .select(`
             *,
-            customers (name)
+            customers (name, phone)
           `)
           .eq("id", metadata.order_id)
           .single();
@@ -247,7 +278,7 @@ const handler = async (req: Request): Promise<Response> => {
             .from("orders")
             .update({
               status: "paid",
-              paid_at: new Date().toISOString(),
+              payment_confirmed_at: new Date().toISOString(),
             })
             .eq("id", metadata.order_id);
 
@@ -268,7 +299,6 @@ const handler = async (req: Request): Promise<Response> => {
             console.log(`📦 Deducting inventory for ${orderItems.length} items...`);
 
             for (const item of orderItems) {
-              // Se tem variant_id, deduzir do variant
               if (item.variant_id) {
                 const { error: variantError } = await supabaseClient.rpc(
                   "decrement_variant_stock",
@@ -281,16 +311,13 @@ const handler = async (req: Request): Promise<Response> => {
                 if (variantError) {
                   console.error(`Error deducting variant stock (${item.variant_id}):`, variantError);
                 } else {
-                  // Marcar como deduzido
                   await supabaseClient
                     .from("order_items")
                     .update({ inventory_deducted: true })
                     .eq("id", item.id);
                   console.log(`✅ Variant stock deducted: ${item.variant_id} (-${item.quantity})`);
                 }
-              }
-              // Senão, deduzir do product
-              else if (item.product_id) {
+              } else if (item.product_id) {
                 const { error: productError } = await supabaseClient.rpc(
                   "decrement_product_stock",
                   {
@@ -302,7 +329,6 @@ const handler = async (req: Request): Promise<Response> => {
                 if (productError) {
                   console.error(`Error deducting product stock (${item.product_id}):`, productError);
                 } else {
-                  // Marcar como deduzido
                   await supabaseClient
                     .from("order_items")
                     .update({ inventory_deducted: true })
@@ -326,15 +352,12 @@ const handler = async (req: Request): Promise<Response> => {
           if (existingCategory) {
             categoryId = existingCategory.id;
           } else {
-            // Create category if it doesn't exist
             const { data: newCategory, error: catError } = await supabaseClient
               .from("financial_categories")
               .insert({
                 user_id: order.user_id,
                 name: "Vendas WhatsApp",
                 type: "income",
-                icon: "shopping-cart",
-                color: "#10B981",
               })
               .select("id")
               .single();
@@ -345,7 +368,7 @@ const handler = async (req: Request): Promise<Response> => {
             }
           }
 
-          // Create financial transaction (verificar duplicação)
+          // Create financial transaction
           const description = `Venda WhatsApp - Pedido #${metadata.order_number || order.order_number} - ${order.customers?.name || 'Cliente'}`;
           const { data: existingTrans } = await supabaseClient
             .from("financial_transactions")

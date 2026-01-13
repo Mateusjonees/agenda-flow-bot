@@ -1029,6 +1029,8 @@ export type Database = {
           last_reminder_at: string | null
           metadata: Json | null
           paid_at: string | null
+          processed_at: string | null
+          processed_for: string | null
           qr_code: string
           qr_code_url: string | null
           reminders_sent: number | null
@@ -1050,6 +1052,8 @@ export type Database = {
           last_reminder_at?: string | null
           metadata?: Json | null
           paid_at?: string | null
+          processed_at?: string | null
+          processed_for?: string | null
           qr_code: string
           qr_code_url?: string | null
           reminders_sent?: number | null
@@ -1071,6 +1075,8 @@ export type Database = {
           last_reminder_at?: string | null
           metadata?: Json | null
           paid_at?: string | null
+          processed_at?: string | null
+          processed_for?: string | null
           qr_code?: string
           qr_code_url?: string | null
           reminders_sent?: number | null
