@@ -1,107 +1,153 @@
-import { PublicNavbar } from "@/components/PublicNavbar";
-import { PublicFooter } from "@/components/PublicFooter";
-import TestimonialsSection from "@/components/landing/TestimonialsSection";
+import { Star, MessageCircle, Users, TrendingUp, Calendar } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, MessageCircle, Star } from "lucide-react";
-import { motion } from "framer-motion";
+import { PublicNavbar } from "@/components/PublicNavbar";
+import { PublicFooter } from "@/components/PublicFooter";
+import { TestimonialsGrid } from "@/components/TestimonialsGrid";
+import { TestimonialForm } from "@/components/TestimonialForm";
+
+const stats = [
+  { icon: Users, value: "500+", label: "Clientes Ativos" },
+  { icon: Star, value: "4.9", label: "Avaliação Média" },
+  { icon: TrendingUp, value: "98%", label: "Satisfação" },
+  { icon: Calendar, value: "10k+", label: "Agendamentos/Mês" },
+];
 
 export default function Depoimentos() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       <PublicNavbar />
       
-      {/* Botão WhatsApp Flutuante */}
+      {/* Floating WhatsApp Button */}
       <a
         href="https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20BA5A] text-white p-4 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110"
+        className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all hover:scale-110"
       >
         <MessageCircle className="w-6 h-6" />
       </a>
 
-      {/* Hero */}
-      <section className="pt-32 pb-16 px-4">
-        <div className="max-w-4xl mx-auto text-center">
+      {/* Hero Section */}
+      <section className="pt-24 pb-12 px-4">
+        <div className="container mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="text-center mb-12"
           >
-            <div className="flex justify-center gap-1 mb-6">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-6 h-6 fill-yellow-400 text-yellow-400" />
-              ))}
+            <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-4 py-2 mb-6">
+              <div className="flex items-center">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className="w-4 h-4 text-yellow-400 fill-yellow-400"
+                  />
+                ))}
+              </div>
+              <span className="text-yellow-400 text-sm font-medium">
+                4.9 de avaliação média
+              </span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+
+            <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
               O que nossos{" "}
-              <span className="bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-500">
                 clientes dizem
               </span>
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Milhares de empreendedores já transformaram seus negócios com o Foguete. 
-              Veja o que eles têm a dizer.
+            <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+              Descubra como o Foguete Gestão está transformando negócios em todo o Brasil. 
+              Histórias reais de sucesso de empreendedores como você.
             </p>
           </motion.div>
-        </div>
-      </section>
 
-      {/* Testimonials */}
-      <TestimonialsSection />
-
-      {/* Stats Section */}
-      <section className="py-16 px-4">
-        <div className="max-w-5xl mx-auto">
+          {/* Stats */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-8"
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12"
           >
-            {[
-              { value: "10K+", label: "Clientes Ativos" },
-              { value: "4.9", label: "Avaliação Média" },
-              { value: "98%", label: "Satisfação" },
-              { value: "500K+", label: "Agendamentos/Mês" },
-            ].map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+            {stats.map((stat, index) => (
+              <div
+                key={index}
+                className="bg-slate-900/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50 text-center"
+              >
+                <stat.icon className="w-6 h-6 text-primary mx-auto mb-2" />
+                <div className="text-2xl md:text-3xl font-bold text-white">
                   {stat.value}
                 </div>
-                <div className="text-muted-foreground text-sm mt-1">{stat.label}</div>
+                <div className="text-xs md:text-sm text-slate-400">
+                  {stat.label}
+                </div>
               </div>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
+      {/* Testimonials Grid */}
+      <section className="py-12 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <TestimonialsGrid />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Testimonial Form Section */}
+      <section className="py-12 px-4">
+        <div className="container mx-auto max-w-2xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="bg-gradient-to-r from-orange-500/10 to-red-600/10 rounded-3xl p-12 border border-orange-500/20"
           >
-            <h2 className="text-3xl font-bold mb-4">
-              Faça parte dessa história
+            <TestimonialForm />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="bg-gradient-to-r from-primary/20 to-orange-500/20 rounded-3xl p-8 md:p-12 border border-primary/30 text-center"
+          >
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+              Pronto para ter sua história de sucesso?
             </h2>
-            <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-              Junte-se a milhares de empreendedores que já estão crescendo com o Foguete.
+            <p className="text-slate-300 mb-8 max-w-xl mx-auto">
+              Junte-se a centenas de empreendedores que já transformaram seus negócios com o Foguete Gestão.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" onClick={() => navigate("/auth")} className="gap-2">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button
+                size="lg"
+                onClick={() => navigate("/auth?mode=signup")}
+                className="bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-semibold px-8"
+              >
                 Começar Agora
-                <ArrowRight className="w-4 h-4" />
               </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate("/recursos")}>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => navigate("/recursos")}
+                className="border-slate-600 text-white hover:bg-slate-800"
+              >
                 Ver Recursos
               </Button>
             </div>
