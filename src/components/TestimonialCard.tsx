@@ -13,14 +13,14 @@ interface TestimonialCardProps {
 }
 
 const businessTypeConfig: Record<string, { icon: React.ElementType; color: string; label: string }> = {
-  salao: { icon: Scissors, color: "text-pink-400", label: "Salão de Beleza" },
-  barbearia: { icon: Scissors, color: "text-blue-400", label: "Barbearia" },
-  clinica: { icon: Heart, color: "text-green-400", label: "Clínica" },
-  spa: { icon: Sparkles, color: "text-purple-400", label: "Spa" },
-  petshop: { icon: PawPrint, color: "text-amber-400", label: "Pet Shop" },
-  academia: { icon: Dumbbell, color: "text-orange-400", label: "Academia" },
-  consultorio: { icon: Clipboard, color: "text-teal-400", label: "Consultório" },
-  outros: { icon: Building2, color: "text-gray-400", label: "Negócio" },
+  salao: { icon: Scissors, color: "text-pink-500 dark:text-pink-400", label: "Salão de Beleza" },
+  barbearia: { icon: Scissors, color: "text-blue-500 dark:text-blue-400", label: "Barbearia" },
+  clinica: { icon: Heart, color: "text-green-500 dark:text-green-400", label: "Clínica" },
+  spa: { icon: Sparkles, color: "text-purple-500 dark:text-purple-400", label: "Spa" },
+  petshop: { icon: PawPrint, color: "text-amber-500 dark:text-amber-400", label: "Pet Shop" },
+  academia: { icon: Dumbbell, color: "text-orange-500 dark:text-orange-400", label: "Academia" },
+  consultorio: { icon: Clipboard, color: "text-teal-500 dark:text-teal-400", label: "Consultório" },
+  outros: { icon: Building2, color: "text-gray-500 dark:text-gray-400", label: "Negócio" },
 };
 
 export function TestimonialCard({
@@ -43,10 +43,10 @@ export function TestimonialCard({
       viewport={{ once: true }}
       whileHover={{ y: -5, scale: 1.02 }}
       transition={{ duration: 0.3 }}
-      className={`relative bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 border transition-all duration-300 h-full flex flex-col ${
+      className={`relative bg-card backdrop-blur-sm rounded-2xl p-6 border transition-all duration-300 h-full flex flex-col shadow-sm ${
         isFeatured 
-          ? "border-primary/50 shadow-lg shadow-primary/20" 
-          : "border-slate-700/50 hover:border-primary/40"
+          ? "border-primary/50 shadow-lg shadow-primary/10" 
+          : "border-border hover:border-primary/40"
       }`}
     >
       {/* Highlight Badge */}
@@ -58,7 +58,7 @@ export function TestimonialCard({
 
       {/* Featured Badge */}
       {isFeatured && (
-        <div className="absolute -top-3 left-4 flex items-center gap-1 bg-primary/20 text-primary text-xs font-medium px-2 py-1 rounded-full border border-primary/30">
+        <div className="absolute -top-3 left-4 flex items-center gap-1 bg-primary/10 text-primary text-xs font-medium px-2 py-1 rounded-full border border-primary/30">
           <Sparkles className="w-3 h-3" />
           Destaque
         </div>
@@ -67,7 +67,7 @@ export function TestimonialCard({
       {/* Author with Photo - FIRST */}
       <div className="flex items-center gap-3 mb-4">
         <div className="relative flex-shrink-0">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/30 to-orange-500/30 flex items-center justify-center text-white font-semibold text-lg overflow-hidden border-2 border-slate-700">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/30 to-orange-500/30 flex items-center justify-center text-foreground font-semibold text-lg overflow-hidden border-2 border-border">
             {photoUrl ? (
               <img src={photoUrl} alt={name} className="w-full h-full object-cover" />
             ) : (
@@ -75,13 +75,13 @@ export function TestimonialCard({
             )}
           </div>
           {/* Business Type Icon Badge */}
-          <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center ${config.color}`}>
+          <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-card border-2 border-border flex items-center justify-center ${config.color}`}>
             <IconComponent className="w-3 h-3" />
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white font-semibold text-sm truncate">{name}</p>
-          <p className="text-slate-400 text-xs truncate">{businessName}</p>
+          <p className="text-foreground font-semibold text-sm truncate">{name}</p>
+          <p className="text-muted-foreground text-xs truncate">{businessName}</p>
           <p className={`text-xs ${config.color}`}>{config.label}</p>
         </div>
       </div>
@@ -92,14 +92,14 @@ export function TestimonialCard({
           <Star
             key={i}
             className={`w-4 h-4 ${
-              i < rating ? "text-yellow-400 fill-yellow-400" : "text-slate-600"
+              i < rating ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/30"
             }`}
           />
         ))}
       </div>
 
       {/* Content */}
-      <blockquote className="text-slate-300 text-sm leading-relaxed flex-grow">
+      <blockquote className="text-muted-foreground text-sm leading-relaxed flex-grow">
         <span className="text-primary text-2xl leading-none">"</span>
         {content}
         <span className="text-primary text-2xl leading-none">"</span>

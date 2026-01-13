@@ -2054,143 +2054,122 @@ const Agendamentos = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Menu mobile para agendamentos */}
+      {/* Menu mobile para agendamentos - Simplificado */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="bottom" className="rounded-t-3xl pb-8">
-          {/* Header com gradiente baseado no status */}
-          <div className={cn(
-            "absolute top-0 left-0 right-0 h-24 rounded-t-3xl",
-            mobileSelectedAppointment?.status === "completed" 
-              ? "bg-gradient-to-br from-green-500/20 to-green-600/10"
-              : mobileSelectedAppointment?.status === "cancelled"
-              ? "bg-gradient-to-br from-red-500/20 to-red-600/10"
-              : "bg-gradient-to-br from-primary/20 to-primary/5"
-          )} />
-          
-          <div className="relative z-10">
-            <SheetHeader className="text-left pb-2">
-              {/* Badge de Status */}
-              <div className="flex items-center gap-2 mb-2">
+        <SheetContent side="bottom" className="rounded-t-2xl p-4 pb-6">
+          {mobileSelectedAppointment && (
+            <div className="space-y-4">
+              {/* Linha principal com info essencial */}
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 text-center">
+                  <div className="text-lg font-bold text-foreground">
+                    {format(parseISO(mobileSelectedAppointment.start_time), "HH:mm")}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(parseISO(mobileSelectedAppointment.end_time), "HH:mm")}
+                  </div>
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-foreground truncate">
+                    {mobileSelectedAppointment.title}
+                  </h3>
+                  {mobileSelectedAppointment.customers?.name && (
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
+                      <User className="w-3.5 h-3.5" />
+                      <span className="truncate">{mobileSelectedAppointment.customers.name}</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {format(parseISO(mobileSelectedAppointment.start_time), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                  </p>
+                </div>
+                
                 <Badge 
-                  variant={mobileSelectedAppointment?.status === "completed" ? "default" : "secondary"}
                   className={cn(
-                    "text-xs font-medium",
-                    mobileSelectedAppointment?.status === "completed" && "bg-green-500 hover:bg-green-600",
-                    mobileSelectedAppointment?.status === "cancelled" && "bg-red-500 hover:bg-red-600 text-white"
+                    "flex-shrink-0",
+                    mobileSelectedAppointment.status === "completed" && "bg-green-500 hover:bg-green-600",
+                    mobileSelectedAppointment.status === "cancelled" && "bg-red-500 hover:bg-red-600",
+                    mobileSelectedAppointment.status === "scheduled" && "bg-blue-500 hover:bg-blue-600"
                   )}
                 >
-                  {mobileSelectedAppointment?.status === "completed" ? "✓ Concluído" 
-                    : mobileSelectedAppointment?.status === "cancelled" ? "✕ Cancelado" 
-                    : "📅 Agendado"}
+                  {mobileSelectedAppointment.status === "completed" ? "Concluído" 
+                    : mobileSelectedAppointment.status === "cancelled" ? "Cancelado" 
+                    : "Agendado"}
                 </Badge>
               </div>
-              <SheetTitle className="text-xl font-bold">
-                {mobileSelectedAppointment?.title}
-              </SheetTitle>
-            </SheetHeader>
-            
-            {/* Cards de Informação */}
-            <div className="mt-6 space-y-3">
-              {mobileSelectedAppointment?.customers?.name && (
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 border border-border/50">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Cliente</p>
-                    <p className="font-semibold text-foreground">{mobileSelectedAppointment.customers.name}</p>
-                  </div>
-                </div>
-              )}
               
-              {mobileSelectedAppointment && (
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 border border-border/50">
-                  <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-orange-500" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Data e Horário</p>
-                    <p className="font-semibold text-foreground">
-                      {format(parseISO(mobileSelectedAppointment.start_time), "dd 'de' MMMM, yyyy", { locale: ptBR })}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {format(parseISO(mobileSelectedAppointment.start_time), "HH:mm")} - {format(parseISO(mobileSelectedAppointment.end_time), "HH:mm")}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {mobileSelectedAppointment?.description && (
-                <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 border border-border/50">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Descrição</p>
-                    <p className="text-sm text-foreground">{mobileSelectedAppointment.description}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Separador */}
-            <div className="my-6 border-t border-border/50" />
-            
-            {/* Botões de Ação */}
-            <div className="flex flex-col gap-3">
-              {mobileSelectedAppointment?.status !== "completed" && (
-                <Button
-                  className="w-full justify-center gap-2 h-12 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl shadow-lg shadow-green-500/20"
-                  onClick={() => {
-                    if (mobileSelectedAppointment) {
+              {/* Botões de ação - grid horizontal */}
+              <div className="grid grid-cols-2 gap-2">
+                {mobileSelectedAppointment.status !== "completed" && (
+                  <Button
+                    size="sm"
+                    className="h-10 bg-green-600 hover:bg-green-700 text-white gap-1.5"
+                    onClick={() => {
                       setSelectedAppointment({ 
                         id: mobileSelectedAppointment.id, 
                         title: mobileSelectedAppointment.title 
                       });
                       setFinishDialogOpen(true);
                       setMobileMenuOpen(false);
-                    }
-                  }}
-                  disabled={isReadOnly}
-                >
-                  <CheckCircle className="w-5 h-5" />
-                  Finalizar Agendamento
-                </Button>
-              )}
-              
-              <Button
-                variant="outline"
-                className="w-full justify-center gap-2 h-12 rounded-xl font-medium"
-                onClick={() => {
-                  if (mobileSelectedAppointment) {
+                    }}
+                    disabled={isReadOnly}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Finalizar
+                  </Button>
+                )}
+                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-10 gap-1.5"
+                  onClick={() => {
                     setEditAppointmentId(mobileSelectedAppointment.id);
                     setEditDialogOpen(true);
                     setMobileMenuOpen(false);
-                  }
-                }}
-                disabled={isReadOnly}
-              >
-                <Pencil className="w-4 h-4" />
-                Editar Agendamento
-              </Button>
-              
-              <Button
-                variant="ghost"
-                className="w-full justify-center gap-2 h-10 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl font-medium"
-                onClick={() => {
-                  if (mobileSelectedAppointment) {
+                  }}
+                  disabled={isReadOnly}
+                >
+                  <Pencil className="w-4 h-4" />
+                  Editar
+                </Button>
+                
+                {mobileSelectedAppointment.status !== "cancelled" && mobileSelectedAppointment.status !== "completed" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-10 gap-1.5 text-orange-600 border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950/30"
+                    onClick={() => {
+                      // Cancelar via mutation se necessário - por ora abre edição
+                      setEditAppointmentId(mobileSelectedAppointment.id);
+                      setEditDialogOpen(true);
+                      setMobileMenuOpen(false);
+                    }}
+                    disabled={isReadOnly}
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Cancelar
+                  </Button>
+                )}
+                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-10 gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={() => {
                     setDeleteAppointmentId(mobileSelectedAppointment.id);
                     setDeleteDialogOpen(true);
                     setMobileMenuOpen(false);
-                  }
-                }}
-                disabled={isReadOnly}
-              >
-                <Trash2 className="w-4 h-4" />
-                Excluir Agendamento
-              </Button>
+                  }}
+                  disabled={isReadOnly}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Excluir
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </SheetContent>
       </Sheet>
       
