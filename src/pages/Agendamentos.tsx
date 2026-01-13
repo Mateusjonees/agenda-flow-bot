@@ -493,6 +493,15 @@ const Agendamentos = () => {
     setCurrentDate(new Date());
   };
 
+  // Handler para clicar em um horário e abrir o modal de agendamento
+  const handleSlotClick = (clickedDate: Date, hour: number) => {
+    const formattedDate = format(clickedDate, "yyyy-MM-dd");
+    const formattedTime = `${String(hour).padStart(2, "0")}:00`;
+    setDate(formattedDate);
+    setTime(formattedTime);
+    setOpen(true);
+  };
+
   const getDateRangeText = () => {
     if (viewType === "day") {
       return format(currentDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
@@ -611,6 +620,7 @@ const Agendamentos = () => {
                 id={`day-${format(currentDate, 'yyyy-MM-dd')}-${hour}`}
                 date={currentDate}
                 hour={hour}
+                onClick={handleSlotClick}
                 className={cn(
                   "flex items-start p-2 sm:p-4 transition-colors min-h-[70px] sm:min-h-[90px] relative",
                   isWithinBusinessHours ? "hover:bg-muted/50" : "bg-muted/30"
@@ -1112,6 +1122,7 @@ const Agendamentos = () => {
                     id={`week-${format(day, 'yyyy-MM-dd')}-${hour}`}
                     date={day}
                     hour={hour}
+                    onClick={handleSlotClick}
                     className={cn(
                       "p-0.5 border-l transition-colors h-[100px] overflow-hidden",
                       isWithinBusinessHours ? "hover:bg-accent/5" : "bg-muted/30",
@@ -1259,6 +1270,7 @@ const Agendamentos = () => {
                 id={`month-${format(day, 'yyyy-MM-dd')}-8`}
                 date={day}
                 hour={8}
+                onClick={handleSlotClick}
                 className={cn(
                   "min-h-[110px] sm:min-h-[140px] p-2 border-b border-l first:border-l-0",
                   "relative group transition-colors",
