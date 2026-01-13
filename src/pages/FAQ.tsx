@@ -57,12 +57,44 @@ const FAQ = () => {
       {/* Header */}
       <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Voltar
-          </Button>
-          <h1 className="text-lg font-semibold">Perguntas Frequentes</h1>
-          <div className="w-24" />
+          <div className="flex items-center gap-3">
+            <img src={foguetinho} alt="Foguete" className="h-8 w-auto dark:hidden" />
+            <img src={logoAntigo} alt="Foguete" className="h-8 w-auto hidden dark:block" />
+            <span className="text-lg font-bold text-foreground hidden sm:inline">Foguete</span>
+          </div>
+          
+          <nav className="flex items-center gap-1 sm:gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate("/")} 
+              className="text-sm"
+            >
+              Início
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate("/pricing")} 
+              className="text-sm"
+            >
+              Preços
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="text-sm text-primary font-medium"
+            >
+              FAQ
+            </Button>
+            <Button 
+              onClick={() => navigate("/auth")} 
+              size="sm"
+              className="ml-2"
+            >
+              Entrar
+            </Button>
+          </nav>
         </div>
       </header>
 
