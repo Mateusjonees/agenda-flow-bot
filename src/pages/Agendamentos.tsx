@@ -1090,7 +1090,7 @@ const Agendamentos = () => {
               className="grid"
               style={{ gridTemplateColumns: `50px repeat(${activeDays.length}, 1fr)` }}
             >
-              <div className="p-2 text-xs text-muted-foreground border-r font-semibold bg-muted/20 min-h-[120px] flex items-start justify-center">
+              <div className="p-2 text-xs text-muted-foreground border-r font-semibold bg-muted/20 h-[120px] flex items-start justify-center">
                 {String(hour).padStart(2, "0")}:00
               </div>
               {activeDays.map((day) => {
@@ -1130,7 +1130,7 @@ const Agendamentos = () => {
                     hour={hour}
                     onClick={handleSlotClick}
                     className={cn(
-                      "p-1 border-l transition-colors min-h-[120px] overflow-hidden",
+                      "p-1 border-l transition-colors h-[120px] overflow-hidden",
                       isWithinBusinessHours ? "hover:bg-accent/5" : "bg-muted/30",
                       isCurrentDay && isWithinBusinessHours && "bg-primary/5"
                     )}
