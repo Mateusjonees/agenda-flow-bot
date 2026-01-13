@@ -122,26 +122,37 @@ export function TestimonialForm() {
         photoUrl = await uploadPhoto();
       }
 
-      const { error } = await supabase.from("testimonials").insert({
-        user_id: null, // Depoimento anônimo (sem login necessário)
-        name: formData.name,
-        business_name: formData.businessName,
-        business_type: formData.businessType,
-        content: formData.content,
-        rating,
-        highlight: formData.highlight || null,
-        photo_url: photoUrl,
-        is_approved: false,
-        is_featured: false,
-      });
+      // Usar Edge Function para publicação automática com anti-spam
+      const response = await fetch(
+        "https://pnwelorcrncqltqiyxwx.supabase.co/functions/v1/submit-testimonial",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            business_name: formData.businessName,
+            business_type: formData.businessType,
+            content: formData.content,
+            rating,
+            highlight: formData.highlight || null,
+            photo_url: photoUrl,
+          }),
+        }
+      );
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Erro ao enviar depoimento");
+      }
 
       setIsSubmitted(true);
-      toast.success("Depoimento enviado com sucesso! Será publicado após revisão.");
+      toast.success(result.message || "Depoimento publicado com sucesso!");
     } catch (error: any) {
       console.error("Erro ao enviar depoimento:", error);
-      toast.error("Erro ao enviar depoimento. Tente novamente.");
+      toast.error(error.message || "Erro ao enviar depoimento. Tente novamente.");
     } finally {
       setIsSubmitting(false);
     }
@@ -169,7 +180,7 @@ export function TestimonialForm() {
           Obrigado pelo seu depoimento!
         </h3>
         <p className="text-muted-foreground mb-4">
-          Seu depoimento foi enviado e será publicado após nossa revisão.
+          Seu depoimento foi publicado e já está visível no site!
         </p>
         <Button variant="outline" onClick={resetForm}>
           Enviar outro depoimento

@@ -2095,6 +2095,7 @@ export type Database = {
           id: string
           is_approved: boolean
           is_featured: boolean
+          is_hidden: boolean | null
           name: string
           photo_url: string | null
           rating: number
@@ -2110,6 +2111,7 @@ export type Database = {
           id?: string
           is_approved?: boolean
           is_featured?: boolean
+          is_hidden?: boolean | null
           name: string
           photo_url?: string | null
           rating?: number
@@ -2125,6 +2127,7 @@ export type Database = {
           id?: string
           is_approved?: boolean
           is_featured?: boolean
+          is_hidden?: boolean | null
           name?: string
           photo_url?: string | null
           rating?: number
