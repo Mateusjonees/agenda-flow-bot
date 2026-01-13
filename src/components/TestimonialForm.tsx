@@ -1,7 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Star, Send, Loader2, CheckCircle } from "lucide-react";
+import { Star, Send, Loader2, CheckCircle, Upload, X, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,13 +13,13 @@ const businessTypes = [
   { value: "salao", label: "Salão de Beleza" },
   { value: "barbearia", label: "Barbearia" },
   { value: "clinica", label: "Clínica" },
-  { value: "academia", label: "Academia" },
+  { value: "spa", label: "Spa" },
+  { value: "petshop", label: "Pet Shop" },
   { value: "consultorio", label: "Consultório" },
   { value: "outros", label: "Outros" },
 ];
 
 export function TestimonialForm() {
-  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [rating, setRating] = useState(5);
@@ -32,6 +31,73 @@ export function TestimonialForm() {
     content: "",
     highlight: "",
   });
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor, selecione apenas imagens (JPG, PNG, etc.)");
+      return;
+    }
+
+    // Validar tamanho (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("A imagem deve ter no máximo 2MB");
+      return;
+    }
+
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPhotoPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const uploadPhoto = async (): Promise<string | null> => {
+    if (!photoFile) return null;
+
+    setIsUploadingPhoto(true);
+    try {
+      const fileExt = photoFile.name.split(".").pop();
+      const fileName = `testimonials/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(fileName, photoFile);
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        toast.error("Erro ao fazer upload da foto");
+        return null;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error("Upload error:", error);
+      return null;
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,25 +113,24 @@ export function TestimonialForm() {
       return;
     }
 
-    // Verificar autenticação
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error("Você precisa estar logado para enviar um depoimento");
-      navigate("/auth?mode=login&redirect=/depoimentos");
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
+      // Upload da foto se existir
+      let photoUrl: string | null = null;
+      if (photoFile) {
+        photoUrl = await uploadPhoto();
+      }
+
       const { error } = await supabase.from("testimonials").insert({
-        user_id: user.id,
+        user_id: null, // Depoimento anônimo (sem login necessário)
         name: formData.name,
         business_name: formData.businessName,
         business_type: formData.businessType,
         content: formData.content,
         rating,
         highlight: formData.highlight || null,
+        photo_url: photoUrl,
         is_approved: false,
         is_featured: false,
       });
@@ -80,6 +145,14 @@ export function TestimonialForm() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const resetForm = () => {
+    setIsSubmitted(false);
+    setFormData({ name: "", businessName: "", businessType: "", content: "", highlight: "" });
+    setRating(5);
+    setPhotoFile(null);
+    setPhotoPreview(null);
   };
 
   if (isSubmitted) {
@@ -98,14 +171,7 @@ export function TestimonialForm() {
         <p className="text-slate-400 mb-4">
           Seu depoimento foi enviado e será publicado após nossa revisão.
         </p>
-        <Button
-          variant="outline"
-          onClick={() => {
-            setIsSubmitted(false);
-            setFormData({ name: "", businessName: "", businessType: "", content: "", highlight: "" });
-            setRating(5);
-          }}
-        >
+        <Button variant="outline" onClick={resetForm}>
           Enviar outro depoimento
         </Button>
       </motion.div>
@@ -129,6 +195,58 @@ export function TestimonialForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Foto/Logo Upload */}
+        <div className="space-y-2">
+          <Label className="text-white">Sua Foto ou Logo (opcional)</Label>
+          <div className="flex items-center gap-4">
+            {photoPreview ? (
+              <div className="relative">
+                <img
+                  src={photoPreview}
+                  alt="Preview"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-primary/30"
+                />
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="w-16 h-16 rounded-full border-2 border-dashed border-slate-600 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-slate-800/50 transition-all"
+              >
+                <Image className="w-5 h-5 text-slate-500" />
+              </div>
+            )}
+            <div className="flex-1">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoSelect}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="gap-2 bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
+              >
+                <Upload className="w-4 h-4" />
+                {photoPreview ? "Trocar foto" : "Escolher foto"}
+              </Button>
+              <p className="text-xs text-slate-500 mt-1">
+                JPG, PNG. Máximo 2MB
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="name" className="text-white">
@@ -238,13 +356,13 @@ export function TestimonialForm() {
 
         <Button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isUploadingPhoto}
           className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white font-semibold"
         >
-          {isSubmitting ? (
+          {isSubmitting || isUploadingPhoto ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Enviando...
+              {isUploadingPhoto ? "Enviando foto..." : "Enviando..."}
             </>
           ) : (
             <>
@@ -253,6 +371,10 @@ export function TestimonialForm() {
             </>
           )}
         </Button>
+
+        <p className="text-xs text-center text-slate-500">
+          Não é necessário criar conta. Seu depoimento será publicado após aprovação.
+        </p>
       </form>
     </motion.div>
   );

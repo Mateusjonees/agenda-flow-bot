@@ -1,4 +1,4 @@
-import { Star, Scissors, Heart, Dumbbell, Clipboard, Building2, Sparkles } from "lucide-react";
+import { Star, Scissors, Heart, Dumbbell, Clipboard, Building2, Sparkles, PawPrint } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface TestimonialCardProps {
@@ -16,8 +16,10 @@ const businessTypeConfig: Record<string, { icon: React.ElementType; color: strin
   salao: { icon: Scissors, color: "text-pink-400", label: "Salão de Beleza" },
   barbearia: { icon: Scissors, color: "text-blue-400", label: "Barbearia" },
   clinica: { icon: Heart, color: "text-green-400", label: "Clínica" },
+  spa: { icon: Sparkles, color: "text-purple-400", label: "Spa" },
+  petshop: { icon: PawPrint, color: "text-amber-400", label: "Pet Shop" },
   academia: { icon: Dumbbell, color: "text-orange-400", label: "Academia" },
-  consultorio: { icon: Clipboard, color: "text-purple-400", label: "Consultório" },
+  consultorio: { icon: Clipboard, color: "text-teal-400", label: "Consultório" },
   outros: { icon: Building2, color: "text-gray-400", label: "Negócio" },
 };
 
@@ -62,44 +64,46 @@ export function TestimonialCard({
         </div>
       )}
 
-      {/* Icon & Rating */}
-      <div className="flex items-center justify-between mb-4">
-        <div className={`w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center ${config.color}`}>
-          <IconComponent className="w-6 h-6" />
+      {/* Author with Photo - FIRST */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="relative flex-shrink-0">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/30 to-orange-500/30 flex items-center justify-center text-white font-semibold text-lg overflow-hidden border-2 border-slate-700">
+            {photoUrl ? (
+              <img src={photoUrl} alt={name} className="w-full h-full object-cover" />
+            ) : (
+              name.charAt(0).toUpperCase()
+            )}
+          </div>
+          {/* Business Type Icon Badge */}
+          <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center ${config.color}`}>
+            <IconComponent className="w-3 h-3" />
+          </div>
         </div>
-        <div className="flex items-center gap-0.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star
-              key={i}
-              className={`w-4 h-4 ${
-                i < rating ? "text-yellow-400 fill-yellow-400" : "text-slate-600"
-              }`}
-            />
-          ))}
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-semibold text-sm truncate">{name}</p>
+          <p className="text-slate-400 text-xs truncate">{businessName}</p>
+          <p className={`text-xs ${config.color}`}>{config.label}</p>
         </div>
       </div>
 
+      {/* Rating */}
+      <div className="flex items-center gap-0.5 mb-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star
+            key={i}
+            className={`w-4 h-4 ${
+              i < rating ? "text-yellow-400 fill-yellow-400" : "text-slate-600"
+            }`}
+          />
+        ))}
+      </div>
+
       {/* Content */}
-      <blockquote className="text-slate-300 text-sm leading-relaxed mb-4 flex-grow">
+      <blockquote className="text-slate-300 text-sm leading-relaxed flex-grow">
         <span className="text-primary text-2xl leading-none">"</span>
         {content}
         <span className="text-primary text-2xl leading-none">"</span>
       </blockquote>
-
-      {/* Author */}
-      <div className="flex items-center gap-3 pt-4 border-t border-slate-700/50">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-orange-500/30 flex items-center justify-center text-white font-semibold text-sm overflow-hidden">
-          {photoUrl ? (
-            <img src={photoUrl} alt={name} className="w-full h-full object-cover" />
-          ) : (
-            name.charAt(0).toUpperCase()
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-white font-medium text-sm truncate">{name}</p>
-          <p className="text-slate-400 text-xs truncate">{businessName}</p>
-        </div>
-      </div>
     </motion.div>
   );
 }
