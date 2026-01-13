@@ -1957,55 +1957,57 @@ const Agendamentos = () => {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-              <CardTitle className="text-xl sm:text-2xl">Visualização</CardTitle>
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")}>
-                <TabsList className="h-9 grid grid-cols-2 w-full sm:w-auto">
-                  <TabsTrigger value="list" className="text-xs sm:text-sm gap-1.5">
-                    <List className="w-3 h-3" />
-                    Lista
-                  </TabsTrigger>
-                  <TabsTrigger value="calendar" className="text-xs sm:text-sm gap-1.5">
-                    <CalendarDays className="w-3 h-3" />
-                    Calendário
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-              {viewMode === "calendar" && (
-                <Tabs value={viewType} onValueChange={(v) => setViewType(v as "day" | "week" | "month")}>
-                  <TabsList className="h-9 grid grid-cols-3 w-full sm:w-auto">
-                    <TabsTrigger value="day" className="text-xs sm:text-sm">Dia</TabsTrigger>
-                    <TabsTrigger value="week" className="text-xs sm:text-sm">Semana</TabsTrigger>
-                    <TabsTrigger value="month" className="text-xs sm:text-sm">Mês</TabsTrigger>
+          <div className="flex flex-col gap-4">
+            {/* Linha 1: Título e controles de visualização */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <CardTitle className="text-xl sm:text-2xl shrink-0">Visualização</CardTitle>
+                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")}>
+                  <TabsList className="h-9">
+                    <TabsTrigger value="list" className="text-xs sm:text-sm gap-1.5">
+                      <List className="w-3 h-3" />
+                      Lista
+                    </TabsTrigger>
+                    <TabsTrigger value="calendar" className="text-xs sm:text-sm gap-1.5">
+                      <CalendarDays className="w-3 h-3" />
+                      Calendário
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
+                {viewMode === "calendar" && (
+                  <Tabs value={viewType} onValueChange={(v) => setViewType(v as "day" | "week" | "month")}>
+                    <TabsList className="h-9">
+                      <TabsTrigger value="day" className="text-xs sm:text-sm">Dia</TabsTrigger>
+                      <TabsTrigger value="week" className="text-xs sm:text-sm">Semana</TabsTrigger>
+                      <TabsTrigger value="month" className="text-xs sm:text-sm">Mês</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                )}
+              </div>
+              
+              {viewMode === "calendar" && (
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleToday} className="gap-1 sm:gap-2 h-9 px-2 sm:px-3">
+                    <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="text-xs sm:text-sm">Hoje</span>
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" onClick={handlePrevious} className="h-9 w-9">
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={handleNext} className="h-9 w-9">
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               )}
             </div>
             
+            {/* Linha 2: Data atual */}
             {viewMode === "calendar" && (
-              <div className="flex items-center gap-2 justify-between sm:justify-start">
-                <Button variant="outline" size="sm" onClick={handleToday} className="gap-1 sm:gap-2 h-9 px-2 sm:px-3">
-                  <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="text-xs sm:text-sm">Hoje</span>
-                </Button>
-                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" onClick={handlePrevious} className="h-9 w-9">
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={handleNext} className="h-9 w-9">
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold capitalize text-center">{getDateRangeText()}</h3>
             )}
           </div>
-          
-          {viewMode === "calendar" && (
-            <div className="flex items-center justify-center pt-2">
-              <h3 className="text-lg sm:text-xl md:text-2xl font-bold capitalize text-center">{getDateRangeText()}</h3>
-            </div>
-          )}
         </CardHeader>
         <CardContent>
           {isLoading ? (
