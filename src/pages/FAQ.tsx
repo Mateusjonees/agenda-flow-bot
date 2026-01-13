@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, MessageCircle, Sparkles, HeadphonesIcon, Clock, Shield, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import foguetinho from "@/assets/foguetinho.png";
+import logoAntigo from "@/assets/logo.png";
 
 const FAQ = () => {
   const navigate = useNavigate();
@@ -51,7 +53,7 @@ const FAQ = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -65,7 +67,7 @@ const FAQ = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-4 py-12 flex-1">
         <div className="max-w-3xl mx-auto">
           {/* Header Section */}
           <div className="text-center mb-12">
@@ -115,6 +117,110 @@ const FAQ = () => {
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t bg-card/80 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16">
+            {/* Logo e Descrição */}
+            <div className="sm:col-span-2 lg:col-span-1">
+              <div className="flex items-center gap-3 mb-4">
+                <img src={foguetinho} alt="Foguete" className="h-12 w-auto dark:hidden" />
+                <img src={logoAntigo} alt="Foguete" className="h-12 w-auto hidden dark:block" />
+                <span className="text-xl font-bold text-foreground">Foguete</span>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Sistema completo de gestão empresarial para salões, clínicas, barbearias e prestadores de serviço.
+              </p>
+            </div>
+
+            {/* Produto */}
+            <div>
+              <h3 className="font-bold text-foreground mb-5 text-base">Produto</h3>
+              <ul className="space-y-3 text-sm">
+                <li>
+                  <button onClick={() => navigate("/")} className="text-muted-foreground hover:text-primary transition-colors">
+                    Início
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => navigate("/pricing")} className="text-muted-foreground hover:text-primary transition-colors">
+                    Preços
+                  </button>
+                </li>
+                <li>
+                  <span className="text-primary font-medium">FAQ</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contato */}
+            <div>
+              <h3 className="font-bold text-foreground mb-5 text-base">Contato</h3>
+              <ul className="space-y-3 text-sm">
+                <li>
+                  <a 
+                    href="https://wa.me/5548988430812" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
+                  >
+                    <MessageCircle className="w-4 h-4 text-primary" />
+                    Vendas: (48) 98843-0812
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="https://wa.me/554899075189" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
+                  >
+                    <HeadphonesIcon className="w-4 h-4 text-primary" />
+                    Suporte: (48) 99075-1889
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Horário */}
+            <div>
+              <h3 className="font-bold text-foreground mb-5 text-base">Horário</h3>
+              <ul className="space-y-3 text-sm">
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="w-4 h-4 text-primary flex-shrink-0" />
+                  Seg - Sex: 9h às 18h
+                </li>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Shield className="w-4 h-4 text-primary flex-shrink-0" />
+                  Suporte 24/7 via WhatsApp
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Divisor e Copyright */}
+          <div className="border-t mt-12 pt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-muted-foreground text-center sm:text-left">
+                © 2025 Foguete Gestão Empresarial. Todos os direitos reservados.
+              </p>
+              <div className="flex items-center gap-6 text-sm">
+                <a href="/politica-privacidade" className="text-muted-foreground hover:text-primary transition-colors">
+                  Privacidade
+                </a>
+                <a href="/termos-servico" className="text-muted-foreground hover:text-primary transition-colors">
+                  Termos
+                </a>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Lock className="w-4 h-4 text-primary" />
+                  LGPD
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
