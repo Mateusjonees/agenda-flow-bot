@@ -7,19 +7,13 @@ import {
   ArrowRight,
   Sparkles,
   Shield,
-  Clock,
-  HeadphonesIcon,
   Lock,
+  HeadphonesIcon,
   MessageCircle,
-  Menu,
-  X,
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import foguetinho from "@/assets/foguetinho.png";
-import logoAntigo from "@/assets/logo.png";
 import { Badge } from "@/components/ui/badge";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
 // Componentes da Landing
@@ -29,11 +23,12 @@ import HowItWorks from "@/components/landing/HowItWorks";
 import FeatureGrid from "@/components/landing/FeatureGrid";
 import PricingSection from "@/components/landing/PricingSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
+import { PublicNavbar } from "@/components/PublicNavbar";
+import { PublicFooter } from "@/components/PublicFooter";
 
 const Landing = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { trackViewContent, trackLead, trackContact } = useFacebookPixel();
 
   useEffect(() => {
@@ -64,16 +59,6 @@ const Landing = () => {
     }
   };
 
-  const handleContactWhatsApp = () => {
-    trackContact('whatsapp');
-    window.open("https://wa.me/554899075189", "_blank");
-  };
-
-  const scrollToSection = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-    setMobileMenuOpen(false);
-  };
-
   const guaranteeBadges = [
     { icon: Shield, text: "7 Dias Grátis" },
     { icon: XCircle, text: "Cancele Quando Quiser" },
@@ -96,72 +81,7 @@ const Landing = () => {
       </button>
 
       {/* Header */}
-      <header className="border-b glass-strong fixed top-0 left-0 right-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img alt="Foguete" className="h-14 w-auto dark:hidden" src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png" />
-            <img src={logoAntigo} alt="Foguete" className="h-14 w-auto hidden dark:block" />
-          </div>
-
-          <nav className="hidden md:flex items-center gap-8">
-            {["home", "features", "testimonials", "pricing"].map((item) => (
-              <button
-                key={item}
-                onClick={() => scrollToSection(item)}
-                className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-300"
-              >
-                {item === "home" ? "Início" : item === "features" ? "Recursos" : item === "testimonials" ? "Depoimentos" : "Preços"}
-              </button>
-            ))}
-            <button
-              onClick={() => navigate("/faq")}
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-300"
-            >
-              FAQ
-            </button>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            {!isAuthenticated ? (
-              <>
-                <Button onClick={() => navigate("/auth")} variant="ghost" className="hidden md:flex">Entrar</Button>
-                <Button onClick={() => navigate("/auth?mode=signup")} className="hidden md:flex gap-2 bg-primary shadow-lg">
-                  Começe Grátis <ArrowRight className="w-4 h-4" />
-                </Button>
-              </>
-            ) : (
-              <Button onClick={() => navigate("/dashboard")} className="hidden md:flex gap-2 shadow-lg">
-                Ir para Dashboard <ArrowRight className="w-4 h-4" />
-              </Button>
-            )}
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-          </div>
-        </div>
-
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t glass">
-            <nav className="container mx-auto px-4 py-4 flex flex-col gap-3">
-              {["home", "features", "testimonials", "pricing"].map((item) => (
-                <button key={item} onClick={() => scrollToSection(item)} className="text-left text-sm font-medium text-muted-foreground hover:text-primary py-2">
-                  {item === "home" ? "Início" : item === "features" ? "Recursos" : item === "testimonials" ? "Depoimentos" : "Preços"}
-                </button>
-              ))}
-              <button 
-                onClick={() => { setMobileMenuOpen(false); navigate("/faq"); }} 
-                className="text-left text-sm font-medium text-muted-foreground hover:text-primary py-2"
-              >
-                FAQ
-              </button>
-              <Button onClick={() => navigate("/auth?mode=signup")} className="w-full gap-2 bg-primary mt-2">
-                Começe Grátis <ArrowRight className="w-4 h-4" />
-              </Button>
-            </nav>
-          </div>
-        )}
-      </header>
+      <PublicNavbar />
 
       {/* Spacer for fixed header */}
       <div className="h-16" />
@@ -237,14 +157,19 @@ const Landing = () => {
       <HowItWorks />
 
       {/* Features Grid */}
-      <FeatureGrid />
+      <section id="features">
+        <FeatureGrid />
+      </section>
 
       {/* Testimonials */}
-      <TestimonialsSection />
+      <section id="testimonials">
+        <TestimonialsSection />
+      </section>
 
       {/* Pricing */}
-      <PricingSection onGetStarted={handleGetStarted} />
-
+      <section id="pricing">
+        <PricingSection onGetStarted={handleGetStarted} />
+      </section>
 
       {/* Final CTA */}
       <section className="py-24 relative overflow-hidden">
@@ -270,115 +195,7 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-card/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-16">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16">
-            {/* Logo e Descrição */}
-            <div className="sm:col-span-2 lg:col-span-1">
-              <div className="flex items-center gap-3 mb-4">
-                <img src={foguetinho} alt="Foguete" className="h-12 w-auto dark:hidden" />
-                <img src={logoAntigo} alt="Foguete" className="h-12 w-auto hidden dark:block" />
-                <span className="text-xl font-bold text-foreground">Foguete</span>
-              </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Sistema completo de gestão empresarial para salões, clínicas, barbearias e prestadores de serviço.
-              </p>
-            </div>
-
-            {/* Produto */}
-            <div>
-              <h3 className="font-bold text-foreground mb-5 text-base">Produto</h3>
-              <ul className="space-y-3 text-sm">
-                <li>
-                  <button onClick={() => scrollToSection("features")} className="text-muted-foreground hover:text-primary transition-colors">
-                    Funcionalidades
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection("pricing")} className="text-muted-foreground hover:text-primary transition-colors">
-                    Preços
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection("testimonials")} className="text-muted-foreground hover:text-primary transition-colors">
-                    Depoimentos
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => navigate("/faq")} className="text-muted-foreground hover:text-primary transition-colors">
-                    FAQ
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            {/* Contato */}
-            <div>
-              <h3 className="font-bold text-foreground mb-5 text-base">Contato</h3>
-              <ul className="space-y-3 text-sm">
-                <li>
-                  <a 
-                    href="https://wa.me/5548988430812" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
-                  >
-                    <MessageCircle className="w-4 h-4 text-primary" />
-                    Vendas: (48) 98843-0812
-                  </a>
-                </li>
-                <li>
-                  <a 
-                    href="https://wa.me/554899075189" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
-                  >
-                    <HeadphonesIcon className="w-4 h-4 text-primary" />
-                    Suporte: (48) 99075-1889
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Horário */}
-            <div>
-              <h3 className="font-bold text-foreground mb-5 text-base">Horário</h3>
-              <ul className="space-y-3 text-sm">
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="w-4 h-4 text-primary flex-shrink-0" />
-                  Seg - Sex: 9h às 18h
-                </li>
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <Shield className="w-4 h-4 text-primary flex-shrink-0" />
-                  Suporte 24/7 via WhatsApp
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Divisor e Copyright */}
-          <div className="border-t mt-12 pt-8">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-muted-foreground text-center sm:text-left">
-                © 2025 Foguete Gestão Empresarial. Todos os direitos reservados.
-              </p>
-              <div className="flex items-center gap-6 text-sm">
-                <a href="/politica-privacidade" className="text-muted-foreground hover:text-primary transition-colors">
-                  Privacidade
-                </a>
-                <a href="/termos-servico" className="text-muted-foreground hover:text-primary transition-colors">
-                  Termos
-                </a>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Lock className="w-4 h-4 text-primary" />
-                  LGPD
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 };

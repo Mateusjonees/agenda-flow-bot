@@ -19,10 +19,10 @@ export default function Precos() {
       
       {/* Botão WhatsApp Flutuante */}
       <a
-        href="https://wa.me/5511999999999"
+        href="https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all hover:scale-110"
+        className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20BA5A] text-white p-4 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110"
       >
         <MessageCircle className="w-6 h-6" />
       </a>
@@ -107,7 +107,7 @@ export default function Precos() {
               <Button variant="outline" onClick={() => navigate("/faq")}>
                 Ver FAQ
               </Button>
-              <Button onClick={() => window.open("https://wa.me/5511999999999", "_blank")} className="gap-2">
+              <Button onClick={() => window.open("https://wa.me/554899075189", "_blank")} className="gap-2">
                 <MessageCircle className="w-4 h-4" />
                 Falar com Suporte
               </Button>
