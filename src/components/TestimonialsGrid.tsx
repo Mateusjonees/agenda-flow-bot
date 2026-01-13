@@ -140,10 +140,47 @@ export function TestimonialsGrid() {
     };
   }, [queryClient]);
 
-  // Usar depoimentos do banco ou fallback para estáticos
-  const displayTestimonials = testimonials && testimonials.length > 0 
-    ? testimonials 
-    : staticTestimonials;
+  // Mesclar depoimentos do banco com estáticos para ficar mais humano
+  // Novos depoimentos (do banco sem foto estática) aparecem primeiro
+  // Depois os estáticos que têm fotos reais
+  const displayTestimonials = (() => {
+    if (!testimonials || testimonials.length === 0) {
+      return staticTestimonials;
+    }
+    
+    // IDs dos depoimentos estáticos originais
+    const staticIds = ['Ana Silva', 'Carlos Santos', 'Maria Oliveira', 'Pedro Costa', 'Juliana Mendes', 'Roberto Lima'];
+    
+    // Depoimentos novos (do banco que não são os estáticos)
+    const newTestimonials = testimonials.filter(t => !staticIds.includes(t.name));
+    
+    // Depoimentos estáticos do banco (usar a versão do banco, não a estática local)
+    const dbStaticTestimonials = testimonials.filter(t => staticIds.includes(t.name));
+    
+    // Mesclar: primeiro os novos (mais recentes), depois substituir os estáticos
+    // com suas versões do banco (para manter atualizado), e adicionar os que 
+    // ainda não estão no banco
+    const result: Testimonial[] = [...newTestimonials];
+    
+    // Adicionar os estáticos que já estão no banco
+    dbStaticTestimonials.forEach(dbT => {
+      // Encontrar a foto do estático correspondente
+      const staticVersion = staticTestimonials.find(s => s.name === dbT.name);
+      result.push({
+        ...dbT,
+        photo_url: dbT.photo_url || staticVersion?.photo_url || null
+      });
+    });
+    
+    // Se ainda há menos de 6, completar com estáticos locais que não estão no banco
+    if (result.length < 6) {
+      const addedNames = result.map(r => r.name);
+      const remaining = staticTestimonials.filter(s => !addedNames.includes(s.name));
+      result.push(...remaining.slice(0, 6 - result.length));
+    }
+    
+    return result;
+  })();
 
   if (isLoading) {
     return (
