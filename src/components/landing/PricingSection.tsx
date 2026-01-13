@@ -47,18 +47,7 @@ const PricingSection = ({
       <div className="container mx-auto px-4 relative">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-16">
-            <Badge className="px-4 py-2 mb-6 bg-primary/10 text-primary border-primary/30">
-              <Rocket className="w-4 h-4 mr-2" />
-              Planos e Preços
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-foreground mb-4">
-              Escolha seu <span className="text-gradient-primary">plano</span>
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Todos os planos incluem 7 dias de teste grátis. Sem compromisso.
-            </p>
-          </div>
+          
 
           {/* Pricing Cards - Square aspect ratio */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 items-stretch">
