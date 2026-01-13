@@ -247,13 +247,13 @@ const Auth = () => {
         </div>
 
         {/* Logo and branding */}
-        <div className="text-center mb-8">
-          <img src={logo} alt="Foguete Gestão Empresarial" className="h-24 md:h-28 w-auto mx-auto" />
+        <div className={`text-center ${isSignUp ? 'mb-4' : 'mb-8'}`}>
+          <img src={logo} alt="Foguete Gestão Empresarial" className={`${isSignUp ? 'h-16 md:h-20' : 'h-24 md:h-28'} w-auto mx-auto`} />
         </div>
 
         {/* Auth card */}
         <Card className="w-full max-w-md bg-card border shadow-xl">
-          <CardContent className="pt-8 pb-8 px-8">
+          <CardContent className={`${isSignUp ? 'pt-5 pb-5 px-6' : 'pt-8 pb-8 px-8'}`}>
             {isForgotPassword ? (
               <form onSubmit={handleForgotPassword} className="space-y-6">
                 <div className="text-center mb-6">
@@ -386,9 +386,9 @@ const Auth = () => {
                 </div>
               </form>
             ) : (
-              <form onSubmit={handleSignUp} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name" className="text-foreground font-medium">
+              <form onSubmit={handleSignUp} className="space-y-3">
+                <div className="space-y-1">
+                  <Label htmlFor="signup-name" className="text-foreground font-medium text-sm">
                     Nome
                   </Label>
                   <Input
@@ -399,11 +399,11 @@ const Auth = () => {
                     onChange={(e) => setName(e.target.value)}
                     disabled={loading}
                     required
-                    className="h-12"
+                    className="h-10"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-cpf" className="text-foreground font-medium">
+                <div className="space-y-1">
+                  <Label htmlFor="signup-cpf" className="text-foreground font-medium text-sm">
                     CPF
                   </Label>
                   <Input
@@ -414,14 +414,14 @@ const Auth = () => {
                     onChange={handleCpfChange}
                     disabled={loading}
                     required
-                    className={`h-12 ${cpfError ? 'border-destructive' : ''}`}
+                    className={`h-10 ${cpfError ? 'border-destructive' : ''}`}
                   />
                   {cpfError && (
-                    <p className="text-sm text-destructive">{cpfError}</p>
+                    <p className="text-xs text-destructive">{cpfError}</p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email" className="text-foreground font-medium">
+                <div className="space-y-1">
+                  <Label htmlFor="signup-email" className="text-foreground font-medium text-sm">
                     Email
                   </Label>
                   <Input
@@ -432,11 +432,11 @@ const Auth = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
                     required
-                    className="h-12"
+                    className="h-10"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password" className="text-foreground font-medium">
+                <div className="space-y-1">
+                  <Label htmlFor="signup-password" className="text-foreground font-medium text-sm">
                     Crie Sua Senha
                   </Label>
                   <Input
@@ -448,10 +448,10 @@ const Auth = () => {
                     disabled={loading}
                     required
                     minLength={6}
-                    className="h-12"
+                    className="h-10"
                   />
                 </div>
-                <Button type="submit" className="w-full h-12 text-base font-semibold shadow-lg" disabled={loading}>
+                <Button type="submit" className="w-full h-10 text-sm font-semibold shadow-lg" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -462,7 +462,7 @@ const Auth = () => {
                   )}
                 </Button>
 
-                <div className="relative py-4">
+                <div className="relative py-2">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-muted"></div>
                   </div>
@@ -476,13 +476,13 @@ const Auth = () => {
                   variant="outline"
                   onClick={() => handleSocialLogin("google")}
                   disabled={loading}
-                  className="w-full h-12 font-medium"
+                  className="w-full h-10 font-medium"
                 >
                   <FaGoogle className="mr-2 h-4 w-4" />
                   Google
                 </Button>
 
-                <div className="text-center text-sm pt-2">
+                <div className="text-center text-xs pt-1">
                   <button
                     type="button"
                     className="text-muted-foreground hover:text-foreground underline"
