@@ -7,7 +7,7 @@ export function PublicFooter() {
   const currentYear = new Date().getFullYear();
   
   return (
-    <footer className="bg-[#1a1f2e] border-t border-white/10">
+    <footer className="bg-background dark:bg-[#1a1f2e] border-t border-border dark:border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16">
           {/* Logo e Descrição */}
@@ -16,28 +16,28 @@ export function PublicFooter() {
               <img 
                 src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png" 
                 alt="Foguete" 
-                className="h-10 w-auto dark:hidden" 
+                className="h-16 w-auto dark:hidden" 
               />
               <img 
                 src={logoLight} 
                 alt="Foguete" 
-                className="h-10 w-auto hidden dark:block" 
+                className="h-16 w-auto hidden dark:block" 
               />
-              <span className="text-xl font-bold text-white">Foguete</span>
+              <span className="text-xl font-bold text-foreground">Foguete</span>
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Sistema completo de gestão empresarial para salões, clínicas, barbearias e prestadores de serviço.
             </p>
           </div>
 
           {/* Produto */}
           <div>
-            <h3 className="font-bold text-white mb-5 text-base">Produto</h3>
+            <h3 className="font-bold text-foreground mb-5 text-base">Produto</h3>
             <ul className="space-y-3 text-sm">
               <li>
                 <Link 
                   to="/recursos" 
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Funcionalidades
                 </Link>
@@ -45,7 +45,7 @@ export function PublicFooter() {
               <li>
                 <Link 
                   to="/precos" 
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Preços
                 </Link>
@@ -53,7 +53,7 @@ export function PublicFooter() {
               <li>
                 <Link 
                   to="/depoimentos" 
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Depoimentos
                 </Link>
@@ -61,7 +61,7 @@ export function PublicFooter() {
               <li>
                 <Link 
                   to="/faq" 
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   FAQ
                 </Link>
@@ -71,14 +71,14 @@ export function PublicFooter() {
 
           {/* Contato */}
           <div>
-            <h3 className="font-bold text-white mb-5 text-base">Contato</h3>
+            <h3 className="font-bold text-foreground mb-5 text-base">Contato</h3>
             <ul className="space-y-3 text-sm">
               <li>
                 <a 
                   href="https://wa.me/5548988430812" 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="text-gray-400 hover:text-white transition-colors flex items-center gap-2"
+                  className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
                 >
                   <MessageCircle className="w-4 h-4 text-red-500" />
                   Vendas: (48) 98843-0812
@@ -89,7 +89,7 @@ export function PublicFooter() {
                   href="https://wa.me/554899075189" 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="text-gray-400 hover:text-white transition-colors flex items-center gap-2"
+                  className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
                 >
                   <HeadphonesIcon className="w-4 h-4 text-red-500" />
                   Suporte: (48) 99075-1889
@@ -100,13 +100,13 @@ export function PublicFooter() {
 
           {/* Horário */}
           <div>
-            <h3 className="font-bold text-white mb-5 text-base">Horário</h3>
+            <h3 className="font-bold text-foreground mb-5 text-base">Horário</h3>
             <ul className="space-y-3 text-sm">
-              <li className="flex items-center gap-2 text-gray-400">
+              <li className="flex items-center gap-2 text-muted-foreground">
                 <Clock className="w-4 h-4 text-red-500 flex-shrink-0" />
                 Seg - Sex: 9h às 18h
               </li>
-              <li className="flex items-center gap-2 text-gray-400">
+              <li className="flex items-center gap-2 text-muted-foreground">
                 <Shield className="w-4 h-4 text-red-500 flex-shrink-0" />
                 Suporte 24/7 via WhatsApp
               </li>
@@ -115,25 +115,25 @@ export function PublicFooter() {
         </div>
 
         {/* Divisor e Copyright */}
-        <div className="border-t border-white/10 mt-12 pt-8">
+        <div className="border-t border-border dark:border-white/10 mt-12 pt-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-400 text-center sm:text-left">
+            <p className="text-sm text-muted-foreground text-center sm:text-left">
               © {currentYear} Foguete Gestão Empresarial. Todos os direitos reservados.
             </p>
             <div className="flex items-center gap-6 text-sm">
               <Link 
                 to="/politica-privacidade" 
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 Privacidade
               </Link>
               <Link 
                 to="/termos-servico" 
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 Termos
               </Link>
-              <div className="flex items-center gap-2 text-gray-400">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Lock className="w-4 h-4 text-red-500" />
                 LGPD
               </div>

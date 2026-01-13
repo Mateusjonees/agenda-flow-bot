@@ -1101,7 +1101,7 @@ const Agendamentos = () => {
                   completed: { bg: "bg-violet-500/10", border: "border-l-violet-500", text: "text-violet-700 dark:text-violet-300" }
                 };
                 
-                const maxVisible = 2;
+                const maxVisible = 3;
                 const hasMore = dayHourAppointments.length > maxVisible;
                 const visibleAppointments = dayHourAppointments.slice(0, maxVisible);
 
@@ -1112,12 +1112,12 @@ const Agendamentos = () => {
                     date={day}
                     hour={hour}
                     className={cn(
-                      "p-1 border-l transition-colors h-[80px] overflow-hidden",
+                      "p-0.5 border-l transition-colors h-[100px] overflow-hidden",
                       isWithinBusinessHours ? "hover:bg-accent/5" : "bg-muted/30",
                       isCurrentDay && isWithinBusinessHours && "bg-primary/5"
                     )}
                   >
-                    <div className="flex flex-col gap-1 h-full overflow-hidden">
+                    <div className="flex flex-col gap-0.5 h-full overflow-hidden">
                       {visibleAppointments.map((apt) => {
                         const status = statusConfig[apt.status || "scheduled"] || statusConfig.scheduled;
                         
@@ -1131,8 +1131,8 @@ const Agendamentos = () => {
                           >
                             <div 
                               className={cn(
-                                "rounded-md cursor-pointer transition-all duration-200",
-                                "border-l-[3px] px-2 py-1.5",
+                                "rounded cursor-pointer transition-all duration-200",
+                                "border-l-2 px-1 py-0.5",
                                 "hover:shadow-md hover:scale-[1.02]",
                                 status.bg, status.border
                               )}
@@ -1143,13 +1143,13 @@ const Agendamentos = () => {
                               }}
                               title={`${format(parseISO(apt.start_time), "HH:mm")} - ${apt.title}${apt.customers?.name ? ` (${apt.customers.name})` : ''}`}
                             >
-                              <div className="flex items-center gap-1.5">
-                                <span className={cn("text-[11px] font-bold", status.text)}>
+                              <div className="flex items-center gap-1">
+                                <span className={cn("text-[10px] font-bold", status.text)}>
                                   {format(parseISO(apt.start_time), "HH:mm")}
                                 </span>
-                              </div>
-                              <div className="text-[11px] font-medium text-foreground truncate leading-tight mt-0.5">
-                                {apt.customers?.name || apt.title}
+                                <span className="text-[10px] font-medium text-foreground truncate leading-tight">
+                                  {apt.customers?.name || apt.title}
+                                </span>
                               </div>
                             </div>
                           </DraggableAppointment>

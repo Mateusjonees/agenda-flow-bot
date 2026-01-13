@@ -47,7 +47,7 @@ export function PublicNavbar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e] border-b border-white/10">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background dark:bg-[#1a1f2e] border-b border-border dark:border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -58,12 +58,12 @@ export function PublicNavbar() {
             <img 
               src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png" 
               alt="Foguete" 
-              className="h-10 w-auto dark:hidden" 
+              className="h-16 w-auto dark:hidden" 
             />
             <img 
               src={logoLight} 
               alt="Foguete" 
-              className="h-10 w-auto hidden dark:block" 
+              className="h-16 w-auto hidden dark:block" 
             />
           </button>
 
@@ -75,8 +75,8 @@ export function PublicNavbar() {
                 onClick={() => handleNavigation(link.path)}
                 className={`px-4 py-2 text-sm font-medium transition-colors ${
                   isActive(link.path)
-                    ? "text-white"
-                    : "text-gray-400 hover:text-white"
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {link.label}
@@ -100,7 +100,7 @@ export function PublicNavbar() {
                 <Button 
                   variant="ghost" 
                   onClick={() => navigate("/auth")}
-                  className="text-gray-300 hover:text-white hover:bg-white/10"
+                  className="text-muted-foreground hover:text-foreground hover:bg-accent"
                 >
                   Entrar
                 </Button>
@@ -122,7 +122,7 @@ export function PublicNavbar() {
               variant="ghost"
               size="icon"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-white hover:bg-white/10"
+              className="text-foreground hover:bg-accent"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
@@ -131,7 +131,7 @@ export function PublicNavbar() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-white/10 animate-fade-in bg-[#1a1f2e]">
+          <div className="md:hidden py-4 border-t border-border dark:border-white/10 animate-fade-in bg-background dark:bg-[#1a1f2e]">
             <nav className="flex flex-col gap-2">
               {navLinks.map((link) => (
                 <button
@@ -139,14 +139,14 @@ export function PublicNavbar() {
                   onClick={() => handleNavigation(link.path)}
                   className={`px-4 py-3 rounded-lg text-left font-medium transition-colors ${
                     isActive(link.path)
-                      ? "text-white bg-white/10"
-                      : "text-gray-400 hover:text-white hover:bg-white/5"
+                      ? "text-foreground bg-accent"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                   }`}
                 >
                   {link.label}
                 </button>
               ))}
-              <div className="pt-4 border-t border-white/10 mt-2">
+              <div className="pt-4 border-t border-border dark:border-white/10 mt-2">
                 {isAuthenticated ? (
                   <Button 
                     onClick={() => navigate("/dashboard")} 
@@ -160,7 +160,7 @@ export function PublicNavbar() {
                     <Button 
                       variant="outline" 
                       onClick={() => navigate("/auth")} 
-                      className="w-full border-white/20 text-white hover:bg-white/10"
+                      className="w-full"
                     >
                       Entrar
                     </Button>
