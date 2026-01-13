@@ -71,7 +71,7 @@ const features = [
   },
   {
     icon: Sparkles,
-    title: "IA Integrada",
+    title: "IA Integrada futuramente",
     description: "Assistente virtual para atendimento 24h e respostas automáticas",
     color: "from-violet-500 to-purple-500",
   },
