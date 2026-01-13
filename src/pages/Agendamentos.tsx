@@ -1088,10 +1088,10 @@ const Agendamentos = () => {
             <div 
               key={hour} 
               className="grid"
-              style={{ gridTemplateColumns: `40px repeat(${activeDays.length}, 1fr)` }}
+              style={{ gridTemplateColumns: `50px repeat(${activeDays.length}, 1fr)` }}
             >
-              <div className="p-1 text-[10px] text-muted-foreground border-r font-medium bg-muted/20 h-[60px] flex items-start justify-center">
-                {String(hour).padStart(2, "0")}h
+              <div className="p-2 text-xs text-muted-foreground border-r font-semibold bg-muted/20 min-h-[120px] flex items-start justify-center">
+                {String(hour).padStart(2, "0")}:00
               </div>
               {activeDays.map((day) => {
                 const isCurrentDay = isSameDay(day, new Date());
@@ -1118,7 +1118,7 @@ const Agendamentos = () => {
                   completed: "hsl(271 81% 56%)"
                 };
                 
-                const maxVisible = 3;
+                const maxVisible = 2;
                 const hasMore = dayHourAppointments.length > maxVisible;
                 const visibleAppointments = dayHourAppointments.slice(0, maxVisible);
 
@@ -1130,16 +1130,17 @@ const Agendamentos = () => {
                     hour={hour}
                     onClick={handleSlotClick}
                     className={cn(
-                      "p-0.5 border-l transition-colors h-[100px] overflow-hidden",
+                      "p-1 border-l transition-colors min-h-[120px] overflow-hidden",
                       isWithinBusinessHours ? "hover:bg-accent/5" : "bg-muted/30",
                       isCurrentDay && isWithinBusinessHours && "bg-primary/5"
                     )}
                     >
-                    <div className="flex flex-col gap-0.5 h-full overflow-hidden">
+                    <div className="flex flex-col gap-1 h-full overflow-hidden">
                       {visibleAppointments.length > 0 ? (
                         <>
                           {visibleAppointments.map((apt) => {
                             const borderColor = statusColors[apt.status || "scheduled"] || statusColors.scheduled;
+                            const bgColor = `${borderColor.replace(')', ', 0.15)')}`.replace('hsl', 'hsla');
                             
                             return (
                               <DraggableAppointment
@@ -1151,11 +1152,14 @@ const Agendamentos = () => {
                               >
                                 <div 
                                   className={cn(
-                                    "group/card relative px-2 py-1.5 rounded-md cursor-pointer border-l-[3px]",
-                                    "transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:z-10",
-                                    "bg-card hover:bg-accent/10"
+                                    "group/card relative px-2.5 py-2 rounded-lg cursor-pointer border-l-4",
+                                    "transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:z-10",
+                                    "shadow-sm"
                                   )}
-                                  style={{ borderLeftColor: borderColor }}
+                                  style={{ 
+                                    borderLeftColor: borderColor,
+                                    backgroundColor: bgColor
+                                  }}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setMobileSelectedAppointment(apt);
@@ -1164,20 +1168,20 @@ const Agendamentos = () => {
                                   title={`${format(parseISO(apt.start_time), "HH:mm")} - ${apt.title}${apt.customers?.name ? ` (${apt.customers.name})` : ''}`}
                                 >
                                   {/* Horário e título */}
-                                  <div className="flex items-start gap-1.5">
-                                    <span className="text-[10px] font-bold shrink-0 text-foreground">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold shrink-0 text-foreground bg-background/60 px-1.5 py-0.5 rounded">
                                       {format(parseISO(apt.start_time), "HH:mm")}
                                     </span>
-                                    <span className="text-[10px] font-medium truncate flex-1 text-foreground/90">
+                                    <span className="text-xs font-semibold truncate flex-1 text-foreground">
                                       {apt.title}
                                     </span>
                                   </div>
                                   
                                   {/* Cliente */}
                                   {apt.customers?.name && (
-                                    <div className="flex items-center gap-1 mt-0.5 text-[9px] text-muted-foreground">
-                                      <User className="w-2.5 h-2.5" />
-                                      <span className="truncate">{apt.customers.name}</span>
+                                    <div className="flex items-center gap-1.5 mt-1 text-xs text-foreground/80">
+                                      <User className="w-3.5 h-3.5" />
+                                      <span className="truncate font-medium">{apt.customers.name}</span>
                                     </div>
                                   )}
                                 </div>
@@ -1194,7 +1198,7 @@ const Agendamentos = () => {
                                 ));
                                 setDayDialogOpen(true);
                               }}
-                              className="text-[10px] font-semibold text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/20 rounded px-1.5 py-0.5 transition-colors text-center"
+                              className="text-xs font-semibold text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/20 rounded-md px-2 py-1 transition-colors text-center"
                             >
                               +{dayHourAppointments.length - maxVisible} mais
                             </button>
