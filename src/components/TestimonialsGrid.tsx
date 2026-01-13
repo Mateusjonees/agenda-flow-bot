@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { TestimonialCard } from "./TestimonialCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,12 +62,12 @@ const staticTestimonials: Testimonial[] = [
   {
     id: "static-4",
     name: "Pedro Costa",
-    business_name: "Pet Shop Amigo Fiel",
-    business_type: "petshop",
-    content: "Perfeito para controlar os atendimentos do pet shop. O sistema é muito intuitivo e os clientes adoram os lembretes automáticos.",
+    business_name: "Academia Força Total",
+    business_type: "academia",
+    content: "Perfeito para controlar as mensalidades e acompanhar cada aluno. O sistema é muito intuitivo e fácil de usar.",
     rating: 5,
     photo_url: man2,
-    highlight: "+50 clientes",
+    highlight: "+50 alunos",
     is_featured: true,
   },
   {
@@ -94,6 +95,8 @@ const staticTestimonials: Testimonial[] = [
 ];
 
 export function TestimonialsGrid() {
+  const queryClient = useQueryClient();
+
   const { data: testimonials, isLoading } = useQuery({
     queryKey: ["public-testimonials"],
     queryFn: async () => {
@@ -112,6 +115,30 @@ export function TestimonialsGrid() {
       return data as Testimonial[];
     },
   });
+
+  // Realtime subscription para atualizar instantaneamente
+  useEffect(() => {
+    const channel = supabase
+      .channel("testimonials-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "testimonials",
+        },
+        (payload) => {
+          console.log("Depoimento atualizado em tempo real:", payload);
+          // Invalida o cache para recarregar os dados
+          queryClient.invalidateQueries({ queryKey: ["public-testimonials"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   // Usar depoimentos do banco ou fallback para estáticos
   const displayTestimonials = testimonials && testimonials.length > 0 
