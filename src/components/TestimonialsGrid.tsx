@@ -4,10 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { TestimonialCard } from "./TestimonialCard";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Import photos
+// Import photos (woman2 removed - Maria Oliveira was hidden)
 import woman1 from "@/assets/testimonials/woman-1.jpg";
 import man1 from "@/assets/testimonials/man-1.jpg";
-import woman2 from "@/assets/testimonials/woman-2.jpg";
 import man2 from "@/assets/testimonials/man-2.jpg";
 import woman3 from "@/assets/testimonials/woman-3.jpg";
 import man3 from "@/assets/testimonials/man-3.jpg";
@@ -24,7 +23,7 @@ interface Testimonial {
   is_featured: boolean;
 }
 
-// Depoimentos estáticos com fotos reais como fallback
+// Depoimentos estáticos com fotos reais como fallback (sem Maria Oliveira que foi removida)
 const staticTestimonials: Testimonial[] = [
   {
     id: "static-1",
@@ -50,17 +49,6 @@ const staticTestimonials: Testimonial[] = [
   },
   {
     id: "static-3",
-    name: "Maria Oliveira",
-    business_name: "Clínica Bem Estar",
-    business_type: "clinica",
-    content: "A gestão financeira ficou muito mais fácil. Consigo ver exatamente quanto entrou e saiu, e os relatórios são sensacionais.",
-    rating: 5,
-    photo_url: woman2,
-    highlight: "+35% lucro",
-    is_featured: true,
-  },
-  {
-    id: "static-4",
     name: "Pedro Costa",
     business_name: "Academia Força Total",
     business_type: "academia",
@@ -71,7 +59,7 @@ const staticTestimonials: Testimonial[] = [
     is_featured: true,
   },
   {
-    id: "static-5",
+    id: "static-4",
     name: "Juliana Mendes",
     business_name: "Espaço Juliana Nails",
     business_type: "salao",
@@ -82,7 +70,7 @@ const staticTestimonials: Testimonial[] = [
     is_featured: false,
   },
   {
-    id: "static-6",
+    id: "static-5",
     name: "Roberto Lima",
     business_name: "Consultório Dr. Lima",
     business_type: "consultorio",
@@ -104,6 +92,7 @@ export function TestimonialsGrid() {
         .from("testimonials")
         .select("*")
         .eq("is_approved", true)
+        .eq("is_hidden", false)
         .order("is_featured", { ascending: false })
         .order("created_at", { ascending: false });
 
@@ -148,8 +137,8 @@ export function TestimonialsGrid() {
       return staticTestimonials;
     }
     
-    // IDs dos depoimentos estáticos originais
-    const staticIds = ['Ana Silva', 'Carlos Santos', 'Maria Oliveira', 'Pedro Costa', 'Juliana Mendes', 'Roberto Lima'];
+    // IDs dos depoimentos estáticos originais (sem Maria Oliveira que foi removida)
+    const staticIds = ['Ana Silva', 'Carlos Santos', 'Pedro Costa', 'Juliana Mendes', 'Roberto Lima'];
     
     // Depoimentos novos (do banco que não são os estáticos)
     const newTestimonials = testimonials.filter(t => !staticIds.includes(t.name));
