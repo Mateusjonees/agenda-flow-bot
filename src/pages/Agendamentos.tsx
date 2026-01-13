@@ -1093,12 +1093,13 @@ const Agendamentos = () => {
                   return isSameDay(aptDate, day) && aptHour === hour;
                 });
 
-                const statusConfig: Record<string, { bg: string; border: string; text: string }> = {
-                  scheduled: { bg: "bg-blue-500/10", border: "border-l-blue-500", text: "text-blue-700 dark:text-blue-300" },
-                  confirmed: { bg: "bg-emerald-500/10", border: "border-l-emerald-500", text: "text-emerald-700 dark:text-emerald-300" },
-                  pending: { bg: "bg-amber-500/10", border: "border-l-amber-500", text: "text-amber-700 dark:text-amber-300" },
-                  cancelled: { bg: "bg-red-500/10", border: "border-l-red-500", text: "text-red-700 dark:text-red-300" },
-                  completed: { bg: "bg-violet-500/10", border: "border-l-violet-500", text: "text-violet-700 dark:text-violet-300" }
+                // Cores de status iguais ao mês
+                const statusColors: Record<string, string> = {
+                  scheduled: "hsl(217 91% 60%)",
+                  confirmed: "hsl(142 71% 45%)",
+                  pending: "hsl(48 96% 53%)",
+                  cancelled: "hsl(0 84% 60%)",
+                  completed: "hsl(271 81% 56%)"
                 };
                 
                 const maxVisible = 3;
@@ -1119,7 +1120,7 @@ const Agendamentos = () => {
                   >
                     <div className="flex flex-col gap-0.5 h-full overflow-hidden">
                       {visibleAppointments.map((apt) => {
-                        const status = statusConfig[apt.status || "scheduled"] || statusConfig.scheduled;
+                        const borderColor = statusColors[apt.status || "scheduled"] || statusColors.scheduled;
                         
                         return (
                           <DraggableAppointment
@@ -1131,11 +1132,11 @@ const Agendamentos = () => {
                           >
                             <div 
                               className={cn(
-                                "rounded cursor-pointer transition-all duration-200",
-                                "border-l-2 px-1 py-0.5",
-                                "hover:shadow-md hover:scale-[1.02]",
-                                status.bg, status.border
+                                "group/card relative px-2 py-1.5 rounded-md cursor-pointer border-l-[3px]",
+                                "transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:z-10",
+                                "bg-card hover:bg-accent/10"
                               )}
+                              style={{ borderLeftColor: borderColor }}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setMobileSelectedAppointment(apt);
@@ -1143,14 +1144,23 @@ const Agendamentos = () => {
                               }}
                               title={`${format(parseISO(apt.start_time), "HH:mm")} - ${apt.title}${apt.customers?.name ? ` (${apt.customers.name})` : ''}`}
                             >
-                              <div className="flex items-center gap-1">
-                                <span className={cn("text-[10px] font-bold", status.text)}>
+                              {/* Horário e título */}
+                              <div className="flex items-start gap-1.5">
+                                <span className="text-[10px] font-bold shrink-0 text-foreground">
                                   {format(parseISO(apt.start_time), "HH:mm")}
                                 </span>
-                                <span className="text-[10px] font-medium text-foreground truncate leading-tight">
-                                  {apt.customers?.name || apt.title}
+                                <span className="text-[10px] font-medium truncate flex-1 text-foreground/90">
+                                  {apt.title}
                                 </span>
                               </div>
+                              
+                              {/* Cliente */}
+                              {apt.customers?.name && (
+                                <div className="flex items-center gap-1 mt-0.5 text-[9px] text-muted-foreground">
+                                  <User className="w-2.5 h-2.5" />
+                                  <span className="truncate">{apt.customers.name}</span>
+                                </div>
+                              )}
                             </div>
                           </DraggableAppointment>
                         );
