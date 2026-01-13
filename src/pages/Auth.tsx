@@ -353,16 +353,28 @@ const Auth = () => {
                   </div>
                 </div>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleSocialLogin("google")}
-                  disabled={loading}
-                  className="w-full h-12 font-medium"
-                >
-                  <FaGoogle className="mr-2 h-4 w-4" />
-                  Google
-                </Button>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialLogin("google")}
+                    disabled={loading}
+                    className="flex flex-col items-center justify-center h-20 gap-2 hover:bg-accent hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md border-2"
+                  >
+                    <FaGoogle className="h-6 w-6 text-[#DB4437]" />
+                    <span className="text-xs font-medium">Google</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialLogin("facebook")}
+                    disabled={loading}
+                    className="flex flex-col items-center justify-center h-20 gap-2 hover:bg-[#1877F2]/10 hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md border-2 hover:border-[#1877F2]/50"
+                  >
+                    <FaFacebook className="h-6 w-6 text-[#1877F2]" />
+                    <span className="text-xs font-medium">Facebook</span>
+                  </Button>
+                </div>
 
                 <div className="flex items-center justify-between text-sm pt-2">
                   <button
@@ -471,16 +483,28 @@ const Auth = () => {
                   </div>
                 </div>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleSocialLogin("google")}
-                  disabled={loading}
-                  className="w-full h-10 font-medium"
-                >
-                  <FaGoogle className="mr-2 h-4 w-4" />
-                  Google
-                </Button>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialLogin("google")}
+                    disabled={loading}
+                    className="flex flex-col items-center justify-center h-16 gap-1.5 hover:bg-accent hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md border-2"
+                  >
+                    <FaGoogle className="h-5 w-5 text-[#DB4437]" />
+                    <span className="text-[10px] font-medium">Google</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialLogin("facebook")}
+                    disabled={loading}
+                    className="flex flex-col items-center justify-center h-16 gap-1.5 hover:bg-[#1877F2]/10 hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md border-2 hover:border-[#1877F2]/50"
+                  >
+                    <FaFacebook className="h-5 w-5 text-[#1877F2]" />
+                    <span className="text-[10px] font-medium">Facebook</span>
+                  </Button>
+                </div>
 
                 <div className="text-center text-xs pt-1">
                   <button
