@@ -2,7 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Calendar, Users, Settings, LayoutDashboard, DollarSign, BarChart3, FileText, Repeat, ListTodo, Package, MessageCircle, CreditCard, Lock } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import logo from "@/assets/logo-menu.png";
 
 // Definição dos itens de navegação com suas rotas
@@ -22,11 +22,40 @@ const navItems = [
 
 export function AppSidebar() {
   const location = useLocation();
-  const { allowedRoutes, isReadOnly, isLoading } = useUserRole();
+  const { allowedRoutes, isReadOnly, isLoading, role } = useUserRole();
+
+  // Enquanto carrega, mostra skeleton
+  if (isLoading) {
+    return (
+      <Sidebar collapsible="icon" className="border-r transition-all duration-300">
+        <SidebarHeader className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
+          <div className="flex items-center justify-center py-3 px-2">
+            <div className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl p-2 shadow-sm border border-primary/20 backdrop-blur-sm">
+              <img src={logo} alt="Foguete Gestão Empresarial" className="h-12 md:h-14 w-auto drop-shadow-sm" />
+            </div>
+          </div>
+        </SidebarHeader>
+        <SidebarContent className="pt-4">
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <div className="space-y-2 px-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-10 w-full rounded-md" />
+                ))}
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
+    );
+  }
+
+  // Fallback: se não tem rotas permitidas, mostrar pelo menos dashboard
+  const routes = allowedRoutes.length > 0 ? allowedRoutes : ['/dashboard'];
 
   // Filtra os itens de navegação baseado nas permissões do usuário
   const filteredNavItems = navItems.filter(item => 
-    allowedRoutes.includes(item.path)
+    routes.includes(item.path)
   );
 
   return (
