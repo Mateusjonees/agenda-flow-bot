@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, UserPlus, Shield, Loader2, Crown, CreditCard, QrCode, DollarSign } from "lucide-react";
+import { Plus, Pencil, Trash2, UserPlus, Shield, Loader2, Crown, CreditCard, QrCode, DollarSign, Clock, AlertTriangle } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ASSIGNABLE_ROLES, ROLE_LABELS, ROLE_DESCRIPTIONS, UserRole } from "@/config/permissions";
 import { UserSeatPaymentDialog } from "./UserSeatPaymentDialog";
@@ -26,6 +26,9 @@ interface UserWithRole {
   role: UserRole;
   created_at: string;
   isOwner: boolean;
+  is_paid?: boolean;
+  next_payment_due?: string | null;
+  daysRemaining?: number | null;
 }
 
 interface PaymentData {
@@ -83,10 +86,10 @@ export function UserManagement() {
       
       const ownerId = businessSettings?.user_id;
       
-      // Buscar todas as roles
+      // Buscar todas as roles com campos de pagamento
       const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
-        .select('user_id, role, created_at');
+        .select('user_id, role, created_at, created_by, is_paid, next_payment_due');
       
       if (rolesError) throw rolesError;
       
@@ -101,6 +104,7 @@ export function UserManagement() {
       const usersWithRoles: UserWithRole[] = roles?.map(role => {
         const profile = profiles?.find(p => p.id === role.user_id);
         const isOwner = role.user_id === ownerId;
+        const isTeamMember = role.created_by !== null;
         
         // Email: usar do profile se disponível, senão do currentUser se for o mesmo, senão N/A
         let email = 'N/A';
@@ -108,6 +112,14 @@ export function UserManagement() {
           email = profile.email;
         } else if (role.user_id === currentUser?.id && currentUser?.email) {
           email = currentUser.email;
+        }
+
+        // Calcular dias restantes para colaboradores
+        let daysRemaining: number | null = null;
+        if (isTeamMember && role.next_payment_due) {
+          const nextDue = new Date(role.next_payment_due);
+          const now = new Date();
+          daysRemaining = Math.max(0, Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
         }
         
         return {
@@ -117,6 +129,9 @@ export function UserManagement() {
           role: role.role as UserRole,
           created_at: role.created_at || new Date().toISOString(),
           isOwner,
+          is_paid: isTeamMember ? role.is_paid : undefined,
+          next_payment_due: role.next_payment_due,
+          daysRemaining,
         };
       }) || [];
       
@@ -549,6 +564,7 @@ export function UserManagement() {
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Perfil</TableHead>
+                    <TableHead className="hidden md:table-cell">Licença</TableHead>
                     <TableHead className="hidden sm:table-cell">Desde</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -587,6 +603,53 @@ export function UserManagement() {
                           {ROLE_LABELS[user.role] || user.role}
                         </Badge>
                       </TableCell>
+                      
+                      {/* Coluna de Licença - só para colaboradores */}
+                      <TableCell className="hidden md:table-cell">
+                        {user.isOwner ? (
+                          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30 text-xs">
+                            Plano Principal
+                          </Badge>
+                        ) : user.is_paid !== undefined ? (
+                          <div className="flex flex-col gap-1">
+                            {user.is_paid ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`text-xs gap-1 ${
+                                        user.daysRemaining !== null && user.daysRemaining <= 5
+                                          ? 'bg-amber-500/10 text-amber-600 border-amber-500/30'
+                                          : 'bg-green-500/10 text-green-600 border-green-500/30'
+                                      }`}
+                                    >
+                                      <Clock className="h-3 w-3" />
+                                      {user.daysRemaining !== null ? `${user.daysRemaining} dias` : 'Ativo'}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>
+                                      {user.next_payment_due 
+                                        ? `Expira em ${new Date(user.next_payment_due).toLocaleDateString('pt-BR')}`
+                                        : 'Licença ativa'
+                                      }
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/30 text-xs gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Expirada
+                              </Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                      
                       <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
                         {new Date(user.created_at).toLocaleDateString('pt-BR')}
                       </TableCell>
