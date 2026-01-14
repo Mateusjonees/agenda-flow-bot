@@ -77,8 +77,20 @@ const App = () => (
                     </PermissionGuard>
                   </Layout>
                 } />
-                <Route path="/historico-pagamentos" element={<Layout><HistoricoPagamentos /></Layout>} />
-                <Route path="/historico-assinaturas" element={<Layout><HistoricoAssinaturas /></Layout>} />
+                <Route path="/historico-pagamentos" element={
+                  <Layout>
+                    <PermissionGuard>
+                      <HistoricoPagamentos />
+                    </PermissionGuard>
+                  </Layout>
+                } />
+                <Route path="/historico-assinaturas" element={
+                  <Layout>
+                    <PermissionGuard>
+                      <HistoricoAssinaturas />
+                    </PermissionGuard>
+                  </Layout>
+                } />
                 
                 {/* Rotas protegidas (com guard de assinatura e permissão) */}
                 <Route path="/dashboard" element={
@@ -156,7 +168,9 @@ const App = () => (
                 <Route path="/planos" element={
                   <Layout>
                     <SubscriptionGuard>
-                      <Planos />
+                      <PermissionGuard>
+                        <Planos />
+                      </PermissionGuard>
                     </SubscriptionGuard>
                   </Layout>
                 } />
@@ -180,10 +194,42 @@ const App = () => (
                 } />
                 
                 {/* WhatsApp E-commerce Routes */}
-                <Route path="/produtos" element={<Layout><SubscriptionGuard><Produtos /></SubscriptionGuard></Layout>} />
-                <Route path="/conversas-whatsapp" element={<Layout><SubscriptionGuard><ConversasWhatsApp /></SubscriptionGuard></Layout>} />
-                <Route path="/pedidos-whatsapp" element={<Layout><SubscriptionGuard><PedidosWhatsApp /></SubscriptionGuard></Layout>} />
-                <Route path="/treinamento-ia" element={<Layout><SubscriptionGuard><TreinamentoIA /></SubscriptionGuard></Layout>} />
+                <Route path="/produtos" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <Produtos />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
+                <Route path="/conversas-whatsapp" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <ConversasWhatsApp />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
+                <Route path="/pedidos-whatsapp" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <PedidosWhatsApp />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
+                <Route path="/treinamento-ia" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <TreinamentoIA />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
