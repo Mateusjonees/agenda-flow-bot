@@ -125,6 +125,13 @@ export function getAllowedRoutes(role: UserRole | null): string[] {
       '/tarefas',
       '/relatorios',
       '/configuracoes',
+      '/planos',
+      '/produtos',
+      '/conversas-whatsapp',
+      '/pedidos-whatsapp',
+      '/treinamento-ia',
+      '/historico-pagamentos',
+      '/historico-assinaturas',
     ];
   }
   
