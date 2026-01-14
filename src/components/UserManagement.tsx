@@ -423,13 +423,18 @@ export function UserManagement() {
                   <div className="space-y-2">
                     <Label htmlFor="role">Perfil de Acesso</Label>
                     <Select value={newRole} onValueChange={(value) => setNewRole(value as UserRole)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o perfil" />
+                      <SelectTrigger className="h-auto min-h-[2.5rem]">
+                        <div className="flex flex-col items-start text-left py-1">
+                          <span className="font-medium">{ROLE_LABELS[newRole]}</span>
+                          <span className="text-xs text-muted-foreground line-clamp-2">
+                            {ROLE_DESCRIPTIONS[newRole]}
+                          </span>
+                        </div>
                       </SelectTrigger>
                       <SelectContent>
                         {ASSIGNABLE_ROLES.map((role) => (
-                          <SelectItem key={role} value={role}>
-                            <div className="flex flex-col">
+                          <SelectItem key={role} value={role} className="py-3">
+                            <div className="flex flex-col items-start">
                               <span className="font-medium">{ROLE_LABELS[role]}</span>
                               <span className="text-xs text-muted-foreground">
                                 {ROLE_DESCRIPTIONS[role]}
