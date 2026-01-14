@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getOwnerUserId } from "@/lib/owner";
 import { Button } from "@/components/ui/button";
 import { useReadOnly } from "@/components/SubscriptionGuard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -168,13 +168,13 @@ const Assinaturas = () => {
   }, []);
 
   const fetchBusinessSettings = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
     
     const { data } = await supabase
       .from("business_settings")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .single();
     
     setBusinessSettings(data);
@@ -191,15 +191,14 @@ const Assinaturas = () => {
 
   const fetchUserSubscription = async () => {
     setLoadingUserSubscription(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
 
     const { data, error } = await supabase
       .from("subscriptions")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .is("customer_id", null)
       .maybeSingle();
 
@@ -210,15 +209,13 @@ const Assinaturas = () => {
   };
 
   const fetchPlans = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
 
     const { data, error } = await supabase
       .from("subscription_plans")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -233,15 +230,13 @@ const Assinaturas = () => {
   };
 
   const fetchSubscriptions = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
 
     const { data, error } = await supabase
       .from("subscriptions")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .eq("type", "customer")
       .order("created_at", { ascending: false });
 
@@ -276,29 +271,25 @@ const Assinaturas = () => {
   };
 
   const fetchCustomers = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
 
     const { data } = await supabase
       .from("customers")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .order("name");
     setCustomers(data || []);
   };
 
   const fetchPlanSubscriptionCounts = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
 
     const { data } = await supabase
       .from("subscriptions")
       .select("plan_id")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .eq("type", "customer")
       .in("status", ["active", "suspended"]);
 
@@ -312,10 +303,8 @@ const Assinaturas = () => {
   };
 
   const calculateMetrics = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
 
     // Buscar assinaturas ativas
     const { data: activeSubs } = await supabase
@@ -326,7 +315,7 @@ const Assinaturas = () => {
         subscription_plans (price, billing_frequency)
       `,
       )
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .eq("type", "customer")
       .eq("status", "active");
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getOwnerUserId } from "@/lib/owner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -161,8 +161,9 @@ const Clientes = () => {
 
   const fetchCustomers = async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) {
       setLoading(false);
       return;
     }
@@ -170,7 +171,7 @@ const Clientes = () => {
     const { data, error } = await supabase
       .from("customers")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .order("created_at", { ascending: false });
 
     console.log('📥 Clientes carregados:', data?.length || 0);
@@ -209,11 +210,11 @@ const Clientes = () => {
       }
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
 
     const { error } = await supabase.from("customers").insert({
-      user_id: user.id,
+      user_id: ownerId,
       name: newCustomer.name,
       phone: newCustomer.phone,
       email: newCustomer.email || null,
@@ -249,11 +250,11 @@ const Clientes = () => {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
 
     const { error } = await supabase.from("tasks").insert({
-      user_id: user.id,
+      user_id: ownerId,
       customer_id: selectedCustomer.id,
       title: taskForm.title,
       description: taskForm.description || null,
@@ -295,15 +296,15 @@ const Clientes = () => {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
 
     const startDateTime = new Date(`${appointmentForm.date}T${appointmentForm.time}`);
     const endDateTime = new Date(startDateTime.getTime() + parseInt(appointmentForm.duration) * 60000);
 
     const { error } = await supabase.from("appointments").insert({
       customer_id: selectedCustomer.id,
-      user_id: user.id,
+      user_id: ownerId,
       title: appointmentForm.service,
       description: appointmentForm.notes || "",
       start_time: startDateTime.toISOString(),
@@ -345,8 +346,8 @@ const Clientes = () => {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      const ownerId = await getOwnerUserId();
+      if (!ownerId) throw new Error("Usuário não autenticado");
 
       const selectedPlan = subscriptionPlans.find(p => p.id === subscriptionForm.plan_id);
       if (!selectedPlan) throw new Error("Plano não encontrado");
@@ -364,7 +365,7 @@ const Clientes = () => {
       }
 
       const { error } = await supabase.from("subscriptions").insert({
-        user_id: user.id,
+        user_id: ownerId,
         customer_id: selectedCustomer.id,
         plan_id: subscriptionForm.plan_id,
         status: "active",
