@@ -18,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PixPaymentDialog } from "@/components/PixPaymentDialog";
 
 type PlanType = "monthly" | "semestral" | "annual";
 
@@ -83,6 +84,16 @@ export function SubscriptionManager() {
   const queryClient = useQueryClient();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
+  
+  // Estados para o PIX dialog
+  const [pixDialogOpen, setPixDialogOpen] = useState(false);
+  const [pixData, setPixData] = useState<{
+    qrCode: string;
+    qrCodeBase64: string;
+    ticketUrl: string;
+    amount: number;
+    chargeId: string;
+  } | null>(null);
 
   // Buscar assinatura atual
   const { data: subscription, isLoading } = useQuery({
@@ -151,23 +162,39 @@ export function SubscriptionManager() {
     getUserAndSubscribe();
   }, [queryClient]);
 
-  // Criar assinatura
+  // Callback quando o pagamento PIX for confirmado
+  const handlePixPaymentConfirmed = () => {
+    queryClient.invalidateQueries({ queryKey: ["current-subscription"] });
+    setPixDialogOpen(false);
+    setPixData(null);
+    toast.success("🎉 Assinatura ativada com sucesso!");
+  };
+
+  // Criar assinatura via PIX
   const createSubscriptionMutation = useMutation({
     mutationFn: async (planType: PlanType) => {
-      const { data, error } = await supabase.functions.invoke("create-subscription-preference", {
+      const { data, error } = await supabase.functions.invoke("generate-subscription-pix", {
         body: { planType },
       });
 
       if (error) throw error;
+      if (!data.success) throw new Error(data.error || "Erro ao gerar PIX");
       return data;
     },
     onSuccess: (data) => {
-      if (data.init_point) {
-        window.location.href = data.init_point;
-      }
+      // Abrir dialog com QR Code ao invés de redirecionar
+      setPixData({
+        qrCode: data.qrCode,
+        qrCodeBase64: data.qrCodeBase64,
+        ticketUrl: data.ticketUrl,
+        amount: data.amount,
+        chargeId: data.chargeId,
+      });
+      setPixDialogOpen(true);
+      toast.success(`PIX gerado para ${data.planName}! Escaneie o QR Code para pagar.`);
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Erro ao criar assinatura");
+      toast.error(error.message || "Erro ao gerar PIX");
     },
   });
 
@@ -192,27 +219,33 @@ export function SubscriptionManager() {
     },
   });
 
-  // Reativar assinatura
+  // Reativar assinatura - também usa PIX
   const reactivateSubscriptionMutation = useMutation({
     mutationFn: async () => {
       if (!subscription?.id) throw new Error("Assinatura não encontrada");
 
-      const { data, error } = await supabase.functions.invoke("reactivate-subscription", {
-        body: { subscriptionId: subscription.id },
+      // Determinar o plano baseado no billing_frequency atual ou usar mensal como padrão
+      const planType = (subscription.billing_frequency as PlanType) || "monthly";
+      
+      const { data, error } = await supabase.functions.invoke("generate-subscription-pix", {
+        body: { planType },
       });
 
       if (error) throw error;
+      if (!data.success) throw new Error(data.error || "Erro ao gerar PIX");
       return data;
     },
-    onSuccess: (data: any) => {
-      if (data?.paymentUrl) {
-        toast.success("Redirecionando para o pagamento...");
-        // Redirecionar para o Mercado Pago
-        window.location.href = data.paymentUrl;
-      } else {
-        toast.success("Assinatura reativada com sucesso");
-        queryClient.invalidateQueries({ queryKey: ["current-subscription"] });
-      }
+    onSuccess: (data) => {
+      // Abrir dialog com QR Code ao invés de redirecionar
+      setPixData({
+        qrCode: data.qrCode,
+        qrCodeBase64: data.qrCodeBase64,
+        ticketUrl: data.ticketUrl,
+        amount: data.amount,
+        chargeId: data.chargeId,
+      });
+      setPixDialogOpen(true);
+      toast.success(`PIX gerado para reativação! Escaneie o QR Code para pagar.`);
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erro ao reativar assinatura");
@@ -402,6 +435,20 @@ export function SubscriptionManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog de pagamento PIX */}
+      {pixData && (
+        <PixPaymentDialog
+          open={pixDialogOpen}
+          onOpenChange={setPixDialogOpen}
+          qrCode={pixData.qrCode}
+          qrCodeBase64={pixData.qrCodeBase64}
+          ticketUrl={pixData.ticketUrl}
+          amount={pixData.amount}
+          chargeId={pixData.chargeId}
+          onPaymentConfirmed={handlePixPaymentConfirmed}
+        />
+      )}
     </div>
   );
 }
