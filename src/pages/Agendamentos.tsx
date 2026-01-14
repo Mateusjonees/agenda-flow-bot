@@ -18,9 +18,9 @@ import { toast } from "sonner";
 import { format, addDays, addWeeks, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { getOwnerUserId } from "@/lib/owner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FinishAppointmentDialog } from "@/components/FinishAppointmentDialog";
-import { EditAppointmentDialog } from "@/components/EditAppointmentDialog";
 import { CalendarView } from "@/components/CalendarView";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -235,13 +235,13 @@ const Agendamentos = () => {
   const { data: businessHours = [] } = useQuery({
     queryKey: ["business-hours"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      const ownerId = await getOwnerUserId();
+      if (!ownerId) throw new Error("Não autenticado");
 
       const { data, error } = await supabase
         .from("business_hours")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("day_of_week");
       
       if (error) throw error;
@@ -410,14 +410,14 @@ const Agendamentos = () => {
       end_time: string;
       notes: string;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      const ownerId = await getOwnerUserId();
+      if (!ownerId) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase
         .from("appointments")
         .insert({
           ...appointmentData,
-          user_id: user.id,
+          user_id: ownerId,
           status: "scheduled",
         })
         .select()

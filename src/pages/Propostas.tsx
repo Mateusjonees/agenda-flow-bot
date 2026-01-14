@@ -1,10 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getOwnerUserId } from "@/lib/owner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useReadOnly } from "@/components/SubscriptionGuard";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -129,8 +129,8 @@ const Propostas = () => {
   }, []);
 
   const fetchData = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
 
     const [proposalsRes, customersRes] = await Promise.all([
       supabase
@@ -139,12 +139,12 @@ const Propostas = () => {
           *,
           customers (name, phone)
         `)
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("created_at", { ascending: false }),
       supabase
         .from("customers")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("name"),
     ]);
 
@@ -193,8 +193,8 @@ const Propostas = () => {
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      const ownerId = await getOwnerUserId();
+      if (!ownerId) throw new Error("Usuário não autenticado");
 
       const totalAmount = calculateTotal();
       const depositAmount = (totalAmount * newProposal.deposit_percentage) / 100;
@@ -202,7 +202,7 @@ const Propostas = () => {
       validUntil.setDate(validUntil.getDate() + newProposal.valid_days);
 
       const { error } = await supabase.from("proposals").insert([{
-        user_id: user.id,
+        user_id: ownerId,
         customer_id: newProposal.customer_id,
         title: newProposal.title,
         description: newProposal.description || null,
@@ -282,13 +282,13 @@ const Propostas = () => {
         return;
       }
 
-      // Buscar nome do negócio
-      const { data: userData } = await supabase.auth.getUser();
-      const { data: businessData } = await supabase
-        .from("business_settings")
-        .select("business_name")
-        .eq("user_id", userData.user?.id)
-        .single();
+       // Buscar nome do negócio
+       const ownerId = await getOwnerUserId();
+       const { data: businessData } = await supabase
+         .from("business_settings")
+         .select("business_name")
+         .eq("user_id", ownerId)
+         .single();
 
       const businessName = businessData?.business_name || "Sua Empresa";
 
@@ -372,13 +372,13 @@ ${businessName}
         return;
       }
 
-      // Buscar nome do negócio
-      const { data: userData } = await supabase.auth.getUser();
-      const { data: businessData } = await supabase
-        .from("business_settings")
-        .select("business_name")
-        .eq("user_id", userData.user?.id)
-        .single();
+       // Buscar nome do negócio
+       const ownerId = await getOwnerUserId();
+       const { data: businessData } = await supabase
+         .from("business_settings")
+         .select("business_name")
+         .eq("user_id", ownerId)
+         .single();
 
       const businessName = businessData?.business_name || "Sua Empresa";
 

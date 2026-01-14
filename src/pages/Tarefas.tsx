@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getOwnerUserId } from "@/lib/owner";
 import { Button } from "@/components/ui/button";
 import { useReadOnly } from "@/components/SubscriptionGuard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -75,8 +75,9 @@ const Tarefas = () => {
 
   const fetchTasks = async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
 
     const { data, error } = await supabase
       .from("tasks")
@@ -86,7 +87,7 @@ const Tarefas = () => {
           name
         )
       `)
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .order("due_date", { ascending: true });
 
     if (error) {
@@ -138,13 +139,13 @@ const Tarefas = () => {
   };
 
   const fetchSubtasks = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
 
     const { data, error } = await supabase
       .from("subtasks")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -188,10 +189,20 @@ const Tarefas = () => {
     }
 
     try {
+      const ownerId = await getOwnerUserId();
+      if (!ownerId) {
+        toast({
+          title: "Erro de autenticação",
+          description: "Você precisa estar logado",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from("tasks")
         .insert({
-          user_id: session.user.id,
+          user_id: ownerId,
           title: formData.title.trim(),
           description: formData.description.trim() || null,
           due_date: new Date(formData.due_date).toISOString(),
@@ -372,14 +383,14 @@ const Tarefas = () => {
   const handleAddSubtask = async (title: string) => {
     if (!addSubtaskDialog.taskId) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return;
 
     const { error } = await supabase
       .from("subtasks")
       .insert({
         task_id: addSubtaskDialog.taskId,
-        user_id: user.id,
+        user_id: ownerId,
         title,
         completed: false,
       });
