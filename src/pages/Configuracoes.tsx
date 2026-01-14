@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Clock, Megaphone, Shield } from "lucide-react";
+import { Building2, Clock, Megaphone, Shield, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
@@ -7,6 +7,7 @@ import { BusinessSettings } from "@/components/settings/BusinessSettings";
 import { OperatingSettings } from "@/components/settings/OperatingSettings";
 import { MarketingSettings } from "@/components/settings/MarketingSettings";
 import { AccountSettings } from "@/components/settings/AccountSettings";
+import { SubscriptionManager } from "@/components/SubscriptionManager";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DaySchedule {
@@ -124,6 +125,7 @@ const Configuracoes = () => {
     { value: "funcionamento", label: "Funcionamento", icon: Clock },
     { value: "marketing", label: "Marketing", icon: Megaphone },
     { value: "conta", label: "Conta", icon: Shield },
+    { value: "plano", label: "Meu Plano", icon: Crown },
   ];
 
   return (
@@ -141,7 +143,7 @@ const Configuracoes = () => {
         <div className={`flex ${isMobile ? "flex-col" : "flex-row gap-6"}`}>
           <TabsList className={`${
             isMobile 
-              ? "w-full grid grid-cols-4 h-auto p-1" 
+              ? "w-full grid grid-cols-5 h-auto p-1"
               : "flex flex-col h-fit w-48 p-1 shrink-0"
           } bg-muted/50`}>
             {tabs.map(({ value, label, icon: Icon }) => (
@@ -214,6 +216,10 @@ const Configuracoes = () => {
 
             <TabsContent value="conta" className="mt-0">
               <AccountSettings user={user} />
+            </TabsContent>
+
+            <TabsContent value="plano" className="mt-0">
+              <SubscriptionManager />
             </TabsContent>
           </div>
         </div>
