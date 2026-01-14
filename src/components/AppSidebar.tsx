@@ -1,72 +1,36 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Calendar, Users, Settings, LayoutDashboard, DollarSign, BarChart3, FileText, Repeat, ListTodo, Package, MessageCircle, FolderOpen, CreditCard, MessageSquare, ShoppingCart, Package2, Bot } from "lucide-react";
+import { Calendar, Users, Settings, LayoutDashboard, DollarSign, BarChart3, FileText, Repeat, ListTodo, Package, MessageCircle, CreditCard, Lock } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Badge } from "@/components/ui/badge";
 import logo from "@/assets/logo-menu.png";
-const navItems = [{
-  path: "/dashboard",
-  label: "Painel",
-  icon: LayoutDashboard
-}, {
-  path: "/tarefas",
-  label: "Tarefas",
-  icon: ListTodo
-}, {
-  path: "/agendamentos",
-  label: "Agenda",
-  icon: Calendar
-}, {
-  path: "/clientes",
-  label: "Clientes",
-  icon: Users
-}, {
-  path: "/propostas",
-  label: "Propostas",
-  icon: FileText
-}, {
-  path: "/assinaturas",
-  label: "Contratos Recorrentes",
-  icon: Repeat
-}, {
-  path: "/estoque",
-  label: "Estoque",
-  icon: Package
-}, {
-  path: "/financeiro",
-  label: "Financeiro",
-  icon: DollarSign
-}, {
-  path: "/relatorios",
-  label: "Relatórios",
-  icon: BarChart3
-}, {
-  path: "/configuracoes",
-  label: "Configurações",
-  icon: Settings
-}, {
-  path: "/planos",
-  label: "Meu Plano",
-  icon: CreditCard
-}];
-const whatsappNavItems = [{
-  path: "/conversas-whatsapp",
-  label: "Conversas",
-  icon: MessageSquare
-}, {
-  path: "/pedidos-whatsapp",
-  label: "Pedidos WhatsApp",
-  icon: ShoppingCart
-}, {
-  path: "/produtos",
-  label: "Produtos",
-  icon: Package2
-}, {
-  path: "/treinamento-ia",
-  label: "Treinamento IA",
-  icon: Bot
-}];
+
+// Definição dos itens de navegação com suas rotas
+const navItems = [
+  { path: "/dashboard", label: "Painel", icon: LayoutDashboard },
+  { path: "/tarefas", label: "Tarefas", icon: ListTodo },
+  { path: "/agendamentos", label: "Agenda", icon: Calendar },
+  { path: "/clientes", label: "Clientes", icon: Users },
+  { path: "/propostas", label: "Propostas", icon: FileText },
+  { path: "/assinaturas", label: "Contratos Recorrentes", icon: Repeat },
+  { path: "/estoque", label: "Estoque", icon: Package },
+  { path: "/financeiro", label: "Financeiro", icon: DollarSign },
+  { path: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { path: "/configuracoes", label: "Configurações", icon: Settings },
+  { path: "/planos", label: "Meu Plano", icon: CreditCard },
+];
+
 export function AppSidebar() {
   const location = useLocation();
-  return <Sidebar collapsible="icon" className="border-r transition-all duration-300">
+  const { allowedRoutes, isReadOnly, isLoading } = useUserRole();
+
+  // Filtra os itens de navegação baseado nas permissões do usuário
+  const filteredNavItems = navItems.filter(item => 
+    allowedRoutes.includes(item.path)
+  );
+
+  return (
+    <Sidebar collapsible="icon" className="border-r transition-all duration-300">
       <SidebarHeader className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
         <div className="flex items-center justify-center py-3 px-2 group-data-[collapsible=icon]:py-2 group-data-[collapsible=icon]:px-0">
           <div className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl p-2 shadow-sm border border-primary/20 backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:scale-105 group-data-[collapsible=icon]:p-1.5 group-data-[collapsible=icon]:rounded-lg overflow-hidden">
@@ -80,24 +44,31 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map(item => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return <SidebarMenuItem key={item.path}>
+              {filteredNavItems.map(item => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                const isRouteReadOnly = isReadOnly(item.path);
+                
+                return (
+                  <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                      <NavLink to={item.path}>
+                      <NavLink to={item.path} className="flex items-center gap-2">
                         <Icon className="w-5 h-5" />
-                        <span>{item.label}</span>
+                        <span className="flex items-center gap-2">
+                          {item.label}
+                          {/* Mostra badge de somente leitura quando aplicável */}
+                          {isRouteReadOnly && (
+                            <Lock className="w-3 h-3 text-muted-foreground" />
+                          )}
+                        </span>
                       </NavLink>
                     </SidebarMenuButton>
-                  </SidebarMenuItem>;
-            })}
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* WhatsApp E-commerce Section */}
-        
 
         {/* Support */}
         <SidebarGroup>
@@ -105,7 +76,12 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Suporte">
-                  <a href="https://wa.me/554899075189?text=Olá,%20preciso%20de%20suporte" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
+                  <a 
+                    href="https://wa.me/554899075189?text=Olá,%20preciso%20de%20suporte" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="flex items-center gap-3"
+                  >
                     <MessageCircle className="w-5 h-5" />
                     <span>Suporte WhatsApp</span>
                   </a>
@@ -115,5 +91,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-    </Sidebar>;
+    </Sidebar>
+  );
 }
