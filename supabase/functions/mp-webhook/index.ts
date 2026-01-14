@@ -607,6 +607,123 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
+      // ✅ NOVO: Processar pagamento de licença de usuário (user_seat)
+      if (metadata?.type === "user_seat") {
+        console.log("👤 STEP 11: Processando pagamento de licença de usuário");
+        
+        const ownerUserId = metadata.owner_user_id;
+        const pendingEmail = metadata.pending_email;
+        const pendingName = metadata.pending_name;
+        const pendingRole = metadata.pending_role;
+
+        if (!ownerUserId || !pendingEmail) {
+          console.error("❌ Missing owner_user_id or pending_email in metadata");
+          return new Response(
+            JSON.stringify({ error: "Missing user seat data" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Buscar dados completos do pagamento pendente
+        const { data: seatPayment, error: seatError } = await supabaseClient
+          .from("user_seat_payments")
+          .select("*")
+          .eq("owner_user_id", ownerUserId)
+          .eq("pending_email", pendingEmail)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (seatError || !seatPayment) {
+          console.error("❌ Seat payment not found:", seatError);
+          return new Response(
+            JSON.stringify({ error: "Seat payment not found" }),
+            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        console.log("✅ Seat payment encontrado:", seatPayment.id);
+
+        // Criar o usuário no Supabase Auth
+        const { data: newUser, error: createUserError } = await supabaseClient.auth.admin.createUser({
+          email: seatPayment.pending_email,
+          password: seatPayment.pending_password,
+          email_confirm: true, // Confirma email automaticamente
+          user_metadata: {
+            full_name: seatPayment.pending_name,
+          },
+        });
+
+        if (createUserError) {
+          console.error("❌ Erro ao criar usuário:", createUserError);
+          
+          // Atualizar status do pagamento como erro
+          await supabaseClient
+            .from("user_seat_payments")
+            .update({ status: "cancelled" })
+            .eq("id", seatPayment.id);
+          
+          return new Response(
+            JSON.stringify({ error: "Failed to create user", details: createUserError.message }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        console.log("✅ Usuário criado:", newUser.user.id);
+
+        // Salvar email no profile
+        await supabaseClient
+          .from("profiles")
+          .update({ email: seatPayment.pending_email })
+          .eq("id", newUser.user.id);
+
+        // Atribuir role ao novo usuário
+        const nextPaymentDue = new Date();
+        nextPaymentDue.setMonth(nextPaymentDue.getMonth() + 1);
+
+        const { error: roleError } = await supabaseClient
+          .from("user_roles")
+          .insert({
+            user_id: newUser.user.id,
+            role: seatPayment.pending_role,
+            created_by: ownerUserId,
+            last_payment_at: new Date().toISOString(),
+            next_payment_due: nextPaymentDue.toISOString(),
+            is_paid: true,
+            seat_payment_id: seatPayment.id,
+          });
+
+        if (roleError) {
+          console.error("❌ Erro ao atribuir role:", roleError);
+        } else {
+          console.log("✅ Role atribuída:", seatPayment.pending_role);
+        }
+
+        // Atualizar status do pagamento
+        await supabaseClient
+          .from("user_seat_payments")
+          .update({
+            status: "paid",
+            paid_at: new Date().toISOString(),
+            mp_payment_id: String(payment.id),
+            created_user_id: newUser.user.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", seatPayment.id);
+
+        console.log("🎉 Licença de usuário ativada com sucesso!");
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: "User seat payment processed successfully",
+            userId: newUser.user.id,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       console.log("ℹ️ STEP 11: Não é pagamento de plataforma - processamento genérico");
       return new Response(
         JSON.stringify({ success: true, message: "Payment processed" }),

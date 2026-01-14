@@ -11,10 +11,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, UserPlus, Shield, Loader2, Crown } from "lucide-react";
+import { Plus, Pencil, Trash2, UserPlus, Shield, Loader2, Crown, CreditCard, QrCode, DollarSign } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ASSIGNABLE_ROLES, ROLE_LABELS, ROLE_DESCRIPTIONS, UserRole } from "@/config/permissions";
+import { UserSeatPaymentDialog } from "./UserSeatPaymentDialog";
 
 interface UserWithRole {
   id: string;
@@ -25,6 +28,18 @@ interface UserWithRole {
   isOwner: boolean;
 }
 
+interface PaymentData {
+  id: string;
+  qr_code: string;
+  qr_code_base64?: string;
+  amount: number;
+  pending_email: string;
+  pending_name: string;
+  expires_at: string;
+}
+
+const USER_SEAT_PRICE = 19.00;
+
 /**
  * Componente de Gerenciamento de Usuários
  * Permite que admins criem, editem e removam usuários e suas permissões
@@ -33,6 +48,7 @@ interface UserWithRole {
  * - O dono da conta (owner) não pode ser excluído
  * - O usuário logado não pode excluir a si mesmo
  * - Apenas admins podem acessar este componente
+ * - Novos usuários requerem pagamento de R$19/mês
  */
 export function UserManagement() {
   const queryClient = useQueryClient();
@@ -45,6 +61,12 @@ export function UserManagement() {
   const [newName, setNewName] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState<UserRole>("seller");
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
+  
+  // Estado para modal de pagamento PIX
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Buscar usuários com suas roles
   const { data: usersData, isLoading } = useQuery({
@@ -117,56 +139,6 @@ export function UserManagement() {
   const users = usersData?.users;
   const currentUserId = usersData?.currentUserId;
 
-  // Mutation para criar novo usuário
-  const createUserMutation = useMutation({
-    mutationFn: async ({ email, name, password, role }: { email: string; name: string; password: string; role: UserRole }) => {
-      // Criar usuário via Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name,
-          },
-        },
-      });
-      
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Erro ao criar usuário");
-
-      // Aguardar um pouco para garantir que o trigger criou o profile
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Salvar email no profile para exibição futura
-      await supabase
-        .from('profiles')
-        .update({ email })
-        .eq('id', authData.user.id);
-
-      // Atribuir role ao usuário
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: role,
-        });
-      
-      if (roleError) throw roleError;
-
-      return authData.user;
-    },
-    onSuccess: () => {
-      toast.success("Usuário criado com sucesso! Um email de confirmação foi enviado.");
-      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
-      resetForm();
-      setIsDialogOpen(false);
-    },
-    onError: (error: Error) => {
-      console.error("Erro ao criar usuário:", error);
-      toast.error(error.message || "Erro ao criar usuário");
-    },
-  });
-
   // Mutation para atualizar role
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: UserRole }) => {
@@ -218,7 +190,116 @@ export function UserManagement() {
     setNewName("");
     setNewPassword("");
     setNewRole("seller");
+    setPaymentMethod("pix");
     setEditingUser(null);
+  };
+
+  // Gerar pagamento PIX para novo usuário
+  const handleGeneratePixPayment = async () => {
+    if (!newEmail || !newName || !newPassword) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("A senha deve ter no mínimo 6 caracteres");
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
+
+      const response = await supabase.functions.invoke("generate-user-seat-pix", {
+        body: {
+          email: newEmail,
+          name: newName,
+          password: newPassword,
+          role: newRole,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Erro ao gerar PIX");
+      }
+
+      const data = response.data;
+      
+      if (!data.success) {
+        throw new Error(data.error || "Erro ao gerar PIX");
+      }
+
+      // Mostrar modal de pagamento PIX
+      setPaymentData(data.payment);
+      setIsDialogOpen(false);
+      setPaymentDialogOpen(true);
+      
+    } catch (error: any) {
+      console.error("Erro ao gerar PIX:", error);
+      
+      // Mensagens de erro mais amigáveis
+      if (error.message?.includes("já está cadastrado")) {
+        toast.error("Este email já está cadastrado no sistema");
+      } else {
+        toast.error(error.message || "Erro ao gerar pagamento PIX");
+      }
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  // Gerar preferência de cartão para novo usuário
+  const handleGenerateCardPayment = async () => {
+    if (!newEmail || !newName || !newPassword) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("A senha deve ter no mínimo 6 caracteres");
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    
+    try {
+      const response = await supabase.functions.invoke("create-user-seat-preference", {
+        body: {
+          email: newEmail,
+          name: newName,
+          password: newPassword,
+          role: newRole,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Erro ao criar pagamento");
+      }
+
+      const data = response.data;
+      
+      if (!data.success) {
+        throw new Error(data.error || "Erro ao criar pagamento");
+      }
+
+      // Redirecionar para checkout do Mercado Pago
+      if (data.checkoutUrl) {
+        setIsDialogOpen(false);
+        window.open(data.checkoutUrl, "_blank");
+        toast.info("Você será redirecionado para o checkout do Mercado Pago");
+      }
+      
+    } catch (error: any) {
+      console.error("Erro ao criar pagamento:", error);
+      
+      if (error.message?.includes("já está cadastrado")) {
+        toast.error("Este email já está cadastrado no sistema");
+      } else {
+        toast.error(error.message || "Erro ao criar pagamento");
+      }
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   const handleSubmit = () => {
@@ -228,20 +309,12 @@ export function UserManagement() {
         role: newRole,
       });
     } else {
-      if (!newEmail || !newName || !newPassword) {
-        toast.error("Preencha todos os campos");
-        return;
+      // Novo usuário - processar pagamento
+      if (paymentMethod === "pix") {
+        handleGeneratePixPayment();
+      } else {
+        handleGenerateCardPayment();
       }
-      if (newPassword.length < 6) {
-        toast.error("A senha deve ter no mínimo 6 caracteres");
-        return;
-      }
-      createUserMutation.mutate({
-        email: newEmail,
-        name: newName,
-        password: newPassword,
-        role: newRole,
-      });
     }
   };
 
@@ -260,250 +333,354 @@ export function UserManagement() {
     return true;
   };
 
+  // Callback quando pagamento é confirmado
+  const handlePaymentConfirmed = () => {
+    setPaymentDialogOpen(false);
+    setPaymentData(null);
+    resetForm();
+    queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+    toast.success("Usuário criado com sucesso!");
+  };
+
   // Se não for admin, não mostra nada
   if (!isAdmin) {
     return null;
   }
 
   return (
-    <Card>
-      <CardHeader className="p-3 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Gerenciamento de Usuários
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Crie, edite e remova usuários e suas permissões
-            </CardDescription>
-          </div>
-          
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) resetForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <UserPlus className="h-4 w-4" />
-                Novo Usuário
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {editingUser ? "Editar Perfil" : "Novo Usuário"}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingUser 
-                    ? "Altere o perfil de acesso do usuário"
-                    : "Preencha os dados para criar um novo usuário"
-                  }
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-4 py-4">
-                {!editingUser && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nome Completo</Label>
-                      <Input
-                        id="name"
-                        placeholder="João da Silva"
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">E-mail</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="joao@exemplo.com"
-                        value={newEmail}
-                        onChange={(e) => setNewEmail(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Senha</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder="Mínimo 6 caracteres"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                      />
-                    </div>
-                  </>
-                )}
+    <>
+      <Card>
+        <CardHeader className="p-3 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Gerenciamento de Usuários
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                Crie, edite e remova usuários e suas permissões
+              </CardDescription>
+            </div>
+            
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) resetForm();
+            }}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Novo Usuário
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingUser ? "Editar Perfil" : "Novo Usuário"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingUser 
+                      ? "Altere o perfil de acesso do usuário"
+                      : "Preencha os dados e escolha a forma de pagamento"
+                    }
+                  </DialogDescription>
+                </DialogHeader>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="role">Perfil de Acesso</Label>
-                  <Select value={newRole} onValueChange={(value) => setNewRole(value as UserRole)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o perfil" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ASSIGNABLE_ROLES.map((role) => (
-                        <SelectItem key={role} value={role}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{ROLE_LABELS[role]}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {ROLE_DESCRIPTIONS[role]}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <DialogFooter>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  onClick={handleSubmit}
-                  disabled={createUserMutation.isPending || updateRoleMutation.isPending}
-                >
-                  {(createUserMutation.isPending || updateRoleMutation.isPending) && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <div className="space-y-4 py-4">
+                  {!editingUser && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Nome Completo</Label>
+                        <Input
+                          id="name"
+                          placeholder="João da Silva"
+                          value={newName}
+                          onChange={(e) => setNewName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">E-mail</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="joao@exemplo.com"
+                          value={newEmail}
+                          onChange={(e) => setNewEmail(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Senha</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="Mínimo 6 caracteres"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                        />
+                      </div>
+                    </>
                   )}
-                  {editingUser ? "Salvar" : "Criar Usuário"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="p-3 sm:p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Perfil de Acesso</Label>
+                    <Select value={newRole} onValueChange={(value) => setNewRole(value as UserRole)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o perfil" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ASSIGNABLE_ROLES.map((role) => (
+                          <SelectItem key={role} value={role}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{ROLE_LABELS[role]}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {ROLE_DESCRIPTIONS[role]}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Seção de pagamento - só para novos usuários */}
+                  {!editingUser && (
+                    <>
+                      <Separator className="my-4" />
+                      
+                      <div className="rounded-lg bg-muted/50 p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium flex items-center gap-2">
+                            <DollarSign className="h-4 w-4" />
+                            Taxa Mensal
+                          </span>
+                          <span className="text-lg font-bold text-primary">
+                            R$ {USER_SEAT_PRICE.toFixed(2).replace(".", ",")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Por usuário adicional, renovação mensal
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label>Forma de Pagamento</Label>
+                        <RadioGroup
+                          value={paymentMethod}
+                          onValueChange={(value) => setPaymentMethod(value as "pix" | "card")}
+                          className="grid grid-cols-2 gap-3"
+                        >
+                          <div>
+                            <RadioGroupItem
+                              value="pix"
+                              id="pix"
+                              className="peer sr-only"
+                            />
+                            <Label
+                              htmlFor="pix"
+                              className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                            >
+                              <QrCode className="h-6 w-6 mb-2" />
+                              <span className="text-sm font-medium">PIX</span>
+                              <span className="text-xs text-muted-foreground">Instantâneo</span>
+                            </Label>
+                          </div>
+                          <div>
+                            <RadioGroupItem
+                              value="card"
+                              id="card"
+                              className="peer sr-only"
+                            />
+                            <Label
+                              htmlFor="card"
+                              className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                            >
+                              <CreditCard className="h-6 w-6 mb-2" />
+                              <span className="text-sm font-medium">Cartão</span>
+                              <span className="text-xs text-muted-foreground">Crédito</span>
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                    </>
+                  )}
+                </div>
+                
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleSubmit}
+                    disabled={isProcessingPayment || updateRoleMutation.isPending}
+                  >
+                    {(isProcessingPayment || updateRoleMutation.isPending) && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {editingUser 
+                      ? "Salvar" 
+                      : paymentMethod === "pix" 
+                        ? "Gerar PIX" 
+                        : "Pagar com Cartão"
+                    }
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
-        ) : users && users.length > 0 ? (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Perfil</TableHead>
-                  <TableHead className="hidden sm:table-cell">Desde</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id} className={user.isOwner ? "bg-amber-500/5" : ""}>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{user.full_name || "Sem nome"}</span>
+        </CardHeader>
+        
+        <CardContent className="p-3 sm:p-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : users && users.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Perfil</TableHead>
+                    <TableHead className="hidden sm:table-cell">Desde</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id} className={user.isOwner ? "bg-amber-500/5" : ""}>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{user.full_name || "Sem nome"}</span>
+                            {user.isOwner && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 gap-1">
+                                      <Crown className="h-3 w-3" />
+                                      Principal
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Conta principal (dono da assinatura)</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            {user.id === currentUserId && !user.isOwner && (
+                              <Badge variant="outline" className="text-xs">Você</Badge>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground">{user.email}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.role === 'admin' || user.role === 'owner' ? 'default' : 'secondary'}>
+                          {ROLE_LABELS[user.role] || user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
+                        {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {/* Só permite editar se não for o owner */}
+                          {!user.isOwner && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditDialog(user)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          
+                          {/* Só mostra botão de excluir se pode excluir */}
+                          {canDeleteUser(user) && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remover Usuário</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja remover <strong>{user.full_name || user.email}</strong>?
+                                    Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteUserMutation.mutate(user.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Remover
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                          
+                          {/* Tooltip para owner */}
                           {user.isOwner && (
                             <TooltipProvider>
                               <Tooltip>
-                                <TooltipTrigger>
-                                  <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 gap-1">
-                                    <Crown className="h-3 w-3" />
-                                    Principal
-                                  </Badge>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex h-9 w-9 items-center justify-center opacity-30 cursor-not-allowed">
+                                    <Trash2 className="h-4 w-4" />
+                                  </span>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Conta principal (dono da assinatura)</p>
+                                  <p>A conta principal não pode ser removida</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           )}
+                          
+                          {/* Tooltip para próprio usuário */}
                           {user.id === currentUserId && !user.isOwner && (
-                            <Badge variant="outline" className="text-xs">Você</Badge>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex h-9 w-9 items-center justify-center opacity-30 cursor-not-allowed">
+                                    <Trash2 className="h-4 w-4" />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Você não pode remover a si mesmo</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
                         </div>
-                        <span className="text-xs text-muted-foreground">{user.email}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.role === 'admin' || user.role === 'owner' ? 'default' : 'secondary'}>
-                        {ROLE_LABELS[user.role] || user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
-                      {new Date(user.created_at).toLocaleDateString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {/* Só permite editar se não for o owner */}
-                        {!user.isOwner && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEditDialog(user)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        )}
-                        
-                        {/* Só mostra botão de excluir se pode excluir */}
-                        {canDeleteUser(user) && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remover Usuário</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Tem certeza que deseja remover o acesso de {user.full_name || user.email}?
-                                  Esta ação não pode ser desfeita.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteUserMutation.mutate(user.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Remover
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                        
-                        {/* Mostrar info se não pode excluir */}
-                        {!canDeleteUser(user) && !user.isOwner && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Badge variant="outline" className="text-xs">Você</Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Você não pode excluir sua própria conta</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum usuário cadastrado.</p>
-            <p className="text-sm">Clique em "Novo Usuário" para adicionar.</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Shield className="h-12 w-12 mx-auto mb-4 opacity-30" />
+              <p>Nenhum usuário encontrado</p>
+              <p className="text-sm">Clique em "Novo Usuário" para adicionar</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Modal de pagamento PIX */}
+      <UserSeatPaymentDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        paymentData={paymentData}
+        onPaymentConfirmed={handlePaymentConfirmed}
+      />
+    </>
   );
 }
