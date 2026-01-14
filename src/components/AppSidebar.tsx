@@ -17,7 +17,6 @@ const navItems = [
   { path: "/financeiro", label: "Financeiro", icon: DollarSign },
   { path: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { path: "/configuracoes", label: "Configurações", icon: Settings },
-  { path: "/planos", label: "Meu Plano", icon: CreditCard },
 ];
 
 export function AppSidebar() {
