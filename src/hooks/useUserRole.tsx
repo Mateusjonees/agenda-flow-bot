@@ -11,7 +11,12 @@ export function useUserRole() {
     queryKey: ['user-role'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!user) {
+        console.log('[useUserRole] Usuário não autenticado');
+        return null;
+      }
+
+      console.log('[useUserRole] Buscando role para user_id:', user.id);
 
       // Buscar role do usuário na tabela user_roles
       const { data, error } = await supabase
@@ -21,29 +26,35 @@ export function useUserRole() {
         .maybeSingle();
 
       if (error) {
-        console.error('Erro ao buscar role do usuário:', error);
+        console.error('[useUserRole] Erro ao buscar role:', error);
         // Em caso de erro, ainda considera como admin (dono)
         return 'admin' as UserRole;
       }
 
+      console.log('[useUserRole] Dados retornados:', data);
+
       // Se tem role atribuída, usa ela
       if (data?.role) {
+        console.log('[useUserRole] Role encontrada:', data.role);
         return data.role as UserRole;
       }
 
       // Se não tem role atribuída, verifica se o usuário é dono de algum negócio
-      // Se sim, considera como admin/owner
       const { data: businessData } = await supabase
         .from('business_settings')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      // Se é dono de um negócio, é admin. Senão, pode ser um novo usuário
-      return businessData ? ('admin' as UserRole) : ('admin' as UserRole);
+      const finalRole = businessData ? 'admin' : 'admin';
+      console.log('[useUserRole] Sem role explícita, usando:', finalRole, 'businessData:', !!businessData);
+      
+      return finalRole as UserRole;
     },
     staleTime: 5 * 60 * 1000, // Cache por 5 minutos
     retry: 1,
+    // Manter dados anteriores enquanto recarrega para evitar flicker
+    placeholderData: (previousData) => previousData,
   });
 
   const role = roleData || null;
