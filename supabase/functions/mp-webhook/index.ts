@@ -678,9 +678,23 @@ const handler = async (req: Request): Promise<Response> => {
           .update({ email: seatPayment.pending_email })
           .eq("id", newUser.user.id);
 
-        // Atribuir role ao novo usuário
-        const nextPaymentDue = new Date();
-        nextPaymentDue.setMonth(nextPaymentDue.getMonth() + 1);
+        // Buscar a subscription do dono para pegar a data de expiração
+        const { data: ownerSub } = await supabaseClient
+          .from("subscriptions")
+          .select("next_billing_date")
+          .eq("user_id", ownerUserId)
+          .is("customer_id", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        // Usar a data de expiração do plano do dono, ou fallback para 30 dias
+        const nextPaymentDue = ownerSub?.next_billing_date 
+          ? new Date(ownerSub.next_billing_date) 
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+        console.log("📅 Data de expiração do colaborador:", nextPaymentDue.toISOString());
+        console.log("📅 Baseado na subscription do dono:", ownerSub?.next_billing_date || "não encontrada (usando +30 dias)");
 
         const { error: roleError } = await supabaseClient
           .from("user_roles")

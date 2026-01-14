@@ -2467,6 +2467,7 @@ export type Database = {
         Args: { quantity: number; variant_id: string }
         Returns: undefined
       }
+      expire_overdue_team_licenses: { Args: never; Returns: number }
       generate_order_number: { Args: never; Returns: string }
       get_owner_subscription: {
         Args: { p_user_id: string }
@@ -2481,6 +2482,10 @@ export type Database = {
         }[]
       }
       get_owner_user_id: { Args: { _user_id: string }; Returns: string }
+      get_team_member_days_remaining: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
