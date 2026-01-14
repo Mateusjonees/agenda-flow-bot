@@ -2468,6 +2468,18 @@ export type Database = {
         Returns: undefined
       }
       generate_order_number: { Args: never; Returns: string }
+      get_owner_subscription: {
+        Args: { p_user_id: string }
+        Returns: {
+          billing_frequency: string
+          days_remaining: number
+          id: string
+          next_billing_date: string
+          plan_name: string
+          start_date: string
+          status: string
+        }[]
+      }
       get_owner_user_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
