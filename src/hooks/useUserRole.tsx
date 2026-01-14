@@ -22,12 +22,25 @@ export function useUserRole() {
 
       if (error) {
         console.error('Erro ao buscar role do usuário:', error);
-        return null;
+        // Em caso de erro, ainda considera como admin (dono)
+        return 'admin' as UserRole;
       }
 
-      // Se não tem role atribuída, considera como admin (dono da conta)
-      // Isso é para compatibilidade com usuários existentes
-      return (data?.role as UserRole) || 'admin';
+      // Se tem role atribuída, usa ela
+      if (data?.role) {
+        return data.role as UserRole;
+      }
+
+      // Se não tem role atribuída, verifica se o usuário é dono de algum negócio
+      // Se sim, considera como admin/owner
+      const { data: businessData } = await supabase
+        .from('business_settings')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      // Se é dono de um negócio, é admin. Senão, pode ser um novo usuário
+      return businessData ? ('admin' as UserRole) : ('admin' as UserRole);
     },
     staleTime: 5 * 60 * 1000, // Cache por 5 minutos
     retry: 1,
