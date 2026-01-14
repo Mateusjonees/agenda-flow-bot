@@ -672,10 +672,13 @@ const handler = async (req: Request): Promise<Response> => {
 
         console.log("✅ Usuário criado:", newUser.user.id);
 
-        // Salvar email no profile
+        // Salvar email e nome no profile
         await supabaseClient
           .from("profiles")
-          .update({ email: seatPayment.pending_email })
+          .update({ 
+            email: seatPayment.pending_email,
+            full_name: seatPayment.pending_name,
+          })
           .eq("id", newUser.user.id);
 
         // Buscar a subscription do dono para pegar a data de expiração
