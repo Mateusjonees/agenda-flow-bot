@@ -372,71 +372,74 @@ export function UserManagement() {
                   Novo Usuário
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>
+              <DialogContent className="max-w-sm max-h-[85vh] overflow-hidden flex flex-col">
+                <DialogHeader className="pb-2">
+                  <DialogTitle className="text-base">
                     {editingUser ? "Editar Perfil" : "Novo Usuário"}
                   </DialogTitle>
-                  <DialogDescription>
+                  <DialogDescription className="text-xs">
                     {editingUser 
                       ? "Altere o perfil de acesso do usuário"
-                      : "Preencha os dados e escolha a forma de pagamento"
+                      : "Preencha os dados para criar o usuário"
                     }
                   </DialogDescription>
                 </DialogHeader>
                 
-                <div className="space-y-4 py-4">
+                <div className="space-y-3 py-2 overflow-y-auto flex-1 pr-1">
                   {!editingUser && (
                     <>
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Nome Completo</Label>
+                      <div className="space-y-1">
+                        <Label htmlFor="name" className="text-xs">Nome Completo</Label>
                         <Input
                           id="name"
                           placeholder="João da Silva"
                           value={newName}
                           onChange={(e) => setNewName(e.target.value)}
+                          className="h-9"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">E-mail</Label>
+                      <div className="space-y-1">
+                        <Label htmlFor="email" className="text-xs">E-mail</Label>
                         <Input
                           id="email"
                           type="email"
                           placeholder="joao@exemplo.com"
                           value={newEmail}
                           onChange={(e) => setNewEmail(e.target.value)}
+                          className="h-9"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="password">Senha</Label>
+                      <div className="space-y-1">
+                        <Label htmlFor="password" className="text-xs">Senha</Label>
                         <Input
                           id="password"
                           type="password"
                           placeholder="Mínimo 6 caracteres"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
+                          className="h-9"
                         />
                       </div>
                     </>
                   )}
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Perfil de Acesso</Label>
+                  <div className="space-y-1">
+                    <Label htmlFor="role" className="text-xs">Perfil de Acesso</Label>
                     <Select value={newRole} onValueChange={(value) => setNewRole(value as UserRole)}>
-                      <SelectTrigger className="h-auto min-h-[2.5rem]">
-                        <div className="flex flex-col items-start text-left py-1">
-                          <span className="font-medium">{ROLE_LABELS[newRole]}</span>
-                          <span className="text-xs text-muted-foreground line-clamp-2">
+                      <SelectTrigger className="h-auto min-h-9">
+                        <div className="flex flex-col items-start text-left py-0.5">
+                          <span className="text-sm font-medium">{ROLE_LABELS[newRole]}</span>
+                          <span className="text-[10px] text-muted-foreground line-clamp-1">
                             {ROLE_DESCRIPTIONS[newRole]}
                           </span>
                         </div>
                       </SelectTrigger>
                       <SelectContent>
                         {ASSIGNABLE_ROLES.map((role) => (
-                          <SelectItem key={role} value={role} className="py-3">
+                          <SelectItem key={role} value={role} className="py-2">
                             <div className="flex flex-col items-start">
-                              <span className="font-medium">{ROLE_LABELS[role]}</span>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-sm font-medium">{ROLE_LABELS[role]}</span>
+                              <span className="text-[10px] text-muted-foreground">
                                 {ROLE_DESCRIPTIONS[role]}
                               </span>
                             </div>
@@ -449,29 +452,29 @@ export function UserManagement() {
                   {/* Seção de pagamento - só para novos usuários */}
                   {!editingUser && (
                     <>
-                      <Separator className="my-4" />
+                      <Separator className="my-2" />
                       
-                      <div className="rounded-lg bg-muted/50 p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium flex items-center gap-2">
-                            <DollarSign className="h-4 w-4" />
+                      <div className="rounded-md bg-muted/50 p-3 flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-medium flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />
                             Taxa Mensal
                           </span>
-                          <span className="text-lg font-bold text-primary">
-                            R$ {USER_SEAT_PRICE.toFixed(2).replace(".", ",")}
-                          </span>
+                          <p className="text-[10px] text-muted-foreground">
+                            Por usuário adicional
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          Por usuário adicional, renovação mensal
-                        </p>
+                        <span className="text-base font-bold text-primary">
+                          R$ {USER_SEAT_PRICE.toFixed(2).replace(".", ",")}
+                        </span>
                       </div>
 
-                      <div className="space-y-3">
-                        <Label>Forma de Pagamento</Label>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Forma de Pagamento</Label>
                         <RadioGroup
                           value={paymentMethod}
                           onValueChange={(value) => setPaymentMethod(value as "pix" | "card")}
-                          className="grid grid-cols-2 gap-3"
+                          className="grid grid-cols-2 gap-2"
                         >
                           <div>
                             <RadioGroupItem
@@ -481,11 +484,10 @@ export function UserManagement() {
                             />
                             <Label
                               htmlFor="pix"
-                              className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                              className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                             >
-                              <QrCode className="h-6 w-6 mb-2" />
-                              <span className="text-sm font-medium">PIX</span>
-                              <span className="text-xs text-muted-foreground">Instantâneo</span>
+                              <QrCode className="h-5 w-5 mb-1" />
+                              <span className="text-xs font-medium">PIX</span>
                             </Label>
                           </div>
                           <div>
@@ -496,11 +498,10 @@ export function UserManagement() {
                             />
                             <Label
                               htmlFor="card"
-                              className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                              className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                             >
-                              <CreditCard className="h-6 w-6 mb-2" />
-                              <span className="text-sm font-medium">Cartão</span>
-                              <span className="text-xs text-muted-foreground">Crédito</span>
+                              <CreditCard className="h-5 w-5 mb-1" />
+                              <span className="text-xs font-medium">Cartão</span>
                             </Label>
                           </div>
                         </RadioGroup>
