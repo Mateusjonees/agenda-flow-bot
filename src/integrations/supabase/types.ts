@@ -2144,22 +2144,111 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          is_paid: boolean | null
+          last_payment_at: string | null
+          next_payment_due: string | null
           role: Database["public"]["Enums"]["app_role"]
+          seat_payment_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_paid?: boolean | null
+          last_payment_at?: string | null
+          next_payment_due?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          seat_payment_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_paid?: boolean | null
+          last_payment_at?: string | null
+          next_payment_due?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          seat_payment_id?: string | null
           user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_seat_payment_id_fkey"
+            columns: ["seat_payment_id"]
+            isOneToOne: false
+            referencedRelation: "user_seat_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_seat_payments: {
+        Row: {
+          amount: number | null
+          checkout_url: string | null
+          created_at: string | null
+          created_user_id: string | null
+          expires_at: string | null
+          id: string
+          mp_payment_id: string | null
+          owner_user_id: string
+          paid_at: string | null
+          payment_id: string | null
+          payment_method: string | null
+          pending_email: string
+          pending_name: string
+          pending_password: string
+          pending_role: string
+          qr_code: string | null
+          qr_code_base64: string | null
+          status: string | null
+          ticket_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          checkout_url?: string | null
+          created_at?: string | null
+          created_user_id?: string | null
+          expires_at?: string | null
+          id?: string
+          mp_payment_id?: string | null
+          owner_user_id: string
+          paid_at?: string | null
+          payment_id?: string | null
+          payment_method?: string | null
+          pending_email: string
+          pending_name: string
+          pending_password: string
+          pending_role?: string
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          status?: string | null
+          ticket_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          checkout_url?: string | null
+          created_at?: string | null
+          created_user_id?: string | null
+          expires_at?: string | null
+          id?: string
+          mp_payment_id?: string | null
+          owner_user_id?: string
+          paid_at?: string | null
+          payment_id?: string | null
+          payment_method?: string | null
+          pending_email?: string
+          pending_name?: string
+          pending_password?: string
+          pending_role?: string
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          status?: string | null
+          ticket_url?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
