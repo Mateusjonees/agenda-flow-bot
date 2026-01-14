@@ -1402,6 +1402,7 @@ export type Database = {
         Row: {
           cpf: string | null
           created_at: string | null
+          email: string | null
           full_name: string | null
           id: string
           phone: string | null
@@ -1410,6 +1411,7 @@ export type Database = {
         Insert: {
           cpf?: string | null
           created_at?: string | null
+          email?: string | null
           full_name?: string | null
           id: string
           phone?: string | null
@@ -1418,6 +1420,7 @@ export type Database = {
         Update: {
           cpf?: string | null
           created_at?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null

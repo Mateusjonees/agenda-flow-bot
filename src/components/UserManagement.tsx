@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, UserPlus, Shield, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, UserPlus, Shield, Loader2, Crown } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ASSIGNABLE_ROLES, ROLE_LABELS, ROLE_DESCRIPTIONS, UserRole } from "@/config/permissions";
 
@@ -21,11 +22,17 @@ interface UserWithRole {
   full_name: string | null;
   role: UserRole;
   created_at: string;
+  isOwner: boolean;
 }
 
 /**
  * Componente de Gerenciamento de Usuários
  * Permite que admins criem, editem e removam usuários e suas permissões
+ * 
+ * PROTEÇÕES:
+ * - O dono da conta (owner) não pode ser excluído
+ * - O usuário logado não pode excluir a si mesmo
+ * - Apenas admins podem acessar este componente
  */
 export function UserManagement() {
   const queryClient = useQueryClient();
@@ -40,9 +47,20 @@ export function UserManagement() {
   const [newRole, setNewRole] = useState<UserRole>("seller");
 
   // Buscar usuários com suas roles
-  const { data: users, isLoading } = useQuery({
+  const { data: usersData, isLoading } = useQuery({
     queryKey: ['users-with-roles'],
     queryFn: async () => {
+      // Buscar usuário atual
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      // Buscar o dono da conta (quem tem business_settings)
+      const { data: businessSettings } = await supabase
+        .from('business_settings')
+        .select('user_id')
+        .single();
+      
+      const ownerId = businessSettings?.user_id;
+      
       // Buscar todas as roles
       const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
@@ -50,32 +68,54 @@ export function UserManagement() {
       
       if (rolesError) throw rolesError;
       
-      // Buscar perfis correspondentes
+      // Buscar perfis correspondentes (agora com email)
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name');
+        .select('id, full_name, email');
       
       if (profilesError) throw profilesError;
-
-      // Buscar usuário atual para pegar o email
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
       
       // Combinar dados
       const usersWithRoles: UserWithRole[] = roles?.map(role => {
         const profile = profiles?.find(p => p.id === role.user_id);
+        const isOwner = role.user_id === ownerId;
+        
+        // Email: usar do profile se disponível, senão do currentUser se for o mesmo, senão N/A
+        let email = 'N/A';
+        if (profile?.email) {
+          email = profile.email;
+        } else if (role.user_id === currentUser?.id && currentUser?.email) {
+          email = currentUser.email;
+        }
+        
         return {
           id: role.user_id,
-          email: role.user_id === currentUser?.id ? currentUser.email || 'N/A' : 'N/A',
+          email,
           full_name: profile?.full_name || null,
           role: role.role as UserRole,
           created_at: role.created_at || new Date().toISOString(),
+          isOwner,
         };
       }) || [];
       
-      return usersWithRoles;
+      // Ordenar: owner primeiro, depois por data de criação
+      usersWithRoles.sort((a, b) => {
+        if (a.isOwner) return -1;
+        if (b.isOwner) return 1;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
+      
+      return {
+        users: usersWithRoles,
+        currentUserId: currentUser?.id,
+        ownerId,
+      };
     },
     enabled: isAdmin,
   });
+
+  const users = usersData?.users;
+  const currentUserId = usersData?.currentUserId;
 
   // Mutation para criar novo usuário
   const createUserMutation = useMutation({
@@ -96,6 +136,12 @@ export function UserManagement() {
 
       // Aguardar um pouco para garantir que o trigger criou o profile
       await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Salvar email no profile para exibição futura
+      await supabase
+        .from('profiles')
+        .update({ email })
+        .eq('id', authData.user.id);
 
       // Atribuir role ao usuário
       const { error: roleError } = await supabase
@@ -203,6 +249,15 @@ export function UserManagement() {
     setEditingUser(user);
     setNewRole(user.role);
     setIsDialogOpen(true);
+  };
+
+  // Verificar se pode excluir o usuário
+  const canDeleteUser = (user: UserWithRole): boolean => {
+    // Não pode excluir o dono da conta
+    if (user.isOwner) return false;
+    // Não pode excluir a si mesmo
+    if (user.id === currentUserId) return false;
+    return true;
   };
 
   // Se não for admin, não mostra nada
@@ -344,15 +399,35 @@ export function UserManagement() {
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow key={user.id} className={user.isOwner ? "bg-amber-500/5" : ""}>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-medium">{user.full_name || "Sem nome"}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{user.full_name || "Sem nome"}</span>
+                          {user.isOwner && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 gap-1">
+                                    <Crown className="h-3 w-3" />
+                                    Principal
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Conta principal (dono da assinatura)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          {user.id === currentUserId && !user.isOwner && (
+                            <Badge variant="outline" className="text-xs">Você</Badge>
+                          )}
+                        </div>
                         <span className="text-xs text-muted-foreground">{user.email}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                      <Badge variant={user.role === 'admin' || user.role === 'owner' ? 'default' : 'secondary'}>
                         {ROLE_LABELS[user.role] || user.role}
                       </Badge>
                     </TableCell>
@@ -361,39 +436,59 @@ export function UserManagement() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(user)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        {/* Só permite editar se não for o owner */}
+                        {!user.isOwner && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(user)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
                         
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remover Usuário</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja remover o acesso de {user.full_name || user.email}?
-                                Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteUserMutation.mutate(user.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Remover
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        {/* Só mostra botão de excluir se pode excluir */}
+                        {canDeleteUser(user) && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remover Usuário</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja remover o acesso de {user.full_name || user.email}?
+                                  Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteUserMutation.mutate(user.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Remover
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                        
+                        {/* Mostrar info se não pode excluir */}
+                        {!canDeleteUser(user) && !user.isOwner && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge variant="outline" className="text-xs">Você</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Você não pode excluir sua própria conta</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
