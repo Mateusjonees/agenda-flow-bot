@@ -14,7 +14,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, UserPlus, Shield, Loader2, Crown, CreditCard, QrCode, DollarSign, Clock, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, UserPlus, Shield, Loader2, Crown, CreditCard, QrCode, DollarSign, Clock, AlertTriangle, FileText, ExternalLink } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Link } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ASSIGNABLE_ROLES, ROLE_LABELS, ROLE_DESCRIPTIONS, UserRole } from "@/config/permissions";
 import { UserSeatPaymentDialog } from "./UserSeatPaymentDialog";
@@ -70,6 +72,7 @@ export function UserManagement() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Buscar usuários com suas roles
   const { data: usersData, isLoading } = useQuery({
@@ -207,6 +210,7 @@ export function UserManagement() {
     setNewRole("seller");
     setPaymentMethod("pix");
     setEditingUser(null);
+    setAcceptedTerms(false);
   };
 
   // Gerar pagamento PIX para novo usuário
@@ -519,8 +523,27 @@ export function UserManagement() {
                               <span className="text-xs font-medium">Cartão</span>
                             </Label>
                           </div>
-                        </RadioGroup>
-                      </div>
+                      </RadioGroup>
+                    </div>
+
+                    <div className="flex items-start gap-2 pt-2">
+                      <Checkbox 
+                        id="accept-terms" 
+                        checked={acceptedTerms}
+                        onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                      />
+                      <Label htmlFor="accept-terms" className="text-[11px] text-muted-foreground leading-tight cursor-pointer">
+                        Li e concordo com os{" "}
+                        <Link 
+                          to="/termos-servico" 
+                          target="_blank" 
+                          className="underline text-primary hover:text-primary/80"
+                        >
+                          Termos de Serviço
+                        </Link>
+                        {" "}para colaboradores
+                      </Label>
+                    </div>
                     </>
                   )}
                 </div>
@@ -534,7 +557,7 @@ export function UserManagement() {
                   </Button>
                   <Button 
                     onClick={handleSubmit}
-                    disabled={isProcessingPayment || updateRoleMutation.isPending}
+                    disabled={isProcessingPayment || updateRoleMutation.isPending || (!editingUser && !acceptedTerms)}
                   >
                     {(isProcessingPayment || updateRoleMutation.isPending) && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -740,6 +763,33 @@ export function UserManagement() {
               <p className="text-sm">Clique em "Novo Usuário" para adicionar</p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Card de Termos de Uso para Colaboradores */}
+      <Card className="mt-4 border-muted">
+        <CardHeader className="p-3 sm:p-4 pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            Termos de Uso - Colaboradores
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-3 sm:p-4 pt-0">
+          <ul className="text-xs text-muted-foreground space-y-1.5 mb-3">
+            <li>• Taxa de <strong>R$ 19,00/mês</strong> por usuário adicional</li>
+            <li>• Licença sincronizada com o plano principal do administrador</li>
+            <li>• Acesso em modo leitura se a licença expirar</li>
+            <li>• O administrador é responsável pelas ações dos colaboradores</li>
+            <li>• Colaboradores não têm acesso às configurações financeiras</li>
+          </ul>
+          <Link 
+            to="/termos-servico" 
+            target="_blank"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            Ver Termos de Serviço completos
+            <ExternalLink className="h-3 w-3" />
+          </Link>
         </CardContent>
       </Card>
 
