@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getOwnerUserId } from "@/lib/owner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FinishAppointmentDialog } from "@/components/FinishAppointmentDialog";
+import { EditAppointmentDialog } from "@/components/EditAppointmentDialog";
 import { CalendarView } from "@/components/CalendarView";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
