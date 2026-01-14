@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { UserManagement } from "@/components/UserManagement";
+
 const Configuracoes = () => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -740,6 +742,9 @@ const Configuracoes = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Seção de Gerenciamento de Usuários - Apenas para Admins */}
+      <UserManagement />
 
       <div className="flex justify-end">
         <Button className="gap-2" onClick={handleSaveSettings} disabled={saveSettingsMutation.isPending}>

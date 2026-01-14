@@ -9,6 +9,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MaintenanceGuard } from "./components/MaintenanceGuard";
 import { SubscriptionGuard } from "./components/SubscriptionGuard";
 import { PasswordResetGuard } from "./components/PasswordResetGuard";
+import { PermissionGuard } from "./components/PermissionGuard";
 import { CookieConsent } from "./components/CookieConsent";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
 import Index from "./pages/Index";
@@ -68,23 +69,115 @@ const App = () => (
                 <Route path="/depoimentos" element={<Depoimentos />} />
                 <Route path="/precos" element={<Precos />} />
                 
-                {/* Página de configurações (fora do guard para permitir renovação) */}
-                <Route path="/configuracoes" element={<Layout><Configuracoes /></Layout>} />
+                {/* Página de configurações (fora do guard para permitir renovação) - apenas admin */}
+                <Route path="/configuracoes" element={
+                  <Layout>
+                    <PermissionGuard>
+                      <Configuracoes />
+                    </PermissionGuard>
+                  </Layout>
+                } />
                 <Route path="/historico-pagamentos" element={<Layout><HistoricoPagamentos /></Layout>} />
                 <Route path="/historico-assinaturas" element={<Layout><HistoricoAssinaturas /></Layout>} />
                 
-                {/* Rotas protegidas (com guard) */}
-                <Route path="/dashboard" element={<Layout><SubscriptionGuard><Dashboard /></SubscriptionGuard></Layout>} />
-                <Route path="/agendamentos" element={<Layout><SubscriptionGuard><Agendamentos /></SubscriptionGuard></Layout>} />
-                <Route path="/clientes" element={<Layout><SubscriptionGuard><Clientes /></SubscriptionGuard></Layout>} />
-                <Route path="/servicos" element={<Layout><SubscriptionGuard><Servicos /></SubscriptionGuard></Layout>} />
-                <Route path="/financeiro" element={<Layout><SubscriptionGuard><Financeiro /></SubscriptionGuard></Layout>} />
-                <Route path="/relatorios" element={<Layout><SubscriptionGuard><Relatorios /></SubscriptionGuard></Layout>} />
-                <Route path="/propostas" element={<Layout><SubscriptionGuard><Propostas /></SubscriptionGuard></Layout>} />
-                <Route path="/assinaturas" element={<Layout><SubscriptionGuard><Assinaturas /></SubscriptionGuard></Layout>} />
-                <Route path="/planos" element={<Layout><SubscriptionGuard><Planos /></SubscriptionGuard></Layout>} />
-                <Route path="/tarefas" element={<Layout><SubscriptionGuard><Tarefas /></SubscriptionGuard></Layout>} />
-                <Route path="/estoque" element={<Layout><SubscriptionGuard><Estoque /></SubscriptionGuard></Layout>} />
+                {/* Rotas protegidas (com guard de assinatura e permissão) */}
+                <Route path="/dashboard" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <Dashboard />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
+                <Route path="/agendamentos" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <Agendamentos />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
+                <Route path="/clientes" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <Clientes />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
+                <Route path="/servicos" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <Servicos />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
+                <Route path="/financeiro" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <Financeiro />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
+                <Route path="/relatorios" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <Relatorios />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
+                <Route path="/propostas" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <Propostas />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
+                <Route path="/assinaturas" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <Assinaturas />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
+                <Route path="/planos" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <Planos />
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
+                <Route path="/tarefas" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <Tarefas />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
+                <Route path="/estoque" element={
+                  <Layout>
+                    <SubscriptionGuard>
+                      <PermissionGuard>
+                        <Estoque />
+                      </PermissionGuard>
+                    </SubscriptionGuard>
+                  </Layout>
+                } />
                 
                 {/* WhatsApp E-commerce Routes */}
                 <Route path="/produtos" element={<Layout><SubscriptionGuard><Produtos /></SubscriptionGuard></Layout>} />
