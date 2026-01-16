@@ -1,10 +1,59 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
+
+// Cache version - increment to force cache clear on all machines
+const CACHE_VERSION = "v2.0.0-clean-2025-01-16";
+
+// Cache clearing component
+const CacheBuster = () => {
+  useEffect(() => {
+    const storedVersion = localStorage.getItem("app_cache_version");
+    if (storedVersion !== CACHE_VERSION) {
+      console.log("Cache version mismatch, clearing all caches...");
+      
+      // Preserve cookie consent
+      const cookieConsent = localStorage.getItem("cookie_consent");
+      
+      // Clear localStorage
+      localStorage.clear();
+      
+      // Restore cookie consent if existed
+      if (cookieConsent) {
+        localStorage.setItem("cookie_consent", cookieConsent);
+      }
+      
+      // Clear sessionStorage
+      sessionStorage.clear();
+      
+      // Clear Service Worker caches
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        });
+      }
+      
+      // Force Service Worker update
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          registrations.forEach(reg => reg.update());
+        });
+      }
+      
+      // Save new version
+      localStorage.setItem("app_cache_version", CACHE_VERSION);
+      
+      // Force clean reload
+      window.location.reload();
+    }
+  }, []);
+  
+  return null;
+};
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MaintenanceGuard } from "./components/MaintenanceGuard";
 import { SubscriptionGuard } from "./components/SubscriptionGuard";
@@ -50,6 +99,7 @@ const App = () => (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
+          <CacheBuster />
           <Toaster />
           <Sonner />
           <PWAUpdatePrompt />

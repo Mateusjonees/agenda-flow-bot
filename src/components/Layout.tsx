@@ -155,6 +155,17 @@ const Layout = ({ children }: LayoutProps) => {
   const profileImage = businessSettings?.profile_image_url;
 
   const handleLogout = async () => {
+    // Clear all caches on logout
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Clear Service Worker caches
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => caches.delete(name));
+      });
+    }
+    
     await supabase.auth.signOut();
     toast.success("Logout realizado com sucesso!");
     navigate("/auth");
