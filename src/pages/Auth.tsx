@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Rocket, Mail, ArrowLeft } from "lucide-react";
-import { FaGoogle, FaFacebook } from "react-icons/fa";
+import { Loader2, Rocket, ArrowLeft } from "lucide-react";
+import { FaGoogle } from "react-icons/fa";
 import logo from "@/assets/logo.png";
 import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
@@ -202,19 +202,17 @@ const Auth = () => {
       setEmail("");
     }
   };
-  const handleSocialLogin = async (provider: "google" | "facebook") => {
+  const handleGoogleLogin = async () => {
     setLoading(true);
-    const {
-      error
-    } = await supabase.auth.signInWithOAuth({
-      provider,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
       options: {
         redirectTo: `${window.location.origin}/dashboard`
       }
     });
     setLoading(false);
     if (error) {
-      toast.error(`Erro ao entrar com ${provider === "google" ? "Google" : "Facebook"}: ${error.message}`);
+      toast.error(`Erro ao entrar com Google: ${error.message}`);
     }
   };
   return <div className="min-h-screen bg-gradient-to-br from-muted/30 via-muted/20 to-background relative overflow-hidden">
@@ -299,12 +297,11 @@ const Auth = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Button type="button" variant="outline" onClick={() => handleSocialLogin("google")} disabled={loading} className="flex flex-col items-center justify-center h-20 gap-2 hover:bg-accent hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md border-2">
-                    <FaGoogle className="h-6 w-6 text-[#DB4437]" />
-                    <span className="text-xs font-medium">Google</span>
+                <div className="flex justify-center">
+                  <Button type="button" variant="outline" onClick={handleGoogleLogin} disabled={loading} className="flex items-center justify-center gap-3 h-12 w-full max-w-xs hover:bg-accent hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md border-2">
+                    <FaGoogle className="h-5 w-5 text-[#DB4437]" />
+                    <span className="text-sm font-medium">Continuar com Google</span>
                   </Button>
-                  
                 </div>
 
                 <div className="flex items-center justify-between text-sm pt-2">
@@ -361,12 +358,11 @@ const Auth = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Button type="button" variant="outline" onClick={() => handleSocialLogin("google")} disabled={loading} className="flex flex-col items-center justify-center h-16 gap-1.5 hover:bg-accent hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md border-2">
-                    <FaGoogle className="h-5 w-5 text-[#DB4437]" />
-                    <span className="text-[10px] font-medium">Google</span>
+                <div className="flex justify-center">
+                  <Button type="button" variant="outline" onClick={handleGoogleLogin} disabled={loading} className="flex items-center justify-center gap-3 h-10 w-full max-w-xs hover:bg-accent hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md border-2">
+                    <FaGoogle className="h-4 w-4 text-[#DB4437]" />
+                    <span className="text-xs font-medium">Continuar com Google</span>
                   </Button>
-                  
                 </div>
 
                 <div className="text-center text-xs pt-1">
