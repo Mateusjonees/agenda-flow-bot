@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import {
   Command,
   CommandDialog,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -20,6 +19,7 @@ export function SearchBar() {
   const [search, setSearch] = useState("");
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
   const navigate = useNavigate();
 
   // Adicionar atalho Ctrl+K
@@ -36,46 +36,89 @@ export function SearchBar() {
     return () => document.removeEventListener("keydown", down, true);
   }, []);
 
+  const ensureMicrophonePermission = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) return;
+
+    // Já tem permissão/stream ativo
+    if (micStreamRef.current) return;
+
+    try {
+      micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Não precisamos do áudio em si; é só para disparar o prompt de permissão.
+      micStreamRef.current.getTracks().forEach((t) => t.stop());
+      micStreamRef.current = null;
+    } catch (err: any) {
+      console.error("[SearchBar] mic permission error", err);
+      toast.error("Permissão de microfone negada. Libere o microfone no navegador.");
+      throw err;
+    }
+  };
+
   // Voice search functions
-  const startVoiceSearch = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+  const startVoiceSearch = async () => {
+    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
       toast.error("Seu navegador não suporta busca por voz");
       return;
     }
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    // Garante que o navegador peça permissão (em alguns devices o SpeechRecognition não dispara prompt)
+    await ensureMicrophonePermission();
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
     recognitionRef.current = new SpeechRecognition();
-    recognitionRef.current.lang = 'pt-BR';
+    recognitionRef.current.lang = "pt-BR";
     recognitionRef.current.continuous = false;
     recognitionRef.current.interimResults = false;
 
     recognitionRef.current.onstart = () => {
+      console.log("[SearchBar] speech recognition started");
       setIsListening(true);
       toast.info("Ouvindo... Fale agora");
     };
 
     recognitionRef.current.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
+      const transcript = event.results?.[0]?.[0]?.transcript ?? "";
+      console.log("[SearchBar] transcript", transcript);
       setSearch(transcript);
       setIsListening(false);
     };
 
-    recognitionRef.current.onerror = () => {
+    recognitionRef.current.onerror = (event: any) => {
+      console.error("[SearchBar] speech recognition error", event);
       setIsListening(false);
-      toast.error("Erro ao capturar voz");
+      const code = event?.error ? ` (${event.error})` : "";
+      toast.error(`Erro ao usar microfone${code}`);
     };
 
     recognitionRef.current.onend = () => {
+      console.log("[SearchBar] speech recognition ended");
       setIsListening(false);
     };
 
-    recognitionRef.current.start();
+    try {
+      recognitionRef.current.start();
+    } catch (err) {
+      console.error("[SearchBar] start() failed", err);
+      setIsListening(false);
+      toast.error("Não foi possível iniciar a busca por voz");
+    }
   };
 
   const stopVoiceSearch = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
+    try {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    } catch {
+      // ignore
+    } finally {
       setIsListening(false);
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach((t) => t.stop());
+        micStreamRef.current = null;
+      }
     }
   };
 
@@ -254,6 +297,17 @@ export function SearchBar() {
     enabled: search.trim().length >= 2,
   });
 
+  const hasAnyResults = Boolean(
+    results &&
+      ((results.customers?.length ?? 0) > 0 ||
+        (results.appointments?.length ?? 0) > 0 ||
+        (results.proposals?.length ?? 0) > 0 ||
+        (results.transactions?.length ?? 0) > 0 ||
+        (results.tasks?.length ?? 0) > 0 ||
+        (results.inventory?.length ?? 0) > 0 ||
+        (results.subscriptions?.length ?? 0) > 0),
+  );
+
   const handleSelect = (type: string, id: string) => {
     setOpen(false);
     setSearch("");
@@ -342,17 +396,14 @@ export function SearchBar() {
           </Button>
         </div>
         <CommandList>
-          {isLoading && search.length >= 2 && (
+          {isLoading && search.trim().length >= 2 && (
             <div className="p-4 text-sm text-center text-muted-foreground">
               Buscando...
             </div>
           )}
-          
-          {!isLoading && search.length >= 2 && (
-            <>
-              <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
 
-              {results?.customers && results.customers.length > 0 && (
+          {!isLoading && search.trim().length >= 2 && (
+            <>
                 <CommandGroup heading="Clientes">
                   {results.customers.map((customer: any) => (
                     <CommandItem
@@ -378,6 +429,7 @@ export function SearchBar() {
                   {results.appointments.map((apt: any) => (
                     <CommandItem
                       key={apt.id}
+                      value={`${apt.title ?? ""} ${apt.description ?? ""} ${apt.customers?.name ?? ""}`}
                       onSelect={() => handleSelect("appointment", apt.id)}
                       className="cursor-pointer"
                     >
@@ -398,6 +450,7 @@ export function SearchBar() {
                   {results.proposals.map((proposal: any) => (
                     <CommandItem
                       key={proposal.id}
+                      value={`${proposal.title ?? ""} ${proposal.description ?? ""} ${proposal.customers?.name ?? ""} ${proposal.status ?? ""}`}
                       onSelect={() => handleSelect("proposal", proposal.id)}
                       className="cursor-pointer"
                     >
@@ -418,6 +471,7 @@ export function SearchBar() {
                   {results.transactions.map((transaction: any) => (
                     <CommandItem
                       key={transaction.id}
+                      value={`${transaction.description ?? ""} ${transaction.payment_method ?? ""} ${transaction.type ?? ""} ${transaction.amount ?? ""}`}
                       onSelect={() => handleSelect("transaction", transaction.id)}
                       className="cursor-pointer"
                     >
@@ -438,6 +492,7 @@ export function SearchBar() {
                   {results.tasks.map((task: any) => (
                     <CommandItem
                       key={task.id}
+                      value={`${task.title ?? ""} ${task.description ?? ""} ${task.status ?? ""} ${task.priority ?? ""}`}
                       onSelect={() => handleSelect("task", task.id)}
                       className="cursor-pointer"
                     >
@@ -458,6 +513,7 @@ export function SearchBar() {
                   {results.inventory.map((item: any) => (
                     <CommandItem
                       key={item.id}
+                      value={`${item.name ?? ""} ${item.description ?? ""} ${item.category ?? ""}`}
                       onSelect={() => handleSelect("inventory", item.id)}
                       className="cursor-pointer"
                     >
@@ -478,6 +534,7 @@ export function SearchBar() {
                   {results.subscriptions.map((sub: any) => (
                     <CommandItem
                       key={sub.id}
+                      value={`${sub.customer_name ?? ""} ${sub.plan_name ?? ""} ${sub.status ?? ""}`}
                       onSelect={() => handleSelect("subscription", sub.id)}
                       className="cursor-pointer"
                     >
@@ -495,7 +552,7 @@ export function SearchBar() {
             </>
           )}
 
-          {search.length < 2 && (
+          {search.trim().length < 2 && (
             <div className="p-4 text-sm text-center text-muted-foreground">
               Digite pelo menos 2 caracteres para buscar
             </div>
