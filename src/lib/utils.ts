@@ -5,6 +5,51 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Formatar telefone brasileiro
+export function formatPhone(value: string): string {
+  const numbers = value.replace(/\D/g, '');
+  if (numbers.length <= 2) return numbers;
+  if (numbers.length <= 6) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+  if (numbers.length <= 10) return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+  return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+}
+
+// Gerar link do WhatsApp
+export function getWhatsAppLink(phone: string, message?: string): string {
+  const cleanPhone = phone.replace(/\D/g, '');
+  const phoneWithCountry = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+  const encodedMessage = message ? `?text=${encodeURIComponent(message)}` : '';
+  return `https://wa.me/${phoneWithCountry}${encodedMessage}`;
+}
+
+// Exportar dados para CSV
+export function exportToCSV(data: any[], filename: string): void {
+  if (data.length === 0) return;
+  
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.join(','),
+    ...data.map(row => 
+      headers.map(header => {
+        const value = row[header];
+        if (value === null || value === undefined) return '';
+        const stringValue = String(value);
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      }).join(',')
+    )
+  ].join('\n');
+  
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${filename}.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
 // ViaCEP - Busca endereço por CEP
 export interface ViaCEPResponse {
   cep: string;
@@ -104,10 +149,8 @@ export function validateCpf(cpf: string): boolean {
   
   if (cleanCpf.length !== 11) return false;
   
-  // Verificar se todos os dígitos são iguais
   if (/^(\d)\1+$/.test(cleanCpf)) return false;
   
-  // Validar dígitos verificadores
   let sum = 0;
   for (let i = 0; i < 9; i++) {
     sum += parseInt(cleanCpf[i]) * (10 - i);
@@ -133,10 +176,8 @@ export function validateCnpj(cnpj: string): boolean {
   
   if (cleanCnpj.length !== 14) return false;
   
-  // Verificar se todos os dígitos são iguais
   if (/^(\d)\1+$/.test(cleanCnpj)) return false;
   
-  // Validar dígitos verificadores
   const weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
   const weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
   

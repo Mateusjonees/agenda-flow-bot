@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getOwnerUserId } from "@/lib/owner";
@@ -9,14 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Phone, Mail, User, Search, X, MapPin, Building2, Loader2 } from "lucide-react";
+import { Plus, Phone, Mail, User, Search, X, MapPin, Loader2, Download, MessageCircle, AlertTriangle, Mic, MicOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useReadOnly } from "@/components/SubscriptionGuard";
 import { ProposalEditDialog } from "@/components/ProposalEditDialog";
 import { FileText, CreditCard } from "lucide-react";
 import { CustomerDetailsSheet } from "@/components/CustomerDetailsSheet";
-import { fetchAddressByCep, fetchCnpjData, formatCep, formatCnpj, validateCpf, validateCnpj } from "@/lib/utils";
+import { fetchAddressByCep, fetchCnpjData, formatCep, formatCnpj, validateCpf, validateCnpj, formatPhone, getWhatsAppLink, exportToCSV } from "@/lib/utils";
+import { FaWhatsapp } from "react-icons/fa";
 
 interface Customer {
   id: string;
@@ -49,6 +50,9 @@ const Clientes = () => {
   });
   const [loadingCep, setLoadingCep] = useState(false);
   const [loadingCnpj, setLoadingCnpj] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -127,6 +131,96 @@ const Clientes = () => {
       .eq("is_active", true)
       .order("name");
     setSubscriptionPlans(data || []);
+  };
+
+  // Verificar duplicados
+  const checkDuplicate = (phone: string, email: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const duplicate = customers.find(c => {
+      const cPhone = c.phone?.replace(/\D/g, '') || '';
+      if (cleanPhone && cPhone && cPhone === cleanPhone) {
+        return true;
+      }
+      if (email && c.email && c.email.toLowerCase() === email.toLowerCase()) {
+        return true;
+      }
+      return false;
+    });
+    
+    if (duplicate) {
+      setDuplicateWarning(`Cliente "${duplicate.name}" já existe com este ${cleanPhone && duplicate.phone?.replace(/\D/g, '') === cleanPhone ? 'telefone' : 'email'}!`);
+    } else {
+      setDuplicateWarning(null);
+    }
+  };
+
+  // Exportar clientes para CSV
+  const handleExportCustomers = () => {
+    const dataToExport = getFilteredCustomers().map(c => ({
+      Nome: c.name,
+      Telefone: c.phone,
+      Email: c.email || '',
+      CPF: c.cpf || '',
+      Observações: c.notes || '',
+      Origem: c.source || '',
+      'Data de Cadastro': new Date(c.created_at).toLocaleDateString('pt-BR')
+    }));
+    
+    exportToCSV(dataToExport, `clientes_${new Date().toISOString().split('T')[0]}`);
+    toast({
+      title: "Exportação concluída!",
+      description: `${dataToExport.length} cliente(s) exportado(s) para CSV.`,
+    });
+  };
+
+  // Busca por voz
+  const startVoiceSearch = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast({
+        title: "Não suportado",
+        description: "Busca por voz não é suportada neste navegador.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    recognitionRef.current = new SpeechRecognition();
+    recognitionRef.current.lang = 'pt-BR';
+    recognitionRef.current.continuous = false;
+    recognitionRef.current.interimResults = false;
+
+    recognitionRef.current.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognitionRef.current.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchTerm(transcript);
+      setIsListening(false);
+    };
+
+    recognitionRef.current.onerror = () => {
+      setIsListening(false);
+      toast({
+        title: "Erro na busca por voz",
+        description: "Não foi possível reconhecer a fala.",
+        variant: "destructive",
+      });
+    };
+
+    recognitionRef.current.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current.start();
+  };
+
+  const stopVoiceSearch = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
   };
 
   // Função para filtrar clientes - retorna array filtrado
@@ -500,13 +594,24 @@ const Clientes = () => {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">Clientes</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Gerencie sua base de clientes, fidelidade e cupons</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2 w-full sm:w-auto flex-shrink-0" disabled={isReadOnly}>
-              <Plus className="w-4 h-4" />
-              <span>Novo Cliente</span>
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCustomers}
+            disabled={customers.length === 0}
+            className="gap-2"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Exportar</span>
+          </Button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 flex-1 sm:flex-none" disabled={isReadOnly}>
+                <Plus className="w-4 h-4" />
+                <span>Novo Cliente</span>
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Adicionar Novo Cliente</DialogTitle>
@@ -529,10 +634,21 @@ const Clientes = () => {
                 <Input
                   id="phone"
                   value={newCustomer.phone}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                  onChange={(e) => {
+                    const formatted = formatPhone(e.target.value);
+                    setNewCustomer({ ...newCustomer, phone: formatted });
+                    checkDuplicate(formatted, newCustomer.email);
+                  }}
                   placeholder="(00) 00000-0000"
+                  maxLength={15}
                 />
               </div>
+              {duplicateWarning && (
+                <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-600 dark:text-amber-400 text-sm">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span>{duplicateWarning}</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="cpf">CPF</Label>
@@ -606,7 +722,10 @@ const Clientes = () => {
                   id="email"
                   type="email"
                   value={newCustomer.email}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                  onChange={(e) => {
+                    setNewCustomer({ ...newCustomer, email: e.target.value });
+                    checkDuplicate(newCustomer.phone, e.target.value);
+                  }}
                   placeholder="email@exemplo.com"
                 />
               </div>
@@ -698,25 +817,37 @@ const Clientes = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Barra de pesquisa */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome, telefone, email ou CPF..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 h-10 sm:h-11 text-sm sm:text-base"
-        />
-        {searchTerm && (
-          <button
-            onClick={() => setSearchTerm("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome, telefone, email ou CPF..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-10 h-10 sm:h-11 text-sm sm:text-base"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <Button
+          variant={isListening ? "destructive" : "outline"}
+          size="icon"
+          onClick={isListening ? stopVoiceSearch : startVoiceSearch}
+          className="shrink-0"
+          title={isListening ? "Parar busca por voz" : "Buscar por voz"}
+        >
+          {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+        </Button>
       </div>
 
       {loading ? (
@@ -741,7 +872,7 @@ const Clientes = () => {
           {getFilteredCustomers().map((customer) => (
             <Card 
               key={customer.id} 
-              className="hover:shadow-lg transition-shadow cursor-pointer"
+              className="hover:shadow-lg transition-shadow cursor-pointer group relative"
               onClick={() => {
                 setSelectedCustomer(customer);
                 setDetailsOpen(true);
@@ -750,13 +881,29 @@ const Clientes = () => {
               <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                   <User className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
-                  <span className="truncate">{customer.name}</span>
+                  <span className="truncate flex-1">{customer.name}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1.5 sm:space-y-2 p-3 sm:p-4 pt-0">
-                <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-                  <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-                  <span className="truncate">{customer.phone}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground min-w-0">
+                    <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                    <span className="truncate">{customer.phone}</span>
+                  </div>
+                  {customer.phone && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity bg-green-500 hover:bg-green-600 text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(getWhatsAppLink(customer.phone), '_blank');
+                      }}
+                      title="Abrir WhatsApp"
+                    >
+                      <FaWhatsapp className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
                 {customer.email && (
                   <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
