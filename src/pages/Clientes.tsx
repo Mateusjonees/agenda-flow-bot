@@ -9,13 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Phone, Mail, User, Search, X } from "lucide-react";
+import { Plus, Phone, Mail, User, Search, X, MapPin, Building2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useReadOnly } from "@/components/SubscriptionGuard";
 import { ProposalEditDialog } from "@/components/ProposalEditDialog";
 import { FileText, CreditCard } from "lucide-react";
 import { CustomerDetailsSheet } from "@/components/CustomerDetailsSheet";
+import { fetchAddressByCep, fetchCnpjData, formatCep, formatCnpj, validateCpf, validateCnpj } from "@/lib/utils";
 
 interface Customer {
   id: string;
@@ -40,9 +41,14 @@ const Clientes = () => {
     phone: "",
     email: "",
     cpf: "",
+    cnpj: "",
+    cep: "",
+    address: "",
     notes: "",
     source: "",
   });
+  const [loadingCep, setLoadingCep] = useState(false);
+  const [loadingCnpj, setLoadingCnpj] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -59,6 +65,9 @@ const Clientes = () => {
     phone: "",
     email: "",
     cpf: "",
+    cnpj: "",
+    cep: "",
+    address: "",
     notes: "",
     source: "",
   });
@@ -236,7 +245,7 @@ const Clientes = () => {
         description: "O cliente foi cadastrado com sucesso.",
       });
       setDialogOpen(false);
-      setNewCustomer({ name: "", phone: "", email: "", cpf: "", notes: "", source: "" });
+      setNewCustomer({ name: "", phone: "", email: "", cpf: "", cnpj: "", cep: "", address: "", notes: "", source: "" });
       await fetchCustomers();
     }
   };
@@ -505,7 +514,7 @@ const Clientes = () => {
                 Cadastre um novo cliente na sua base
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
               <div>
                 <Label htmlFor="name">Nome *</Label>
                 <Input
@@ -524,24 +533,72 @@ const Clientes = () => {
                   placeholder="(00) 00000-0000"
                 />
               </div>
-              <div>
-                <Label htmlFor="cpf">CPF</Label>
-                <Input
-                  id="cpf"
-                  value={newCustomer.cpf}
-                  onChange={(e) => {
-                    // Formatar CPF automaticamente enquanto digita
-                    let value = e.target.value.replace(/\D/g, '');
-                    if (value.length <= 11) {
-                      value = value.replace(/(\d{3})(\d)/, '$1.$2');
-                      value = value.replace(/(\d{3})(\d)/, '$1.$2');
-                      value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-                      setNewCustomer({ ...newCustomer, cpf: value });
-                    }
-                  }}
-                  placeholder="000.000.000-00"
-                  maxLength={14}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="cpf">CPF</Label>
+                  <Input
+                    id="cpf"
+                    value={newCustomer.cpf}
+                    onChange={(e) => {
+                      let value = e.target.value.replace(/\D/g, '');
+                      if (value.length <= 11) {
+                        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                        value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                        setNewCustomer({ ...newCustomer, cpf: value });
+                      }
+                    }}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cnpj" className="flex items-center gap-1">
+                    CNPJ
+                    {loadingCnpj && <Loader2 className="h-3 w-3 animate-spin" />}
+                  </Label>
+                  <Input
+                    id="cnpj"
+                    value={newCustomer.cnpj}
+                    onChange={async (e) => {
+                      const formatted = formatCnpj(e.target.value);
+                      setNewCustomer({ ...newCustomer, cnpj: formatted });
+                      
+                      const cleanCnpj = formatted.replace(/\D/g, '');
+                      if (cleanCnpj.length === 14) {
+                        if (!validateCnpj(cleanCnpj)) {
+                          toast({
+                            title: "CNPJ inválido",
+                            description: "O CNPJ informado não é válido.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        
+                        setLoadingCnpj(true);
+                        const data = await fetchCnpjData(cleanCnpj);
+                        setLoadingCnpj(false);
+                        
+                        if (data) {
+                          setNewCustomer(prev => ({
+                            ...prev,
+                            name: prev.name || data.fantasia || data.nome,
+                            phone: prev.phone || data.telefone,
+                            email: prev.email || data.email,
+                            cep: data.cep ? formatCep(data.cep) : prev.cep,
+                            address: `${data.logradouro}, ${data.numero}${data.complemento ? `, ${data.complemento}` : ''} - ${data.bairro}, ${data.municipio}/${data.uf}`,
+                          }));
+                          toast({
+                            title: "Dados encontrados!",
+                            description: `Empresa: ${data.fantasia || data.nome}`,
+                          });
+                        }
+                      }
+                    }}
+                    placeholder="00.000.000/0000-00"
+                    maxLength={18}
+                  />
+                </div>
               </div>
               <div>
                 <Label htmlFor="email">E-mail</Label>
@@ -552,6 +609,58 @@ const Clientes = () => {
                   onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
                   placeholder="email@exemplo.com"
                 />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label htmlFor="cep" className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    CEP
+                    {loadingCep && <Loader2 className="h-3 w-3 animate-spin" />}
+                  </Label>
+                  <Input
+                    id="cep"
+                    value={newCustomer.cep}
+                    onChange={async (e) => {
+                      const formatted = formatCep(e.target.value);
+                      setNewCustomer({ ...newCustomer, cep: formatted });
+                      
+                      const cleanCep = formatted.replace(/\D/g, '');
+                      if (cleanCep.length === 8) {
+                        setLoadingCep(true);
+                        const data = await fetchAddressByCep(cleanCep);
+                        setLoadingCep(false);
+                        
+                        if (data) {
+                          setNewCustomer(prev => ({
+                            ...prev,
+                            address: `${data.logradouro}${data.complemento ? `, ${data.complemento}` : ''} - ${data.bairro}, ${data.localidade}/${data.uf}`,
+                          }));
+                          toast({
+                            title: "Endereço encontrado!",
+                            description: `${data.logradouro}, ${data.bairro}`,
+                          });
+                        } else {
+                          toast({
+                            title: "CEP não encontrado",
+                            description: "Verifique se o CEP está correto.",
+                            variant: "destructive",
+                          });
+                        }
+                      }
+                    }}
+                    placeholder="00000-000"
+                    maxLength={9}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="address">Endereço</Label>
+                  <Input
+                    id="address"
+                    value={newCustomer.address}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
+                    placeholder="Rua, número, bairro, cidade/UF"
+                  />
+                </div>
               </div>
               <div>
                 <Label htmlFor="source">De onde veio o cliente?</Label>
@@ -681,6 +790,9 @@ const Clientes = () => {
               phone: selectedCustomer.phone,
               email: selectedCustomer.email || "",
               cpf: selectedCustomer.cpf || "",
+              cnpj: "",
+              cep: "",
+              address: (selectedCustomer as any).address || "",
               notes: selectedCustomer.notes || "",
               source: selectedCustomer.source || "",
             });
