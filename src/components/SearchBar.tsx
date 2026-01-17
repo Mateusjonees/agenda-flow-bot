@@ -82,6 +82,7 @@ export function SearchBar() {
   // Limpar busca quando o dialog fecha
   useEffect(() => {
     if (!open) {
+      stopVoiceSearch();
       setSearch("");
     }
   }, [open]);
@@ -89,140 +90,168 @@ export function SearchBar() {
   const { data: results, isLoading } = useQuery({
     queryKey: ["search", search],
     queryFn: async () => {
-      if (!search || search.length < 2) return { 
-        appointments: [], 
-        customers: [], 
-        proposals: [], 
+      const empty = {
+        appointments: [],
+        customers: [],
+        proposals: [],
         transactions: [],
         tasks: [],
         inventory: [],
-        subscriptions: []
+        subscriptions: [],
       };
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { 
-        appointments: [], 
-        customers: [], 
-        proposals: [], 
-        transactions: [],
-        tasks: [],
-        inventory: [],
-        subscriptions: []
-      };
+      try {
+        const term = search.trim();
+        if (!term || term.length < 2) return empty;
 
-      const searchPattern = `%${search.toLowerCase()}%`;
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
 
-      // Buscar agendamentos - melhorado para buscar também pelo nome do cliente
-      const { data: appointments } = await supabase
-        .from("appointments")
-        .select("id, title, start_time, description, customer_id, customers(name)")
-        .eq("user_id", user.id)
-        .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
-        .order("start_time", { ascending: false })
-        .limit(10);
+        if (userError || !user) return empty;
 
-      // Buscar clientes
-      const { data: customers } = await supabase
-        .from("customers")
-        .select("id, name, phone, email, notes")
-        .eq("user_id", user.id)
-        .or(`name.ilike.${searchPattern},phone.ilike.${searchPattern},email.ilike.${searchPattern},notes.ilike.${searchPattern}`)
-        .order("created_at", { ascending: false })
-        .limit(10);
+        const searchPattern = `%${term}%`;
 
-      // Buscar propostas - melhorado
-      const { data: proposals } = await supabase
-        .from("proposals")
-        .select("id, title, status, description, customer_id, customers(name)")
-        .eq("user_id", user.id)
-        .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      // Buscar transações
-      const { data: transactions } = await supabase
-        .from("financial_transactions")
-        .select("id, description, amount, type, payment_method")
-        .eq("user_id", user.id)
-        .or(`description.ilike.${searchPattern},payment_method.ilike.${searchPattern}`)
-        .order("transaction_date", { ascending: false })
-        .limit(10);
-
-      // Buscar tarefas
-      const { data: tasks } = await supabase
-        .from("tasks")
-        .select("id, title, description, status, priority")
-        .eq("user_id", user.id)
-        .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      // Buscar estoque
-      const { data: inventory } = await supabase
-        .from("inventory_items")
-        .select("id, name, description, category, sku")
-        .eq("user_id", user.id)
-        .or(`name.ilike.${searchPattern},description.ilike.${searchPattern},category.ilike.${searchPattern},sku.ilike.${searchPattern}`)
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      // Buscar assinaturas com informações do cliente e plano
-      const { data: subscriptionsRaw } = await supabase
-        .from("subscriptions")
-        .select("id, status, customer_id, plan_id")
-        .eq("user_id", user.id)
-        .eq("type", "client")  // ✅ Buscar apenas contratos de CLIENTES
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      // Buscar informações complementares se houver assinaturas
-      let subscriptions: any[] = [];
-      if (subscriptionsRaw && subscriptionsRaw.length > 0) {
-        const customerIds = [...new Set(subscriptionsRaw.map(s => s.customer_id))];
-        const planIds = [...new Set(subscriptionsRaw.map(s => s.plan_id))];
-
-        const [customersData, plansData] = await Promise.all([
-          supabase.from("customers").select("id, name").in("id", customerIds),
-          supabase.from("subscription_plans").select("id, name").in("id", planIds)
+        const [
+          appointmentsRes,
+          customersRes,
+          proposalsRes,
+          transactionsRes,
+          tasksRes,
+          inventoryRes,
+          subscriptionsRes,
+        ] = await Promise.all([
+          supabase
+            .from("appointments")
+            .select("id, title, start_time, description, customer_id, customers(name)")
+            .eq("user_id", user.id)
+            .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
+            .order("start_time", { ascending: false })
+            .limit(10),
+          supabase
+            .from("customers")
+            .select("id, name, phone, email, notes")
+            .eq("user_id", user.id)
+            .or(
+              `name.ilike.${searchPattern},phone.ilike.${searchPattern},email.ilike.${searchPattern},notes.ilike.${searchPattern}`,
+            )
+            .order("created_at", { ascending: false })
+            .limit(10),
+          supabase
+            .from("proposals")
+            .select("id, title, status, description, customer_id, customers(name)")
+            .eq("user_id", user.id)
+            .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
+            .order("created_at", { ascending: false })
+            .limit(10),
+          supabase
+            .from("financial_transactions")
+            .select("id, description, amount, type, payment_method")
+            .eq("user_id", user.id)
+            .or(`description.ilike.${searchPattern},payment_method.ilike.${searchPattern}`)
+            .order("transaction_date", { ascending: false })
+            .limit(10),
+          supabase
+            .from("tasks")
+            .select("id, title, description, status, priority")
+            .eq("user_id", user.id)
+            .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
+            .order("created_at", { ascending: false })
+            .limit(10),
+          supabase
+            .from("inventory_items")
+            .select("id, name, description, category")
+            .eq("user_id", user.id)
+            .or(`name.ilike.${searchPattern},description.ilike.${searchPattern},category.ilike.${searchPattern}`)
+            .order("created_at", { ascending: false })
+            .limit(10),
+          supabase
+            .from("subscriptions")
+            .select("id, status, customer_id, plan_id")
+            .eq("user_id", user.id)
+            .eq("type", "client")
+            .order("created_at", { ascending: false })
+            .limit(10),
         ]);
 
-        subscriptions = subscriptionsRaw.map(sub => ({
-          ...sub,
-          customer_name: customersData.data?.find(c => c.id === sub.customer_id)?.name,
-          plan_name: plansData.data?.find(p => p.id === sub.plan_id)?.name
-        }));
+        if (appointmentsRes.error) console.error("[SearchBar] appointments", appointmentsRes.error);
+        if (customersRes.error) console.error("[SearchBar] customers", customersRes.error);
+        if (proposalsRes.error) console.error("[SearchBar] proposals", proposalsRes.error);
+        if (transactionsRes.error) console.error("[SearchBar] transactions", transactionsRes.error);
+        if (tasksRes.error) console.error("[SearchBar] tasks", tasksRes.error);
+        if (inventoryRes.error) console.error("[SearchBar] inventory", inventoryRes.error);
+        if (subscriptionsRes.error) console.error("[SearchBar] subscriptions", subscriptionsRes.error);
+
+        const appointments: any[] = appointmentsRes.data ?? [];
+        const customers: any[] = customersRes.data ?? [];
+        const proposals: any[] = proposalsRes.data ?? [];
+        const transactions: any[] = transactionsRes.data ?? [];
+        const tasks: any[] = tasksRes.data ?? [];
+        const inventory: any[] = inventoryRes.data ?? [];
+        const subscriptionsRaw: any[] = subscriptionsRes.data ?? [];
+
+        // Buscar informações complementares se houver assinaturas
+        let subscriptions: any[] = [];
+        if (subscriptionsRaw.length > 0) {
+          const customerIds = [...new Set(subscriptionsRaw.map((s) => s.customer_id).filter(Boolean))];
+          const planIds = [...new Set(subscriptionsRaw.map((s) => s.plan_id).filter(Boolean))];
+
+          const [customersData, plansData] = await Promise.all([
+            customerIds.length
+              ? supabase.from("customers").select("id, name").in("id", customerIds)
+              : Promise.resolve({ data: [], error: null } as any),
+            planIds.length
+              ? supabase.from("subscription_plans").select("id, name").in("id", planIds)
+              : Promise.resolve({ data: [], error: null } as any),
+          ]);
+
+          subscriptions = subscriptionsRaw.map((sub) => ({
+            ...sub,
+            customer_name: customersData.data?.find((c: any) => c.id === sub.customer_id)?.name,
+            plan_name: plansData.data?.find((p: any) => p.id === sub.plan_id)?.name,
+          }));
+        }
+
+        const termLower = term.toLowerCase();
+
+        // Filtrar agendamentos e propostas também pelo nome do cliente
+        const filteredAppointments = appointments.filter(
+          (apt) =>
+            apt.title?.toLowerCase().includes(termLower) ||
+            apt.description?.toLowerCase().includes(termLower) ||
+            apt.customers?.name?.toLowerCase().includes(termLower),
+        );
+
+        const filteredProposals = proposals.filter(
+          (prop) =>
+            prop.title?.toLowerCase().includes(termLower) ||
+            prop.description?.toLowerCase().includes(termLower) ||
+            prop.customers?.name?.toLowerCase().includes(termLower),
+        );
+
+        const filteredSubscriptions = subscriptions.filter(
+          (sub) =>
+            sub.customer_name?.toLowerCase().includes(termLower) ||
+            sub.plan_name?.toLowerCase().includes(termLower) ||
+            sub.status?.toLowerCase().includes(termLower),
+        );
+
+        return {
+          appointments: filteredAppointments,
+          customers,
+          proposals: filteredProposals,
+          transactions,
+          tasks,
+          inventory,
+          subscriptions: filteredSubscriptions,
+        };
+      } catch (err) {
+        console.error("[SearchBar] search error", err);
+        return empty;
       }
-
-      // Filtrar agendamentos e propostas também pelo nome do cliente
-      const filteredAppointments = appointments?.filter(apt => 
-        apt.title?.toLowerCase().includes(search.toLowerCase()) ||
-        apt.description?.toLowerCase().includes(search.toLowerCase()) ||
-        apt.customers?.name?.toLowerCase().includes(search.toLowerCase())
-      );
-
-      const filteredProposals = proposals?.filter(prop => 
-        prop.title?.toLowerCase().includes(search.toLowerCase()) ||
-        prop.description?.toLowerCase().includes(search.toLowerCase()) ||
-        prop.customers?.name?.toLowerCase().includes(search.toLowerCase())
-      );
-
-      const filteredSubscriptions = subscriptions?.filter(sub => 
-        sub.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
-        sub.plan_name?.toLowerCase().includes(search.toLowerCase()) ||
-        sub.status?.toLowerCase().includes(search.toLowerCase())
-      );
-
-      return {
-        appointments: filteredAppointments || [],
-        customers: customers || [],
-        proposals: filteredProposals || [],
-        transactions: transactions || [],
-        tasks: tasks || [],
-        inventory: inventory || [],
-        subscriptions: filteredSubscriptions || [],
-      };
     },
-    enabled: search.length >= 2,
+    enabled: search.trim().length >= 2,
   });
 
   const handleSelect = (type: string, id: string) => {
@@ -275,11 +304,11 @@ export function SearchBar() {
           size="icon"
           className="h-9 w-9 shrink-0"
           onClick={() => {
+            setOpen(true);
             if (isListening) {
               stopVoiceSearch();
             } else {
-              setOpen(true);
-              setTimeout(startVoiceSearch, 100);
+              startVoiceSearch();
             }
           }}
           title={isListening ? "Parar busca por voz" : "Busca por voz"}
@@ -289,11 +318,29 @@ export function SearchBar() {
       </div>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput 
-          placeholder="Buscar em todo o sistema..." 
-          value={search}
-          onValueChange={setSearch}
-        />
+        <div className="relative">
+          <CommandInput
+            placeholder="Buscar em todo o sistema..."
+            value={search}
+            onValueChange={setSearch}
+            className="pr-12"
+          />
+          <Button
+            variant={isListening ? "destructive" : "ghost"}
+            size="icon"
+            className="absolute right-2 top-2 h-8 w-8"
+            onClick={() => {
+              if (isListening) {
+                stopVoiceSearch();
+              } else {
+                startVoiceSearch();
+              }
+            }}
+            title={isListening ? "Parar busca por voz" : "Busca por voz"}
+          >
+            {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </Button>
+        </div>
         <CommandList>
           {isLoading && search.length >= 2 && (
             <div className="p-4 text-sm text-center text-muted-foreground">
