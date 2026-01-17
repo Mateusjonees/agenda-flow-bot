@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
-import { Search, Calendar, Users, FileText, DollarSign, CheckSquare, Package, CreditCard } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, Calendar, Users, FileText, DollarSign, CheckSquare, Package, CreditCard, Mic, MicOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   Command,
   CommandDialog,
@@ -16,6 +18,8 @@ import {
 export function SearchBar() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const navigate = useNavigate();
 
   // Adicionar atalho Ctrl+K
@@ -31,6 +35,49 @@ export function SearchBar() {
     document.addEventListener("keydown", down, true);
     return () => document.removeEventListener("keydown", down, true);
   }, []);
+
+  // Voice search functions
+  const startVoiceSearch = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error("Seu navegador não suporta busca por voz");
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    recognitionRef.current = new SpeechRecognition();
+    recognitionRef.current.lang = 'pt-BR';
+    recognitionRef.current.continuous = false;
+    recognitionRef.current.interimResults = false;
+
+    recognitionRef.current.onstart = () => {
+      setIsListening(true);
+      toast.info("Ouvindo... Fale agora");
+    };
+
+    recognitionRef.current.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setSearch(transcript);
+      setIsListening(false);
+    };
+
+    recognitionRef.current.onerror = () => {
+      setIsListening(false);
+      toast.error("Erro ao capturar voz");
+    };
+
+    recognitionRef.current.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current.start();
+  };
+
+  const stopVoiceSearch = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
 
   // Limpar busca quando o dialog fecha
   useEffect(() => {
@@ -209,18 +256,36 @@ export function SearchBar() {
 
   return (
     <>
-      <div className="relative w-full max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Buscar em todo o sistema..."
-          className="w-full h-9 pl-9 pr-20 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-          onClick={() => setOpen(true)}
-          readOnly
-        />
-        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-          <span className="text-xs">⌘</span>K
-        </kbd>
+      <div className="relative w-full max-w-md flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Buscar em todo o sistema..."
+            className="w-full h-9 pl-9 pr-20 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+            onClick={() => setOpen(true)}
+            readOnly
+          />
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+            <span className="text-xs">⌘</span>K
+          </kbd>
+        </div>
+        <Button
+          variant={isListening ? "destructive" : "outline"}
+          size="icon"
+          className="h-9 w-9 shrink-0"
+          onClick={() => {
+            if (isListening) {
+              stopVoiceSearch();
+            } else {
+              setOpen(true);
+              setTimeout(startVoiceSearch, 100);
+            }
+          }}
+          title={isListening ? "Parar busca por voz" : "Busca por voz"}
+        >
+          {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+        </Button>
       </div>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
