@@ -317,7 +317,7 @@ export function SearchBar() {
         </Button>
       </div>
 
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog open={open} onOpenChange={setOpen} commandProps={{ shouldFilter: false }}>
         <div className="relative">
           <CommandInput
             placeholder="Buscar em todo o sistema..."
@@ -357,6 +357,7 @@ export function SearchBar() {
                   {results.customers.map((customer: any) => (
                     <CommandItem
                       key={customer.id}
+                      value={`${customer.name ?? ""} ${customer.phone ?? ""} ${customer.email ?? ""}`}
                       onSelect={() => handleSelect("customer", customer.id)}
                       className="cursor-pointer"
                     >
