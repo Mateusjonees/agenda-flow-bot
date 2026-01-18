@@ -12,10 +12,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Package, AlertTriangle, TrendingDown, TrendingUp, History, DollarSign, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Package, AlertTriangle, TrendingDown, TrendingUp, History, DollarSign, Pencil, Trash2, Search, Upload, Download } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { QuickStockAdjuster } from "@/components/QuickStockAdjuster";
+import { ImportDataDialog, FieldMapping } from "@/components/ImportDataDialog";
+import { ExportButton } from "@/components/ExportButton";
 
 interface InventoryItem {
   id: string;
@@ -534,12 +536,45 @@ const Estoque = () => {
     totalValue: items.reduce((sum, item) => sum + (item.current_stock * (item.cost_price || 0)), 0),
   };
 
+  const inventoryFields: FieldMapping[] = [
+    { field: "name", label: "Nome", required: true, type: "string" },
+    { field: "description", label: "Descrição", type: "string" },
+    { field: "category", label: "Categoria", type: "string" },
+    { field: "unit", label: "Unidade", type: "string" },
+    { field: "current_stock", label: "Estoque Atual", type: "number" },
+    { field: "min_quantity", label: "Estoque Mínimo", type: "number" },
+    { field: "cost_price", label: "Preço de Custo", type: "number" },
+    { field: "unit_price", label: "Preço de Venda", type: "number" },
+  ];
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+
+  const handleImportItems = async (data: any[]): Promise<{ success: number; errors: string[] }> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: 0, errors: ["Usuário não autenticado"] };
+    let success = 0;
+    const errors: string[] = [];
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      if (!row.name) { errors.push(`Linha ${i + 1}: Nome é obrigatório`); continue; }
+      const { error } = await supabase.from("inventory_items").insert({
+        user_id: user.id, name: row.name, description: row.description || null,
+        category: row.category || null, unit: row.unit || "un",
+        current_stock: row.current_stock || 0, min_quantity: row.min_quantity || 0,
+        cost_price: row.cost_price || 0, unit_price: row.unit_price || 0,
+      });
+      if (error) { errors.push(`Linha ${i + 1}: ${error.message}`); } else { success++; }
+    }
+    if (success > 0) fetchItems();
+    return { success, errors };
+  };
+
   if (loading) {
     return <div className="p-8">Carregando...</div>;
   }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+      <ImportDataDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} title="Importar Estoque" description="Importe itens de uma planilha Excel ou CSV" fields={inventoryFields} onImport={handleImportItems} templateFilename="template_estoque" />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Estoque</h1>
@@ -548,6 +583,8 @@ const Estoque = () => {
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)} disabled={isReadOnly}><Upload className="mr-1.5 h-4 w-4" /><span className="hidden sm:inline">Importar</span></Button>
+          <ExportButton data={items} filename={`estoque_${new Date().toISOString().split('T')[0]}`} columns={[{ key: "name", label: "Nome" },{ key: "category", label: "Categoria" },{ key: "unit", label: "Unidade" },{ key: "current_stock", label: "Estoque" },{ key: "min_quantity", label: "Mínimo" },{ key: "cost_price", label: "Custo" },{ key: "unit_price", label: "Preço" }]} size="sm" />
           <Dialog open={isMovementDialogOpen} onOpenChange={setIsMovementDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" disabled={isReadOnly} size="sm" className="flex-1 sm:flex-none text-xs sm:text-sm">
