@@ -8,12 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, TrendingUp, TrendingDown, DollarSign, PieChart, Download, Filter } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, DollarSign, PieChart, Download, Filter, Upload } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DailyClosing } from "@/components/DailyClosing";
 import { FinancialTransactionDialog } from "@/components/FinancialTransactionDialog";
 import { useToast } from "@/hooks/use-toast";
+import { ImportDataDialog, FieldMapping } from "@/components/ImportDataDialog";
+import { ExportButton } from "@/components/ExportButton";
 
 interface FinancialSummary {
   income: number;
@@ -356,6 +358,18 @@ const Financeiro = () => {
           <p className="text-muted-foreground">Controle completo das suas finanças</p>
         </div>
         <div className="flex gap-3">
+          <ExportButton
+            data={transactions}
+            filename={`financeiro_${filters.startDate}_${filters.endDate}`}
+            columns={[
+              { key: "transaction_date", label: "Data" },
+              { key: "type", label: "Tipo" },
+              { key: "description", label: "Descrição" },
+              { key: "amount", label: "Valor" },
+              { key: "payment_method", label: "Forma Pagamento" },
+              { key: "status", label: "Status" },
+            ]}
+          />
           <DailyClosing />
           <Button className="gap-2" onClick={() => setDialogOpen(true)} disabled={isReadOnly}>
             <Plus className="w-4 h-4" />

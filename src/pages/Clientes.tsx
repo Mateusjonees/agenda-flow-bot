@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Phone, Mail, User, Search, X, MapPin, Loader2, Download, MessageCircle, AlertTriangle, Mic, MicOff } from "lucide-react";
+import { Plus, Phone, Mail, User, Search, X, MapPin, Loader2, Download, Upload, MessageCircle, AlertTriangle, Mic, MicOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useReadOnly } from "@/components/SubscriptionGuard";
@@ -18,6 +18,8 @@ import { FileText, CreditCard } from "lucide-react";
 import { CustomerDetailsSheet } from "@/components/CustomerDetailsSheet";
 import { fetchAddressByCep, fetchCnpjData, formatCep, formatCnpj, validateCpf, validateCnpj, formatPhone, getWhatsAppLink, exportToCSV } from "@/lib/utils";
 import { FaWhatsapp } from "react-icons/fa";
+import { ImportDataDialog, FieldMapping } from "@/components/ImportDataDialog";
+import { ExportButton } from "@/components/ExportButton";
 
 interface Customer {
   id: string;
@@ -95,6 +97,51 @@ const Clientes = () => {
   });
   const { toast } = useToast();
   const { isReadOnly } = useReadOnly();
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+
+  const customerFields: FieldMapping[] = [
+    { field: "name", label: "Nome", required: true, type: "string" },
+    { field: "phone", label: "Telefone", required: true, type: "phone" },
+    { field: "email", label: "Email", type: "email" },
+    { field: "cpf", label: "CPF", type: "cpf" },
+    { field: "notes", label: "Observações", type: "string" },
+    { field: "source", label: "Origem", type: "string" },
+  ];
+
+  const handleImportCustomers = async (data: any[]): Promise<{ success: number; errors: string[] }> => {
+    const ownerId = await getOwnerUserId();
+    if (!ownerId) return { success: 0, errors: ["Usuário não autenticado"] };
+
+    let success = 0;
+    const errors: string[] = [];
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      if (!row.name || !row.phone) {
+        errors.push(`Linha ${i + 1}: Nome e telefone são obrigatórios`);
+        continue;
+      }
+
+      const { error } = await supabase.from("customers").insert({
+        user_id: ownerId,
+        name: row.name,
+        phone: row.phone,
+        email: row.email || null,
+        cpf: row.cpf || null,
+        notes: row.notes || null,
+        source: row.source || null,
+      });
+
+      if (error) {
+        errors.push(`Linha ${i + 1}: ${error.message}`);
+      } else {
+        success++;
+      }
+    }
+
+    if (success > 0) fetchCustomers();
+    return { success, errors };
+  };
 
   useEffect(() => {
     fetchCustomers();
@@ -589,6 +636,16 @@ const Clientes = () => {
 
   return (
     <div className="space-y-6">
+      <ImportDataDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        title="Importar Clientes"
+        description="Importe clientes de uma planilha Excel ou CSV"
+        fields={customerFields}
+        onImport={handleImportCustomers}
+        templateFilename="template_clientes"
+      />
+      
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">Clientes</h1>
@@ -598,13 +655,26 @@ const Clientes = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleExportCustomers}
-            disabled={customers.length === 0}
+            onClick={() => setImportDialogOpen(true)}
+            disabled={isReadOnly}
             className="gap-2"
           >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Exportar</span>
+            <Upload className="w-4 h-4" />
+            <span className="hidden sm:inline">Importar</span>
           </Button>
+          <ExportButton
+            data={getFilteredCustomers()}
+            filename={`clientes_${new Date().toISOString().split('T')[0]}`}
+            columns={[
+              { key: "name", label: "Nome" },
+              { key: "phone", label: "Telefone" },
+              { key: "email", label: "Email" },
+              { key: "cpf", label: "CPF" },
+              { key: "notes", label: "Observações" },
+              { key: "source", label: "Origem" },
+            ]}
+            size="sm"
+          />
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2 flex-1 sm:flex-none" disabled={isReadOnly}>
