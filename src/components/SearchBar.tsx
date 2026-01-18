@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search, Calendar, Users, FileText, DollarSign, CheckSquare, Package, CreditCard, Mic, MicOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getOwnerUserId } from "@/lib/owner";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -62,7 +63,11 @@ export function SearchBar() {
     }
 
     // Garante que o navegador peça permissão (em alguns devices o SpeechRecognition não dispara prompt)
-    await ensureMicrophonePermission();
+    try {
+      await ensureMicrophonePermission();
+    } catch {
+      return;
+    }
 
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -147,12 +152,8 @@ export function SearchBar() {
         const term = search.trim();
         if (!term || term.length < 2) return empty;
 
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError || !user) return empty;
+        const ownerId = await getOwnerUserId();
+        if (!ownerId) return empty;
 
         const searchPattern = `%${term}%`;
 
@@ -168,14 +169,14 @@ export function SearchBar() {
           supabase
             .from("appointments")
             .select("id, title, start_time, description, customer_id, customers(name)")
-            .eq("user_id", user.id)
+            .eq("user_id", ownerId)
             .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
             .order("start_time", { ascending: false })
             .limit(10),
           supabase
             .from("customers")
             .select("id, name, phone, email, notes")
-            .eq("user_id", user.id)
+            .eq("user_id", ownerId)
             .or(
               `name.ilike.${searchPattern},phone.ilike.${searchPattern},email.ilike.${searchPattern},notes.ilike.${searchPattern}`,
             )
@@ -184,35 +185,37 @@ export function SearchBar() {
           supabase
             .from("proposals")
             .select("id, title, status, description, customer_id, customers(name)")
-            .eq("user_id", user.id)
+            .eq("user_id", ownerId)
             .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
             .order("created_at", { ascending: false })
             .limit(10),
           supabase
             .from("financial_transactions")
             .select("id, description, amount, type, payment_method")
-            .eq("user_id", user.id)
+            .eq("user_id", ownerId)
             .or(`description.ilike.${searchPattern},payment_method.ilike.${searchPattern}`)
             .order("transaction_date", { ascending: false })
             .limit(10),
           supabase
             .from("tasks")
             .select("id, title, description, status, priority")
-            .eq("user_id", user.id)
+            .eq("user_id", ownerId)
             .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
             .order("created_at", { ascending: false })
             .limit(10),
           supabase
             .from("inventory_items")
             .select("id, name, description, category")
-            .eq("user_id", user.id)
-            .or(`name.ilike.${searchPattern},description.ilike.${searchPattern},category.ilike.${searchPattern}`)
+            .eq("user_id", ownerId)
+            .or(
+              `name.ilike.${searchPattern},description.ilike.${searchPattern},category.ilike.${searchPattern}`,
+            )
             .order("created_at", { ascending: false })
             .limit(10),
           supabase
             .from("subscriptions")
             .select("id, status, customer_id, plan_id")
-            .eq("user_id", user.id)
+            .eq("user_id", ownerId)
             .eq("type", "client")
             .order("created_at", { ascending: false })
             .limit(10),
@@ -404,6 +407,13 @@ export function SearchBar() {
 
           {!isLoading && search.trim().length >= 2 && (
             <>
+              {!hasAnyResults && (
+                <div className="p-4 text-sm text-center text-muted-foreground">
+                  Nenhum resultado encontrado
+                </div>
+              )}
+
+              {results?.customers && results.customers.length > 0 && (
                 <CommandGroup heading="Clientes">
                   {results.customers.map((customer: any) => (
                     <CommandItem
