@@ -12,13 +12,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Check, Star, CreditCard, Calendar, AlertTriangle } from "lucide-react";
+import { Check, Star, CreditCard, Calendar, AlertTriangle, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PixPaymentDialog } from "@/components/PixPaymentDialog";
+import { CardSubscriptionDialog } from "@/components/CardSubscriptionDialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PaymentMethodBadge } from "@/components/PaymentMethodBadge";
 
 type PlanType = "monthly" | "semestral" | "annual";
 
@@ -83,10 +86,12 @@ const plans: Plan[] = [
 export function SubscriptionManager() {
   const queryClient = useQueryClient();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
   
   // Estados para o PIX dialog
   const [pixDialogOpen, setPixDialogOpen] = useState(false);
+  const [cardDialogOpen, setCardDialogOpen] = useState(false);
   const [pixData, setPixData] = useState<{
     qrCode: string;
     qrCodeBase64: string;
@@ -168,6 +173,18 @@ export function SubscriptionManager() {
     setPixDialogOpen(false);
     setPixData(null);
     toast.success("🎉 Assinatura ativada com sucesso!");
+  };
+
+  // Handler para assinar plano
+  const handleSubscribe = async (plan: Plan) => {
+    setSelectedPlan(plan);
+    
+    if (paymentMethod === "pix") {
+      createSubscriptionMutation.mutate(plan.id);
+    } else {
+      // Abrir dialog de cartão
+      setCardDialogOpen(true);
+    }
   };
 
   // Criar assinatura via PIX
@@ -351,6 +368,39 @@ export function SubscriptionManager() {
             </div>
           )}
 
+          {/* Seleção de forma de pagamento */}
+          <div className="space-y-4">
+            <div className="text-center">
+              <h3 className="font-semibold mb-2">Escolha a Forma de Pagamento</h3>
+              <p className="text-sm text-muted-foreground">Selecione como prefere pagar sua assinatura</p>
+            </div>
+            
+            <Tabs defaultValue="pix" className="w-full" onValueChange={(value) => setPaymentMethod(value as "pix" | "card")}>
+              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 h-auto p-1">
+                <TabsTrigger 
+                  value="pix" 
+                  className="flex-col items-center gap-2 py-3 text-sm font-medium data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-600"
+                >
+                  <div className="flex items-center gap-2">
+                    <QrCode className="w-4 h-4" />
+                    <span className="font-bold">PIX</span>
+                  </div>
+                  <PaymentMethodBadge method="pix" variant="detailed" />
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="card" 
+                  className="flex-col items-center gap-2 py-3 text-sm font-medium data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600"
+                >
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4" />
+                    <span className="font-bold">Cartão</span>
+                  </div>
+                  <PaymentMethodBadge method="card" variant="detailed" />
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
           {/* Planos disponíveis */}
           <div>
             <h3 className="font-semibold mb-4">{hasActiveSubscription ? "Mudar de Plano" : "Escolha seu Plano"}</h3>
@@ -373,7 +423,7 @@ export function SubscriptionManager() {
                         <span className="text-3xl font-bold">R$ {plan.totalPrice}</span>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        R$ {plan.monthlyPrice} por {plan.months} {plan.months === 1 ? "mês" : "meses"}
+                        R$ {plan.monthlyPrice.toFixed(2)} por {plan.months} {plan.months === 1 ? "mês" : "meses"}
                       </p>
                       {plan.discount && (
                         <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300">
@@ -396,10 +446,14 @@ export function SubscriptionManager() {
                     <Button
                       className="w-full"
                       variant={plan.popular ? "default" : "outline"}
-                      onClick={() => createSubscriptionMutation.mutate(plan.id)}
+                      onClick={() => handleSubscribe(plan)}
                       disabled={createSubscriptionMutation.isPending}
                     >
-                      {hasActiveSubscription ? "Mudar para este plano" : "Assinar Agora"}
+                      {paymentMethod === "pix" ? (
+                        <><QrCode className="w-4 h-4 mr-2" /> Pagar com PIX</>
+                      ) : (
+                        <><CreditCard className="w-4 h-4 mr-2" /> Pagar com Cartão</>
+                      )}
                     </Button>
                   </CardContent>
                 </Card>
@@ -447,6 +501,27 @@ export function SubscriptionManager() {
           amount={pixData.amount}
           chargeId={pixData.chargeId}
           onPaymentConfirmed={handlePixPaymentConfirmed}
+        />
+      )}
+
+      {/* Dialog de pagamento com Cartão */}
+      {selectedPlan && (
+        <CardSubscriptionDialog
+          open={cardDialogOpen}
+          onOpenChange={setCardDialogOpen}
+          plan={{
+            id: selectedPlan.id,
+            name: selectedPlan.name,
+            price: selectedPlan.totalPrice,
+            billingFrequency: selectedPlan.id === "monthly" ? "monthly" : selectedPlan.id === "semestral" ? "semiannual" : "annual",
+            months: selectedPlan.months,
+            monthlyPrice: selectedPlan.monthlyPrice,
+          }}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["current-subscription"] });
+            setCardDialogOpen(false);
+            toast.success("🎉 Assinatura ativada com sucesso!");
+          }}
         />
       )}
     </div>
