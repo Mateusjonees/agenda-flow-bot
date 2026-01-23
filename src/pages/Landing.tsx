@@ -111,8 +111,7 @@ const Landing = memo(() => {
                 <span className="text-gradient-primary">negócio</span>
               </h1>
 
-              <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">
-                Sistema completo para <span className="text-foreground font-semibold">gestão empresarial</span> e prestadores de serviço.
+              <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">Sistema completo para gestão empresarial, para qualquer tipo de negócio.<span className="text-foreground font-semibold">gestão empresarial</span> e prestadores de serviço.
               </p>
 
               {/* Guarantee badges - Simplified layout on mobile */}
