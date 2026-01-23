@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Users, DollarSign, BarChart3, CheckCircle2, Clock, TrendingUp, CreditCard, MessageCircle, Star } from "lucide-react";
+import { useState, memo, useCallback } from "react";
+import { Calendar, Users, DollarSign, BarChart3, CheckCircle2, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -11,8 +10,12 @@ const tabs = [
   { id: "financeiro", label: "Financeiro", icon: DollarSign },
 ];
 
-const ProductShowcase = () => {
+const ProductShowcase = memo(() => {
   const [activeTab, setActiveTab] = useState("dashboard");
+
+  const handleTabChange = useCallback((tabId: string) => {
+    setActiveTab(tabId);
+  }, []);
 
   return (
     <section className="py-24 relative overflow-hidden bg-muted/30">
@@ -39,16 +42,16 @@ const ProductShowcase = () => {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={cn(
-                  "flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all duration-300",
+                  "flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-colors duration-200",
                   activeTab === tab.id
                     ? "bg-primary text-primary-foreground shadow-lg"
                     : "bg-card hover:bg-muted text-muted-foreground hover:text-foreground border"
                 )}
               >
                 <tab.icon className="w-4 h-4" />
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -70,35 +73,31 @@ const ProductShowcase = () => {
                 </div>
               </div>
 
-              {/* Content */}
+              {/* Content - Using CSS transitions instead of framer-motion */}
               <div className="p-6 min-h-[400px]">
-                <AnimatePresence mode="wait">
-                  {activeTab === "dashboard" && <DashboardMockup key="dashboard" />}
-                  {activeTab === "agenda" && <AgendaMockup key="agenda" />}
-                  {activeTab === "clientes" && <ClientesMockup key="clientes" />}
-                  {activeTab === "financeiro" && <FinanceiroMockup key="financeiro" />}
-                </AnimatePresence>
+                <div className="transition-opacity duration-200">
+                  {activeTab === "dashboard" && <DashboardMockup />}
+                  {activeTab === "agenda" && <AgendaMockup />}
+                  {activeTab === "clientes" && <ClientesMockup />}
+                  {activeTab === "financeiro" && <FinanceiroMockup />}
+                </div>
               </div>
             </div>
 
-            {/* Decorative Elements */}
-            <div className="absolute -z-10 top-10 -left-20 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
-            <div className="absolute -z-10 bottom-10 -right-20 w-40 h-40 bg-accent/20 rounded-full blur-3xl" />
+            {/* Decorative Elements - Simplified */}
+            <div className="absolute -z-10 top-10 -left-20 w-40 h-40 bg-primary/20 rounded-full blur-3xl hidden md:block" />
+            <div className="absolute -z-10 bottom-10 -right-20 w-40 h-40 bg-accent/20 rounded-full blur-3xl hidden md:block" />
           </div>
         </div>
       </div>
     </section>
   );
-};
+});
 
-const DashboardMockup = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-    className="space-y-6"
-  >
+ProductShowcase.displayName = "ProductShowcase";
+
+const DashboardMockup = memo(() => (
+  <div className="space-y-6 animate-fade-in">
     {/* Stats Grid */}
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {[
@@ -107,26 +106,23 @@ const DashboardMockup = () => (
         { icon: DollarSign, value: "R$ 4.580", label: "Receita do Mês", color: "from-emerald-500 to-teal-500", change: "+23%" },
         { icon: Star, value: "4.9", label: "Avaliação Média", color: "from-orange-500 to-amber-500", change: "" },
       ].map((stat, i) => (
-        <motion.div
+        <div
           key={i}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: i * 0.1 }}
           className="bg-muted/50 rounded-xl p-4"
         >
           <div className={`w-10 h-10 mb-3 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
             <stat.icon className="w-5 h-5 text-white" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-foreground">{stat.value}</span>
+            <span className="text-xl md:text-2xl font-bold text-foreground">{stat.value}</span>
             {stat.change && <span className="text-xs text-emerald-500 font-medium">{stat.change}</span>}
           </div>
-          <div className="text-sm text-muted-foreground">{stat.label}</div>
-        </motion.div>
+          <div className="text-xs md:text-sm text-muted-foreground">{stat.label}</div>
+        </div>
       ))}
     </div>
 
-    {/* Chart */}
+    {/* Chart - Simplified for performance */}
     <div className="bg-muted/30 rounded-xl p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-foreground">Receita Semanal</h3>
@@ -134,27 +130,21 @@ const DashboardMockup = () => (
       </div>
       <div className="flex items-end gap-2 h-32">
         {[45, 72, 58, 85, 62, 95, 78].map((h, i) => (
-          <motion.div
+          <div
             key={i}
-            initial={{ height: 0 }}
-            animate={{ height: `${h}%` }}
-            transition={{ delay: 0.3 + i * 0.05 }}
-            className="flex-1 bg-gradient-to-t from-primary to-primary/50 rounded-t-md"
+            className="flex-1 bg-gradient-to-t from-primary to-primary/50 rounded-t-md transition-all duration-300"
+            style={{ height: `${h}%` }}
           />
         ))}
       </div>
     </div>
-  </motion.div>
-);
+  </div>
+));
 
-const AgendaMockup = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-    className="space-y-4"
-  >
+DashboardMockup.displayName = "DashboardMockup";
+
+const AgendaMockup = memo(() => (
+  <div className="space-y-4 animate-fade-in">
     <div className="flex items-center justify-between">
       <h3 className="font-semibold text-foreground">Terça-feira, 10 de Janeiro</h3>
       <Badge variant="secondary">8 agendamentos</Badge>
@@ -166,43 +156,35 @@ const AgendaMockup = () => (
         { time: "10:30", name: "João Santos", service: "Barba Completa", duration: "45min", status: "confirmed", price: "R$ 80" },
         { time: "11:30", name: "Ana Costa", service: "Coloração", duration: "2h", status: "pending", price: "R$ 250" },
         { time: "14:00", name: "Pedro Oliveira", service: "Corte Masculino", duration: "30min", status: "confirmed", price: "R$ 50" },
-        { time: "15:00", name: "Carla Mendes", service: "Manicure + Pedicure", duration: "1h30", status: "confirmed", price: "R$ 100" },
       ].map((apt, i) => (
-        <motion.div
+        <div
           key={i}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: i * 0.1 }}
           className="flex items-center gap-4 bg-muted/50 rounded-xl p-4"
         >
           <div className="text-center">
             <div className="text-lg font-bold text-primary">{apt.time}</div>
             <div className="text-xs text-muted-foreground">{apt.duration}</div>
           </div>
-          <div className="flex-1">
-            <div className="font-medium text-foreground">{apt.name}</div>
-            <div className="text-sm text-muted-foreground">{apt.service}</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-foreground truncate">{apt.name}</div>
+            <div className="text-sm text-muted-foreground truncate">{apt.service}</div>
           </div>
-          <div className="text-right">
+          <div className="text-right hidden sm:block">
             <div className="font-semibold text-foreground">{apt.price}</div>
             <div className={`text-xs ${apt.status === 'confirmed' ? 'text-emerald-500' : 'text-yellow-500'}`}>
               {apt.status === 'confirmed' ? '✓ Confirmado' : '⏳ Pendente'}
             </div>
           </div>
-        </motion.div>
+        </div>
       ))}
     </div>
-  </motion.div>
-);
+  </div>
+));
 
-const ClientesMockup = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-    className="space-y-4"
-  >
+AgendaMockup.displayName = "AgendaMockup";
+
+const ClientesMockup = memo(() => (
+  <div className="space-y-4 animate-fade-in">
     <div className="flex items-center justify-between">
       <h3 className="font-semibold text-foreground">Seus Clientes</h3>
       <Badge variant="secondary">156 clientes</Badge>
@@ -210,30 +192,27 @@ const ClientesMockup = () => (
     
     <div className="grid gap-3">
       {[
-        { name: "Maria Silva", phone: "(48) 99999-1234", visits: 24, lastVisit: "Hoje", loyalty: 8 },
-        { name: "João Santos", phone: "(48) 99999-5678", visits: 18, lastVisit: "3 dias", loyalty: 6 },
-        { name: "Ana Costa", phone: "(48) 99999-9012", visits: 32, lastVisit: "1 semana", loyalty: 10 },
-        { name: "Pedro Oliveira", phone: "(48) 99999-3456", visits: 15, lastVisit: "2 semanas", loyalty: 5 },
+        { name: "Maria Silva", phone: "(48) 99999-1234", visits: 24, loyalty: 8 },
+        { name: "João Santos", phone: "(48) 99999-5678", visits: 18, loyalty: 6 },
+        { name: "Ana Costa", phone: "(48) 99999-9012", visits: 32, loyalty: 10 },
+        { name: "Pedro Oliveira", phone: "(48) 99999-3456", visits: 15, loyalty: 5 },
       ].map((client, i) => (
-        <motion.div
+        <div
           key={i}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: i * 0.1 }}
           className="flex items-center gap-4 bg-muted/50 rounded-xl p-4"
         >
-          <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-bold">
+          <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
             {client.name.split(' ').map(n => n[0]).join('')}
           </div>
-          <div className="flex-1">
-            <div className="font-medium text-foreground">{client.name}</div>
-            <div className="text-sm text-muted-foreground">{client.phone}</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-foreground truncate">{client.name}</div>
+            <div className="text-sm text-muted-foreground truncate">{client.phone}</div>
           </div>
-          <div className="text-center">
+          <div className="text-center hidden sm:block">
             <div className="font-semibold text-foreground">{client.visits}</div>
             <div className="text-xs text-muted-foreground">visitas</div>
           </div>
-          <div className="flex gap-0.5">
+          <div className="hidden md:flex gap-0.5">
             {[...Array(10)].map((_, idx) => (
               <div
                 key={idx}
@@ -241,36 +220,29 @@ const ClientesMockup = () => (
               />
             ))}
           </div>
-        </motion.div>
+        </div>
       ))}
     </div>
-  </motion.div>
-);
+  </div>
+));
 
-const FinanceiroMockup = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-    className="space-y-4"
-  >
+ClientesMockup.displayName = "ClientesMockup";
+
+const FinanceiroMockup = memo(() => (
+  <div className="space-y-4 animate-fade-in">
     <div className="grid grid-cols-3 gap-4">
       {[
         { label: "Receitas", value: "R$ 12.450", color: "text-emerald-500", bg: "bg-emerald-500/10" },
         { label: "Despesas", value: "R$ 3.200", color: "text-red-500", bg: "bg-red-500/10" },
         { label: "Lucro", value: "R$ 9.250", color: "text-primary", bg: "bg-primary/10" },
       ].map((item, i) => (
-        <motion.div
+        <div
           key={i}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: i * 0.1 }}
           className={`${item.bg} rounded-xl p-4 text-center`}
         >
-          <div className={`text-2xl font-bold ${item.color}`}>{item.value}</div>
-          <div className="text-sm text-muted-foreground">{item.label}</div>
-        </motion.div>
+          <div className={`text-lg md:text-2xl font-bold ${item.color}`}>{item.value}</div>
+          <div className="text-xs md:text-sm text-muted-foreground">{item.label}</div>
+        </div>
       ))}
     </div>
 
@@ -283,25 +255,24 @@ const FinanceiroMockup = () => (
           { desc: "Barba Completa - João Santos", value: "+R$ 80", type: "income", method: "Dinheiro" },
           { desc: "Coloração - Ana Costa", value: "+R$ 250", type: "income", method: "PIX" },
         ].map((tx, i) => (
-          <motion.div
+          <div
             key={i}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 + i * 0.1 }}
             className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"
           >
-            <div>
-              <div className="text-sm font-medium text-foreground">{tx.desc}</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-foreground truncate">{tx.desc}</div>
               <div className="text-xs text-muted-foreground">{tx.method}</div>
             </div>
-            <div className={`font-semibold ${tx.type === 'income' ? 'text-emerald-500' : 'text-red-500'}`}>
+            <div className={`font-semibold flex-shrink-0 ${tx.type === 'income' ? 'text-emerald-500' : 'text-red-500'}`}>
               {tx.value}
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>
-  </motion.div>
-);
+  </div>
+));
+
+FinanceiroMockup.displayName = "FinanceiroMockup";
 
 export default ProductShowcase;

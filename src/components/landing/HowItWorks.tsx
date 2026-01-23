@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { memo } from "react";
 import { UserPlus, Settings, Calendar, TrendingUp, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -29,21 +29,21 @@ const steps = [
   },
 ];
 
-const HowItWorks = () => {
+const HowItWorks = memo(() => {
   return (
-    <section className="py-24 relative overflow-hidden">
+    <section className="py-16 md:py-24 relative overflow-hidden">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-16">
+          <div className="text-center mb-12 md:mb-16">
             <Badge className="px-4 py-2 mb-6 bg-accent/10 text-accent border-accent/30">
               <Settings className="w-4 h-4 mr-2" />
               Simples e Rápido
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-foreground mb-4">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-foreground mb-4">
               Como <span className="text-gradient-primary">funciona</span>
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
               Comece a usar o Foguete em 4 passos simples
             </p>
           </div>
@@ -54,19 +54,16 @@ const HowItWorks = () => {
             <div className="hidden md:block absolute top-16 left-[15%] right-[15%] h-0.5 bg-gradient-to-r from-primary/50 via-accent/50 to-secondary/50" />
 
             {steps.map((step, index) => (
-              <motion.div
+              <div
                 key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.15 }}
-                className="relative"
+                className="relative animate-fade-in"
+                style={{ animationDelay: `${index * 150}ms` }}
               >
                 {/* Step Number & Icon */}
                 <div className="flex flex-col items-center mb-6">
                   <div className="relative">
-                    <div className={`w-16 h-16 bg-gradient-to-br ${step.color} rounded-2xl flex items-center justify-center shadow-lg`}>
-                      <step.icon className="w-8 h-8 text-white" />
+                    <div className={`w-14 md:w-16 h-14 md:h-16 bg-gradient-to-br ${step.color} rounded-2xl flex items-center justify-center shadow-lg`}>
+                      <step.icon className="w-7 md:w-8 h-7 md:h-8 text-white" />
                     </div>
                     <div className="absolute -top-2 -right-2 w-6 h-6 bg-card border-2 border-primary rounded-full flex items-center justify-center text-xs font-bold text-primary">
                       {index + 1}
@@ -76,7 +73,7 @@ const HowItWorks = () => {
 
                 {/* Content */}
                 <div className="text-center">
-                  <h3 className="text-xl font-bold text-foreground mb-2">{step.title}</h3>
+                  <h3 className="text-lg md:text-xl font-bold text-foreground mb-2">{step.title}</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
                 </div>
 
@@ -86,26 +83,22 @@ const HowItWorks = () => {
                     <ArrowRight className="w-6 h-6 text-primary/50 rotate-90" />
                   </div>
                 )}
-              </motion.div>
+              </div>
             ))}
           </div>
 
           {/* CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.6 }}
-            className="text-center mt-12"
-          >
+          <div className="text-center mt-10 md:mt-12 animate-fade-in" style={{ animationDelay: "600ms" }}>
             <p className="text-muted-foreground mb-4">
               Pronto para começar? Seu período de teste começa agora!
             </p>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
   );
-};
+});
+
+HowItWorks.displayName = "HowItWorks";
 
 export default HowItWorks;

@@ -1,22 +1,18 @@
+import { memo, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  LineChart, 
-  Line,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend
-} from "recharts";
-import { TrendingUp, PieChart as PieChartIcon, BarChart3, Activity } from "lucide-react";
+import { TrendingUp, PieChart as PieChartIcon, Activity } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy load recharts for better initial load performance
+const LazyAreaChart = lazy(() => 
+  import("recharts").then(mod => ({ default: mod.AreaChart }))
+);
+const LazyBarChart = lazy(() => 
+  import("recharts").then(mod => ({ default: mod.BarChart }))
+);
+const LazyPieChart = lazy(() => 
+  import("recharts").then(mod => ({ default: mod.PieChart }))
+);
 
 interface FinancialChartsProps {
   revenueData: Array<{ date: string; value: number }>;
@@ -25,27 +21,158 @@ interface FinancialChartsProps {
 }
 
 const COLORS = [
-  "hsl(262.1 83.3% 57.8%)", // primary
-  "hsl(346.8 77.2% 49.8%)", // secondary
-  "hsl(24.6 95% 53.1%)",    // accent
-  "hsl(142.1 76.2% 36.3%)", // green
-  "hsl(217.2 91.2% 59.8%)", // blue
-  "hsl(280.4 89.1% 65.5%)", // purple
+  "hsl(262.1 83.3% 57.8%)",
+  "hsl(346.8 77.2% 49.8%)",
+  "hsl(24.6 95% 53.1%)",
+  "hsl(142.1 76.2% 36.3%)",
+  "hsl(217.2 91.2% 59.8%)",
+  "hsl(280.4 89.1% 65.5%)",
 ];
 
-export const FinancialCharts = ({ 
+const ChartSkeleton = () => (
+  <div className="w-full h-[300px] flex items-center justify-center">
+    <Skeleton className="w-full h-full" />
+  </div>
+);
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 0,
+  }).format(value);
+};
+
+// Separate component for revenue chart to enable code splitting
+const RevenueChart = memo(({ data }: { data: Array<{ date: string; value: number }> }) => {
+  // Dynamic import for chart components
+  const { 
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+  } = require("recharts");
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <AreaChart data={data}>
+        <defs>
+          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+            <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+        <XAxis 
+          dataKey="date" 
+          stroke="hsl(var(--muted-foreground))"
+          style={{ fontSize: 12 }}
+        />
+        <YAxis 
+          stroke="hsl(var(--muted-foreground))"
+          style={{ fontSize: 12 }}
+          tickFormatter={formatCurrency}
+        />
+        <Tooltip 
+          contentStyle={{
+            backgroundColor: "hsl(var(--card))",
+            border: "1px solid hsl(var(--border))",
+            borderRadius: "8px",
+          }}
+          formatter={(value: number) => formatCurrency(value)}
+        />
+        <Area 
+          type="monotone" 
+          dataKey="value" 
+          stroke="#ef4444" 
+          strokeWidth={2}
+          fillOpacity={1} 
+          fill="url(#colorRevenue)" 
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+});
+
+RevenueChart.displayName = "RevenueChart";
+
+// Separate component for category chart
+const CategoryChart = memo(({ data }: { data: Array<{ name: string; value: number }> }) => {
+  const { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } = require("recharts");
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <PieChart>
+        <Pie
+          data={data}
+          cx="50%"
+          cy="50%"
+          labelLine={false}
+          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+          outerRadius={100}
+          fill="#8884d8"
+          dataKey="value"
+        >
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip formatter={(value: number) => formatCurrency(value)} />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+});
+
+CategoryChart.displayName = "CategoryChart";
+
+// Separate component for cash flow chart
+const CashFlowChart = memo(({ data }: { data: Array<{ date: string; income: number; expense: number }> }) => {
+  const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = require("recharts");
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+        <XAxis 
+          dataKey="date" 
+          stroke="hsl(var(--muted-foreground))"
+          style={{ fontSize: 12 }}
+        />
+        <YAxis 
+          stroke="hsl(var(--muted-foreground))"
+          style={{ fontSize: 12 }}
+          tickFormatter={formatCurrency}
+        />
+        <Tooltip 
+          contentStyle={{
+            backgroundColor: "hsl(var(--card))",
+            border: "1px solid hsl(var(--border))",
+            borderRadius: "8px",
+          }}
+          formatter={(value: number) => formatCurrency(value)}
+        />
+        <Legend />
+        <Bar 
+          dataKey="income" 
+          name="Receitas"
+          fill="#10b981" 
+          radius={[8, 8, 0, 0]}
+        />
+        <Bar 
+          dataKey="expense" 
+          name="Despesas"
+          fill="#ef4444" 
+          radius={[8, 8, 0, 0]}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+});
+
+CashFlowChart.displayName = "CashFlowChart";
+
+export const FinancialCharts = memo(({ 
   revenueData, 
   categoryData, 
   cashFlowData 
 }: FinancialChartsProps) => {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 0,
-    }).format(value);
-  };
-
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       {/* Gráfico de Faturamento */}
@@ -59,43 +186,9 @@ export const FinancialCharts = ({
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={revenueData}>
-              <defs>
-                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="date" 
-                stroke="hsl(var(--muted-foreground))"
-                style={{ fontSize: 12 }}
-              />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))"
-                style={{ fontSize: 12 }}
-                tickFormatter={formatCurrency}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                }}
-                formatter={(value: number) => formatCurrency(value)}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#ef4444" 
-                strokeWidth={2}
-                fillOpacity={1} 
-                fill="url(#colorRevenue)" 
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<ChartSkeleton />}>
+            <RevenueChart data={revenueData} />
+          </Suspense>
         </CardContent>
       </Card>
 
@@ -110,25 +203,9 @@ export const FinancialCharts = ({
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={categoryData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {categoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value: number) => formatCurrency(value)} />
-            </PieChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<ChartSkeleton />}>
+            <CategoryChart data={categoryData} />
+          </Suspense>
         </CardContent>
       </Card>
 
@@ -143,44 +220,13 @@ export const FinancialCharts = ({
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={cashFlowData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="date" 
-                stroke="hsl(var(--muted-foreground))"
-                style={{ fontSize: 12 }}
-              />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))"
-                style={{ fontSize: 12 }}
-                tickFormatter={formatCurrency}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                }}
-                formatter={(value: number) => formatCurrency(value)}
-              />
-              <Legend />
-              <Bar 
-                dataKey="income" 
-                name="Receitas"
-                fill="#10b981" 
-                radius={[8, 8, 0, 0]}
-              />
-              <Bar 
-                dataKey="expense" 
-                name="Despesas"
-                fill="#ef4444" 
-                radius={[8, 8, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<ChartSkeleton />}>
+            <CashFlowChart data={cashFlowData} />
+          </Suspense>
         </CardContent>
       </Card>
     </div>
   );
-};
+});
+
+FinancialCharts.displayName = "FinancialCharts";
