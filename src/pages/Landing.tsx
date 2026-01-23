@@ -2,17 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, lazy, Suspense, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Rocket,
-  ArrowRight,
-  Sparkles,
-  Shield,
-  Lock,
-  HeadphonesIcon,
-  MessageCircle,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
+import { Rocket, ArrowRight, Sparkles, Shield, Lock, HeadphonesIcon, MessageCircle, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 import { PublicNavbar } from "@/components/PublicNavbar";
@@ -24,62 +14,71 @@ const ProductShowcase = lazy(() => import("@/components/landing/ProductShowcase"
 const HowItWorks = lazy(() => import("@/components/landing/HowItWorks"));
 
 // Simple fallback for lazy components
-const SectionFallback = () => (
-  <div className="min-h-[400px] flex items-center justify-center">
+const SectionFallback = () => <div className="min-h-[400px] flex items-center justify-center">
     <div className="animate-pulse bg-muted rounded-xl w-full max-w-4xl h-64 mx-auto" />
-  </div>
-);
-
-const guaranteeBadges = [
-  { icon: Shield, text: "7 Dias Grátis" },
-  { icon: XCircle, text: "Cancele Quando Quiser" },
-  { icon: Lock, text: "Dados Criptografados" },
-  { icon: HeadphonesIcon, text: "Suporte em Português" },
-];
-
+  </div>;
+const guaranteeBadges = [{
+  icon: Shield,
+  text: "7 Dias Grátis"
+}, {
+  icon: XCircle,
+  text: "Cancele Quando Quiser"
+}, {
+  icon: Lock,
+  text: "Dados Criptografados"
+}, {
+  icon: HeadphonesIcon,
+  text: "Suporte em Português"
+}];
 const Landing = memo(() => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { trackViewContent, trackLead, trackContact } = useFacebookPixel();
-
+  const {
+    trackViewContent,
+    trackLead,
+    trackContact
+  } = useFacebookPixel();
   useEffect(() => {
     // Track landing page view
     trackViewContent({
       content_name: 'Landing Page',
-      content_category: 'marketing',
+      content_category: 'marketing'
     });
-
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: {
+          session
+        }
+      } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
     };
     checkAuth();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+    const {
+      data: {
+        subscription
+      }
+    } = supabase.auth.onAuthStateChange((_, session) => {
       setIsAuthenticated(!!session);
     });
     return () => subscription.unsubscribe();
   }, [trackViewContent]);
-
   const handleGetStarted = () => {
-    trackLead({ content_name: 'cta_click', content_category: 'conversion' });
+    trackLead({
+      content_name: 'cta_click',
+      content_category: 'conversion'
+    });
     if (isAuthenticated) {
       navigate("/dashboard");
     } else {
       navigate("/auth?mode=signup");
     }
   };
-
-  return (
-    <div className="min-h-screen bg-background overflow-hidden">
+  return <div className="min-h-screen bg-background overflow-hidden">
       {/* WhatsApp Floating Button */}
-      <button
-        onClick={() => {
-          trackContact('whatsapp_floating');
-          window.open("https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão", "_blank");
-        }}
-        className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-full p-4 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110"
-        aria-label="Fale conosco no WhatsApp"
-      >
+      <button onClick={() => {
+      trackContact('whatsapp_floating');
+      window.open("https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão", "_blank");
+    }} className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-full p-4 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110" aria-label="Fale conosco no WhatsApp">
         <MessageCircle className="w-6 h-6" />
       </button>
 
@@ -113,17 +112,15 @@ const Landing = memo(() => {
               </h1>
 
               <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">
-                Sistema completo para <span className="text-foreground font-semibold">salões, clínicas, barbearias</span> e prestadores de serviço.
+                Sistema completo para <span className="text-foreground font-semibold">gestão empresarial</span> e prestadores de serviço.
               </p>
 
               {/* Guarantee badges - Simplified layout on mobile */}
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 md:gap-3">
-                {guaranteeBadges.map((badge, i) => (
-                  <div key={i} className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-2.5 glass rounded-full">
+                {guaranteeBadges.map((badge, i) => <div key={i} className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-2.5 glass rounded-full">
                     <badge.icon className="w-4 h-4 text-primary" />
                     <span className="text-xs md:text-sm font-medium">{badge.text}</span>
-                  </div>
-                ))}
+                  </div>)}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -138,12 +135,10 @@ const Landing = memo(() => {
               </div>
 
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-6 text-xs md:text-sm text-muted-foreground">
-                {["Sem cartão de crédito", "7 dias grátis", "Cancele quando quiser"].map((text, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                {["Sem cartão de crédito", "7 dias grátis", "Cancele quando quiser"].map((text, i) => <div key={i} className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     <span>{text}</span>
-                  </div>
-                ))}
+                  </div>)}
               </div>
             </div>
 
@@ -192,10 +187,7 @@ const Landing = memo(() => {
 
       {/* Footer */}
       <PublicFooter />
-    </div>
-  );
+    </div>;
 });
-
 Landing.displayName = "Landing";
-
 export default Landing;
