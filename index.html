@@ -2,45 +2,80 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Foguete Gestão Empresarial</title>
-    <meta name="description" content="Sistema completo de gestão empresarial com automação via WhatsApp">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    <title>Foguete Gestão Empresarial | Sistema Completo de Gestão</title>
+    <meta name="description" content="Sistema completo de gestão empresarial com automação inteligente via WhatsApp">
     
-    <!-- PWA -->
+    <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#E31837" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Foguete" />
+    <meta name="mobile-web-app-capable" content="yes" />
     
-    <!-- Preconnect - critical for performance -->
-    <link rel="preconnect" href="https://oiagxzeqavhgrlxaswpd.supabase.co" crossorigin />
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <!-- Preconnect to external domains for faster loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
-    <!-- Icons -->
-    <link rel="icon" type="image/png" href="/foguetinho.png" />
+    <!-- Preload critical assets -->
+    <link rel="preload" href="/foguetinho.png" as="image" type="image/png" />
+    
+    <!-- Icons and manifest -->
+    <link rel="icon" type="image/png" href="/foguetinho.png">
     <link rel="apple-touch-icon" href="/icon-192.png" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/manifest.json">
     
-    <!-- Open Graph -->
+    <!-- iOS Splash Screens -->
+    <link rel="apple-touch-startup-image" href="/foguetinho.png" />
+    
+    <!-- Open Graph / Social -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Foguete Gestão Empresarial" />
-    <meta property="og:description" content="Sistema completo de gestão empresarial" />
+    <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/3WF77CQiGnfJw3tdycD5KYgot9b2/social-images/social-1762508861184-logo_foguete_transparente-removebg-preview.png">
+    <meta property="og:title" content="Foguete Gestão Empresarial | Sistema Completo de Gestão">
+    <meta property="og:description" content="Sistema completo de gestão empresarial com automação inteligente via WhatsApp">
     
-    <!-- Critical CSS - ultra minimal -->
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/3WF77CQiGnfJw3tdycD5KYgot9b2/social-images/social-1762508861184-logo_foguete_transparente-removebg-preview.png">
+    <meta name="twitter:title" content="Foguete Gestão Empresarial | Sistema Completo de Gestão">
+    <meta name="twitter:description" content="Sistema completo de gestão empresarial com automação inteligente via WhatsApp">
+    
+    <!-- Inline critical CSS for faster first paint -->
     <style>
-      *{margin:0;padding:0;box-sizing:border-box}
-      html{font-family:system-ui,-apple-system,sans-serif}
-      body{background:#0A0A0A;color:#fafafa}
-      #root{min-height:100vh}
-      .init-load{display:flex;align-items:center;justify-content:center;min-height:100vh}
-      .init-load::after{content:"";width:24px;height:24px;border:2px solid #E31837;border-top-color:transparent;border-radius:50%;animation:s 0.6s linear infinite}
-      @keyframes s{to{transform:rotate(360deg)}}
+      body { margin: 0; background-color: #0A0A0A; }
+      #root { min-height: 100vh; }
+      .initial-loader { 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        min-height: 100vh; 
+        background: #0A0A0A; 
+      }
+      .initial-loader svg { 
+        animation: spin 1s linear infinite; 
+        color: #E31837; 
+        width: 32px; 
+        height: 32px; 
+      }
+      @keyframes spin { 
+        from { transform: rotate(0deg); } 
+        to { transform: rotate(360deg); } 
+      }
     </style>
   </head>
 
   <body>
-    <div id="root"><div class="init-load"></div></div>
+    <div id="root">
+      <!-- Initial loader shown before JS loads -->
+      <div class="initial-loader">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Mercado Pago Security Script - loaded async and deferred -->
+    <script src="https://www.mercadopago.com/v2/security.js" view="checkout" async defer></script>
   </body>
 </html>

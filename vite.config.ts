@@ -106,58 +106,37 @@ export default defineConfig(({ mode }) => ({
     minify: "terser",
     terserOptions: {
       compress: {
-        drop_console: true,
+        drop_console: true, // Remove console.log in production
         drop_debugger: true,
-        passes: 2, // Multiple compression passes
-      },
-      mangle: {
-        safari10: true,
       },
     },
-    // Target modern browsers for smaller output
-    target: "es2020",
     // Split chunks for better caching
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          // React core
-          if (id.includes("node_modules/react/") || 
-              id.includes("node_modules/react-dom/") || 
-              id.includes("node_modules/react-router")) {
-            return "vendor-react";
-          }
-          // Radix UI components
-          if (id.includes("@radix-ui")) {
-            return "vendor-radix";
-          }
-          // Charts - lazy loaded
-          if (id.includes("recharts") || id.includes("d3-")) {
-            return "vendor-charts";
-          }
-          // Framer Motion - lazy loaded  
-          if (id.includes("framer-motion")) {
-            return "vendor-motion";
-          }
+        manualChunks: {
+          // React core - rarely changes
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          // UI library - rarely changes
+          "vendor-radix": [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-tooltip",
+          ],
+          // Charts - only loaded when needed
+          "vendor-charts": ["recharts"],
+          // Animations - used on landing page mostly
+          "vendor-motion": ["framer-motion"],
           // Data fetching
-          if (id.includes("@tanstack/react-query")) {
-            return "vendor-query";
-          }
-          // Supabase
-          if (id.includes("@supabase")) {
-            return "vendor-supabase";
-          }
-          // Date utilities
-          if (id.includes("date-fns")) {
-            return "vendor-date";
-          }
+          "vendor-query": ["@tanstack/react-query"],
+          // Supabase client
+          "vendor-supabase": ["@supabase/supabase-js"],
         },
       },
     },
     // Increase chunk size warning limit
-    chunkSizeWarningLimit: 800,
-    // Enable CSS code splitting
-    cssCodeSplit: true,
-    // Generate source maps only in development
-    sourcemap: false,
+    chunkSizeWarningLimit: 1000,
   },
 }));
