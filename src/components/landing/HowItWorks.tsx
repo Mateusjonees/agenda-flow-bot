@@ -1,104 +1,39 @@
 import { memo } from "react";
-import { UserPlus, Settings, Calendar, TrendingUp, ArrowRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { UserPlus, Settings, Calendar, TrendingUp } from "lucide-react";
 
 const steps = [
-  {
-    icon: UserPlus,
-    title: "Crie sua conta",
-    description: "Cadastre-se em menos de 2 minutos. Sem cartão de crédito, sem compromisso.",
-    color: "from-blue-500 to-cyan-500",
-  },
-  {
-    icon: Settings,
-    title: "Configure seu negócio",
-    description: "Adicione seus serviços, horários e personalize sua agenda do seu jeito.",
-    color: "from-purple-500 to-pink-500",
-  },
-  {
-    icon: Calendar,
-    title: "Comece a agendar",
-    description: "Receba agendamentos, envie lembretes automáticos e gerencie tudo online.",
-    color: "from-emerald-500 to-teal-500",
-  },
-  {
-    icon: TrendingUp,
-    title: "Acompanhe resultados",
-    description: "Veja seu negócio crescer com relatórios e insights em tempo real.",
-    color: "from-orange-500 to-amber-500",
-  },
+  { icon: UserPlus, title: "Crie sua conta", desc: "Cadastre-se em menos de 2 minutos." },
+  { icon: Settings, title: "Configure", desc: "Adicione seus serviços e horários." },
+  { icon: Calendar, title: "Agende", desc: "Receba agendamentos automáticos." },
+  { icon: TrendingUp, title: "Cresça", desc: "Veja relatórios em tempo real." },
 ];
 
-const HowItWorks = memo(() => {
-  return (
-    <section className="py-16 md:py-24 relative overflow-hidden">
-      <div className="container mx-auto px-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12 md:mb-16">
-            <Badge className="px-4 py-2 mb-6 bg-accent/10 text-accent border-accent/30">
-              <Settings className="w-4 h-4 mr-2" />
-              Simples e Rápido
-            </Badge>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-foreground mb-4">
-              Como <span className="text-gradient-primary">funciona</span>
-            </h2>
-            <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
-              Comece a usar o Foguete em 4 passos simples
-            </p>
-          </div>
+const HowItWorks = memo(() => (
+  <section className="py-12 md:py-20">
+    <div className="container mx-auto px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl md:text-4xl font-extrabold text-foreground mb-3">
+            Como <span className="text-primary">funciona</span>
+          </h2>
+          <p className="text-muted-foreground">4 passos simples para começar</p>
+        </div>
 
-          {/* Steps */}
-          <div className="grid md:grid-cols-4 gap-6 relative">
-            {/* Connection Line - Desktop */}
-            <div className="hidden md:block absolute top-16 left-[15%] right-[15%] h-0.5 bg-gradient-to-r from-primary/50 via-accent/50 to-secondary/50" />
-
-            {steps.map((step, index) => (
-              <div
-                key={index}
-                className="relative animate-fade-in"
-                style={{ animationDelay: `${index * 150}ms` }}
-              >
-                {/* Step Number & Icon */}
-                <div className="flex flex-col items-center mb-6">
-                  <div className="relative">
-                    <div className={`w-14 md:w-16 h-14 md:h-16 bg-gradient-to-br ${step.color} rounded-2xl flex items-center justify-center shadow-lg`}>
-                      <step.icon className="w-7 md:w-8 h-7 md:h-8 text-white" />
-                    </div>
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-card border-2 border-primary rounded-full flex items-center justify-center text-xs font-bold text-primary">
-                      {index + 1}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="text-center">
-                  <h3 className="text-lg md:text-xl font-bold text-foreground mb-2">{step.title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
-                </div>
-
-                {/* Arrow - Mobile */}
-                {index < steps.length - 1 && (
-                  <div className="md:hidden flex justify-center my-4">
-                    <ArrowRight className="w-6 h-6 text-primary/50 rotate-90" />
-                  </div>
-                )}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          {steps.map((step, i) => (
+            <div key={i} className="text-center p-4">
+              <div className="w-12 h-12 mx-auto mb-3 bg-primary/10 rounded-xl flex items-center justify-center">
+                <step.icon className="w-6 h-6 text-primary" />
               </div>
-            ))}
-          </div>
-
-          {/* CTA */}
-          <div className="text-center mt-10 md:mt-12 animate-fade-in" style={{ animationDelay: "600ms" }}>
-            <p className="text-muted-foreground mb-4">
-              Pronto para começar? Seu período de teste começa agora!
-            </p>
-          </div>
+              <h3 className="font-bold text-foreground mb-1 text-sm md:text-base">{step.title}</h3>
+              <p className="text-muted-foreground text-xs md:text-sm">{step.desc}</p>
+            </div>
+          ))}
         </div>
       </div>
-    </section>
-  );
-});
+    </div>
+  </section>
+));
 
 HowItWorks.displayName = "HowItWorks";
-
 export default HowItWorks;
