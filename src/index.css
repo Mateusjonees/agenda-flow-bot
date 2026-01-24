@@ -143,99 +143,90 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
-  html {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
   body {
     @apply bg-background text-foreground;
     text-rendering: optimizeSpeed;
-    font-synthesis: none;
   }
 
-  /* CRITICAL: Disable GPU-heavy effects by default */
+  /* Performance: Use GPU acceleration for animations */
   .animate-fade-in,
   .animate-pulse,
   [class*="animate-"] {
-    will-change: auto;
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
-  /* Mobile optimizations - EXTREME */
+  /* Mobile optimizations - AGGRESSIVE */
   @media (max-width: 768px) {
     * {
       -webkit-tap-highlight-color: transparent;
     }
     
-    /* KILL ALL animations on mobile */
+    /* Disable ALL animations on mobile for performance */
     *,
     *::before,
     *::after {
-      animation: none !important;
-      transition: none !important;
+      animation-duration: 0.1s !important;
+      animation-delay: 0s !important;
+      transition-duration: 0.1s !important;
     }
     
-    /* KILL blur effects (VERY expensive on mobile) */
+    /* Disable blur effects on mobile (very expensive) */
     .glass,
     .glass-strong,
     [class*="backdrop-blur"],
-    [class*="blur-"],
-    .backdrop-blur-sm,
-    .backdrop-blur-md,
-    .backdrop-blur-lg,
-    .backdrop-blur-xl {
+    [class*="blur-"] {
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
-      background: hsl(var(--card) / 0.98) !important;
     }
     
-    /* KILL shadows on mobile */
+    /* Disable heavy shadows on mobile */
     .shadow-premium,
     .shadow-elevated,
     .shadow-xl,
-    .shadow-2xl,
-    .shadow-lg {
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    .shadow-2xl {
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important;
     }
     
     /* Better touch targets */
-    button, a, [role="button"] {
+    button, 
+    a, 
+    [role="button"] {
       min-height: 44px;
     }
     
     /* Prevent zoom on inputs */
-    input, textarea, select {
-      font-size: 16px !important;
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="date"],
+    input[type="time"],
+    textarea,
+    select {
+      font-size: 16px;
     }
 
-    /* Hide decorative junk */
+    /* Hide decorative elements on mobile */
     .bg-mesh-gradient,
     .bg-grid-pattern,
-    .bg-dots-pattern,
-    .glow-primary,
-    .glow-accent,
-    .gradient-border::before {
+    .bg-dots-pattern {
       display: none !important;
     }
   }
 
-  /* Desktop: allow some animations but keep them light */
-  @media (min-width: 769px) {
-    .animate-fade-in {
-      animation: fade-in 0.2s ease-out;
-    }
-  }
-
-  /* Reduced motion - STRICT */
+  /* Reduced motion for accessibility and performance */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
-      animation: none !important;
-      transition: none !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
   }
 
-  /* Scrollbar hide */
+  /* Hide scrollbar but keep functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;

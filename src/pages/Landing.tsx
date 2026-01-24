@@ -1,26 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState, memo } from "react";
+import { useEffect, useState, lazy, Suspense, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Rocket, ArrowRight, Sparkles, Shield, Lock, HeadphonesIcon, MessageCircle, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PublicNavbar } from "@/components/PublicNavbar";
+import { PublicFooter } from "@/components/PublicFooter";
 
-// CRITICAL: Lazy load Navbar/Footer - not needed for FCP
-const PublicNavbar = memo(function LazyNavbar() {
-  const [NavComponent, setNavComponent] = useState<React.ComponentType | null>(null);
-  useEffect(() => {
-    import("@/components/PublicNavbar").then(m => setNavComponent(() => m.PublicNavbar));
-  }, []);
-  return NavComponent ? <NavComponent /> : <div className="h-16 bg-background border-b" />;
-});
+// Lazy load ALL heavy components
+const HeroMockup = lazy(() => import("@/components/landing/HeroMockup"));
+const ProductShowcase = lazy(() => import("@/components/landing/ProductShowcase"));
+const HowItWorks = lazy(() => import("@/components/landing/HowItWorks"));
 
-const PublicFooter = memo(function LazyFooter() {
-  const [FooterComponent, setFooterComponent] = useState<React.ComponentType | null>(null);
-  useEffect(() => {
-    import("@/components/PublicFooter").then(m => setFooterComponent(() => m.PublicFooter));
-  }, []);
-  return FooterComponent ? <FooterComponent /> : null;
-});
+// Ultra-light skeleton
+const SectionSkeleton = () => (
+  <div className="py-16 flex items-center justify-center">
+    <div className="w-full max-w-4xl h-48 bg-muted/50 rounded-xl animate-pulse mx-4" />
+  </div>
+);
 
 const guaranteeBadges = [
   { icon: Shield, text: "7 Dias Grátis" },
@@ -32,54 +29,51 @@ const guaranteeBadges = [
 const Landing = memo(() => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showExtras, setShowExtras] = useState(false);
 
   useEffect(() => {
-    // Check auth
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
-    });
+    };
+    checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setIsAuthenticated(!!session);
     });
 
-    // Load extras after first paint - CRITICAL for LCP
-    const timer = requestIdleCallback(() => setShowExtras(true), { timeout: 1500 });
-    
-    return () => {
-      subscription.unsubscribe();
-      if (typeof timer === 'number') cancelIdleCallback(timer);
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleGetStarted = () => {
-    navigate(isAuthenticated ? "/dashboard" : "/auth?mode=signup");
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    } else {
+      navigate("/auth?mode=signup");
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* WhatsApp Floating - defer render */}
-      {showExtras && (
-        <a
-          href="https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white rounded-full p-4 shadow-xl"
-          aria-label="WhatsApp"
-        >
-          <MessageCircle className="w-6 h-6" />
-        </a>
-      )}
+      {/* WhatsApp Floating Button */}
+      <a
+        href="https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-full p-4 shadow-xl transition-transform hover:scale-110"
+        aria-label="Fale conosco no WhatsApp"
+      >
+        <MessageCircle className="w-6 h-6" />
+      </a>
 
       <PublicNavbar />
       <div className="h-16" />
 
-      {/* Hero Section - INLINE for FCP */}
-      <section className="py-12 md:py-20">
+      {/* Hero Section - Inline, no lazy load */}
+      <section className="relative py-12 md:py-20">
         <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto text-center lg:text-left lg:max-w-none lg:grid lg:grid-cols-2 lg:gap-8 lg:items-center">
-            <div className="space-y-5">
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+            {/* Left - Text */}
+            <div className="space-y-5 text-center lg:text-left">
               <Badge className="px-4 py-2 text-sm bg-primary/10 text-primary border-primary/30">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Sistema de Gestão Completo
@@ -131,17 +125,26 @@ const Landing = memo(() => {
               </div>
             </div>
 
-            {/* Mockup - HIDDEN on mobile, lazy on desktop */}
-            <div className="hidden lg:block" />
+            {/* Right - Mockup (lazy, desktop only) */}
+            <div className="hidden lg:block">
+              <Suspense fallback={<SectionSkeleton />}>
+                <HeroMockup />
+              </Suspense>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Lazy-loaded sections - only after interaction */}
-      {showExtras && <LazyProductShowcase />}
-      {showExtras && <LazyHowItWorks />}
+      {/* Lazy-loaded sections */}
+      <Suspense fallback={<SectionSkeleton />}>
+        <ProductShowcase />
+      </Suspense>
 
-      {/* Final CTA */}
+      <Suspense fallback={<SectionSkeleton />}>
+        <HowItWorks />
+      </Suspense>
+
+      {/* Final CTA - Inline */}
       <section className="py-12 md:py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center bg-card rounded-2xl shadow-lg p-8 md:p-12 border">
@@ -166,23 +169,6 @@ const Landing = memo(() => {
       <PublicFooter />
     </div>
   );
-});
-
-// Super lightweight lazy loaders
-const LazyProductShowcase = memo(() => {
-  const [Comp, setComp] = useState<React.ComponentType | null>(null);
-  useEffect(() => {
-    import("@/components/landing/ProductShowcase").then(m => setComp(() => m.default));
-  }, []);
-  return Comp ? <Comp /> : <div className="py-16" />;
-});
-
-const LazyHowItWorks = memo(() => {
-  const [Comp, setComp] = useState<React.ComponentType | null>(null);
-  useEffect(() => {
-    import("@/components/landing/HowItWorks").then(m => setComp(() => m.default));
-  }, []);
-  return Comp ? <Comp /> : <div className="py-16" />;
 });
 
 Landing.displayName = "Landing";
