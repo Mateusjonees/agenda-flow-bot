@@ -145,12 +145,48 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    text-rendering: optimizeSpeed;
   }
 
-  /* Mobile optimizations */
+  /* Performance: Use GPU acceleration for animations */
+  .animate-fade-in,
+  .animate-pulse,
+  [class*="animate-"] {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* Mobile optimizations - AGGRESSIVE */
   @media (max-width: 768px) {
     * {
       -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Disable ALL animations on mobile for performance */
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.1s !important;
+      animation-delay: 0s !important;
+      transition-duration: 0.1s !important;
+    }
+    
+    /* Disable blur effects on mobile (very expensive) */
+    .glass,
+    .glass-strong,
+    [class*="backdrop-blur"],
+    [class*="blur-"] {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    
+    /* Disable heavy shadows on mobile */
+    .shadow-premium,
+    .shadow-elevated,
+    .shadow-xl,
+    .shadow-2xl {
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important;
     }
     
     /* Better touch targets */
@@ -158,7 +194,6 @@ All colors MUST be HSL.
     a, 
     [role="button"] {
       min-height: 44px;
-      min-width: 44px;
     }
     
     /* Prevent zoom on inputs */
@@ -172,6 +207,13 @@ All colors MUST be HSL.
     select {
       font-size: 16px;
     }
+
+    /* Hide decorative elements on mobile */
+    .bg-mesh-gradient,
+    .bg-grid-pattern,
+    .bg-dots-pattern {
+      display: none !important;
+    }
   }
 
   /* Reduced motion for accessibility and performance */
@@ -182,6 +224,15 @@ All colors MUST be HSL.
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
 
