@@ -1,9 +1,14 @@
-import { memo } from "react";
+import { motion } from "framer-motion";
 import { Calendar, Users, DollarSign, TrendingUp, Bell, CheckCircle2 } from "lucide-react";
 
-const HeroMockup = memo(() => {
+const HeroMockup = () => {
   return (
-    <div className="relative animate-fade-in">
+    <motion.div
+      initial={{ opacity: 0, x: 50, y: 20 }}
+      animate={{ opacity: 1, x: 0, y: 0 }}
+      transition={{ duration: 0.8, delay: 0.3 }}
+      className="relative"
+    >
       {/* Main Dashboard Card */}
       <div className="relative bg-card rounded-2xl shadow-2xl border overflow-hidden">
         {/* Browser Header */}
@@ -23,29 +28,36 @@ const HeroMockup = memo(() => {
         {/* Dashboard Content */}
         <div className="p-4 space-y-4">
           {/* Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             {[
               { icon: Calendar, value: "24", label: "Hoje", color: "from-blue-500 to-cyan-500" },
               { icon: Users, value: "156", label: "Clientes", color: "from-purple-500 to-pink-500" },
               { icon: DollarSign, value: "R$ 4.580", label: "Receita", color: "from-emerald-500 to-teal-500" },
               { icon: TrendingUp, value: "+23%", label: "Crescimento", color: "from-orange-500 to-amber-500" },
             ].map((stat, i) => (
-              <div
+              <motion.div
                 key={i}
-                className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl p-3 text-center animate-fade-in"
-                style={{ animationDelay: `${i * 100}ms` }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 + i * 0.1 }}
+                className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl p-3 text-center"
               >
                 <div className={`w-8 h-8 mx-auto mb-2 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
                   <stat.icon className="w-4 h-4 text-white" />
                 </div>
                 <div className="text-sm font-bold text-foreground">{stat.value}</div>
                 <div className="text-[10px] text-muted-foreground">{stat.label}</div>
-              </div>
+              </motion.div>
             ))}
           </div>
 
-          {/* Appointments Preview - Hidden on very small screens for performance */}
-          <div className="bg-muted/30 rounded-xl p-3 hidden sm:block">
+          {/* Appointments Preview */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.9 }}
+            className="bg-muted/30 rounded-xl p-3"
+          >
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-foreground">Próximos Agendamentos</span>
               <Bell className="w-4 h-4 text-primary" />
@@ -56,8 +68,11 @@ const HeroMockup = memo(() => {
                 { time: "10:30", name: "João Santos", service: "Barba Completa", status: "pending" },
                 { time: "14:00", name: "Ana Costa", service: "Manicure", status: "confirmed" },
               ].map((apt, i) => (
-                <div
+                <motion.div
                   key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1 + i * 0.1 }}
                   className="flex items-center gap-3 bg-background/50 rounded-lg p-2"
                 >
                   <div className="text-xs font-mono font-semibold text-primary">{apt.time}</div>
@@ -66,23 +81,30 @@ const HeroMockup = memo(() => {
                     <div className="text-[10px] text-muted-foreground truncate">{apt.service}</div>
                   </div>
                   <CheckCircle2 className={`w-4 h-4 ${apt.status === 'confirmed' ? 'text-emerald-500' : 'text-yellow-500'}`} />
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Revenue Chart Preview */}
-          <div className="bg-muted/30 rounded-xl p-3">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.3 }}
+            className="bg-muted/30 rounded-xl p-3"
+          >
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-foreground">Receita Semanal</span>
               <div className="text-[10px] text-emerald-500 font-medium">+18% vs semana passada</div>
             </div>
             <div className="flex items-end gap-1 h-16">
               {[40, 65, 45, 80, 55, 90, 70].map((height, i) => (
-                <div
+                <motion.div
                   key={i}
-                  className="flex-1 bg-gradient-to-t from-primary to-primary/50 rounded-t-md transition-all duration-500"
-                  style={{ height: `${height}%` }}
+                  initial={{ height: 0 }}
+                  animate={{ height: `${height}%` }}
+                  transition={{ delay: 1.4 + i * 0.05, duration: 0.4 }}
+                  className="flex-1 bg-gradient-to-t from-primary to-primary/50 rounded-t-md"
                 />
               ))}
             </div>
@@ -91,12 +113,17 @@ const HeroMockup = memo(() => {
                 <span key={day}>{day}</span>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
 
-      {/* Floating Notification - Hidden on mobile for performance */}
-      <div className="absolute -left-6 top-1/4 bg-card rounded-xl shadow-xl border p-3 max-w-[180px] hidden lg:block animate-fade-in" style={{ animationDelay: "500ms" }}>
+      {/* Floating Notification */}
+      <motion.div
+        initial={{ opacity: 0, y: 20, x: -20 }}
+        animate={{ opacity: 1, y: 0, x: 0 }}
+        transition={{ delay: 1.5, duration: 0.5 }}
+        className="absolute -left-6 top-1/4 bg-card rounded-xl shadow-xl border p-3 max-w-[180px]"
+      >
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center">
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -106,10 +133,15 @@ const HeroMockup = memo(() => {
             <div className="text-[9px] text-muted-foreground">R$ 150,00 via PIX</div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Floating WhatsApp - Hidden on mobile for performance */}
-      <div className="absolute -right-4 bottom-1/4 bg-card rounded-xl shadow-xl border p-3 max-w-[160px] hidden lg:block animate-fade-in" style={{ animationDelay: "700ms" }}>
+      {/* Floating WhatsApp */}
+      <motion.div
+        initial={{ opacity: 0, y: -20, x: 20 }}
+        animate={{ opacity: 1, y: 0, x: 0 }}
+        transition={{ delay: 1.7, duration: 0.5 }}
+        className="absolute -right-4 bottom-1/4 bg-card rounded-xl shadow-xl border p-3 max-w-[160px]"
+      >
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-[#25D366]/20 rounded-full flex items-center justify-center">
             <svg className="w-4 h-4 text-[#25D366]" viewBox="0 0 24 24" fill="currentColor">
@@ -121,11 +153,9 @@ const HeroMockup = memo(() => {
             <div className="text-[9px] text-muted-foreground">Maria Silva - 09:00</div>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
-});
-
-HeroMockup.displayName = "HeroMockup";
+};
 
 export default HeroMockup;
