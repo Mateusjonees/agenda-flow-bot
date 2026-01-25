@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import logo from "@/assets/logo.png";
+import { AIAssistantChat } from "@/components/AIAssistantChat";
 
 interface LayoutProps {
   children: ReactNode;
@@ -106,6 +107,9 @@ function LayoutContent({ children, user, profileImage, navigate, handleLogout }:
           </div>
         </main>
       </div>
+      
+      {/* AI Assistant Chat Widget */}
+      <AIAssistantChat />
     </div>
   );
 }
