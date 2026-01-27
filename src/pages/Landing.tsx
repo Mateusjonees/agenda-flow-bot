@@ -23,6 +23,7 @@ import HowItWorks from "@/components/landing/HowItWorks";
 import FeatureGrid from "@/components/landing/FeatureGrid";
 import PricingSection from "@/components/landing/PricingSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
+import FAQSection from "@/components/landing/FAQSection";
 import { PublicNavbar } from "@/components/PublicNavbar";
 import { PublicFooter } from "@/components/PublicFooter";
 
@@ -151,19 +152,28 @@ const Landing = () => {
       </section>
 
       {/* Product Showcase */}
-      <ProductShowcase />
-
-      {/* Feature Grid */}
-      <FeatureGrid />
+      <section id="recursos">
+        <ProductShowcase />
+        <FeatureGrid />
+      </section>
 
       {/* How It Works */}
       <HowItWorks />
 
       {/* Testimonials */}
-      <TestimonialsSection />
+      <section id="depoimentos">
+        <TestimonialsSection />
+      </section>
 
       {/* Pricing */}
-      <PricingSection onGetStarted={handleGetStarted} />
+      <section id="precos">
+        <PricingSection onGetStarted={handleGetStarted} />
+      </section>
+
+      {/* FAQ */}
+      <section id="faq">
+        <FAQSection />
+      </section>
 
       {/* Final CTA */}
       <section className="py-24 relative overflow-hidden">
