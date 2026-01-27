@@ -20,6 +20,9 @@ import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 import HeroMockup from "@/components/landing/HeroMockup";
 import ProductShowcase from "@/components/landing/ProductShowcase";
 import HowItWorks from "@/components/landing/HowItWorks";
+import FeatureGrid from "@/components/landing/FeatureGrid";
+import PricingSection from "@/components/landing/PricingSection";
+import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import { PublicNavbar } from "@/components/PublicNavbar";
 import { PublicFooter } from "@/components/PublicFooter";
 
@@ -150,8 +153,17 @@ const Landing = () => {
       {/* Product Showcase */}
       <ProductShowcase />
 
+      {/* Feature Grid */}
+      <FeatureGrid />
+
       {/* How It Works */}
       <HowItWorks />
+
+      {/* Testimonials */}
+      <TestimonialsSection />
+
+      {/* Pricing */}
+      <PricingSection onGetStarted={handleGetStarted} />
 
       {/* Final CTA */}
       <section className="py-24 relative overflow-hidden">
