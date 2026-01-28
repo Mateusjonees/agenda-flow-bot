@@ -1,150 +1,112 @@
 
-## Plano de Otimização de Performance Mobile (64 → 80+)
+
+## Plano de Otimização Agressiva Mobile (70 → 85+)
 
 ### Objetivo
-Melhorar a nota de performance mobile (Lighthouse) de 64 para 80+ pontos, **sem mexer na configuração de build** do Vite que causa problemas na Vercel.
+Alcançar 85+ pontos no Lighthouse mobile através de: remoção de comentários, substituição de ícones Lucide por imagens/SVGs estáticos, e simplificação de componentes críticos.
 
 ---
 
-## O que NÃO vou mexer (para não derrubar o site)
-- **vite.config.ts** - Não vou alterar nada do build/chunking
-- **Estrutura de rotas** - Permanece igual
-- **Dependências** - Nenhuma instalação ou remoção
+## Estratégia Principal
+
+### 1. Substituir Ícones Lucide por Imagens Estáticas
+
+**Problema identificado**: Os componentes `HeroMockup.tsx` e `ProductShowcase.tsx` ainda usam imports do `lucide-react` que pesam no bundle inicial:
+
+```tsx
+// HeroMockup.tsx - LINHA 1
+import { Calendar, Users, DollarSign, TrendingUp, Bell, CheckCircle2 } from "lucide-react";
+
+// ProductShowcase.tsx - LINHA 2
+import { Calendar, Users, DollarSign, BarChart3, CheckCircle2, Star } from "lucide-react";
+```
+
+**Solução**: Criar SVGs inline ou usar emojis para ícones de mockup
 
 ---
 
-## Otimizações Seguras (apenas CSS, HTML e componentes leves)
+### 2. Arquivos a Modificar
 
-### 1. Reduzir JavaScript no Carregamento Inicial
-
-**Arquivo: `src/pages/Landing.tsx`**
-- Remover `useFacebookPixel` do carregamento imediato (tracking pode ser deferido)
-- Adiar verificação de autenticação (`supabase.auth.getSession`) para depois do LCP
-- Remover animações CSS complexas do Hero (já temos desabilitadas no mobile, mas ainda processam)
-
-### 2. Otimizar o Hero Section (Above the Fold)
-
-**Arquivo: `src/pages/Landing.tsx`**
-- Simplificar os `guaranteeBadges` - usar texto estático em vez de renderização dinâmica com `.map()`
-- Remover uso de ícones Lucide no Hero mobile (muito peso de JS para ícones SVG)
-- Usar CSS puro para o badge "Sistema de Gestão Completo"
-
-### 3. Otimizar Imagens e Recursos
-
-**Arquivo: `index.html`**
-- Adicionar `fetchpriority="high"` no preload crítico
-- Remover preconnect de recursos não utilizados no LCP (youtube, unsplash)
-- Adicionar `media` query nos preconnects para priorizar mobile
-
-**Arquivo: `src/components/PublicNavbar.tsx`**
-- Usar `loading="eager"` apenas para logo visível, `loading="lazy"` para logo dark mode
-- Otimizar tamanho da imagem do logo (64x64 pode ser menor)
-
-### 4. Reduzir CSS Crítico
-
-**Arquivo: `src/index.css`**
-- Mover mais estilos de animação para serem carregados depois
-- Simplificar gradientes no mobile
-- Reduzir quantidade de keyframes definidos
-
-### 5. Otimizar Componentes Below-the-fold
-
-**Arquivo: `src/components/landing/VideoSection.tsx`**
-- Remover import de ícone `Play` do lucide - usar SVG inline simples
-- Reduzir peso do componente
-
-**Arquivo: `src/components/landing/TestimonialsSection.tsx`**
-- Reduzir quantidade de testimonials iniciais no mobile (4 em vez de 6)
-- Usar `content-visibility: auto` para economizar renderização
-
-**Arquivo: `src/components/landing/ProductShowcase.tsx`**
-- Simplificar mockups no mobile
-- Usar placeholder estático em vez de animações
-
-### 6. Adiar Scripts Externos
-
-**Arquivo: `index.html`**
-- Mover script do Mercado Pago para carregar apenas quando necessário
-- Usar `data-*` attributes para lazy loading de scripts de terceiros
+| Arquivo | Ação |
+|---------|------|
+| `HeroMockup.tsx` | Remover imports Lucide, usar emojis/SVGs inline |
+| `ProductShowcase.tsx` | Remover imports Lucide, simplificar mockups mobile |
+| `TestimonialsSection.tsx` | Remover comentários restantes |
+| `PricingSection.tsx` | Remover comentários restantes |
+| `FAQSection.tsx` | Remover comentários restantes |
+| `HowItWorks.tsx` | Remover comentários restantes |
+| `index.css` | Remover comentários descritivos |
 
 ---
 
-## Resumo de Arquivos a Alterar
+## Detalhes de Implementação
 
-1. `index.html` - Otimizar preloads e defer de scripts
-2. `src/pages/Landing.tsx` - Simplificar Hero, adiar tracking
-3. `src/components/landing/VideoSection.tsx` - SVG inline em vez de lucide
-4. `src/components/landing/TestimonialsSection.tsx` - Menos itens no mobile
-5. `src/index.css` - Remover animações não usadas do bundle crítico
+### HeroMockup.tsx
+Substituir todos os ícones Lucide:
+```tsx
+// ANTES
+import { Calendar, Users, DollarSign, TrendingUp, Bell, CheckCircle2 } from "lucide-react";
+<stat.icon className="w-4 h-4 text-white" />
+
+// DEPOIS - Usar emojis para mockup
+{ emoji: "📅", value: "24", label: "Hoje" }
+<span className="text-sm">{stat.emoji}</span>
+```
+
+### ProductShowcase.tsx
+Mesma abordagem - trocar ícones Lucide por emojis nos mockups:
+```tsx
+// ANTES
+import { Calendar, Users, DollarSign, BarChart3, CheckCircle2, Star } from "lucide-react";
+
+// DEPOIS - Sem imports, usar emojis
+{ emoji: "📅", value: "24", label: "Agendamentos Hoje" }
+```
 
 ---
 
 ## Impacto Esperado
 
-| Métrica | Antes | Depois (estimado) |
-|---------|-------|-------------------|
-| Performance | 64 | 75-85 |
-| FCP | ~2.5s | ~1.8s |
-| LCP | ~4.0s | ~2.8s |
-| TBT | alto | -40% |
+| Métrica | Atual | Meta |
+|---------|-------|------|
+| Performance Mobile | 70 | 85+ |
+| Bundle Size | ~180KB | ~150KB |
+| TBT (Total Blocking Time) | alto | -50% |
+| Lucide no bundle crítico | Sim | Não |
 
 ---
 
-## Detalhes Técnicos
+## Por que isso vai funcionar?
 
-### Landing.tsx - Mudanças
-```tsx
-// ANTES: Tracking no mount
-useEffect(() => {
-  trackViewContent(...);
-  checkAuth();
-}, []);
+1. **lucide-react** é uma biblioteca pesada (~50KB+ tree-shaked) que está sendo carregada em componentes usados no primeiro render
+2. Mockups de dashboard não precisam de ícones reais - emojis são nativos do sistema e têm custo zero
+3. Remover comentários reduz o tamanho dos arquivos fonte (minor mas ajuda)
+4. Componentes como `HeroMockup` são mostrados no desktop, mas o código ainda é processado no mobile mesmo com lazy loading
 
-// DEPOIS: Tracking adiado
-useEffect(() => {
-  // Defer non-critical auth check
-  const timer = setTimeout(() => {
-    checkAuth();
-    trackViewContent(...);
-  }, 1000);
-  return () => clearTimeout(timer);
-}, []);
-```
+---
 
-### index.html - Mudanças
-```html
-<!-- ANTES -->
-<script src="https://www.mercadopago.com/v2/security.js" async defer></script>
+## Arquivos Finais
 
-<!-- DEPOIS: Só carrega quando necessário -->
-<!-- Removido do index.html, será carregado dinamicamente nas páginas de pagamento -->
-```
+### HeroMockup.tsx (novo)
+- Zero imports de lucide-react
+- Usar emojis para ícones: 📅 👥 💰 📈 🔔 ✅
+- Remover componente AnimatedDiv (simplificar)
+- Manter SVG WhatsApp inline (já está)
 
-### VideoSection.tsx - Mudanças
-```tsx
-// ANTES: Import do lucide
-import { Play } from "lucide-react";
+### ProductShowcase.tsx (novo)
+- Zero imports de lucide-react
+- Usar emojis para tabs: 📊 📅 👥 💰
+- Simplificar estrutura das tabs
+- Remover Badge import se não for essencial
 
-// DEPOIS: SVG inline leve
-const PlayIcon = () => (
-  <svg className="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M8 5v14l11-7z"/>
-  </svg>
-);
-```
+### Limpeza de Comentários
+Remover todos os `/* */` e `//` comentários descritivos dos arquivos de landing
 
 ---
 
 ## Risco: Muito Baixo
+- Apenas substituição visual (ícones → emojis)
+- Nenhuma mudança de funcionalidade
 - Nenhuma alteração no build
-- Nenhuma alteração em dependências
-- Alterações são 100% retrocompatíveis
-- Se algo der errado, é fácil reverter
+- Fácil reversão se necessário
 
----
-
-## Próximos Passos
-1. Aprovar este plano
-2. Implementar as mudanças
-3. Fazer deploy na Vercel
-4. Testar com Lighthouse no PageSpeed Insights
