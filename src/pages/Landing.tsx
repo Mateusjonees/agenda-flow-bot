@@ -21,8 +21,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import HeroMockup from "@/components/landing/HeroMockup";
 
 // Lazy load navbar/footer for faster FCP
-const PublicNavbar = lazy(() => import("@/components/PublicNavbar").then(m => ({ default: m.PublicNavbar })));
-const PublicFooter = lazy(() => import("@/components/PublicFooter").then(m => ({ default: m.PublicFooter })));
+const PublicNavbar = lazy(() => import("@/components/PublicNavbar"));
+const PublicFooter = lazy(() => import("@/components/PublicFooter"));
 
 // Lazy load components below the fold for better performance
 const VideoSection = lazy(() => import("@/components/landing/VideoSection"));

@@ -187,3 +187,5 @@ export function PublicNavbar() {
     </header>
   );
 }
+
+export default PublicNavbar;
