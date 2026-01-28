@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Users, DollarSign, BarChart3, CheckCircle2, Clock, TrendingUp, CreditCard, MessageCircle, Star } from "lucide-react";
+import { Calendar, Users, DollarSign, BarChart3, CheckCircle2, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -72,18 +71,16 @@ const ProductShowcase = () => {
 
               {/* Content */}
               <div className="p-6 min-h-[400px]">
-                <AnimatePresence mode="wait">
-                  {activeTab === "dashboard" && <DashboardMockup key="dashboard" />}
-                  {activeTab === "agenda" && <AgendaMockup key="agenda" />}
-                  {activeTab === "clientes" && <ClientesMockup key="clientes" />}
-                  {activeTab === "financeiro" && <FinanceiroMockup key="financeiro" />}
-                </AnimatePresence>
+                {activeTab === "dashboard" && <DashboardMockup key="dashboard" />}
+                {activeTab === "agenda" && <AgendaMockup key="agenda" />}
+                {activeTab === "clientes" && <ClientesMockup key="clientes" />}
+                {activeTab === "financeiro" && <FinanceiroMockup key="financeiro" />}
               </div>
             </div>
 
-            {/* Decorative Elements */}
-            <div className="absolute -z-10 top-10 -left-20 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
-            <div className="absolute -z-10 bottom-10 -right-20 w-40 h-40 bg-accent/20 rounded-full blur-3xl" />
+            {/* Decorative Elements - Hidden on mobile for performance */}
+            <div className="hidden md:block absolute -z-10 top-10 -left-20 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
+            <div className="hidden md:block absolute -z-10 bottom-10 -right-20 w-40 h-40 bg-accent/20 rounded-full blur-3xl" />
           </div>
         </div>
       </div>
@@ -92,13 +89,7 @@ const ProductShowcase = () => {
 };
 
 const DashboardMockup = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-    className="space-y-6"
-  >
+  <div className="space-y-6 animate-fade-in">
     {/* Stats Grid */}
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {[
@@ -107,12 +98,10 @@ const DashboardMockup = () => (
         { icon: DollarSign, value: "R$ 4.580", label: "Receita do Mês", color: "from-emerald-500 to-teal-500", change: "+23%" },
         { icon: Star, value: "4.9", label: "Avaliação Média", color: "from-orange-500 to-amber-500", change: "" },
       ].map((stat, i) => (
-        <motion.div
+        <div
           key={i}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: i * 0.1 }}
-          className="bg-muted/50 rounded-xl p-4"
+          className="bg-muted/50 rounded-xl p-4 animate-scale-in"
+          style={{ animationDelay: `${i * 100}ms` }}
         >
           <div className={`w-10 h-10 mb-3 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
             <stat.icon className="w-5 h-5 text-white" />
@@ -122,7 +111,7 @@ const DashboardMockup = () => (
             {stat.change && <span className="text-xs text-emerald-500 font-medium">{stat.change}</span>}
           </div>
           <div className="text-sm text-muted-foreground">{stat.label}</div>
-        </motion.div>
+        </div>
       ))}
     </div>
 
@@ -134,27 +123,22 @@ const DashboardMockup = () => (
       </div>
       <div className="flex items-end gap-2 h-32">
         {[45, 72, 58, 85, 62, 95, 78].map((h, i) => (
-          <motion.div
+          <div
             key={i}
-            initial={{ height: 0 }}
-            animate={{ height: `${h}%` }}
-            transition={{ delay: 0.3 + i * 0.05 }}
-            className="flex-1 bg-gradient-to-t from-primary to-primary/50 rounded-t-md"
+            className="flex-1 bg-gradient-to-t from-primary to-primary/50 rounded-t-md animate-scale-in"
+            style={{ 
+              height: `${h}%`,
+              animationDelay: `${300 + i * 50}ms`
+            }}
           />
         ))}
       </div>
     </div>
-  </motion.div>
+  </div>
 );
 
 const AgendaMockup = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-    className="space-y-4"
-  >
+  <div className="space-y-4 animate-fade-in">
     <div className="flex items-center justify-between">
       <h3 className="font-semibold text-foreground">Terça-feira, 10 de Janeiro</h3>
       <Badge variant="secondary">8 agendamentos</Badge>
@@ -168,12 +152,10 @@ const AgendaMockup = () => (
         { time: "14:00", name: "Pedro Oliveira", service: "Corte Masculino", duration: "30min", status: "confirmed", price: "R$ 50" },
         { time: "15:00", name: "Carla Mendes", service: "Manicure + Pedicure", duration: "1h30", status: "confirmed", price: "R$ 100" },
       ].map((apt, i) => (
-        <motion.div
+        <div
           key={i}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: i * 0.1 }}
-          className="flex items-center gap-4 bg-muted/50 rounded-xl p-4"
+          className="flex items-center gap-4 bg-muted/50 rounded-xl p-4 animate-fade-in"
+          style={{ animationDelay: `${i * 100}ms` }}
         >
           <div className="text-center">
             <div className="text-lg font-bold text-primary">{apt.time}</div>
@@ -189,20 +171,14 @@ const AgendaMockup = () => (
               {apt.status === 'confirmed' ? '✓ Confirmado' : '⏳ Pendente'}
             </div>
           </div>
-        </motion.div>
+        </div>
       ))}
     </div>
-  </motion.div>
+  </div>
 );
 
 const ClientesMockup = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-    className="space-y-4"
-  >
+  <div className="space-y-4 animate-fade-in">
     <div className="flex items-center justify-between">
       <h3 className="font-semibold text-foreground">Seus Clientes</h3>
       <Badge variant="secondary">156 clientes</Badge>
@@ -215,12 +191,10 @@ const ClientesMockup = () => (
         { name: "Ana Costa", phone: "(48) 99999-9012", visits: 32, lastVisit: "1 semana", loyalty: 10 },
         { name: "Pedro Oliveira", phone: "(48) 99999-3456", visits: 15, lastVisit: "2 semanas", loyalty: 5 },
       ].map((client, i) => (
-        <motion.div
+        <div
           key={i}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: i * 0.1 }}
-          className="flex items-center gap-4 bg-muted/50 rounded-xl p-4"
+          className="flex items-center gap-4 bg-muted/50 rounded-xl p-4 animate-fade-in"
+          style={{ animationDelay: `${i * 100}ms` }}
         >
           <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-bold">
             {client.name.split(' ').map(n => n[0]).join('')}
@@ -241,36 +215,28 @@ const ClientesMockup = () => (
               />
             ))}
           </div>
-        </motion.div>
+        </div>
       ))}
     </div>
-  </motion.div>
+  </div>
 );
 
 const FinanceiroMockup = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-    className="space-y-4"
-  >
+  <div className="space-y-4 animate-fade-in">
     <div className="grid grid-cols-3 gap-4">
       {[
         { label: "Receitas", value: "R$ 12.450", color: "text-emerald-500", bg: "bg-emerald-500/10" },
         { label: "Despesas", value: "R$ 3.200", color: "text-red-500", bg: "bg-red-500/10" },
         { label: "Lucro", value: "R$ 9.250", color: "text-primary", bg: "bg-primary/10" },
       ].map((item, i) => (
-        <motion.div
+        <div
           key={i}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: i * 0.1 }}
-          className={`${item.bg} rounded-xl p-4 text-center`}
+          className={`${item.bg} rounded-xl p-4 text-center animate-scale-in`}
+          style={{ animationDelay: `${i * 100}ms` }}
         >
           <div className={`text-2xl font-bold ${item.color}`}>{item.value}</div>
           <div className="text-sm text-muted-foreground">{item.label}</div>
-        </motion.div>
+        </div>
       ))}
     </div>
 
@@ -283,12 +249,10 @@ const FinanceiroMockup = () => (
           { desc: "Barba Completa - João Santos", value: "+R$ 80", type: "income", method: "Dinheiro" },
           { desc: "Coloração - Ana Costa", value: "+R$ 250", type: "income", method: "PIX" },
         ].map((tx, i) => (
-          <motion.div
+          <div
             key={i}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 + i * 0.1 }}
-            className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"
+            className="flex items-center justify-between py-2 border-b border-border/50 last:border-0 animate-fade-in"
+            style={{ animationDelay: `${300 + i * 100}ms` }}
           >
             <div>
               <div className="text-sm font-medium text-foreground">{tx.desc}</div>
@@ -297,11 +261,11 @@ const FinanceiroMockup = () => (
             <div className={`font-semibold ${tx.type === 'income' ? 'text-emerald-500' : 'text-red-500'}`}>
               {tx.value}
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>
-  </motion.div>
+  </div>
 );
 
 export default ProductShowcase;

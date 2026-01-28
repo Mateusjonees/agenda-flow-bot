@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Rocket,
@@ -15,17 +15,28 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useFacebookPixel } from "@/hooks/useFacebookPixel";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Componentes da Landing
+// Hero components loaded immediately (above the fold)
 import HeroMockup from "@/components/landing/HeroMockup";
-import ProductShowcase from "@/components/landing/ProductShowcase";
-import HowItWorks from "@/components/landing/HowItWorks";
-import FeatureGrid from "@/components/landing/FeatureGrid";
-import PricingSection from "@/components/landing/PricingSection";
-import TestimonialsSection from "@/components/landing/TestimonialsSection";
-import FAQSection from "@/components/landing/FAQSection";
 import { PublicNavbar } from "@/components/PublicNavbar";
 import { PublicFooter } from "@/components/PublicFooter";
+
+// Lazy load components below the fold for better performance
+const VideoSection = lazy(() => import("@/components/landing/VideoSection"));
+const ProductShowcase = lazy(() => import("@/components/landing/ProductShowcase"));
+const HowItWorks = lazy(() => import("@/components/landing/HowItWorks"));
+const FeatureGrid = lazy(() => import("@/components/landing/FeatureGrid"));
+const PricingSection = lazy(() => import("@/components/landing/PricingSection"));
+const TestimonialsSection = lazy(() => import("@/components/landing/TestimonialsSection"));
+const FAQSection = lazy(() => import("@/components/landing/FAQSection"));
+
+// Loading skeleton for lazy components
+const SectionSkeleton = () => (
+  <div className="py-16 flex items-center justify-center">
+    <Skeleton className="w-full max-w-4xl h-64 rounded-2xl" />
+  </div>
+);
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -151,28 +162,45 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Video Section - Below Hero */}
+      <Suspense fallback={<SectionSkeleton />}>
+        <VideoSection />
+      </Suspense>
+
       {/* Product Showcase */}
       <section id="recursos">
-        <ProductShowcase />
-        <FeatureGrid />
+        <Suspense fallback={<SectionSkeleton />}>
+          <ProductShowcase />
+        </Suspense>
+        <Suspense fallback={<SectionSkeleton />}>
+          <FeatureGrid />
+        </Suspense>
       </section>
 
       {/* How It Works */}
-      <HowItWorks />
+      <Suspense fallback={<SectionSkeleton />}>
+        <HowItWorks />
+      </Suspense>
 
       {/* Testimonials */}
       <section id="depoimentos">
-        <TestimonialsSection />
+        <Suspense fallback={<SectionSkeleton />}>
+          <TestimonialsSection />
+        </Suspense>
       </section>
 
       {/* Pricing */}
       <section id="precos">
-        <PricingSection onGetStarted={handleGetStarted} />
+        <Suspense fallback={<SectionSkeleton />}>
+          <PricingSection onGetStarted={handleGetStarted} />
+        </Suspense>
       </section>
 
       {/* FAQ */}
       <section id="faq">
-        <FAQSection />
+        <Suspense fallback={<SectionSkeleton />}>
+          <FAQSection />
+        </Suspense>
       </section>
 
       {/* Final CTA */}
