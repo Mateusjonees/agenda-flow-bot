@@ -1,4 +1,3 @@
-import { Check, Star, Crown, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,7 +8,7 @@ interface PricingSectionProps {
 
 const plans = [{
   name: "Mensal",
-  icon: Zap,
+  emoji: "⚡",
   price: "R$ 49",
   period: "/mês",
   description: "Ideal para começar",
@@ -18,7 +17,7 @@ const plans = [{
   color: "from-slate-500 to-gray-600"
 }, {
   name: "Semestral",
-  icon: Star,
+  emoji: "⭐",
   price: "R$ 259",
   period: "/6 meses",
   originalPrice: "R$ 294",
@@ -29,7 +28,7 @@ const plans = [{
   color: "from-primary to-accent"
 }, {
   name: "Anual",
-  icon: Crown,
+  emoji: "👑",
   price: "R$ 475",
   period: "/ano",
   originalPrice: "R$ 588",
@@ -65,7 +64,7 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
                 <div className="p-5 pt-8 flex-1 flex flex-col">
                   <div className="flex items-center gap-2 mb-3">
                     <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${plan.color} flex items-center justify-center flex-shrink-0`}>
-                      <plan.icon className="w-5 h-5 text-white" />
+                      <span className="text-lg">{plan.emoji}</span>
                     </div>
                     <div className="min-w-0">
                       <h3 className="text-lg font-bold text-foreground leading-tight">{plan.name}</h3>
@@ -105,9 +104,7 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
                   <ul className="space-y-2 flex-1">
                     {plan.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-start gap-2">
-                        <div className="w-4 h-4 bg-emerald-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Check className="w-2.5 h-2.5 text-emerald-500" />
-                        </div>
+                        <span className="text-emerald-500 flex-shrink-0 mt-0.5">✓</span>
                         <span className="text-xs text-foreground leading-relaxed">{feature}</span>
                       </li>
                     ))}

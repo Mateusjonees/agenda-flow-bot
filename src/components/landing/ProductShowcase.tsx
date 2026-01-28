@@ -1,13 +1,12 @@
 import { useState } from "react";
-import { Calendar, Users, DollarSign, BarChart3, CheckCircle2, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const tabs = [
-  { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-  { id: "agenda", label: "Agendamentos", icon: Calendar },
-  { id: "clientes", label: "Clientes", icon: Users },
-  { id: "financeiro", label: "Financeiro", icon: DollarSign },
+  { id: "dashboard", label: "Dashboard", emoji: "📊" },
+  { id: "agenda", label: "Agendamentos", emoji: "📅" },
+  { id: "clientes", label: "Clientes", emoji: "👥" },
+  { id: "financeiro", label: "Financeiro", emoji: "💰" },
 ];
 
 const ProductShowcase = () => {
@@ -19,10 +18,9 @@ const ProductShowcase = () => {
       
       <div className="container mx-auto px-4 relative">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
           <div className="text-center mb-12">
             <Badge className="px-4 py-2 mb-6 bg-primary/10 text-primary border-primary/30">
-              <BarChart3 className="w-4 h-4 mr-2" />
+              <span className="mr-2">📊</span>
               Conheça o Sistema
             </Badge>
             <h2 className="text-4xl md:text-5xl font-extrabold text-foreground mb-4">
@@ -33,7 +31,6 @@ const ProductShowcase = () => {
             </p>
           </div>
 
-          {/* Tabs */}
           <div className="flex flex-wrap justify-center gap-2 mb-8">
             {tabs.map((tab) => (
               <button
@@ -46,16 +43,14 @@ const ProductShowcase = () => {
                     : "bg-card hover:bg-muted text-muted-foreground hover:text-foreground border"
                 )}
               >
-                <tab.icon className="w-4 h-4" />
+                <span>{tab.emoji}</span>
                 {tab.label}
               </button>
             ))}
           </div>
 
-          {/* Mockup Container */}
           <div className="relative">
             <div className="bg-card rounded-2xl shadow-2xl border overflow-hidden max-w-4xl mx-auto">
-              {/* Browser Header */}
               <div className="bg-muted/50 px-4 py-3 flex items-center gap-2 border-b">
                 <div className="flex gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-red-400" />
@@ -69,7 +64,6 @@ const ProductShowcase = () => {
                 </div>
               </div>
 
-              {/* Content */}
               <div className="p-6 min-h-[400px]">
                 {activeTab === "dashboard" && <DashboardMockup key="dashboard" />}
                 {activeTab === "agenda" && <AgendaMockup key="agenda" />}
@@ -78,7 +72,6 @@ const ProductShowcase = () => {
               </div>
             </div>
 
-            {/* Decorative Elements - Hidden on mobile for performance */}
             <div className="hidden md:block absolute -z-10 top-10 -left-20 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
             <div className="hidden md:block absolute -z-10 bottom-10 -right-20 w-40 h-40 bg-accent/20 rounded-full blur-3xl" />
           </div>
@@ -90,13 +83,12 @@ const ProductShowcase = () => {
 
 const DashboardMockup = () => (
   <div className="space-y-6 animate-fade-in">
-    {/* Stats Grid */}
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {[
-        { icon: Calendar, value: "24", label: "Agendamentos Hoje", color: "from-blue-500 to-cyan-500", change: "+5" },
-        { icon: Users, value: "156", label: "Clientes Ativos", color: "from-purple-500 to-pink-500", change: "+12" },
-        { icon: DollarSign, value: "R$ 4.580", label: "Receita do Mês", color: "from-emerald-500 to-teal-500", change: "+23%" },
-        { icon: Star, value: "4.9", label: "Avaliação Média", color: "from-orange-500 to-amber-500", change: "" },
+        { emoji: "📅", value: "24", label: "Agendamentos Hoje", color: "from-blue-500 to-cyan-500", change: "+5" },
+        { emoji: "👥", value: "156", label: "Clientes Ativos", color: "from-purple-500 to-pink-500", change: "+12" },
+        { emoji: "💰", value: "R$ 4.580", label: "Receita do Mês", color: "from-emerald-500 to-teal-500", change: "+23%" },
+        { emoji: "⭐", value: "4.9", label: "Avaliação Média", color: "from-orange-500 to-amber-500", change: "" },
       ].map((stat, i) => (
         <div
           key={i}
@@ -104,7 +96,7 @@ const DashboardMockup = () => (
           style={{ animationDelay: `${i * 100}ms` }}
         >
           <div className={`w-10 h-10 mb-3 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
-            <stat.icon className="w-5 h-5 text-white" />
+            <span className="text-lg">{stat.emoji}</span>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-foreground">{stat.value}</span>
@@ -115,7 +107,6 @@ const DashboardMockup = () => (
       ))}
     </div>
 
-    {/* Chart */}
     <div className="bg-muted/30 rounded-xl p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-foreground">Receita Semanal</h3>

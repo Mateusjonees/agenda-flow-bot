@@ -1,38 +1,20 @@
-import { Calendar, Users, DollarSign, TrendingUp, Bell, CheckCircle2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const HeroMockup = () => {
   const isMobile = useIsMobile();
 
-  // CSS-only animation wrapper for mobile
-  const AnimatedDiv = ({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) => {
-    if (isMobile) {
-      return (
-        <div 
-          className={`animate-fade-in ${className}`} 
-          style={{ animationDelay: `${delay}ms` }}
-        >
-          {children}
-        </div>
-      );
-    }
-    
-    // Desktop: simple fade in with CSS
-    return (
-      <div 
-        className={`animate-scale-in ${className}`} 
-        style={{ animationDelay: `${delay}ms` }}
-      >
-        {children}
-      </div>
-    );
-  };
+  const AnimatedDiv = ({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) => (
+    <div 
+      className={`${isMobile ? 'animate-fade-in' : 'animate-scale-in'} ${className}`} 
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
 
   return (
     <div className="relative animate-fade-in">
-      {/* Main Dashboard Card */}
       <div className="relative bg-card rounded-2xl shadow-2xl border overflow-hidden">
-        {/* Browser Header */}
         <div className="bg-muted/50 px-4 py-3 flex items-center gap-2 border-b">
           <div className="flex gap-1.5">
             <div className="w-3 h-3 rounded-full bg-red-400" />
@@ -46,15 +28,13 @@ const HeroMockup = () => {
           </div>
         </div>
 
-        {/* Dashboard Content */}
         <div className="p-4 space-y-4">
-          {/* Stats Row */}
           <div className="grid grid-cols-4 gap-3">
             {[
-              { icon: Calendar, value: "24", label: "Hoje", color: "from-blue-500 to-cyan-500" },
-              { icon: Users, value: "156", label: "Clientes", color: "from-purple-500 to-pink-500" },
-              { icon: DollarSign, value: "R$ 4.580", label: "Receita", color: "from-emerald-500 to-teal-500" },
-              { icon: TrendingUp, value: "+23%", label: "Crescimento", color: "from-orange-500 to-amber-500" },
+              { emoji: "📅", value: "24", label: "Hoje", color: "from-blue-500 to-cyan-500" },
+              { emoji: "👥", value: "156", label: "Clientes", color: "from-purple-500 to-pink-500" },
+              { emoji: "💰", value: "R$ 4.580", label: "Receita", color: "from-emerald-500 to-teal-500" },
+              { emoji: "📈", value: "+23%", label: "Crescimento", color: "from-orange-500 to-amber-500" },
             ].map((stat, i) => (
               <AnimatedDiv
                 key={i}
@@ -62,7 +42,7 @@ const HeroMockup = () => {
                 className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl p-3 text-center"
               >
                 <div className={`w-8 h-8 mx-auto mb-2 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
-                  <stat.icon className="w-4 h-4 text-white" />
+                  <span className="text-sm">{stat.emoji}</span>
                 </div>
                 <div className="text-sm font-bold text-foreground">{stat.value}</div>
                 <div className="text-[10px] text-muted-foreground">{stat.label}</div>
@@ -70,11 +50,10 @@ const HeroMockup = () => {
             ))}
           </div>
 
-          {/* Appointments Preview */}
           <AnimatedDiv delay={900} className="bg-muted/30 rounded-xl p-3">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-foreground">Próximos Agendamentos</span>
-              <Bell className="w-4 h-4 text-primary" />
+              <span className="text-primary">🔔</span>
             </div>
             <div className="space-y-2">
               {[
@@ -92,13 +71,14 @@ const HeroMockup = () => {
                     <div className="text-xs font-medium text-foreground truncate">{apt.name}</div>
                     <div className="text-[10px] text-muted-foreground truncate">{apt.service}</div>
                   </div>
-                  <CheckCircle2 className={`w-4 h-4 ${apt.status === 'confirmed' ? 'text-emerald-500' : 'text-yellow-500'}`} />
+                  <span className={apt.status === 'confirmed' ? 'text-emerald-500' : 'text-yellow-500'}>
+                    {apt.status === 'confirmed' ? '✅' : '⏳'}
+                  </span>
                 </AnimatedDiv>
               ))}
             </div>
           </AnimatedDiv>
 
-          {/* Revenue Chart Preview */}
           <AnimatedDiv delay={1300} className="bg-muted/30 rounded-xl p-3">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-foreground">Receita Semanal</span>
@@ -125,14 +105,13 @@ const HeroMockup = () => {
         </div>
       </div>
 
-      {/* Floating Notification */}
       <AnimatedDiv
         delay={1500}
         className="absolute -left-6 top-1/4 bg-card rounded-xl shadow-xl border p-3 max-w-[180px]"
       >
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            <span className="text-emerald-500">✅</span>
           </div>
           <div>
             <div className="text-[10px] font-semibold text-foreground">Pagamento Confirmado</div>
@@ -141,7 +120,6 @@ const HeroMockup = () => {
         </div>
       </AnimatedDiv>
 
-      {/* Floating WhatsApp */}
       <AnimatedDiv
         delay={1700}
         className="absolute -right-4 bottom-1/4 bg-card rounded-xl shadow-xl border p-3 max-w-[160px]"
