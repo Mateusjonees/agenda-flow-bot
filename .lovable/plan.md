@@ -1,92 +1,202 @@
 
-# Plano: Adicionar Vídeo do YouTube e Otimizar Performance Mobile
+# Plano: Otimização de Performance Agressiva para Mobile e Desktop
 
-## Parte 1: Adicionar Vídeo do YouTube
+## Análise dos Relatórios de Performance
 
-O vídeo será inserido logo após a seção Hero, antes do ProductShowcase.
+### GTmetrix (Desktop)
+| Métrica | Atual | Meta |
+|---------|-------|------|
+| Performance | 54% (Nota D) | > 80% |
+| LCP | 2.9s | < 2.5s |
+| TBT | 855ms | < 200ms |
+| Total Page Size | 1.06MB | < 800KB |
+| Total Requests | 68 | < 40 |
 
-### Local de Inserção
-```
-Hero Section
-    ↓
->>> NOVO: VideoSection (YouTube embed)
-    ↓
-ProductShowcase
-```
+### Lighthouse (Mobile)
+| Métrica | Atual | Meta |
+|---------|-------|------|
+| Performance | 64 | > 85 |
+| FCP | 4.8s | < 1.8s |
+| LCP | 6.9s | < 2.5s |
+| Speed Index | 4.8s | < 3.0s |
 
-### Implementação do Vídeo
-- Criar um novo componente `VideoSection` para o embed do YouTube
-- URL do vídeo: `https://youtu.be/fyhZ0dz9Mcc`
-- Usar **lazy loading** (loading="lazy") para não impactar o LCP
-- Usar **lite-youtube-embed** pattern para carregar apenas quando necessário
-- Aspecto responsivo (16:9)
+### Problemas Identificados
+1. **JavaScript não usado**: 386 KB podem ser economizados
+2. **Imagens sem width/height**: Causa layout shift e recálculos
+3. **DOM excessivo**: Muitos elementos afetam renderização
+4. **Framer Motion ainda em uso**: Páginas como FAQ.tsx, Recursos.tsx, Precos.tsx, Depoimentos.tsx ainda usam framer-motion (180KB+)
+5. **Vite ainda agrupa framer-motion**: Configurado para criar chunk separado, mas ainda é carregado
+6. **Múltiplos redirects**: Afeta tempo de carregamento inicial
+7. **Imagens externas (Unsplash)**: Sem controle de cache, sem dimensões
 
 ---
 
-## Parte 2: Otimização de Performance Mobile
+## Soluções Propostas
 
-### Problemas Identificados (PageSpeed Insights)
-| Métrica | Atual | Meta |
-|---------|-------|------|
-| First Contentful Paint | 4.8s | < 1.8s |
-| Largest Contentful Paint | 6.1s | < 2.5s |
-| Total Blocking Time | 0ms | OK |
-| Cumulative Layout Shift | 0 | OK |
+### 1. Remover Framer Motion Completamente das Páginas Públicas
+O bundle ainda inclui framer-motion (180KB+). Vamos remover de:
+- `src/pages/FAQ.tsx`
+- `src/pages/Recursos.tsx`
+- `src/pages/Precos.tsx`
+- `src/pages/Depoimentos.tsx`
+- `src/components/TestimonialCard.tsx`
 
-### Causas Principais
-1. **Framer Motion** - Carrega biblioteca pesada (+180KB) mesmo no mobile
-2. **Blur/Backdrop-filter** - Pesado em dispositivos móveis
-3. **Animações complexas** no Hero (blur-3xl, animate-float)
-4. **Imagens de testemunhos** - Externas sem otimização
+Substituir por animações CSS puras (já temos no index.css).
 
-### Solucoes
-
-#### 1. Desabilitar Animacoes Pesadas no Mobile
-Modificar componentes para usar CSS puro ao invés de framer-motion em dispositivos móveis:
+### 2. Otimizar Carregamento Inicial da Landing Page
+Problema: Navbar e Footer são carregados síncronos mesmo que o Hero seja o que importa.
 
 ```tsx
-// Componentes da landing usarão CSS ao invés de framer-motion no mobile
-const isMobile = window.innerWidth < 768;
+// Antes: Carrega tudo de uma vez
+import { PublicNavbar } from "@/components/PublicNavbar";
+import { PublicFooter } from "@/components/PublicFooter";
 
-// Ao invés de:
-<motion.div animate={...} />
-
-// Usar:
-{isMobile ? <div className="animate-fade-in" /> : <motion.div ... />}
+// Depois: Carrega componentes não-críticos depois do primeiro paint
+const PublicNavbar = lazy(() => import("@/components/PublicNavbar"));
+const PublicFooter = lazy(() => import("@/components/PublicFooter"));
 ```
 
-#### 2. Reduzir Efeitos Visuais no Mobile (CSS)
-```css
-@media (max-width: 768px) {
-  /* Remover blur pesado */
-  .blur-3xl { filter: none; }
-  .backdrop-blur-sm, .backdrop-blur { backdrop-filter: none; }
-  
-  /* Simplificar gradientes */
-  .bg-mesh-gradient { background: hsl(var(--primary) / 0.1); }
-  
-  /* Desabilitar animações infinitas */
-  .animate-float, .animate-float-slow { animation: none; }
+### 3. Otimizar Imagens com Width e Height Explícitos
+Adicionar dimensões fixas em todas as imagens:
+
+```tsx
+// TestimonialsSection.tsx - Imagens de perfil
+<img 
+  src={testimonial.photo} 
+  alt={testimonial.name}
+  width={40}
+  height={40}
+  className="w-10 h-10 rounded-full object-cover"
+  loading="lazy"
+/>
+
+// VideoSection.tsx - Thumbnail
+<img 
+  src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+  width={480}
+  height={360}
+  alt="Thumbnail do vídeo"
+  loading="lazy"
+/>
+
+// PublicNavbar.tsx e PublicFooter.tsx - Logos
+<img 
+  src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png" 
+  alt="Foguete"
+  width={64}
+  height={64}
+  className="h-16 w-auto"
+/>
+```
+
+### 4. Otimizar Vite Config - Remover Framer Motion do Bundle de Landing
+Modificar `vite.config.ts` para code-split mais agressivo:
+
+```typescript
+build: {
+  rollupOptions: {
+    output: {
+      manualChunks: (id) => {
+        // Isolar framer-motion - só carrega se necessário
+        if (id.includes('framer-motion')) {
+          return 'vendor-animations';
+        }
+        // React core
+        if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+          return 'vendor-react';
+        }
+        // Charts - só em páginas protegidas
+        if (id.includes('recharts')) {
+          return 'vendor-charts';
+        }
+        // Supabase
+        if (id.includes('@supabase')) {
+          return 'vendor-supabase';
+        }
+      }
+    }
+  }
 }
 ```
 
-#### 3. Otimizar Hero Section
-- Remover `blur-3xl` dos blobs decorativos no mobile
-- Simplificar `bg-mesh-gradient` para cor sólida
-- Manter animações apenas no desktop
+### 5. Simplificar Hero Section para Mobile
+Reduzir elementos decorativos que aumentam o DOM:
 
-#### 4. Lazy Load Componentes Abaixo do Fold
 ```tsx
-// Em Landing.tsx - carregar seções sob demanda
-const ProductShowcase = lazy(() => import("./landing/ProductShowcase"));
-const FeatureGrid = lazy(() => import("./landing/FeatureGrid"));
-const HowItWorks = lazy(() => import("./landing/HowItWorks"));
-// etc...
+// Landing.tsx - Hero Section simplificado para mobile
+<section id="home" className="relative min-h-[90vh] flex items-center py-16 md:py-24 overflow-hidden">
+  {/* Decorativos apenas no desktop */}
+  <div className="hidden md:block absolute inset-0 bg-mesh-gradient opacity-60" />
+  <div className="hidden md:block absolute inset-0 bg-grid-pattern opacity-30" />
+  <div className="hidden md:block absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
+  <div className="hidden md:block absolute bottom-20 right-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
+  
+  {/* Conteúdo */}
+  ...
+</section>
 ```
 
-#### 5. Otimizar Imagens dos Testemunhos
-- Adicionar `fetchpriority="low"` nas imagens
-- Usar dimensões menores para mobile (w=100 ao invés de w=150)
+### 6. Lazy Load de Botão WhatsApp
+O botão flutuante não precisa carregar no primeiro paint:
+
+```tsx
+// Landing.tsx
+useEffect(() => {
+  // Carrega o botão WhatsApp após 2 segundos
+  const timer = setTimeout(() => {
+    setShowWhatsApp(true);
+  }, 2000);
+  return () => clearTimeout(timer);
+}, []);
+
+{showWhatsApp && (
+  <button className="fixed bottom-6 right-6 ...">
+    <MessageCircle />
+  </button>
+)}
+```
+
+### 7. Preconnect para Recursos Externos
+Adicionar hints no `index.html`:
+
+```html
+<head>
+  <!-- Preconnect para Supabase -->
+  <link rel="preconnect" href="https://pnwelorcrncqltqiyxwx.supabase.co" crossorigin />
+  
+  <!-- Preconnect para YouTube (thumbnail) -->
+  <link rel="preconnect" href="https://img.youtube.com" />
+  
+  <!-- Preconnect para Unsplash (testimonials) -->
+  <link rel="preconnect" href="https://images.unsplash.com" />
+  
+  <!-- DNS Prefetch -->
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+</head>
+```
+
+### 8. Otimizar CSS - Remover Classes Não Usadas no Mobile
+Adicionar CSS crítico inline para FCP mais rápido:
+
+```css
+/* index.css - Adicionar critical CSS */
+@layer base {
+  /* Critical: apenas o necessário para primeiro paint */
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Non-critical: defer */
+@media (max-width: 768px) {
+  /* Esconder elementos pesados até scroll */
+  .defer-mobile {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 500px;
+  }
+}
+```
 
 ---
 
@@ -94,129 +204,19 @@ const HowItWorks = lazy(() => import("./landing/HowItWorks"));
 
 | Arquivo | Mudança |
 |---------|---------|
-| `src/components/landing/VideoSection.tsx` | CRIAR - Componente de vídeo YouTube otimizado |
-| `src/pages/Landing.tsx` | Adicionar VideoSection + lazy loading de seções |
-| `src/index.css` | Adicionar otimizações mobile para blur/animações |
-| `src/components/landing/HeroMockup.tsx` | Simplificar para mobile |
-| `src/components/landing/TestimonialsSection.tsx` | Otimizar imagens |
-| `src/components/landing/FeatureGrid.tsx` | Usar CSS animations no mobile |
-| `src/components/landing/ProductShowcase.tsx` | Usar CSS animations no mobile |
-| `src/components/landing/HowItWorks.tsx` | Usar CSS animations no mobile |
-| `src/components/landing/PricingSection.tsx` | Usar CSS animations no mobile |
-
----
-
-## Detalhes Tecnicos
-
-### VideoSection.tsx (Novo Componente)
-```tsx
-const VideoSection = () => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const videoId = "fyhZ0dz9Mcc"; // Extraído da URL
-
-  return (
-    <section className="py-16 bg-background">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl border">
-            {!isLoaded ? (
-              <button
-                onClick={() => setIsLoaded(true)}
-                className="absolute inset-0 bg-muted flex items-center justify-center cursor-pointer group"
-              >
-                {/* Thumbnail otimizada do YouTube */}
-                <img 
-                  src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
-                  alt="Assistir vídeo"
-                  className="absolute inset-0 w-full h-full object-cover"
-                  loading="lazy"
-                />
-                {/* Play button */}
-                <div className="relative z-10 w-16 h-16 bg-primary/90 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Play className="w-6 h-6 text-white ml-1" />
-                </div>
-              </button>
-            ) : (
-              <iframe
-                src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
-                title="Vídeo de demonstração"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute inset-0 w-full h-full"
-              />
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-```
-
-### CSS Optimizacoes Mobile (index.css)
-```css
-/* Otimizações de performance para mobile */
-@media (max-width: 768px) {
-  /* Desabilitar efeitos pesados de blur */
-  .blur-3xl, .blur-2xl, .blur-xl {
-    filter: blur(8px); /* Reduzir intensidade */
-  }
-  
-  /* Remover backdrop-filter (muito pesado) */
-  .glass, .glass-strong {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: hsl(var(--card) / 0.95);
-  }
-  
-  /* Simplificar mesh gradient */
-  .bg-mesh-gradient {
-    background: linear-gradient(180deg, 
-      hsl(var(--primary) / 0.08) 0%, 
-      transparent 50%
-    );
-  }
-  
-  /* Desabilitar animações infinitas */
-  .animate-float,
-  .animate-float-slow,
-  .animate-pulse-glow {
-    animation: none;
-  }
-  
-  /* Reduzir complexidade visual */
-  .bg-grid-pattern,
-  .bg-dots-pattern {
-    opacity: 0.15;
-  }
-}
-```
-
-### Landing.tsx - Lazy Loading
-```tsx
-import { lazy, Suspense } from "react";
-
-// Lazy load componentes abaixo do fold
-const ProductShowcase = lazy(() => import("@/components/landing/ProductShowcase"));
-const FeatureGrid = lazy(() => import("@/components/landing/FeatureGrid"));
-const HowItWorks = lazy(() => import("@/components/landing/HowItWorks"));
-const TestimonialsSection = lazy(() => import("@/components/landing/TestimonialsSection"));
-const PricingSection = lazy(() => import("@/components/landing/PricingSection"));
-const FAQSection = lazy(() => import("@/components/landing/FAQSection"));
-const VideoSection = lazy(() => import("@/components/landing/VideoSection"));
-
-// Skeleton para loading
-const SectionSkeleton = () => (
-  <div className="py-24 flex items-center justify-center">
-    <div className="animate-pulse bg-muted rounded-lg w-full max-w-4xl h-96" />
-  </div>
-);
-
-// Uso:
-<Suspense fallback={<SectionSkeleton />}>
-  <VideoSection />
-</Suspense>
-```
+| `src/pages/Landing.tsx` | Lazy load navbar/footer, defer decorativos mobile, lazy WhatsApp |
+| `src/pages/FAQ.tsx` | Remover framer-motion, usar CSS |
+| `src/pages/Recursos.tsx` | Remover framer-motion, usar CSS |
+| `src/pages/Precos.tsx` | Remover framer-motion, usar CSS |
+| `src/pages/Depoimentos.tsx` | Remover framer-motion, usar CSS |
+| `src/components/TestimonialCard.tsx` | Remover framer-motion, usar CSS |
+| `src/components/landing/TestimonialsSection.tsx` | Adicionar width/height nas imagens |
+| `src/components/landing/VideoSection.tsx` | Adicionar width/height na thumbnail |
+| `src/components/PublicNavbar.tsx` | Adicionar width/height nos logos |
+| `src/components/PublicFooter.tsx` | Adicionar width/height nos logos |
+| `index.html` | Adicionar preconnect hints |
+| `vite.config.ts` | Melhorar code splitting |
+| `src/index.css` | Adicionar content-visibility para mobile |
 
 ---
 
@@ -224,13 +224,15 @@ const SectionSkeleton = () => (
 
 | Métrica | Antes | Depois (Estimado) |
 |---------|-------|-------------------|
-| First Contentful Paint | 4.8s | ~1.5-2.0s |
-| Largest Contentful Paint | 6.1s | ~2.0-2.8s |
-| Mobile Performance Score | ~45-50 | ~75-85 |
+| FCP (Mobile) | 4.8s | ~1.5-2.0s |
+| LCP (Mobile) | 6.9s | ~2.0-3.0s |
+| TBT | 855ms | < 200ms |
+| JS não usado | 386 KB | < 100 KB |
+| Performance Score | 54-64 | 80-90 |
 
-### Melhorias Principais
-1. Vídeo do YouTube carregado sob demanda (não impacta LCP)
-2. Blur e backdrop-filter desabilitados no mobile
-3. Animações pesadas removidas no mobile
-4. Seções carregadas com lazy loading
-5. Imagens de testemunhos otimizadas com loading="lazy"
+### Principais Ganhos
+1. **-180KB+**: Remoção de framer-motion das páginas públicas
+2. **-50% DOM mobile**: Elementos decorativos ocultos
+3. **-0 CLS**: Imagens com dimensões explícitas
+4. **Faster FCP**: Preconnect + lazy loading de não-críticos
+5. **Faster LCP**: Hero inline, resto lazy
