@@ -4,39 +4,39 @@ import { useEffect, useState, lazy, Suspense, memo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
-// Inline SVGs for Hero icons (avoid lucide bundle in critical path)
 const RocketIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09zM12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
     <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
   </svg>
 );
+
 const SparklesIcon = () => (
   <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
   </svg>
 );
+
 const CheckIcon = () => (
   <svg className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/>
   </svg>
 );
+
 const MessageIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/>
   </svg>
 );
+
 const ArrowRightIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M5 12h14m-7-7 7 7-7 7"/>
   </svg>
 );
 
-// Lazy load navbar/footer for faster FCP
 const PublicNavbar = lazy(() => import("@/components/PublicNavbar"));
 const PublicFooter = lazy(() => import("@/components/PublicFooter"));
-
-// Lazy load components below the fold for better performance
 const VideoSection = lazy(() => import("@/components/landing/VideoSection"));
 const ProductShowcase = lazy(() => import("@/components/landing/ProductShowcase"));
 const HowItWorks = lazy(() => import("@/components/landing/HowItWorks"));
@@ -44,8 +44,8 @@ const FeatureGrid = lazy(() => import("@/components/landing/FeatureGrid"));
 const PricingSection = lazy(() => import("@/components/landing/PricingSection"));
 const TestimonialsSection = lazy(() => import("@/components/landing/TestimonialsSection"));
 const FAQSection = lazy(() => import("@/components/landing/FAQSection"));
+const HeroMockup = lazy(() => import("@/components/landing/HeroMockup"));
 
-// Minimal loading states (no Skeleton import needed)
 const SectionSkeleton = memo(() => (
   <div className="py-16 flex items-center justify-center">
     <div className="w-full max-w-4xl h-64 rounded-2xl bg-muted animate-pulse" />
@@ -58,33 +58,21 @@ const NavbarSkeleton = memo(() => (
 ));
 NavbarSkeleton.displayName = 'NavbarSkeleton';
 
-// Lazy load HeroMockup - not critical for mobile (hidden)
-const HeroMockup = lazy(() => import("@/components/landing/HeroMockup"));
-
 const Landing = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showWhatsApp, setShowWhatsApp] = useState(false);
-  const [pixelLoaded, setPixelLoaded] = useState(false);
 
   useEffect(() => {
-    // Priority 1: Auth state listener (lightweight, runs immediately)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setIsAuthenticated(!!session);
     });
     
-    // Priority 2: Defer auth check for 1.5s (after LCP)
     const authTimer = setTimeout(async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
     }, 1500);
     
-    // Priority 3: Load Facebook Pixel lazily (2s delay)
-    const pixelTimer = setTimeout(() => {
-      setPixelLoaded(true);
-    }, 2000);
-    
-    // Priority 4: WhatsApp button (3s delay)
     const whatsappTimer = setTimeout(() => {
       setShowWhatsApp(true);
     }, 3000);
@@ -92,21 +80,9 @@ const Landing = () => {
     return () => {
       subscription.unsubscribe();
       clearTimeout(authTimer);
-      clearTimeout(pixelTimer);
       clearTimeout(whatsappTimer);
     };
   }, []);
-
-  // Load tracking hooks lazily after initial render
-  useEffect(() => {
-    if (!pixelLoaded) return;
-    
-    // Dynamic import of pixel hook to reduce initial bundle
-    import("@/hooks/useFacebookPixel").then(({ useFacebookPixel }) => {
-      // Track is not available as hook here, just log for now
-      // The hook will be used in child components
-    });
-  }, [pixelLoaded]);
 
   const handleGetStarted = useCallback(() => {
     if (isAuthenticated) {
@@ -120,17 +96,8 @@ const Landing = () => {
     window.open("https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão", "_blank");
   }, []);
 
-  // Static guarantee badges (no .map() needed for 4 items)
-  const guaranteeBadges = [
-    { text: "7 Dias Grátis", icon: "🛡️" },
-    { text: "Cancele Quando Quiser", icon: "❌" },
-    { text: "Dados Criptografados", icon: "🔒" },
-    { text: "Suporte em Português", icon: "🎧" },
-  ];
-
   return (
     <div className="min-h-screen bg-background overflow-hidden">
-      {/* WhatsApp Floating Button - Deferred loading */}
       {showWhatsApp && (
         <button
           onClick={handleWhatsAppClick}
@@ -143,28 +110,21 @@ const Landing = () => {
         </button>
       )}
 
-      {/* Header - Lazy loaded */}
       <Suspense fallback={<NavbarSkeleton />}>
         <PublicNavbar />
       </Suspense>
 
-      {/* Spacer for fixed header */}
       <div className="h-16" />
 
-      {/* Hero Section - Simplified for mobile */}
       <section id="home" className="relative min-h-[90vh] flex items-center py-16 md:py-24 overflow-hidden">
-        {/* Decorative elements - Hidden on mobile for performance */}
         <div className="hidden md:block absolute inset-0 bg-mesh-gradient opacity-60" />
         <div className="hidden md:block absolute inset-0 bg-grid-pattern opacity-30" />
         <div className="hidden md:block absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float" />
         <div className="hidden md:block absolute bottom-20 right-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-float-slow" />
-        
-        {/* Simple mobile background */}
         <div className="md:hidden absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left - Text */}
             <div className="space-y-6 text-center lg:text-left">
               <Badge className="px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border-primary/30">
                 <SparklesIcon />
@@ -181,7 +141,6 @@ const Landing = () => {
                 Sistema completo para <span className="text-foreground font-semibold">salões, clínicas, barbearias</span> e prestadores de serviço.
               </p>
 
-              {/* Static guarantee badges - no .map() for perf */}
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-card/80 border border-border/50 rounded-full">
                   <span className="text-sm">🛡️</span>
@@ -212,7 +171,6 @@ const Landing = () => {
                 </Button>
               </div>
 
-              {/* Static check items - no .map() */}
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <CheckIcon />
@@ -229,7 +187,6 @@ const Landing = () => {
               </div>
             </div>
 
-            {/* Right - Mockup (lazy loaded, desktop only) */}
             <div className="hidden lg:block">
               <Suspense fallback={<div className="w-full h-96 bg-muted/30 rounded-2xl animate-pulse" />}>
                 <HeroMockup />
@@ -239,12 +196,10 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Video Section - Below Hero */}
       <Suspense fallback={<SectionSkeleton />}>
         <VideoSection />
       </Suspense>
 
-      {/* Product Showcase */}
       <section id="recursos">
         <Suspense fallback={<SectionSkeleton />}>
           <ProductShowcase />
@@ -254,33 +209,28 @@ const Landing = () => {
         </Suspense>
       </section>
 
-      {/* How It Works */}
       <Suspense fallback={<SectionSkeleton />}>
         <HowItWorks />
       </Suspense>
 
-      {/* Testimonials */}
       <section id="depoimentos">
         <Suspense fallback={<SectionSkeleton />}>
           <TestimonialsSection />
         </Suspense>
       </section>
 
-      {/* Pricing */}
       <section id="precos">
         <Suspense fallback={<SectionSkeleton />}>
           <PricingSection onGetStarted={handleGetStarted} />
         </Suspense>
       </section>
 
-      {/* FAQ */}
       <section id="faq">
         <Suspense fallback={<SectionSkeleton />}>
           <FAQSection />
         </Suspense>
       </section>
 
-      {/* Final CTA - Simplified for mobile */}
       <section className="py-16 md:py-24 relative overflow-hidden defer-mobile">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
         <div className="container mx-auto px-4 relative">
@@ -307,7 +257,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Footer - Lazy loaded */}
       <Suspense fallback={<div className="h-64 bg-background" />}>
         <PublicFooter />
       </Suspense>
