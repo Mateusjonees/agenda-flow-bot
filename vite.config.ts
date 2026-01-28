@@ -110,37 +110,6 @@ export default defineConfig(({ mode }) => ({
         drop_debugger: true,
       },
     },
-    // Split chunks for better caching
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          // Isolate framer-motion - only loads when needed
-          if (id.includes('framer-motion')) {
-            return 'vendor-animations';
-          }
-          // React core - rarely changes
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router')) {
-            return 'vendor-react';
-          }
-          // Radix UI - rarely changes
-          if (id.includes('@radix-ui')) {
-            return 'vendor-radix';
-          }
-          // Charts - only in protected pages
-          if (id.includes('recharts')) {
-            return 'vendor-charts';
-          }
-          // Data fetching
-          if (id.includes('@tanstack/react-query')) {
-            return 'vendor-query';
-          }
-          // Supabase
-          if (id.includes('@supabase')) {
-            return 'vendor-supabase';
-          }
-        },
-      },
-    },
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
   },
