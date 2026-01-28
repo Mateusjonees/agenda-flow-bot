@@ -1,14 +1,35 @@
-import { motion } from "framer-motion";
 import { Calendar, Users, DollarSign, TrendingUp, Bell, CheckCircle2 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const HeroMockup = () => {
+  const isMobile = useIsMobile();
+
+  // CSS-only animation wrapper for mobile
+  const AnimatedDiv = ({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) => {
+    if (isMobile) {
+      return (
+        <div 
+          className={`animate-fade-in ${className}`} 
+          style={{ animationDelay: `${delay}ms` }}
+        >
+          {children}
+        </div>
+      );
+    }
+    
+    // Desktop: simple fade in with CSS
+    return (
+      <div 
+        className={`animate-scale-in ${className}`} 
+        style={{ animationDelay: `${delay}ms` }}
+      >
+        {children}
+      </div>
+    );
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 50, y: 20 }}
-      animate={{ opacity: 1, x: 0, y: 0 }}
-      transition={{ duration: 0.8, delay: 0.3 }}
-      className="relative"
-    >
+    <div className="relative animate-fade-in">
       {/* Main Dashboard Card */}
       <div className="relative bg-card rounded-2xl shadow-2xl border overflow-hidden">
         {/* Browser Header */}
@@ -35,11 +56,9 @@ const HeroMockup = () => {
               { icon: DollarSign, value: "R$ 4.580", label: "Receita", color: "from-emerald-500 to-teal-500" },
               { icon: TrendingUp, value: "+23%", label: "Crescimento", color: "from-orange-500 to-amber-500" },
             ].map((stat, i) => (
-              <motion.div
+              <AnimatedDiv
                 key={i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 + i * 0.1 }}
+                delay={500 + i * 100}
                 className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl p-3 text-center"
               >
                 <div className={`w-8 h-8 mx-auto mb-2 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
@@ -47,17 +66,12 @@ const HeroMockup = () => {
                 </div>
                 <div className="text-sm font-bold text-foreground">{stat.value}</div>
                 <div className="text-[10px] text-muted-foreground">{stat.label}</div>
-              </motion.div>
+              </AnimatedDiv>
             ))}
           </div>
 
           {/* Appointments Preview */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.9 }}
-            className="bg-muted/30 rounded-xl p-3"
-          >
+          <AnimatedDiv delay={900} className="bg-muted/30 rounded-xl p-3">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-foreground">Próximos Agendamentos</span>
               <Bell className="w-4 h-4 text-primary" />
@@ -68,11 +82,9 @@ const HeroMockup = () => {
                 { time: "10:30", name: "João Santos", service: "Barba Completa", status: "pending" },
                 { time: "14:00", name: "Ana Costa", service: "Manicure", status: "confirmed" },
               ].map((apt, i) => (
-                <motion.div
+                <AnimatedDiv
                   key={i}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 1 + i * 0.1 }}
+                  delay={1000 + i * 100}
                   className="flex items-center gap-3 bg-background/50 rounded-lg p-2"
                 >
                   <div className="text-xs font-mono font-semibold text-primary">{apt.time}</div>
@@ -81,30 +93,26 @@ const HeroMockup = () => {
                     <div className="text-[10px] text-muted-foreground truncate">{apt.service}</div>
                   </div>
                   <CheckCircle2 className={`w-4 h-4 ${apt.status === 'confirmed' ? 'text-emerald-500' : 'text-yellow-500'}`} />
-                </motion.div>
+                </AnimatedDiv>
               ))}
             </div>
-          </motion.div>
+          </AnimatedDiv>
 
           {/* Revenue Chart Preview */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.3 }}
-            className="bg-muted/30 rounded-xl p-3"
-          >
+          <AnimatedDiv delay={1300} className="bg-muted/30 rounded-xl p-3">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-foreground">Receita Semanal</span>
               <div className="text-[10px] text-emerald-500 font-medium">+18% vs semana passada</div>
             </div>
             <div className="flex items-end gap-1 h-16">
               {[40, 65, 45, 80, 55, 90, 70].map((height, i) => (
-                <motion.div
+                <div
                   key={i}
-                  initial={{ height: 0 }}
-                  animate={{ height: `${height}%` }}
-                  transition={{ delay: 1.4 + i * 0.05, duration: 0.4 }}
-                  className="flex-1 bg-gradient-to-t from-primary to-primary/50 rounded-t-md"
+                  className="flex-1 bg-gradient-to-t from-primary to-primary/50 rounded-t-md animate-scale-in"
+                  style={{ 
+                    height: `${height}%`,
+                    animationDelay: `${1400 + i * 50}ms`
+                  }}
                 />
               ))}
             </div>
@@ -113,15 +121,13 @@ const HeroMockup = () => {
                 <span key={day}>{day}</span>
               ))}
             </div>
-          </motion.div>
+          </AnimatedDiv>
         </div>
       </div>
 
       {/* Floating Notification */}
-      <motion.div
-        initial={{ opacity: 0, y: 20, x: -20 }}
-        animate={{ opacity: 1, y: 0, x: 0 }}
-        transition={{ delay: 1.5, duration: 0.5 }}
+      <AnimatedDiv
+        delay={1500}
         className="absolute -left-6 top-1/4 bg-card rounded-xl shadow-xl border p-3 max-w-[180px]"
       >
         <div className="flex items-center gap-2">
@@ -133,13 +139,11 @@ const HeroMockup = () => {
             <div className="text-[9px] text-muted-foreground">R$ 150,00 via PIX</div>
           </div>
         </div>
-      </motion.div>
+      </AnimatedDiv>
 
       {/* Floating WhatsApp */}
-      <motion.div
-        initial={{ opacity: 0, y: -20, x: 20 }}
-        animate={{ opacity: 1, y: 0, x: 0 }}
-        transition={{ delay: 1.7, duration: 0.5 }}
+      <AnimatedDiv
+        delay={1700}
         className="absolute -right-4 bottom-1/4 bg-card rounded-xl shadow-xl border p-3 max-w-[160px]"
       >
         <div className="flex items-center gap-2">
@@ -153,8 +157,8 @@ const HeroMockup = () => {
             <div className="text-[9px] text-muted-foreground">Maria Silva - 09:00</div>
           </div>
         </div>
-      </motion.div>
-    </motion.div>
+      </AnimatedDiv>
+    </div>
   );
 };
 

@@ -1,49 +1,50 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { motion } from "framer-motion";
-import { Star, Quote, ChevronLeft, ChevronRight } from "lucide-react";
+import { Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
+
 const testimonials = [{
   name: "Maria Silva",
   role: "Salão Beleza Pura",
   content: "O Foguete transformou completamente a gestão do meu salão. Economizo 10 horas por semana e aumentei em 30% minhas reservas!",
   rating: 5,
-  photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face",
+  photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face&q=60",
   highlight: "30% mais reservas"
 }, {
   name: "João Santos",
   role: "Barbearia Estilo",
   content: "Incrível como é fácil de usar! Meus clientes adoram receber lembretes automáticos e o pós-venda aumentou muito nossa fidelização.",
   rating: 5,
-  photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+  photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face&q=60",
   highlight: "Fidelização +45%"
 }, {
   name: "Ana Costa",
   role: "Clínica Vida Saudável",
   content: "O controle financeiro e os relatórios me dão total visibilidade do negócio. Recomendo para qualquer prestador de serviços!",
   rating: 5,
-  photo: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
+  photo: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face&q=60",
   highlight: "Controle total"
 }, {
   name: "Pedro Oliveira",
   role: "Academia Forma Fitness",
   content: "Triplicamos o controle sobre as mensalidades e reduzimos inadimplência em 60%. O sistema é perfeito para academias!",
   rating: 5,
-  photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
+  photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face&q=60",
   highlight: "-60% inadimplência"
 }, {
   name: "Carla Mendes",
   role: "Clínica Estética Beleza",
   content: "Os prontuários digitais e o histórico de clientes facilitaram muito nosso trabalho. Interface linda e muito intuitiva.",
   rating: 5,
-  photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face",
+  photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face&q=60",
   highlight: "Prontuários digitais"
 }, {
   name: "Ricardo Lima",
   role: "Consultório Dr. Lima",
   content: "A agenda médica ficou muito mais organizada. Os lembretes automáticos reduziram faltas drasticamente. Excelente!",
   rating: 5,
-  photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+  photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face&q=60",
   highlight: "-70% de faltas"
 }];
 const TestimonialsSection = () => {
@@ -53,6 +54,7 @@ const TestimonialsSection = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const isMobile = useIsMobile();
 
   // Update scroll buttons state
   const updateScrollButtons = useCallback(() => {
@@ -62,6 +64,7 @@ const TestimonialsSection = () => {
       setCanScrollRight(container.scrollLeft < container.scrollWidth - container.clientWidth - 10);
     }
   }, []);
+
   useEffect(() => {
     const container = scrollRef.current;
     if (container) {
@@ -70,10 +73,11 @@ const TestimonialsSection = () => {
       return () => container.removeEventListener('scroll', updateScrollButtons);
     }
   }, [updateScrollButtons]);
+
   const scroll = (direction: 'left' | 'right') => {
     const container = scrollRef.current;
     if (container) {
-      const cardWidth = 400; // Approximate card width + gap
+      const cardWidth = 400;
       container.scrollBy({
         left: direction === 'left' ? -cardWidth : cardWidth,
         behavior: 'smooth'
@@ -90,15 +94,17 @@ const TestimonialsSection = () => {
     setScrollLeft(container.scrollLeft);
     container.style.cursor = 'grabbing';
   };
+
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
     e.preventDefault();
     const container = scrollRef.current;
     if (!container) return;
     const x = e.pageX - container.offsetLeft;
-    const walk = (x - startX) * 1.5; // Adjust scroll speed
+    const walk = (x - startX) * 1.5;
     container.scrollLeft = scrollLeft - walk;
   };
+
   const handleMouseUp = () => {
     setIsDragging(false);
     const container = scrollRef.current;
@@ -106,6 +112,7 @@ const TestimonialsSection = () => {
       container.style.cursor = 'grab';
     }
   };
+
   const handleMouseLeave = () => {
     if (isDragging) {
       setIsDragging(false);
@@ -124,6 +131,7 @@ const TestimonialsSection = () => {
     setStartX(e.touches[0].pageX - container.offsetLeft);
     setScrollLeft(container.scrollLeft);
   };
+
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return;
     const container = scrollRef.current;
@@ -132,15 +140,14 @@ const TestimonialsSection = () => {
     const walk = (x - startX) * 1.5;
     container.scrollLeft = scrollLeft - walk;
   };
+
   const handleTouchEnd = () => {
     setIsDragging(false);
   };
-  return <section id="testimonials" className="py-24 relative bg-muted/30 overflow-hidden">
+  return (
+    <section id="testimonials" className="py-24 relative bg-muted/30 overflow-hidden">
       <div className="container mx-auto px-4">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          
-
           {/* Carousel Controls - Desktop */}
           <div className="hidden md:flex justify-end gap-2 mb-6">
             <Button variant="outline" size="icon" onClick={() => scroll('left')} disabled={!canScrollLeft} className="rounded-full hover:bg-primary hover:text-primary-foreground disabled:opacity-40">
@@ -152,22 +159,28 @@ const TestimonialsSection = () => {
           </div>
 
           {/* Testimonials Carousel */}
-          <div ref={scrollRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} className={`flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`} style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-          WebkitOverflowScrolling: 'touch'
-        }}>
-            {testimonials.map((testimonial, index) => <motion.div key={index} initial={{
-            opacity: 0,
-            y: 20
-          }} whileInView={{
-            opacity: 1,
-            y: 0
-          }} viewport={{
-            once: true
-          }} transition={{
-            delay: index * 0.1
-          }} className="bg-card rounded-xl p-6 border border-border/50 shadow-sm hover:border-primary/20 transition-colors duration-200 flex flex-col min-w-[320px] md:min-w-[380px] snap-center flex-shrink-0">
+          <div 
+            ref={scrollRef} 
+            onMouseDown={handleMouseDown} 
+            onMouseMove={handleMouseMove} 
+            onMouseUp={handleMouseUp} 
+            onMouseLeave={handleMouseLeave} 
+            onTouchStart={handleTouchStart} 
+            onTouchMove={handleTouchMove} 
+            onTouchEnd={handleTouchEnd} 
+            className={`flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`} 
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
+            {testimonials.map((testimonial, index) => (
+              <div 
+                key={index}
+                className="bg-card rounded-xl p-6 border border-border/50 shadow-sm hover:border-primary/20 transition-colors duration-200 flex flex-col min-w-[320px] md:min-w-[380px] snap-center flex-shrink-0 animate-fade-in"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
                 {/* Highlight Badge */}
                 <Badge variant="secondary" className="w-fit mb-4 bg-primary/10 text-primary border-primary/30">
                   {testimonial.highlight}
@@ -175,7 +188,9 @@ const TestimonialsSection = () => {
 
                 {/* Rating */}
                 <div className="flex gap-1 mb-3">
-                  {[...Array(testimonial.rating)].map((_, i) => <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)}
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  ))}
                 </div>
 
                 {/* Content */}
@@ -185,13 +200,21 @@ const TestimonialsSection = () => {
 
                 {/* Author with Real Photo */}
                 <div className="flex items-center gap-3 pt-4 border-t border-border/50">
-                  <img src={testimonial.photo} alt={testimonial.name} className="w-10 h-10 rounded-full object-cover ring-1 ring-border" loading="lazy" draggable={false} />
+                  <img 
+                    src={testimonial.photo} 
+                    alt={testimonial.name} 
+                    className="w-10 h-10 rounded-full object-cover ring-1 ring-border" 
+                    loading="lazy" 
+                    draggable={false}
+                    fetchPriority="low"
+                  />
                   <div>
                     <div className="font-semibold text-foreground text-sm">{testimonial.name}</div>
                     <div className="text-xs text-muted-foreground">{testimonial.role}</div>
                   </div>
                 </div>
-              </motion.div>)}
+              </div>
+            ))}
           </div>
 
           {/* Drag hint */}
@@ -201,36 +224,27 @@ const TestimonialsSection = () => {
           </p>
 
           {/* Stats */}
-          <motion.div initial={{
-          opacity: 0,
-          y: 20
-        }} whileInView={{
-          opacity: 1,
-          y: 0
-        }} viewport={{
-          once: true
-        }} transition={{
-          delay: 0.4
-        }} className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[{
-            value: "5.000+",
-            label: "Empresas ativas"
-          }, {
-            value: "98%",
-            label: "Satisfação"
-          }, {
-            value: "50k+",
-            label: "Agendamentos/dia"
-          }, {
-            value: "4.9★",
-            label: "Avaliação média"
-          }].map((stat, i) => <div key={i} className="text-center">
+          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { value: "5.000+", label: "Empresas ativas" },
+              { value: "98%", label: "Satisfação" },
+              { value: "50k+", label: "Agendamentos/dia" },
+              { value: "4.9★", label: "Avaliação média" }
+            ].map((stat, i) => (
+              <div 
+                key={i} 
+                className="text-center animate-fade-in"
+                style={{ animationDelay: `${400 + i * 100}ms` }}
+              >
                 <div className="text-3xl md:text-4xl font-extrabold text-gradient-primary">{stat.value}</div>
                 <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
-              </div>)}
-          </motion.div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default TestimonialsSection;

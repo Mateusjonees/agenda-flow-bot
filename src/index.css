@@ -393,3 +393,61 @@ All colors MUST be HSL.
       radial-gradient(ellipse at 40% 80%, hsl(var(--secondary) / 0.1) 0%, transparent 50%);
   }
 }
+
+/* ===== MOBILE PERFORMANCE OPTIMIZATIONS ===== */
+/* Reduce visual complexity on mobile for better FCP/LCP */
+@media (max-width: 768px) {
+  /* Reduce blur intensity - very expensive on mobile GPUs */
+  .blur-3xl {
+    filter: blur(20px);
+  }
+  
+  .blur-2xl {
+    filter: blur(16px);
+  }
+  
+  .blur-xl {
+    filter: blur(8px);
+  }
+  
+  /* Disable backdrop-filter - extremely expensive on mobile */
+  .glass,
+  .glass-strong {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: hsl(var(--card) / 0.95);
+  }
+  
+  /* Simplify mesh gradient */
+  .bg-mesh-gradient {
+    background: linear-gradient(180deg, 
+      hsl(var(--primary) / 0.08) 0%, 
+      transparent 40%
+    );
+  }
+  
+  /* Disable infinite animations - saves CPU/battery */
+  .animate-float,
+  .animate-float-slow,
+  .animate-pulse-glow,
+  .animate-shimmer {
+    animation: none !important;
+  }
+  
+  /* Reduce pattern complexity */
+  .bg-grid-pattern,
+  .bg-dots-pattern {
+    opacity: 0.1;
+  }
+  
+  /* Simplify shadows on mobile */
+  .shadow-premium,
+  .shadow-elevated {
+    box-shadow: 0 4px 12px -2px hsl(0 0% 0% / 0.15);
+  }
+  
+  /* Disable hover lift on touch devices */
+  .hover-lift:hover {
+    transform: none;
+  }
+}

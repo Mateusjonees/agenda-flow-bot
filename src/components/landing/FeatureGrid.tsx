@@ -1,6 +1,5 @@
-import { motion } from "framer-motion";
 import { Calendar, Users, DollarSign, BarChart3, Star, Sparkles, MessageCircle, Clock, CreditCard, FileText, Bell, Shield } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+
 const features = [{
   icon: Calendar,
   title: "Agendamentos Inteligentes",
@@ -62,28 +61,22 @@ const features = [{
   description: "Assistente virtual para atendimento 24h e respostas automáticas",
   color: "from-violet-500 to-purple-500"
 }];
+
 const FeatureGrid = () => {
-  return <section id="features" className="py-24 relative bg-muted/30">
+  return (
+    <section id="features" className="py-24 relative bg-muted/30">
       <div className="absolute inset-0 bg-dots-pattern opacity-30" />
       
       <div className="container mx-auto px-4 relative">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          
-
           {/* Features Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {features.map((feature, index) => <motion.div key={index} initial={{
-            opacity: 0,
-            y: 20
-          }} whileInView={{
-            opacity: 1,
-            y: 0
-          }} viewport={{
-            once: true
-          }} transition={{
-            delay: index * 0.05
-          }} className="group bg-card/80 backdrop-blur-sm rounded-2xl p-6 border-2 border-transparent hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+            {features.map((feature, index) => (
+              <div 
+                key={index}
+                className="group bg-card/80 backdrop-blur-sm rounded-2xl p-6 border-2 border-transparent hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-fade-in"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
                 {/* Icon */}
                 <div className={`w-12 h-12 mb-4 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                   <feature.icon className="w-6 h-6 text-white" />
@@ -96,10 +89,13 @@ const FeatureGrid = () => {
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {feature.description}
                 </p>
-              </motion.div>)}
+              </div>
+            ))}
           </div>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default FeatureGrid;

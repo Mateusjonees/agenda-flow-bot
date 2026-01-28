@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { UserPlus, Settings, Calendar, TrendingUp, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -54,13 +53,10 @@ const HowItWorks = () => {
             <div className="hidden md:block absolute top-16 left-[15%] right-[15%] h-0.5 bg-gradient-to-r from-primary/50 via-accent/50 to-secondary/50" />
 
             {steps.map((step, index) => (
-              <motion.div
+              <div
                 key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.15 }}
-                className="relative"
+                className="relative animate-fade-in"
+                style={{ animationDelay: `${index * 150}ms` }}
               >
                 {/* Step Number & Icon */}
                 <div className="flex flex-col items-center mb-6">
@@ -86,22 +82,19 @@ const HowItWorks = () => {
                     <ArrowRight className="w-6 h-6 text-primary/50 rotate-90" />
                   </div>
                 )}
-              </motion.div>
+              </div>
             ))}
           </div>
 
           {/* CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.6 }}
-            className="text-center mt-12"
+          <div
+            className="text-center mt-12 animate-fade-in"
+            style={{ animationDelay: '600ms' }}
           >
             <p className="text-muted-foreground mb-4">
               Pronto para começar? Seu período de teste começa agora!
             </p>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
