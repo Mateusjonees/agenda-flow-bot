@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
 const faqs = [
   {
@@ -39,6 +40,13 @@ const faqs = [
 ];
 
 const FAQSection = () => {
+  const { trackContact } = useFacebookPixel();
+
+  const handleSupportClick = () => {
+    trackContact('whatsapp_faq');
+    window.open("https://wa.me/554899075189", "_blank");
+  };
+
   return (
     <section className="py-20 bg-muted/30">
       <div className="container mx-auto px-4">
@@ -83,7 +91,7 @@ const FAQSection = () => {
             </p>
             <Button 
               className="gap-2 h-12 px-6" 
-              onClick={() => window.open("https://wa.me/554899075189", "_blank")}
+              onClick={handleSupportClick}
             >
               <MessageCircle className="w-4 h-4" />
               Falar com Suporte

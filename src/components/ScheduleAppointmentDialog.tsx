@@ -8,6 +8,7 @@ import { Calendar, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
 interface ScheduleAppointmentDialogProps {
   proposal: any;
@@ -23,6 +24,7 @@ export const ScheduleAppointmentDialog = ({
   onSuccess,
 }: ScheduleAppointmentDialogProps) => {
   const navigate = useNavigate();
+  const { trackSchedule } = useFacebookPixel();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     date: "",
@@ -78,6 +80,12 @@ export const ScheduleAppointmentDialog = ({
         .eq("id", proposal.id);
 
       if (updateError) throw updateError;
+
+      // Track schedule event
+      trackSchedule({ 
+        content_name: proposal.title, 
+        value: proposal.final_amount || 0 
+      });
 
       toast.success("Atendimento agendado com sucesso!");
       onOpenChange(false);

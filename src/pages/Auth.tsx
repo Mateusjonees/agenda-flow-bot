@@ -46,7 +46,8 @@ const Auth = () => {
     trackCompleteRegistration,
     trackLead,
     trackViewContent,
-    trackStartTrial
+    trackStartTrial,
+    trackLogin
   } = useFacebookPixel();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -115,6 +116,8 @@ const Auth = () => {
     if (error) {
       toast.error(error.message);
     } else {
+      // Track login com email
+      trackLogin('email');
       toast.success("Login realizado com sucesso!");
     }
   };
@@ -203,6 +206,9 @@ const Auth = () => {
     }
   };
   const handleGoogleLogin = async () => {
+    // Track lead ao iniciar OAuth
+    trackLead({ content_name: 'google_oauth', content_category: 'authentication' });
+    
     setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",

@@ -22,6 +22,7 @@ import { PixPaymentDialog } from "@/components/PixPaymentDialog";
 import { CardSubscriptionDialog } from "@/components/CardSubscriptionDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PaymentMethodBadge } from "@/components/PaymentMethodBadge";
+import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
 type PlanType = "monthly" | "semestral" | "annual";
 
@@ -85,6 +86,7 @@ const plans: Plan[] = [
 
 export function SubscriptionManager() {
   const queryClient = useQueryClient();
+  const { trackInitiateCheckout, trackAddPaymentInfo } = useFacebookPixel();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
@@ -178,6 +180,16 @@ export function SubscriptionManager() {
   // Handler para assinar plano
   const handleSubscribe = async (plan: Plan) => {
     setSelectedPlan(plan);
+    
+    // Track checkout initiation
+    trackInitiateCheckout({
+      value: plan.totalPrice,
+      content_name: plan.name,
+      num_items: 1
+    });
+    
+    // Track payment method selection
+    trackAddPaymentInfo(paymentMethod);
     
     if (paymentMethod === "pix") {
       createSubscriptionMutation.mutate(plan.id);

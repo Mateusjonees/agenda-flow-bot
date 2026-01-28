@@ -63,6 +63,7 @@ import { PasswordResetGuard } from "./components/PasswordResetGuard";
 import { PermissionGuard } from "./components/PermissionGuard";
 import { CookieConsent } from "./components/CookieConsent";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
+import { AuthTracker } from "./components/AuthTracker";
 import Layout from "./components/Layout";
 
 // Lazy loaded pages - critical for performance
@@ -121,6 +122,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <CacheBuster />
+        <AuthTracker />
         <Toaster />
         <Sonner />
         <PWAUpdatePrompt />

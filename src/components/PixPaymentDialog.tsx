@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfetti } from "@/hooks/useConfetti";
 import { useNavigate } from "react-router-dom";
+import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
 interface PixPaymentDialogProps {
   open: boolean;
@@ -35,6 +36,7 @@ export const PixPaymentDialog = ({
   const { toast } = useToast();
   const { fireSuccess } = useConfetti();
   const navigate = useNavigate();
+  const { trackPurchase, trackSubscribe } = useFacebookPixel();
 
   // Real-time subscription para monitorar mudanças no status do pagamento
   useEffect(() => {
@@ -80,6 +82,17 @@ export const PixPaymentDialog = ({
     console.log("[PixPaymentDialog] Payment confirmed!");
     setPaymentConfirmed(true);
     fireSuccess();
+    
+    // Track purchase and subscribe events
+    trackPurchase({ 
+      value: amount, 
+      content_name: 'PIX Subscription',
+      content_type: 'subscription'
+    });
+    trackSubscribe({ 
+      value: amount, 
+      content_name: 'PIX Subscription' 
+    });
     
     toast({
       title: "🎉 Pagamento Confirmado!",

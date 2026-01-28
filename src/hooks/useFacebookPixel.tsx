@@ -220,6 +220,15 @@ export const useFacebookPixel = () => {
     console.log('[Meta Pixel] Custom event tracked:', eventName, params);
   };
 
+  /**
+   * Rastreia login (evento customizado)
+   */
+  const trackLogin = (method?: string) => {
+    trackEvent('Login', {
+      content_name: method || 'email',
+    });
+  };
+
   return {
     isPixelAvailable,
     trackViewContent,
@@ -235,6 +244,7 @@ export const useFacebookPixel = () => {
     trackSearch,
     trackAddToCart,
     trackCustomEvent,
+    trackLogin,
   };
 };
 
