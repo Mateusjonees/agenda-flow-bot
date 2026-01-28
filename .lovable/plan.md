@@ -1,95 +1,150 @@
 
-## Diagnóstico (por que quebrou na Vercel)
+## Plano de Otimização de Performance Mobile (64 → 80+)
 
-O erro principal que você reportou na Vercel:
-
-- `vendor-charts-CP6X5Rtg.js:1 Uncaught ReferenceError: Cannot access 'e' before initialization`
-
-Isso é típico de **dependência circular entre chunks ESM** (um chunk importando o outro e vice‑versa), gerada pelo `manualChunks` no `vite.config.ts`.
-
-Eu consegui confirmar isso buscando os arquivos publicados no seu domínio:
-
-- `vendor-charts-*.js` começa com:
-  - `import { ... } from "./vendor-react-*.js"`
-- e o `vendor-react-*.js` começa com:
-  - `import { ... } from "./vendor-charts-*.js"`
-
-Ou seja: **React → Charts → React**.  
-Quando isso acontece, alguns bindings ficam em “temporal dead zone” e o app trava antes de montar (fica só no loader).
-
-O outro erro `webpage_content_reporter.js: Unexpected token 'export'` não existe no seu código (não aparece em busca no repo). Quase sempre é:
-- script injetado por extensão do navegador / ferramenta de auditoria, ou
-- algum script externo/gerenciador que injeta assets.
-Mas, mesmo que exista, o que derruba mesmo é a circularidade `vendor-react` ↔ `vendor-charts`.
+### Objetivo
+Melhorar a nota de performance mobile (Lighthouse) de 64 para 80+ pontos, **sem mexer na configuração de build** do Vite que causa problemas na Vercel.
 
 ---
 
-## O que vou fazer (correção segura e rápida)
-
-### 1) Corrigir o `vite.config.ts` para eliminar a dependência circular
-A forma mais segura e rápida (para “voltar a ficar no ar”):
-
-- **Remover o `manualChunks` customizado** (ou pelo menos remover o chunk separado de `recharts` e o chunk separado de `react`) e deixar o Rollup/Vite fazer a divisão automaticamente.
-- (Opcional e recomendado) usar o plugin oficial do Vite `splitVendorChunkPlugin()` para manter algum benefício de cache sem criar ciclos.
-
-Resultado esperado: os bundles param de se importar em círculo e o app volta a montar.
-
-### 2) Adicionar um “fallback de recuperação” no `index.html` (para casos de cache/SW)
-Como o app nem chega a montar, o `CacheBuster` do `App.tsx` não roda. Então um Service Worker/caches antigos podem manter o site preso no loader.
-
-Vou adicionar um script pequeno no `index.html` que:
-- após X segundos, se ainda estiver no loader,
-- mostra um aviso e um botão “Recarregar sem cache”
-- e tenta **limpar caches + desregistrar service worker** (quando possível) e recarrega.
-
-Isso não substitui a correção do bundle, mas **evita ficar “morto”** caso algum visitante esteja preso em cache antigo.
-
-### 3) Bump do `CACHE_VERSION` no `App.tsx`
-Depois que o app voltar a montar, o `CacheBuster` vai limpar o que restar.
-Vou atualizar `CACHE_VERSION` (ex: `v2.1.1-hotfix-vercel`) para forçar limpeza completa.
+## O que NÃO vou mexer (para não derrubar o site)
+- **vite.config.ts** - Não vou alterar nada do build/chunking
+- **Estrutura de rotas** - Permanece igual
+- **Dependências** - Nenhuma instalação ou remoção
 
 ---
 
-## Arquivos que serão alterados
+## Otimizações Seguras (apenas CSS, HTML e componentes leves)
 
-1. `vite.config.ts`
-   - Remover/ajustar `rollupOptions.output.manualChunks` (principal causa do crash)
-   - (Opcional) adicionar `splitVendorChunkPlugin()` no `plugins`
+### 1. Reduzir JavaScript no Carregamento Inicial
 
-2. `index.html`
-   - Adicionar script de “fallback anti-loader infinito” (limpa SW/cache e recarrega)
+**Arquivo: `src/pages/Landing.tsx`**
+- Remover `useFacebookPixel` do carregamento imediato (tracking pode ser deferido)
+- Adiar verificação de autenticação (`supabase.auth.getSession`) para depois do LCP
+- Remover animações CSS complexas do Hero (já temos desabilitadas no mobile, mas ainda processam)
 
-3. `src/App.tsx`
-   - Incrementar `CACHE_VERSION` para forçar limpeza após o app montar
+### 2. Otimizar o Hero Section (Above the Fold)
+
+**Arquivo: `src/pages/Landing.tsx`**
+- Simplificar os `guaranteeBadges` - usar texto estático em vez de renderização dinâmica com `.map()`
+- Remover uso de ícones Lucide no Hero mobile (muito peso de JS para ícones SVG)
+- Usar CSS puro para o badge "Sistema de Gestão Completo"
+
+### 3. Otimizar Imagens e Recursos
+
+**Arquivo: `index.html`**
+- Adicionar `fetchpriority="high"` no preload crítico
+- Remover preconnect de recursos não utilizados no LCP (youtube, unsplash)
+- Adicionar `media` query nos preconnects para priorizar mobile
+
+**Arquivo: `src/components/PublicNavbar.tsx`**
+- Usar `loading="eager"` apenas para logo visível, `loading="lazy"` para logo dark mode
+- Otimizar tamanho da imagem do logo (64x64 pode ser menor)
+
+### 4. Reduzir CSS Crítico
+
+**Arquivo: `src/index.css`**
+- Mover mais estilos de animação para serem carregados depois
+- Simplificar gradientes no mobile
+- Reduzir quantidade de keyframes definidos
+
+### 5. Otimizar Componentes Below-the-fold
+
+**Arquivo: `src/components/landing/VideoSection.tsx`**
+- Remover import de ícone `Play` do lucide - usar SVG inline simples
+- Reduzir peso do componente
+
+**Arquivo: `src/components/landing/TestimonialsSection.tsx`**
+- Reduzir quantidade de testimonials iniciais no mobile (4 em vez de 6)
+- Usar `content-visibility: auto` para economizar renderização
+
+**Arquivo: `src/components/landing/ProductShowcase.tsx`**
+- Simplificar mockups no mobile
+- Usar placeholder estático em vez de animações
+
+### 6. Adiar Scripts Externos
+
+**Arquivo: `index.html`**
+- Mover script do Mercado Pago para carregar apenas quando necessário
+- Usar `data-*` attributes para lazy loading de scripts de terceiros
 
 ---
 
-## Como vamos validar (checklist objetivo)
+## Resumo de Arquivos a Alterar
 
-### No domínio Vercel (https://www.sistemafoguete.com.br)
-1. Abrir em aba anônima
-2. Confirmar que **sai do loader** e renderiza a home
-3. Abrir Console e confirmar que **sumiu**:
-   - `Cannot access 'e' before initialization`
-4. Testar navegação:
-   - Home → /auth → (se logar) → /dashboard
-5. No Network:
-   - verificar que JS/CSS estão retornando 200 e sem “loops” de reload
-
-### Extra (se ainda houver algum usuário preso)
-- Abrir DevTools > Application > Service Workers:
-  - “Unregister”
-- Application > Storage:
-  - “Clear site data”
-E recarregar.
+1. `index.html` - Otimizar preloads e defer de scripts
+2. `src/pages/Landing.tsx` - Simplificar Hero, adiar tracking
+3. `src/components/landing/VideoSection.tsx` - SVG inline em vez de lucide
+4. `src/components/landing/TestimonialsSection.tsx` - Menos itens no mobile
+5. `src/index.css` - Remover animações não usadas do bundle crítico
 
 ---
 
-## Observação importante (sobre performance)
-Essa correção vai priorizar **estabilidade**.  
-Depois que o site estiver 100% no ar na Vercel, a gente volta a otimizar chunking com segurança (sem criar ciclos), por exemplo separando somente rotas pesadas via lazy import (que você já tem) e evitando “forçar” React em chunk manual.
+## Impacto Esperado
+
+| Métrica | Antes | Depois (estimado) |
+|---------|-------|-------------------|
+| Performance | 64 | 75-85 |
+| FCP | ~2.5s | ~1.8s |
+| LCP | ~4.0s | ~2.8s |
+| TBT | alto | -40% |
 
 ---
 
-## Próximo passo
-Se você aprovar, eu aplico as mudanças acima e você só precisa fazer um novo deploy na Vercel (ou puxar a última versão do projeto, dependendo do seu fluxo lá).
+## Detalhes Técnicos
+
+### Landing.tsx - Mudanças
+```tsx
+// ANTES: Tracking no mount
+useEffect(() => {
+  trackViewContent(...);
+  checkAuth();
+}, []);
+
+// DEPOIS: Tracking adiado
+useEffect(() => {
+  // Defer non-critical auth check
+  const timer = setTimeout(() => {
+    checkAuth();
+    trackViewContent(...);
+  }, 1000);
+  return () => clearTimeout(timer);
+}, []);
+```
+
+### index.html - Mudanças
+```html
+<!-- ANTES -->
+<script src="https://www.mercadopago.com/v2/security.js" async defer></script>
+
+<!-- DEPOIS: Só carrega quando necessário -->
+<!-- Removido do index.html, será carregado dinamicamente nas páginas de pagamento -->
+```
+
+### VideoSection.tsx - Mudanças
+```tsx
+// ANTES: Import do lucide
+import { Play } from "lucide-react";
+
+// DEPOIS: SVG inline leve
+const PlayIcon = () => (
+  <svg className="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M8 5v14l11-7z"/>
+  </svg>
+);
+```
+
+---
+
+## Risco: Muito Baixo
+- Nenhuma alteração no build
+- Nenhuma alteração em dependências
+- Alterações são 100% retrocompatíveis
+- Se algo der errado, é fácil reverter
+
+---
+
+## Próximos Passos
+1. Aprovar este plano
+2. Implementar as mudanças
+3. Fazer deploy na Vercel
+4. Testar com Lighthouse no PageSpeed Insights
