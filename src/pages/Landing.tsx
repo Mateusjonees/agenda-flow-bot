@@ -19,8 +19,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Hero components loaded immediately (above the fold)
 import HeroMockup from "@/components/landing/HeroMockup";
-import { PublicNavbar } from "@/components/PublicNavbar";
-import { PublicFooter } from "@/components/PublicFooter";
+
+// Lazy load navbar/footer for faster FCP
+const PublicNavbar = lazy(() => import("@/components/PublicNavbar").then(m => ({ default: m.PublicNavbar })));
+const PublicFooter = lazy(() => import("@/components/PublicFooter").then(m => ({ default: m.PublicFooter })));
 
 // Lazy load components below the fold for better performance
 const VideoSection = lazy(() => import("@/components/landing/VideoSection"));
@@ -38,9 +40,15 @@ const SectionSkeleton = () => (
   </div>
 );
 
+// Minimal navbar skeleton
+const NavbarSkeleton = () => (
+  <div className="fixed top-0 left-0 right-0 z-50 h-16 bg-background/95 border-b border-border" />
+);
+
 const Landing = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showWhatsApp, setShowWhatsApp] = useState(false);
   const { trackViewContent, trackLead, trackContact } = useFacebookPixel();
 
   useEffect(() => {
@@ -58,7 +66,16 @@ const Landing = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setIsAuthenticated(!!session);
     });
-    return () => subscription.unsubscribe();
+    
+    // Defer WhatsApp button loading for better performance
+    const timer = setTimeout(() => {
+      setShowWhatsApp(true);
+    }, 2000);
+    
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
   }, [trackViewContent]);
 
   const handleGetStarted = () => {
@@ -80,35 +97,43 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
-      {/* WhatsApp Floating Button */}
-      <button
-        onClick={() => {
-          trackContact('whatsapp_floating');
-          window.open("https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão", "_blank");
-        }}
-        className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-full p-4 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110"
-        aria-label="Fale conosco no WhatsApp"
-      >
-        <MessageCircle className="w-6 h-6" />
-      </button>
+      {/* WhatsApp Floating Button - Deferred */}
+      {showWhatsApp && (
+        <button
+          onClick={() => {
+            trackContact('whatsapp_floating');
+            window.open("https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão", "_blank");
+          }}
+          className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-full p-4 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 animate-fade-in"
+          aria-label="Fale conosco no WhatsApp"
+        >
+          <MessageCircle className="w-6 h-6" />
+        </button>
+      )}
 
-      {/* Header */}
-      <PublicNavbar />
+      {/* Header - Lazy loaded */}
+      <Suspense fallback={<NavbarSkeleton />}>
+        <PublicNavbar />
+      </Suspense>
 
       {/* Spacer for fixed header */}
       <div className="h-16" />
 
-      {/* Hero Section */}
+      {/* Hero Section - Simplified for mobile */}
       <section id="home" className="relative min-h-[90vh] flex items-center py-16 md:py-24 overflow-hidden">
-        <div className="absolute inset-0 bg-mesh-gradient opacity-60" />
-        <div className="absolute inset-0 bg-grid-pattern opacity-30" />
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-float-slow" />
+        {/* Decorative elements - Hidden on mobile for performance */}
+        <div className="hidden md:block absolute inset-0 bg-mesh-gradient opacity-60" />
+        <div className="hidden md:block absolute inset-0 bg-grid-pattern opacity-30" />
+        <div className="hidden md:block absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float" />
+        <div className="hidden md:block absolute bottom-20 right-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-float-slow" />
+        
+        {/* Simple mobile background */}
+        <div className="md:hidden absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left - Text */}
-            <div className="space-y-6 text-center lg:text-left">
+            <div className="space-y-6 text-center lg:text-left animate-fade-in">
               <Badge className="px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border-primary/30">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Sistema de Gestão Completo
@@ -126,7 +151,7 @@ const Landing = () => {
 
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
                 {guaranteeBadges.map((badge, i) => (
-                  <div key={i} className="flex items-center gap-2 px-4 py-2.5 glass rounded-full">
+                  <div key={i} className="flex items-center gap-2 px-4 py-2.5 bg-card/80 border border-border/50 rounded-full">
                     <badge.icon className="w-4 h-4 text-primary" />
                     <span className="text-sm font-medium">{badge.text}</span>
                   </div>
@@ -138,7 +163,7 @@ const Landing = () => {
                   {isAuthenticated ? "Acessar Dashboard" : "Começar Teste Grátis"}
                   <Rocket className="w-5 h-5" />
                 </Button>
-                <Button size="lg" variant="outline" onClick={() => window.open("https://wa.me/554899075189", "_blank")} className="h-14 px-8 text-lg gap-3 glass">
+                <Button size="lg" variant="outline" onClick={() => window.open("https://wa.me/554899075189", "_blank")} className="h-14 px-8 text-lg gap-3">
                   <MessageCircle className="w-5 h-5" />
                   Falar com Vendas
                 </Button>
@@ -207,7 +232,7 @@ const Landing = () => {
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-accent/10 to-secondary/20" />
         <div className="container mx-auto px-4 relative">
-          <div className="max-w-4xl mx-auto text-center bg-card rounded-3xl shadow-2xl p-12 md:p-16 border">
+          <div className="max-w-4xl mx-auto text-center bg-card rounded-3xl shadow-2xl p-12 md:p-16 border animate-fade-in">
             <Rocket className="w-16 h-16 text-primary mx-auto mb-6" />
             <h2 className="text-4xl md:text-5xl font-extrabold text-foreground mb-6">
               Pronto para <span className="text-gradient-primary">decolar</span>?
@@ -226,8 +251,10 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <PublicFooter />
+      {/* Footer - Lazy loaded */}
+      <Suspense fallback={<div className="h-64 bg-background" />}>
+        <PublicFooter />
+      </Suspense>
     </div>
   );
 };

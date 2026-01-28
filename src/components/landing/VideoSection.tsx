@@ -29,6 +29,8 @@ const VideoSection = () => {
                 <img 
                   src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
                   alt="Thumbnail do vídeo de demonstração"
+                  width={480}
+                  height={360}
                   className="absolute inset-0 w-full h-full object-cover"
                   loading="lazy"
                   fetchPriority="low"

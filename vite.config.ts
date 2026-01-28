@@ -113,26 +113,31 @@ export default defineConfig(({ mode }) => ({
     // Split chunks for better caching
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks: (id) => {
+          // Isolate framer-motion - only loads when needed
+          if (id.includes('framer-motion')) {
+            return 'vendor-animations';
+          }
           // React core - rarely changes
-          "vendor-react": ["react", "react-dom", "react-router-dom"],
-          // UI library - rarely changes
-          "vendor-radix": [
-            "@radix-ui/react-dialog",
-            "@radix-ui/react-dropdown-menu",
-            "@radix-ui/react-popover",
-            "@radix-ui/react-select",
-            "@radix-ui/react-tabs",
-            "@radix-ui/react-tooltip",
-          ],
-          // Charts - only loaded when needed
-          "vendor-charts": ["recharts"],
-          // Animations - used on landing page mostly
-          "vendor-motion": ["framer-motion"],
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router')) {
+            return 'vendor-react';
+          }
+          // Radix UI - rarely changes
+          if (id.includes('@radix-ui')) {
+            return 'vendor-radix';
+          }
+          // Charts - only in protected pages
+          if (id.includes('recharts')) {
+            return 'vendor-charts';
+          }
           // Data fetching
-          "vendor-query": ["@tanstack/react-query"],
-          // Supabase client
-          "vendor-supabase": ["@supabase/supabase-js"],
+          if (id.includes('@tanstack/react-query')) {
+            return 'vendor-query';
+          }
+          // Supabase
+          if (id.includes('@supabase')) {
+            return 'vendor-supabase';
+          }
         },
       },
     },

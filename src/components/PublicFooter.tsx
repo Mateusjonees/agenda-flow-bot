@@ -16,11 +16,15 @@ export function PublicFooter() {
               <img 
                 src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png" 
                 alt="Foguete" 
+                width={64}
+                height={64}
                 className="h-16 w-auto dark:hidden" 
               />
               <img 
                 src={logoLight} 
                 alt="Foguete" 
+                width={64}
+                height={64}
                 className="h-16 w-auto hidden dark:block" 
               />
               <span className="text-xl font-bold text-foreground">Foguete</span>

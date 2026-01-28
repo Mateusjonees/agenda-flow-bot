@@ -4,7 +4,6 @@ import FeatureGrid from "@/components/landing/FeatureGrid";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, MessageCircle } from "lucide-react";
-import { motion } from "framer-motion";
 
 export default function Recursos() {
   const navigate = useNavigate();
@@ -23,14 +22,10 @@ export default function Recursos() {
         <MessageCircle className="w-6 h-6" />
       </a>
 
-      {/* Hero */}
+      {/* Hero - CSS animation instead of framer-motion */}
       <section className="pt-32 pb-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+          <div className="animate-fade-in">
             <span className="inline-block px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium mb-6">
               Recursos Completos
             </span>
@@ -44,23 +39,17 @@ export default function Recursos() {
               Ferramentas poderosas para automatizar, organizar e escalar sua operação. 
               Do agendamento ao financeiro, tudo em um só lugar.
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* Feature Grid */}
       <FeatureGrid />
 
-      {/* CTA Section */}
+      {/* CTA Section - CSS animation */}
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="bg-gradient-to-r from-orange-500/10 to-red-600/10 rounded-3xl p-12 border border-orange-500/20"
-          >
+          <div className="bg-gradient-to-r from-orange-500/10 to-red-600/10 rounded-3xl p-12 border border-orange-500/20 animate-fade-in">
             <h2 className="text-3xl font-bold mb-4">
               Pronto para decolar?
             </h2>
@@ -77,7 +66,7 @@ export default function Recursos() {
                 Ver Preços
               </Button>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
