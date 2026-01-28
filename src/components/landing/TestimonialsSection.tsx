@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -47,6 +46,7 @@ const testimonials = [{
   photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face&q=60",
   highlight: "-70% de faltas"
 }];
+
 const TestimonialsSection = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -141,6 +141,7 @@ const TestimonialsSection = () => {
   const handleTouchEnd = () => {
     setIsDragging(false);
   };
+
   const displayedTestimonials = isMobile ? testimonials.slice(0, 4) : testimonials;
 
   return (
@@ -149,10 +150,10 @@ const TestimonialsSection = () => {
         <div className="max-w-7xl mx-auto">
           <div className="hidden md:flex justify-end gap-2 mb-6">
             <Button variant="outline" size="icon" onClick={() => scroll('left')} disabled={!canScrollLeft} className="rounded-full hover:bg-primary hover:text-primary-foreground disabled:opacity-40">
-              <ChevronLeft className="w-5 h-5" />
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             </Button>
             <Button variant="outline" size="icon" onClick={() => scroll('right')} disabled={!canScrollRight} className="rounded-full hover:bg-primary hover:text-primary-foreground disabled:opacity-40">
-              <ChevronRight className="w-5 h-5" />
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
             </Button>
           </div>
 
@@ -184,7 +185,7 @@ const TestimonialsSection = () => {
 
                 <div className="flex gap-1 mb-3">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    <span key={i} className="text-yellow-400">★</span>
                   ))}
                 </div>
 
