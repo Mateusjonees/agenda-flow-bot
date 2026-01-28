@@ -52,29 +52,36 @@ const Landing = () => {
   const { trackViewContent, trackLead, trackContact } = useFacebookPixel();
 
   useEffect(() => {
-    // Track landing page view
-    trackViewContent({
-      content_name: 'Landing Page',
-      content_category: 'marketing',
-    });
-
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-    };
-    checkAuth();
+    // Defer non-critical operations for better LCP
+    const deferredTimer = setTimeout(() => {
+      // Track landing page view (deferred)
+      trackViewContent({
+        content_name: 'Landing Page',
+        content_category: 'marketing',
+      });
+      
+      // Check auth after initial paint
+      const checkAuth = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        setIsAuthenticated(!!session);
+      };
+      checkAuth();
+    }, 1000);
+    
+    // Auth state listener (lightweight, can run immediately)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setIsAuthenticated(!!session);
     });
     
     // Defer WhatsApp button loading for better performance
-    const timer = setTimeout(() => {
+    const whatsappTimer = setTimeout(() => {
       setShowWhatsApp(true);
-    }, 2000);
+    }, 3000);
     
     return () => {
       subscription.unsubscribe();
-      clearTimeout(timer);
+      clearTimeout(deferredTimer);
+      clearTimeout(whatsappTimer);
     };
   }, [trackViewContent]);
 
