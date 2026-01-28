@@ -1,5 +1,4 @@
 import { Star, Scissors, Heart, Dumbbell, Clipboard, Building2, Sparkles, PawPrint } from "lucide-react";
-import { motion } from "framer-motion";
 
 interface TestimonialCardProps {
   name: string;
@@ -37,13 +36,8 @@ export function TestimonialCard({
   const IconComponent = config.icon;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      whileHover={{ y: -5, scale: 1.02 }}
-      transition={{ duration: 0.3 }}
-      className={`relative bg-card backdrop-blur-sm rounded-2xl p-6 border transition-all duration-300 h-full flex flex-col shadow-sm ${
+    <div
+      className={`relative bg-card rounded-2xl p-6 border transition-all duration-300 h-full flex flex-col shadow-sm hover:-translate-y-1 hover:scale-[1.02] animate-fade-in ${
         isFeatured 
           ? "border-primary/50 shadow-lg shadow-primary/10" 
           : "border-border hover:border-primary/40"
@@ -69,7 +63,14 @@ export function TestimonialCard({
         <div className="relative flex-shrink-0">
           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/30 to-orange-500/30 flex items-center justify-center text-foreground font-semibold text-lg overflow-hidden border-2 border-border">
             {photoUrl ? (
-              <img src={photoUrl} alt={name} className="w-full h-full object-cover" />
+              <img 
+                src={photoUrl} 
+                alt={name} 
+                width={56}
+                height={56}
+                className="w-full h-full object-cover" 
+                loading="lazy"
+              />
             ) : (
               name.charAt(0).toUpperCase()
             )}
@@ -104,6 +105,6 @@ export function TestimonialCard({
         {content}
         <span className="text-primary text-2xl leading-none">"</span>
       </blockquote>
-    </motion.div>
+    </div>
   );
 }

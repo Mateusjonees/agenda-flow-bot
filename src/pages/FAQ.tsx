@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { motion } from "framer-motion";
 
 const FAQ = () => {
   const faqs = [
@@ -67,13 +66,8 @@ const FAQ = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12 flex-1 pt-32">
         <div className="max-w-3xl mx-auto">
-          {/* Header Section */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-12"
-          >
+          {/* Header Section - CSS animation instead of framer-motion */}
+          <div className="text-center mb-12 animate-fade-in">
             <Badge className="px-4 py-2 mb-6 bg-accent/10 text-accent border-accent/30">
               <Sparkles className="w-4 h-4 mr-2" />
               FAQ
@@ -84,20 +78,16 @@ const FAQ = () => {
             <p className="text-muted-foreground text-lg">
               Encontre respostas para as dúvidas mais comuns sobre o Foguete
             </p>
-          </motion.div>
+          </div>
 
-          {/* FAQ Accordion */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
+          {/* FAQ Accordion - CSS animation */}
+          <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
             <Accordion type="single" collapsible className="space-y-4">
               {faqs.map((faq, index) => (
                 <AccordionItem 
                   key={index} 
                   value={`item-${index}`} 
-                  className="bg-card/50 backdrop-blur-sm rounded-xl px-6 border border-border shadow-sm"
+                  className="bg-card/50 rounded-xl px-6 border border-border shadow-sm"
                 >
                   <AccordionTrigger className="text-left font-semibold text-foreground hover:text-primary py-6">
                     {faq.question}
@@ -108,14 +98,12 @@ const FAQ = () => {
                 </AccordionItem>
               ))}
             </Accordion>
-          </motion.div>
+          </div>
 
-          {/* Contact Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-center mt-16 p-8 bg-gradient-to-r from-orange-500/10 to-red-600/10 rounded-2xl border border-orange-500/20"
+          {/* Contact Section - CSS animation */}
+          <div 
+            className="text-center mt-16 p-8 bg-gradient-to-r from-orange-500/10 to-red-600/10 rounded-2xl border border-orange-500/20 animate-fade-in"
+            style={{ animationDelay: "200ms" }}
           >
             <h3 className="text-xl font-bold text-foreground mb-2">Ainda tem dúvidas?</h3>
             <p className="text-muted-foreground mb-6">
@@ -128,7 +116,7 @@ const FAQ = () => {
               <MessageCircle className="w-4 h-4" />
               Falar com Suporte
             </Button>
-          </motion.div>
+          </div>
         </div>
       </main>
 

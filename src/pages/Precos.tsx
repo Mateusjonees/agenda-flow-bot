@@ -4,7 +4,6 @@ import PricingSection from "@/components/landing/PricingSection";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, MessageCircle, Check, Shield } from "lucide-react";
-import { motion } from "framer-motion";
 
 export default function Precos() {
   const navigate = useNavigate();
@@ -27,14 +26,10 @@ export default function Precos() {
         <MessageCircle className="w-6 h-6" />
       </a>
 
-      {/* Hero */}
+      {/* Hero - CSS animation */}
       <section className="pt-32 pb-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+          <div className="animate-fade-in">
             <span className="inline-block px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium mb-6">
               Planos Flexíveis
             </span>
@@ -48,23 +43,17 @@ export default function Precos() {
               Comece grátis e escale conforme seu negócio cresce. 
               Sem surpresas, sem taxas escondidas.
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* Pricing Cards */}
       <PricingSection onGetStarted={handleGetStarted} />
 
-      {/* Garantias */}
+      {/* Garantias - CSS animation */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="bg-muted/30 rounded-2xl p-8 md:p-12"
-          >
+          <div className="bg-muted/30 rounded-2xl p-8 md:p-12 animate-fade-in">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center">
                 <Shield className="w-6 h-6 text-green-500" />
@@ -86,19 +75,14 @@ export default function Precos() {
                 </div>
               ))}
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* FAQ Link */}
+      {/* FAQ Link - CSS animation */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
+          <div className="animate-fade-in">
             <h2 className="text-2xl font-bold mb-4">Ainda tem dúvidas?</h2>
             <p className="text-muted-foreground mb-6">
               Confira nossa página de perguntas frequentes ou entre em contato conosco.
@@ -112,7 +96,7 @@ export default function Precos() {
                 Falar com Suporte
               </Button>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 

@@ -202,7 +202,9 @@ const TestimonialsSection = () => {
                 <div className="flex items-center gap-3 pt-4 border-t border-border/50">
                   <img 
                     src={testimonial.photo} 
-                    alt={testimonial.name} 
+                    alt={testimonial.name}
+                    width={40}
+                    height={40}
                     className="w-10 h-10 rounded-full object-cover ring-1 ring-border" 
                     loading="lazy" 
                     draggable={false}
