@@ -10,7 +10,6 @@ export function PublicFooter() {
     <footer className="bg-background dark:bg-[#1a1f2e] border-t border-border dark:border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16">
-          {/* Logo e Descrição */}
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
               <img 
@@ -34,7 +33,6 @@ export function PublicFooter() {
             </p>
           </div>
 
-          {/* Produto */}
           <div>
             <h3 className="font-bold text-foreground mb-5 text-base">Produto</h3>
             <ul className="space-y-3 text-sm">
@@ -73,7 +71,6 @@ export function PublicFooter() {
             </ul>
           </div>
 
-          {/* Contato */}
           <div>
             <h3 className="font-bold text-foreground mb-5 text-base">Contato</h3>
             <ul className="space-y-3 text-sm">
@@ -102,7 +99,6 @@ export function PublicFooter() {
             </ul>
           </div>
 
-          {/* Horário */}
           <div>
             <h3 className="font-bold text-foreground mb-5 text-base">Horário</h3>
             <ul className="space-y-3 text-sm">
@@ -118,7 +114,6 @@ export function PublicFooter() {
           </div>
         </div>
 
-        {/* Divisor e Copyright */}
         <div className="border-t border-border dark:border-white/10 mt-12 pt-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground text-center sm:text-left">

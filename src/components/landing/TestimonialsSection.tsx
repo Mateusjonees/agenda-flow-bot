@@ -56,7 +56,6 @@ const TestimonialsSection = () => {
   const [scrollLeft, setScrollLeft] = useState(0);
   const isMobile = useIsMobile();
 
-  // Update scroll buttons state
   const updateScrollButtons = useCallback(() => {
     const container = scrollRef.current;
     if (container) {
@@ -85,7 +84,6 @@ const TestimonialsSection = () => {
     }
   };
 
-  // Mouse drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     const container = scrollRef.current;
     if (!container) return;
@@ -123,7 +121,6 @@ const TestimonialsSection = () => {
     }
   };
 
-  // Touch handlers for mobile
   const handleTouchStart = (e: React.TouchEvent) => {
     const container = scrollRef.current;
     if (!container) return;
@@ -144,14 +141,12 @@ const TestimonialsSection = () => {
   const handleTouchEnd = () => {
     setIsDragging(false);
   };
-  // Limit testimonials on mobile for faster render
   const displayedTestimonials = isMobile ? testimonials.slice(0, 4) : testimonials;
 
   return (
     <section id="testimonials" className="py-24 relative bg-muted/30 overflow-hidden defer-mobile">
       <div className="container mx-auto px-4">
         <div className="max-w-7xl mx-auto">
-          {/* Carousel Controls - Desktop */}
           <div className="hidden md:flex justify-end gap-2 mb-6">
             <Button variant="outline" size="icon" onClick={() => scroll('left')} disabled={!canScrollLeft} className="rounded-full hover:bg-primary hover:text-primary-foreground disabled:opacity-40">
               <ChevronLeft className="w-5 h-5" />
@@ -161,7 +156,6 @@ const TestimonialsSection = () => {
             </Button>
           </div>
 
-          {/* Testimonials Carousel */}
           <div 
             ref={scrollRef} 
             onMouseDown={handleMouseDown} 
@@ -184,24 +178,20 @@ const TestimonialsSection = () => {
                 className="bg-card rounded-xl p-6 border border-border/50 shadow-sm hover:border-primary/20 transition-colors duration-200 flex flex-col min-w-[320px] md:min-w-[380px] snap-center flex-shrink-0 animate-fade-in"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                {/* Highlight Badge */}
                 <Badge variant="secondary" className="w-fit mb-4 bg-primary/10 text-primary border-primary/30">
                   {testimonial.highlight}
                 </Badge>
 
-                {/* Rating */}
                 <div className="flex gap-1 mb-3">
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
 
-                {/* Content */}
                 <p className="text-foreground/90 mb-6 leading-relaxed flex-1 text-sm">
                   "{testimonial.content}"
                 </p>
 
-                {/* Author with Real Photo */}
                 <div className="flex items-center gap-3 pt-4 border-t border-border/50">
                   <img 
                     src={testimonial.photo} 
@@ -222,13 +212,11 @@ const TestimonialsSection = () => {
             ))}
           </div>
 
-          {/* Drag hint */}
           <p className="text-center text-sm text-muted-foreground mt-4">
             <span className="hidden md:inline">Arraste para navegar • Use as setas para avançar</span>
             <span className="md:hidden">Arraste para ver mais depoimentos</span>
           </p>
 
-          {/* Stats */}
           <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
               { value: "5.000+", label: "Empresas ativas" },

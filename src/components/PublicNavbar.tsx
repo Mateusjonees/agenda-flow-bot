@@ -57,7 +57,6 @@ export function PublicNavbar() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 dark:bg-[#1a1f2e]/95 backdrop-blur-sm border-b border-border dark:border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <button 
             onClick={() => {
               navigate("/");
@@ -84,7 +83,6 @@ export function PublicNavbar() {
             />
           </button>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
               <button
@@ -97,7 +95,6 @@ export function PublicNavbar() {
             ))}
           </nav>
 
-          {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
             <ThemeToggle />
             {isAuthenticated ? (
@@ -128,7 +125,6 @@ export function PublicNavbar() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-2">
             <ThemeToggle />
             <Button
@@ -142,7 +138,6 @@ export function PublicNavbar() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-border dark:border-white/10 animate-fade-in bg-background dark:bg-[#1a1f2e]">
             <nav className="flex flex-col gap-2">
