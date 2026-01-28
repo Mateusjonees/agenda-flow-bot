@@ -1,196 +1,236 @@
 
-## Plano: Integração Completa do Meta Pixel para Todos os Eventos
+# Plano: Adicionar Vídeo do YouTube e Otimizar Performance Mobile
 
-Identifiquei os pontos onde o rastreamento do Meta Pixel está faltando ou incompleto.
+## Parte 1: Adicionar Vídeo do YouTube
 
-### Problemas Encontrados
+O vídeo será inserido logo após a seção Hero, antes do ProductShowcase.
 
-| Local | Problema |
-|-------|----------|
-| `Auth.tsx` - Login com Email | Sem rastreamento ao fazer login com sucesso |
-| `Auth.tsx` - Login com Google | Sem rastreamento ao iniciar login OAuth |
-| `App.tsx` - Auth State Change | Sem detecção de primeiro login (Google OAuth retorna para dashboard) |
-| `ScheduleAppointmentDialog.tsx` | Sem evento Schedule |
-| `PixPaymentDialog.tsx` | Sem eventos Purchase/Subscribe ao confirmar pagamento |
-| `SubscriptionManager.tsx` | Sem eventos de checkout e pagamento |
-| `FAQSection.tsx` | Sem evento Contact no botão de suporte |
-| `SearchBar.tsx` | Sem evento Search |
+### Local de Inserção
+```
+Hero Section
+    ↓
+>>> NOVO: VideoSection (YouTube embed)
+    ↓
+ProductShowcase
+```
 
-### Solução Proposta
-
-**1. Rastrear Login com Email (`Auth.tsx`)**
-Adicionar evento customizado `Login` quando o login com email for bem-sucedido.
-
-**2. Rastrear Login com Google (`Auth.tsx`)**
-Adicionar evento `Lead` ao clicar em "Continuar com Google".
-
-**3. Detectar Primeiro Acesso (OAuth) (`App.tsx`)**
-Criar um listener global que detecta quando um usuário novo faz login via OAuth e dispara `CompleteRegistration`.
-
-**4. Adicionar Eventos de Pagamento (`PixPaymentDialog.tsx`)**
-Disparar eventos `Purchase` e `Subscribe` quando o pagamento PIX for confirmado.
-
-**5. Adicionar Eventos no `SubscriptionManager.tsx`**
-Disparar `InitiateCheckout` ao selecionar um plano.
-
-**6. Adicionar Search no `SearchBar.tsx`**
-Disparar evento `Search` quando o usuário fizer uma busca.
-
-**7. Adicionar Contact no `FAQSection.tsx`**
-Disparar evento `Contact` ao clicar em "Falar com Suporte".
-
-**8. Adicionar Schedule no `ScheduleAppointmentDialog.tsx`**
-Disparar evento `Schedule` ao criar agendamento via proposta.
-
-### Arquivos a Modificar
-
-| Arquivo | Mudança |
-|---------|---------|
-| `src/pages/Auth.tsx` | Adicionar tracking para login email + Google OAuth |
-| `src/App.tsx` | Adicionar detecção de primeiro login OAuth |
-| `src/components/PixPaymentDialog.tsx` | Adicionar Purchase/Subscribe no sucesso |
-| `src/components/SubscriptionManager.tsx` | Adicionar InitiateCheckout |
-| `src/components/SearchBar.tsx` | Adicionar evento Search |
-| `src/components/landing/FAQSection.tsx` | Adicionar evento Contact |
-| `src/components/ScheduleAppointmentDialog.tsx` | Adicionar evento Schedule |
-| `src/hooks/useFacebookPixel.tsx` | Adicionar novo evento `trackLogin` |
+### Implementação do Vídeo
+- Criar um novo componente `VideoSection` para o embed do YouTube
+- URL do vídeo: `https://youtu.be/fyhZ0dz9Mcc`
+- Usar **lazy loading** (loading="lazy") para não impactar o LCP
+- Usar **lite-youtube-embed** pattern para carregar apenas quando necessário
+- Aspecto responsivo (16:9)
 
 ---
 
-### Detalhes Tecnicos
+## Parte 2: Otimização de Performance Mobile
 
-#### 1. Novo Evento Login (`useFacebookPixel.tsx`)
+### Problemas Identificados (PageSpeed Insights)
+| Métrica | Atual | Meta |
+|---------|-------|------|
+| First Contentful Paint | 4.8s | < 1.8s |
+| Largest Contentful Paint | 6.1s | < 2.5s |
+| Total Blocking Time | 0ms | OK |
+| Cumulative Layout Shift | 0 | OK |
+
+### Causas Principais
+1. **Framer Motion** - Carrega biblioteca pesada (+180KB) mesmo no mobile
+2. **Blur/Backdrop-filter** - Pesado em dispositivos móveis
+3. **Animações complexas** no Hero (blur-3xl, animate-float)
+4. **Imagens de testemunhos** - Externas sem otimização
+
+### Solucoes
+
+#### 1. Desabilitar Animacoes Pesadas no Mobile
+Modificar componentes para usar CSS puro ao invés de framer-motion em dispositivos móveis:
 
 ```tsx
-const trackLogin = (method?: string) => {
-  trackEvent('Login', {
-    content_name: method || 'email',
-  });
+// Componentes da landing usarão CSS ao invés de framer-motion no mobile
+const isMobile = window.innerWidth < 768;
+
+// Ao invés de:
+<motion.div animate={...} />
+
+// Usar:
+{isMobile ? <div className="animate-fade-in" /> : <motion.div ... />}
+```
+
+#### 2. Reduzir Efeitos Visuais no Mobile (CSS)
+```css
+@media (max-width: 768px) {
+  /* Remover blur pesado */
+  .blur-3xl { filter: none; }
+  .backdrop-blur-sm, .backdrop-blur { backdrop-filter: none; }
+  
+  /* Simplificar gradientes */
+  .bg-mesh-gradient { background: hsl(var(--primary) / 0.1); }
+  
+  /* Desabilitar animações infinitas */
+  .animate-float, .animate-float-slow { animation: none; }
+}
+```
+
+#### 3. Otimizar Hero Section
+- Remover `blur-3xl` dos blobs decorativos no mobile
+- Simplificar `bg-mesh-gradient` para cor sólida
+- Manter animações apenas no desktop
+
+#### 4. Lazy Load Componentes Abaixo do Fold
+```tsx
+// Em Landing.tsx - carregar seções sob demanda
+const ProductShowcase = lazy(() => import("./landing/ProductShowcase"));
+const FeatureGrid = lazy(() => import("./landing/FeatureGrid"));
+const HowItWorks = lazy(() => import("./landing/HowItWorks"));
+// etc...
+```
+
+#### 5. Otimizar Imagens dos Testemunhos
+- Adicionar `fetchpriority="low"` nas imagens
+- Usar dimensões menores para mobile (w=100 ao invés de w=150)
+
+---
+
+## Arquivos a Modificar
+
+| Arquivo | Mudança |
+|---------|---------|
+| `src/components/landing/VideoSection.tsx` | CRIAR - Componente de vídeo YouTube otimizado |
+| `src/pages/Landing.tsx` | Adicionar VideoSection + lazy loading de seções |
+| `src/index.css` | Adicionar otimizações mobile para blur/animações |
+| `src/components/landing/HeroMockup.tsx` | Simplificar para mobile |
+| `src/components/landing/TestimonialsSection.tsx` | Otimizar imagens |
+| `src/components/landing/FeatureGrid.tsx` | Usar CSS animations no mobile |
+| `src/components/landing/ProductShowcase.tsx` | Usar CSS animations no mobile |
+| `src/components/landing/HowItWorks.tsx` | Usar CSS animations no mobile |
+| `src/components/landing/PricingSection.tsx` | Usar CSS animations no mobile |
+
+---
+
+## Detalhes Tecnicos
+
+### VideoSection.tsx (Novo Componente)
+```tsx
+const VideoSection = () => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const videoId = "fyhZ0dz9Mcc"; // Extraído da URL
+
+  return (
+    <section className="py-16 bg-background">
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl border">
+            {!isLoaded ? (
+              <button
+                onClick={() => setIsLoaded(true)}
+                className="absolute inset-0 bg-muted flex items-center justify-center cursor-pointer group"
+              >
+                {/* Thumbnail otimizada do YouTube */}
+                <img 
+                  src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+                  alt="Assistir vídeo"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loading="lazy"
+                />
+                {/* Play button */}
+                <div className="relative z-10 w-16 h-16 bg-primary/90 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Play className="w-6 h-6 text-white ml-1" />
+                </div>
+              </button>
+            ) : (
+              <iframe
+                src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+                title="Vídeo de demonstração"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 };
 ```
 
-#### 2. Auth.tsx - Login Email e Google
-
-```tsx
-// No sucesso do handleSignIn:
-trackLogin('email');
-
-// No handleGoogleLogin antes do OAuth:
-trackLead({ content_name: 'google_oauth', content_category: 'authentication' });
-```
-
-#### 3. App.tsx - Deteccao de Primeiro Login OAuth
-
-Criar um componente `AuthTracker` que escuta `onAuthStateChange`:
-
-```tsx
-const AuthTracker = () => {
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          const isOAuth = session.user.app_metadata?.provider !== 'email';
-          const isNewUser = new Date(session.user.created_at).getTime() > 
-                           Date.now() - 60000; // Criado ha menos de 1 min
-          
-          if (isOAuth && isNewUser) {
-            fbPixel.track('CompleteRegistration', { 
-              content_name: session.user.app_metadata?.provider || 'oauth' 
-            });
-            fbPixel.track('StartTrial', { value: 0, currency: 'BRL' });
-          }
-          
-          fbPixel.trackCustom('Login', { 
-            method: session.user.app_metadata?.provider || 'email' 
-          });
-        }
-      }
+### CSS Optimizacoes Mobile (index.css)
+```css
+/* Otimizações de performance para mobile */
+@media (max-width: 768px) {
+  /* Desabilitar efeitos pesados de blur */
+  .blur-3xl, .blur-2xl, .blur-xl {
+    filter: blur(8px); /* Reduzir intensidade */
+  }
+  
+  /* Remover backdrop-filter (muito pesado) */
+  .glass, .glass-strong {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: hsl(var(--card) / 0.95);
+  }
+  
+  /* Simplificar mesh gradient */
+  .bg-mesh-gradient {
+    background: linear-gradient(180deg, 
+      hsl(var(--primary) / 0.08) 0%, 
+      transparent 50%
     );
-    return () => subscription.unsubscribe();
-  }, []);
-  return null;
-};
+  }
+  
+  /* Desabilitar animações infinitas */
+  .animate-float,
+  .animate-float-slow,
+  .animate-pulse-glow {
+    animation: none;
+  }
+  
+  /* Reduzir complexidade visual */
+  .bg-grid-pattern,
+  .bg-dots-pattern {
+    opacity: 0.15;
+  }
+}
 ```
 
-#### 4. PixPaymentDialog.tsx
-
+### Landing.tsx - Lazy Loading
 ```tsx
-import { useFacebookPixel } from "@/hooks/useFacebookPixel";
+import { lazy, Suspense } from "react";
 
-// Dentro do componente:
-const { trackPurchase, trackSubscribe } = useFacebookPixel();
+// Lazy load componentes abaixo do fold
+const ProductShowcase = lazy(() => import("@/components/landing/ProductShowcase"));
+const FeatureGrid = lazy(() => import("@/components/landing/FeatureGrid"));
+const HowItWorks = lazy(() => import("@/components/landing/HowItWorks"));
+const TestimonialsSection = lazy(() => import("@/components/landing/TestimonialsSection"));
+const PricingSection = lazy(() => import("@/components/landing/PricingSection"));
+const FAQSection = lazy(() => import("@/components/landing/FAQSection"));
+const VideoSection = lazy(() => import("@/components/landing/VideoSection"));
 
-// No handlePaymentSuccess:
-trackPurchase({ value: amount, content_name: 'PIX Subscription' });
-trackSubscribe({ value: amount });
+// Skeleton para loading
+const SectionSkeleton = () => (
+  <div className="py-24 flex items-center justify-center">
+    <div className="animate-pulse bg-muted rounded-lg w-full max-w-4xl h-96" />
+  </div>
+);
+
+// Uso:
+<Suspense fallback={<SectionSkeleton />}>
+  <VideoSection />
+</Suspense>
 ```
 
-#### 5. SubscriptionManager.tsx
+---
 
-```tsx
-import { useFacebookPixel } from "@/hooks/useFacebookPixel";
+## Resultado Esperado
 
-const { trackInitiateCheckout } = useFacebookPixel();
+| Métrica | Antes | Depois (Estimado) |
+|---------|-------|-------------------|
+| First Contentful Paint | 4.8s | ~1.5-2.0s |
+| Largest Contentful Paint | 6.1s | ~2.0-2.8s |
+| Mobile Performance Score | ~45-50 | ~75-85 |
 
-// No handleSubscribe:
-trackInitiateCheckout({
-  value: plan.totalPrice,
-  content_name: plan.name,
-});
-```
-
-#### 6. SearchBar.tsx
-
-```tsx
-import { useFacebookPixel } from "@/hooks/useFacebookPixel";
-
-const { trackSearch } = useFacebookPixel();
-
-// Ao executar busca:
-trackSearch({ search_string: search });
-```
-
-#### 7. FAQSection.tsx
-
-```tsx
-import { useFacebookPixel } from "@/hooks/useFacebookPixel";
-
-const { trackContact } = useFacebookPixel();
-
-// No botao de suporte:
-onClick={() => {
-  trackContact('whatsapp_faq');
-  window.open("https://wa.me/554899075189", "_blank");
-}}
-```
-
-#### 8. ScheduleAppointmentDialog.tsx
-
-```tsx
-import { useFacebookPixel } from "@/hooks/useFacebookPixel";
-
-const { trackSchedule } = useFacebookPixel();
-
-// No sucesso do agendamento:
-trackSchedule({ content_name: proposal.title, value: proposal.final_amount });
-```
-
-### Resultado Esperado
-
-Apos implementacao, o Meta Pixel ira rastrear:
-
-| Evento | Quando Dispara |
-|--------|----------------|
-| `PageView` | Toda navegacao (ja funciona) |
-| `ViewContent` | Pagina de Auth (ja funciona) |
-| `CompleteRegistration` | Cadastro email + primeiro login Google |
-| `Lead` | Clique em CTA, cadastro, aceite de cookies |
-| `StartTrial` | Novo cadastro |
-| `Login` (custom) | Login email + Google |
-| `InitiateCheckout` | Selecionar plano |
-| `AddPaymentInfo` | Escolher forma pagamento |
-| `Purchase` | Pagamento PIX confirmado + cartao |
-| `Subscribe` | Assinatura ativada |
-| `Schedule` | Novo agendamento |
-| `Contact` | Clique em WhatsApp suporte |
-| `Search` | Busca no sistema |
+### Melhorias Principais
+1. Vídeo do YouTube carregado sob demanda (não impacta LCP)
+2. Blur e backdrop-filter desabilitados no mobile
+3. Animações pesadas removidas no mobile
+4. Seções carregadas com lazy loading
+5. Imagens de testemunhos otimizadas com loading="lazy"
