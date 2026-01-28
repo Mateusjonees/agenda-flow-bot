@@ -13,19 +13,15 @@
     <meta name="apple-mobile-web-app-title" content="Foguete" />
     <meta name="mobile-web-app-capable" content="yes" />
     
-    <!-- Preconnect to external domains for faster loading -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Preconnect to critical domains only -->
     <link rel="preconnect" href="https://pnwelorcrncqltqiyxwx.supabase.co" crossorigin />
-    <link rel="preconnect" href="https://img.youtube.com" />
-    <link rel="preconnect" href="https://images.unsplash.com" />
     
-    <!-- DNS Prefetch for secondary resources -->
-    <link rel="dns-prefetch" href="https://www.youtube.com" />
-    <link rel="dns-prefetch" href="https://www.mercadopago.com" />
+    <!-- DNS Prefetch for secondary resources (lower priority) -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://img.youtube.com" />
     
-    <!-- Preload critical assets -->
-    <link rel="preload" href="/foguetinho.png" as="image" type="image/png" />
+    <!-- Preload critical assets with high priority -->
+    <link rel="preload" href="/foguetinho.png" as="image" type="image/png" fetchpriority="high" />
     
     <!-- Icons and manifest -->
     <link rel="icon" type="image/png" href="/foguetinho.png">
@@ -152,7 +148,6 @@
       })();
     </script>
     
-    <!-- Mercado Pago Security Script - loaded async and deferred -->
-    <script src="https://www.mercadopago.com/v2/security.js" view="checkout" async defer></script>
+    <!-- Mercado Pago Security Script - only load on payment pages via dynamic import -->
   </body>
 </html>

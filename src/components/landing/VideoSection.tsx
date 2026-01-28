@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Play } from "lucide-react";
+
+// Inline SVG to avoid lucide-react bundle cost
+const PlayIcon = () => (
+  <svg className="w-7 h-7 md:w-8 md:h-8 ml-1" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M8 5v14l11-7z" />
+  </svg>
+);
 
 const VideoSection = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -41,7 +47,7 @@ const VideoSection = () => {
                 
                 {/* Play Button */}
                 <div className="relative z-10 w-16 h-16 md:w-20 md:h-20 bg-primary/90 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-primary transition-all duration-300 shadow-xl">
-                  <Play className="w-7 h-7 md:w-8 md:h-8 text-white ml-1" fill="currentColor" />
+                  <span className="text-white"><PlayIcon /></span>
                 </div>
               </button>
             ) : (

@@ -68,16 +68,19 @@ export function PublicNavbar() {
             <img 
               src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png" 
               alt="Foguete" 
-              width={64}
-              height={64}
-              className="h-16 w-auto dark:hidden" 
+              width={48}
+              height={48}
+              loading="eager"
+              fetchPriority="high"
+              className="h-12 w-auto dark:hidden" 
             />
             <img 
               src={logoLight} 
               alt="Foguete" 
-              width={64}
-              height={64}
-              className="h-16 w-auto hidden dark:block" 
+              width={48}
+              height={48}
+              loading="lazy"
+              className="h-12 w-auto hidden dark:block" 
             />
           </button>
 

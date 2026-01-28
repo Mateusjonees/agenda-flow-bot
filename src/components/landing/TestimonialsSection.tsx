@@ -144,8 +144,11 @@ const TestimonialsSection = () => {
   const handleTouchEnd = () => {
     setIsDragging(false);
   };
+  // Limit testimonials on mobile for faster render
+  const displayedTestimonials = isMobile ? testimonials.slice(0, 4) : testimonials;
+
   return (
-    <section id="testimonials" className="py-24 relative bg-muted/30 overflow-hidden">
+    <section id="testimonials" className="py-24 relative bg-muted/30 overflow-hidden defer-mobile">
       <div className="container mx-auto px-4">
         <div className="max-w-7xl mx-auto">
           {/* Carousel Controls - Desktop */}
@@ -175,7 +178,7 @@ const TestimonialsSection = () => {
               WebkitOverflowScrolling: 'touch'
             }}
           >
-            {testimonials.map((testimonial, index) => (
+            {displayedTestimonials.map((testimonial, index) => (
               <div 
                 key={index}
                 className="bg-card rounded-xl p-6 border border-border/50 shadow-sm hover:border-primary/20 transition-colors duration-200 flex flex-col min-w-[320px] md:min-w-[380px] snap-center flex-shrink-0 animate-fade-in"
