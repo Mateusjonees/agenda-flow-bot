@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Command, CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 export function SearchBar() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -14,6 +15,7 @@ export function SearchBar() {
   const recognitionRef = useRef<any>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
   const navigate = useNavigate();
+  const { trackSearch } = useFacebookPixel();
 
   // Adicionar atalho Ctrl+K
   useEffect(() => {
@@ -209,6 +211,11 @@ export function SearchBar() {
   });
   const hasAnyResults = Boolean(results && ((results.customers?.length ?? 0) > 0 || (results.appointments?.length ?? 0) > 0 || (results.proposals?.length ?? 0) > 0 || (results.transactions?.length ?? 0) > 0 || (results.tasks?.length ?? 0) > 0 || (results.inventory?.length ?? 0) > 0 || (results.subscriptions?.length ?? 0) > 0));
   const handleSelect = (type: string, id: string) => {
+    // Track search event when user selects a result
+    if (search.trim().length >= 2) {
+      trackSearch({ search_string: search, content_category: type });
+    }
+    
     setOpen(false);
     setSearch("");
     switch (type) {
