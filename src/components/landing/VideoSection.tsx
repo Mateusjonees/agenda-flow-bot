@@ -3,7 +3,7 @@ import { Play } from "lucide-react";
 
 const VideoSection = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const videoId = "fyhZ0dz9Mcc";
+  const videoId = "bMXz7kbfghg";
 
   return (
     <section className="py-12 md:py-16 bg-background">
