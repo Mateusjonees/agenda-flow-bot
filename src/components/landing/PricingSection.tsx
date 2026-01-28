@@ -47,7 +47,6 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
       
       <div className="container mx-auto px-4 relative">
         <div className="max-w-6xl mx-auto">
-          {/* Pricing Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 items-stretch">
             {plans.map((plan, index) => (
               <div 
@@ -61,12 +60,9 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
                 )}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                {/* Popular Badge */}
                 {plan.popular && <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-secondary" />}
 
-                {/* Content */}
                 <div className="p-5 pt-8 flex-1 flex flex-col">
-                  {/* Plan Header */}
                   <div className="flex items-center gap-2 mb-3">
                     <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${plan.color} flex items-center justify-center flex-shrink-0`}>
                       <plan.icon className="w-5 h-5 text-white" />
@@ -77,7 +73,6 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
                     </div>
                   </div>
 
-                  {/* Price */}
                   <div className="mb-4">
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-extrabold text-foreground">{plan.price}</span>
@@ -93,7 +88,6 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
                     )}
                   </div>
 
-                  {/* CTA Button */}
                   <Button 
                     onClick={onGetStarted} 
                     size="default" 
@@ -108,7 +102,6 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
                     Começar Teste Grátis
                   </Button>
 
-                  {/* Features */}
                   <ul className="space-y-2 flex-1">
                     {plan.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-start gap-2">
@@ -124,7 +117,6 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
             ))}
           </div>
 
-          {/* Trust Note */}
           <p 
             className="text-center text-sm text-muted-foreground mt-10 animate-fade-in"
             style={{ animationDelay: '400ms' }}

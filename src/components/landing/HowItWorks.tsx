@@ -33,7 +33,6 @@ const HowItWorks = () => {
     <section className="py-24 relative overflow-hidden">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
           <div className="text-center mb-16">
             <Badge className="px-4 py-2 mb-6 bg-accent/10 text-accent border-accent/30">
               <Settings className="w-4 h-4 mr-2" />
@@ -47,9 +46,7 @@ const HowItWorks = () => {
             </p>
           </div>
 
-          {/* Steps */}
           <div className="grid md:grid-cols-4 gap-6 relative">
-            {/* Connection Line - Desktop */}
             <div className="hidden md:block absolute top-16 left-[15%] right-[15%] h-0.5 bg-gradient-to-r from-primary/50 via-accent/50 to-secondary/50" />
 
             {steps.map((step, index) => (
@@ -58,7 +55,6 @@ const HowItWorks = () => {
                 className="relative animate-fade-in"
                 style={{ animationDelay: `${index * 150}ms` }}
               >
-                {/* Step Number & Icon */}
                 <div className="flex flex-col items-center mb-6">
                   <div className="relative">
                     <div className={`w-16 h-16 bg-gradient-to-br ${step.color} rounded-2xl flex items-center justify-center shadow-lg`}>
@@ -70,13 +66,11 @@ const HowItWorks = () => {
                   </div>
                 </div>
 
-                {/* Content */}
                 <div className="text-center">
                   <h3 className="text-xl font-bold text-foreground mb-2">{step.title}</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
                 </div>
 
-                {/* Arrow - Mobile */}
                 {index < steps.length - 1 && (
                   <div className="md:hidden flex justify-center my-4">
                     <ArrowRight className="w-6 h-6 text-primary/50 rotate-90" />
@@ -86,7 +80,6 @@ const HowItWorks = () => {
             ))}
           </div>
 
-          {/* CTA */}
           <div
             className="text-center mt-12 animate-fade-in"
             style={{ animationDelay: '600ms' }}
