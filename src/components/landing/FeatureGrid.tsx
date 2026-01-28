@@ -1,6 +1,5 @@
 import { useIsMobile } from "@/hooks/use-mobile";
 
-// Static feature data with emoji icons (lighter than lucide)
 const features = [
   { emoji: "📅", title: "Agendamentos Inteligentes", description: "Calendário visual com lembretes automáticos via WhatsApp", color: "from-blue-500 to-cyan-500" },
   { emoji: "👥", title: "Gestão de Clientes", description: "Histórico completo e cartão fidelidade digital", color: "from-purple-500 to-pink-500" },
@@ -18,27 +17,21 @@ const features = [
 
 const FeatureGrid = () => {
   const isMobile = useIsMobile();
-  
-  // Show fewer features on mobile for performance
   const visibleFeatures = isMobile ? features.slice(0, 6) : features;
   
   return (
     <section id="features" className="py-16 md:py-24 relative bg-muted/30 defer-mobile">
       <div className="container mx-auto px-4 relative">
         <div className="max-w-6xl mx-auto">
-          {/* Features Grid - Simplified */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
             {visibleFeatures.map((feature, index) => (
               <div 
                 key={index}
                 className="bg-card rounded-xl p-4 md:p-6 border hover:border-primary/30 transition-colors"
               >
-                {/* Emoji Icon - Much lighter than lucide */}
                 <div className={`w-10 h-10 md:w-12 md:h-12 mb-3 md:mb-4 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center text-lg md:text-xl`}>
                   {feature.emoji}
                 </div>
-
-                {/* Content */}
                 <h3 className="text-sm md:text-lg font-bold text-foreground mb-1 md:mb-2">
                   {feature.title}
                 </h3>
