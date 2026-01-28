@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
 // Cache version - increment to force cache clear on all machines
-const CACHE_VERSION = "v2.1.0-perf-2025-01-23";
+const CACHE_VERSION = "v2.1.1-hotfix-vercel-2025-01-28";
 
 // Cache clearing component
 const CacheBuster = () => {

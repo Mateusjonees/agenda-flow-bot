@@ -53,6 +53,7 @@
       #root { min-height: 100vh; }
       .initial-loader { 
         display: flex; 
+        flex-direction: column;
         align-items: center; 
         justify-content: center; 
         min-height: 100vh; 
@@ -68,19 +69,88 @@
         from { transform: rotate(0deg); } 
         to { transform: rotate(360deg); } 
       }
+      .recovery-msg {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 24px;
+        color: #a0a0a0;
+        font-family: system-ui, sans-serif;
+        text-align: center;
+      }
+      .recovery-msg.visible { display: flex; }
+      .recovery-btn {
+        margin-top: 12px;
+        padding: 10px 20px;
+        background: #E31837;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .recovery-btn:hover { background: #c41430; }
     </style>
   </head>
 
   <body>
     <div id="root">
       <!-- Initial loader shown before JS loads -->
-      <div class="initial-loader">
+      <div class="initial-loader" id="initial-loader">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
+        <div class="recovery-msg" id="recovery-msg">
+          <p>O site está demorando para carregar.</p>
+          <button class="recovery-btn" id="recovery-btn">Limpar cache e recarregar</button>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Fallback recovery script for stuck loaders (cache/SW issues) -->
+    <script>
+      (function() {
+        var TIMEOUT_MS = 8000;
+        var timer = setTimeout(function() {
+          var msg = document.getElementById('recovery-msg');
+          if (msg) msg.classList.add('visible');
+        }, TIMEOUT_MS);
+        
+        // If React mounts, loader is replaced, so we can clear the timer
+        var observer = new MutationObserver(function(mutations) {
+          var loader = document.getElementById('initial-loader');
+          if (!loader || !document.body.contains(loader)) {
+            clearTimeout(timer);
+            observer.disconnect();
+          }
+        });
+        observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+        
+        // Recovery button handler
+        document.addEventListener('click', function(e) {
+          if (e.target && e.target.id === 'recovery-btn') {
+            // Unregister service workers
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(regs) {
+                regs.forEach(function(r) { r.unregister(); });
+              });
+            }
+            // Clear caches
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                names.forEach(function(n) { caches.delete(n); });
+              });
+            }
+            // Clear storage
+            try { localStorage.clear(); } catch(e) {}
+            try { sessionStorage.clear(); } catch(e) {}
+            // Hard reload
+            setTimeout(function() { location.reload(true); }, 300);
+          }
+        });
+      })();
+    </script>
     
     <!-- Mercado Pago Security Script - loaded async and deferred -->
     <script src="https://www.mercadopago.com/v2/security.js" view="checkout" async defer></script>
