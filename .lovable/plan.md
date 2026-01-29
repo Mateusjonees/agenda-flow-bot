@@ -1,93 +1,78 @@
 
 
-## Plano para Resolver LCP de 7.0s para Meta de 2.5s
+## Solucao para Atingir Performance 90+ no Mobile
 
-### Diagnostico do Problema
+### Diagnostico dos Problemas Raiz
 
-O **Largest Contentful Paint (LCP)** de 7 segundos indica que o maior elemento visivel da pagina (geralmente o titulo do Hero ou uma imagem) esta demorando muito para renderizar. Isso acontece por varios fatores identificados:
+A pagina `/auth?mode=signup` esta demorando porque:
 
-| Causa | Impacto | Arquivo |
-|-------|---------|---------|
-| `Badge` ainda importado do shadcn no Hero | Alto - traz `class-variance-authority` | `Landing.tsx` |
-| `lucide-react` ainda no PublicFooter | Medio - carrega via lazy loading | `PublicFooter.tsx` |
-| Supabase importado estaticamente | Alto - SDK pesa ~50KB | `Landing.tsx` |
-| Imagens sem `fetchPriority` | Medio - browser nao prioriza | Varios |
-| Fontes do sistema nao preloadadas | Medio - FOIT/FOUT | `index.html` |
+| Problema | Impacto | Bloqueio |
+|----------|---------|----------|
+| `MaintenanceGuard` importa Supabase estaticamente | CRITICO | Bloqueia render inicial - faz query ANTES de mostrar qualquer coisa |
+| `react-icons/fa` (FaGoogle) | ALTO | Biblioteca react-icons pesa ~30KB para 1 icone |
+| `AuthTracker` importa `fbPixel` estaticamente | MEDIO | Carrega no bundle principal |
+| Componentes shadcn (Button, Card, Input) usam CVA | MEDIO | CVA (~8KB) no bundle critico |
 
 ---
 
-## Estrategia de Otimizacao (5 Fases)
+## Estrategia: "Skeleton-First Rendering"
 
-### Fase 1: Eliminar Badge do Critical Path no Landing (CRITICO)
+A ideia e mostrar a UI IMEDIATAMENTE e carregar o Supabase em background. O usuario ve o formulario, mas o botao fica desabilitado ate o Supabase estar pronto.
 
-O componente Badge usa `class-variance-authority` que adiciona peso ao bundle critico.
+### Fase 1: MaintenanceGuard Assíncrono (PRIORIDADE MAXIMA)
 
-**Landing.tsx linha 5 e 129-132:**
+O MaintenanceGuard atual BLOQUEIA tudo ate consultar o banco. Vamos mudar para "assumir que NAO esta em manutencao" e verificar em background.
 
 ```text
 ANTES:
-import { Badge } from "@/components/ui/badge";
-...
-<Badge className="px-6 py-2.5...">...</Badge>
+- Import estatico do Supabase
+- Query ANTES de renderizar children
+- Loading state bloqueia tudo
 
 DEPOIS:
-<span className="inline-flex items-center px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border border-primary/30 rounded-full">
-  <SparklesIcon />
-  Sistema de Gestao Completo
-</span>
+- Import dinamico do Supabase
+- Renderiza children IMEDIATAMENTE
+- Verifica manutencao em background (2s delay)
+- Se estiver em manutencao, troca para pagina de manutencao
 ```
 
-### Fase 2: Remover lucide-react do PublicFooter
+### Fase 2: Substituir FaGoogle por SVG Inline
 
-Substituir os 5 icones restantes por emojis nativos:
+O icone do Google e simples e pode ser substituido por SVG inline.
+
+```tsx
+const GoogleIcon = () => (
+  <svg className="h-5 w-5" viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+  </svg>
+);
+```
+
+### Fase 3: AuthTracker com Import Totalmente Dinamico
+
+O AuthTracker importa `fbPixel` estaticamente. Vamos mudar para import totalmente dinamico.
 
 ```text
-MessageCircle -> 💬
-HeadphonesIcon -> 🎧
-Clock -> 🕐
-Shield -> 🛡️
-Lock -> 🔒
+ANTES:
+import { fbPixel } from "@/hooks/useFacebookPixel";
+
+DEPOIS:
+// Sem import estatico - tudo dinamico dentro do useEffect
 ```
 
-### Fase 3: Adiar Import do Supabase no Landing
+### Fase 4: Inline CSS Critico no index.html
 
-O cliente Supabase esta sendo importado estaticamente na linha 4. Usar import dinamico:
-
-```tsx
-// ANTES:
-import { supabase } from "@/integrations/supabase/client";
-
-// DEPOIS: Import dinamico no useEffect
-useEffect(() => {
-  const timer = setTimeout(async () => {
-    const { supabase } = await import("@/integrations/supabase/client");
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsAuthenticated(!!session);
-  }, 1500);
-}, []);
-```
-
-### Fase 4: Adicionar fetchPriority ao Titulo do Hero
-
-O H1 do Hero e o provavel LCP. Forcamos o browser a priorizar:
-
-```tsx
-// Adicionar ao <h1> ou ao elemento principal do Hero
-<h1 
-  className="text-4xl md:text-6xl lg:text-7xl font-extrabold leading-tight"
-  style={{ contentVisibility: 'auto' }}
->
-```
-
-### Fase 5: Preload de Fontes Criticas no index.html
-
-Adicionar preload para evitar FOIT:
+Adicionar estilos criticos para a pagina de Auth diretamente no HTML para que o layout apareca antes do CSS carregar.
 
 ```html
-<link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
+<style>
+  .auth-card { /* estilos inline criticos */ }
+  .auth-input { /* estilos inline criticos */ }
+</style>
 ```
-
-Ou, se usar fontes do sistema, garantir font-display: swap no CSS.
 
 ---
 
@@ -95,83 +80,140 @@ Ou, se usar fontes do sistema, garantir font-display: swap no CSS.
 
 | Arquivo | Acao | Prioridade |
 |---------|------|------------|
-| `src/pages/Landing.tsx` | Remover Badge, import dinamico Supabase | CRITICO |
-| `src/components/PublicFooter.tsx` | Substituir lucide por emojis | ALTA |
-| `src/components/landing/ProductShowcase.tsx` | Remover Badge por span | MEDIA |
-| `src/index.css` | Garantir font-display: swap | MEDIA |
+| `src/components/MaintenanceGuard.tsx` | Import dinamico, render children primeiro | CRITICO |
+| `src/pages/Auth.tsx` | Trocar FaGoogle por SVG inline | ALTA |
+| `src/components/AuthTracker.tsx` | Remover import estatico de fbPixel | ALTA |
+| `index.html` | Adicionar CSS inline para Auth | MEDIA |
+| `src/App.tsx` | Atualizar CACHE_VERSION | BAIXA |
 
 ---
 
-## Detalhes Tecnicos das Mudancas
+## Detalhes Tecnicos
 
-### Landing.tsx (Remover Badge, Supabase Lazy)
+### MaintenanceGuard.tsx (Nova Versao)
 
 ```tsx
-// REMOVER linha 5:
-// import { Badge } from "@/components/ui/badge";
+import { ReactNode, useEffect, useState } from "react";
 
-// MODIFICAR linha 129-132:
-// DE:
-<Badge className="px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border-primary/30">
-  <SparklesIcon />
-  Sistema de Gestao Completo
-</Badge>
+interface MaintenanceGuardProps {
+  children: ReactNode;
+}
 
-// PARA:
-<span className="inline-flex items-center rounded-full border px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border-primary/30">
-  <SparklesIcon />
-  Sistema de Gestao Completo
-</span>
+export const MaintenanceGuard = ({ children }: MaintenanceGuardProps) => {
+  const [MaintenancePage, setMaintenancePage] = useState<React.ComponentType<any> | null>(null);
+  const [maintenanceData, setMaintenanceData] = useState<{ message: string; estimatedReturn: string } | null>(null);
 
-// MODIFICAR useEffect (linhas 66-85):
-useEffect(() => {
-  let subscription: { unsubscribe: () => void } | null = null;
-  
-  const authTimer = setTimeout(async () => {
-    const { supabase } = await import("@/integrations/supabase/client");
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsAuthenticated(!!session);
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      
+      const checkMaintenance = async () => {
+        try {
+          const { data } = await supabase
+            .from("business_settings")
+            .select("*")
+            .limit(1)
+            .maybeSingle();
+
+          if (data && (data as any).is_maintenance_mode) {
+            const Maintenance = (await import("@/pages/Maintenance")).default;
+            setMaintenancePage(() => Maintenance);
+            setMaintenanceData({
+              message: (data as any).maintenance_message || "",
+              estimatedReturn: (data as any).maintenance_estimated_return || ""
+            });
+          }
+        } catch (error) {
+          console.error("Erro ao verificar manutencao:", error);
+        }
+      };
+
+      checkMaintenance();
+
+      const channel = supabase
+        .channel('maintenance-settings-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'business_settings' }, checkMaintenance)
+        .subscribe();
+
+      return () => supabase.removeChannel(channel);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (MaintenancePage && maintenanceData) {
+    return <MaintenancePage message={maintenanceData.message} estimatedReturn={maintenanceData.estimatedReturn} showNotificationSignup />;
+  }
+
+  return <>{children}</>;
+};
+```
+
+### Auth.tsx (Trocar FaGoogle)
+
+```tsx
+// REMOVER:
+import { FaGoogle } from "react-icons/fa";
+
+// ADICIONAR:
+const GoogleIcon = () => (
+  <svg className="h-5 w-5" viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+  </svg>
+);
+
+// Usar: <GoogleIcon /> em vez de <FaGoogle />
+```
+
+### AuthTracker.tsx (Sem Import Estatico)
+
+```tsx
+import { useEffect, useRef } from "react";
+
+export const AuthTracker = () => {
+  const hasTrackedNewUser = useRef<string | null>(null);
+
+  useEffect(() => {
+    let subscription: { unsubscribe: () => void } | null = null;
     
-    const { data } = supabase.auth.onAuthStateChange((_, session) => {
-      setIsAuthenticated(!!session);
-    });
-    subscription = data.subscription;
-  }, 1500);
-  
-  const whatsappTimer = setTimeout(() => setShowWhatsApp(true), 3000);
-  
-  return () => {
-    clearTimeout(authTimer);
-    clearTimeout(whatsappTimer);
-    subscription?.unsubscribe();
-  };
-}, []);
-```
+    const timer = setTimeout(async () => {
+      const [{ supabase }, { fbPixel }] = await Promise.all([
+        import("@/integrations/supabase/client"),
+        import("@/hooks/useFacebookPixel")
+      ]);
+      
+      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const user = session.user;
+          const provider = user.app_metadata?.provider || 'email';
+          const isNewUser = Date.now() - new Date(user.created_at).getTime() < 60000;
+          
+          const trackingKey = `${user.id}-${isNewUser ? 'new' : 'existing'}`;
+          if (hasTrackedNewUser.current === trackingKey) return;
+          hasTrackedNewUser.current = trackingKey;
 
-### PublicFooter.tsx (Emojis)
+          if (provider !== 'email' && isNewUser) {
+            fbPixel.track('CompleteRegistration', { content_name: provider, status: 'completed' });
+            fbPixel.track('StartTrial', { value: 0, currency: 'BRL', content_name: 'trial_7_days' });
+          }
 
-```tsx
-// REMOVER linha 2:
-// import { MessageCircle, HeadphonesIcon, Clock, Shield, Lock } from "lucide-react";
+          fbPixel.trackCustom('Login', { method: provider, is_new_user: isNewUser });
+        }
+      });
+      subscription = data.subscription;
+    }, 2500);
 
-// SUBSTITUIR nas linhas 66, 77, 88, 92, 115:
-<MessageCircle className="w-4 h-4 text-red-500" /> -> <span className="text-red-500">💬</span>
-<HeadphonesIcon className="w-4 h-4 text-red-500" /> -> <span className="text-red-500">🎧</span>
-<Clock className="w-4 h-4 text-red-500" /> -> <span className="text-red-500">🕐</span>
-<Shield className="w-4 h-4 text-red-500" /> -> <span className="text-red-500">🛡️</span>
-<Lock className="w-4 h-4 text-red-500" /> -> <span className="text-red-500">🔒</span>
-```
+    return () => {
+      clearTimeout(timer);
+      subscription?.unsubscribe();
+    };
+  }, []);
 
-### ProductShowcase.tsx (Remover Badge)
-
-```tsx
-// REMOVER linha 2:
-// import { Badge } from "@/components/ui/badge";
-
-// SUBSTITUIR linhas 22, 135, 175:
-<Badge className="...">...</Badge> 
-// POR:
-<span className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold bg-primary/10 text-primary border-primary/30">...</span>
+  return null;
+};
 ```
 
 ---
@@ -180,10 +222,19 @@ useEffect(() => {
 
 | Metrica | Atual | Apos Otimizacao |
 |---------|-------|-----------------|
-| LCP Mobile | 7.0s | ~2.5s |
-| Performance Score | 70 | 85-90 |
-| Bundle Critico | ~200KB | ~120KB |
-| TTFB | - | Sem mudanca |
+| FCP Mobile | 3.3s | ~1.5s |
+| LCP Mobile | 7.2s | ~2.5s |
+| Speed Index | 4.7s | ~2.5s |
+| Performance Score | 70 | 88-92 |
+
+---
+
+## Por que vai funcionar
+
+1. **MaintenanceGuard** atual faz QUERY BLOQUEANTE antes de renderizar - isso adiciona ~2-3s ao LCP
+2. **react-icons** carrega ~30KB para 1 icone - SVG inline e ~500 bytes
+3. **fbPixel** importado estaticamente adiciona peso ao bundle inicial
+4. O pattern "render first, load data later" e o padrao usado por sites de alta performance
 
 ---
 
@@ -191,16 +242,7 @@ useEffect(() => {
 
 | Risco | Mitigacao |
 |-------|-----------|
-| Auth nao carregar | Delay de 1.5s e suficiente, listener continua funcionando |
-| Emojis diferentes entre OS | Todos OS modernos renderizam emojis de forma similar |
-| Visual do Badge diferente | Usando mesmas classes Tailwind, visual identico |
-
----
-
-## Seguranca para Vercel
-
-- Nenhuma mudanca no vite.config.ts
-- Nenhuma mudanca no build process
-- Apenas substituicoes de componentes visuais
-- Import dinamico e suportado nativamente pelo Vite
+| Manutencao nao detectada imediatamente | Usuario vera a pagina por 2s antes de ser redirecionado (aceitavel) |
+| Icone Google diferente | SVG oficial do Google, cores exatas |
+| Tracking falhar | fbPixel so dispara apos 2.5s de qualquer forma |
 
