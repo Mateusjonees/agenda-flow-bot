@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { SimpleButton } from "@/components/ui/simple-button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import logoLight from "@/assets/logo.png";
 
@@ -121,43 +121,41 @@ export function PublicNavbar() {
           <div className="hidden md:flex items-center gap-3">
             <ThemeToggle />
             {isAuthenticated ? (
-              <Button 
+              <SimpleButton 
                 onClick={() => navigate("/dashboard")} 
                 className="gap-2 bg-red-600 hover:bg-red-700 text-white"
               >
                 Ir para Dashboard
                 <ArrowRightIcon />
-              </Button>
+              </SimpleButton>
             ) : (
               <>
-                <Button 
+                <SimpleButton 
                   variant="ghost" 
                   onClick={() => navigate("/auth")}
                   className="text-muted-foreground hover:text-foreground hover:bg-accent"
                 >
                   Entrar
-                </Button>
-                <Button 
+                </SimpleButton>
+                <SimpleButton 
                   onClick={() => navigate("/auth?mode=signup")} 
                   className="gap-2 bg-red-600 hover:bg-red-700 text-white shadow-lg"
                 >
                   Comece Grátis
                   <ArrowRightIcon />
-                </Button>
+                </SimpleButton>
               </>
             )}
           </div>
 
           <div className="flex md:hidden items-center gap-2">
             <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-foreground hover:bg-accent"
+              className="h-10 w-10 inline-flex items-center justify-center rounded-md hover:bg-accent transition-colors"
             >
               {mobileMenuOpen ? <XIcon /> : <MenuIcon />}
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -175,29 +173,29 @@ export function PublicNavbar() {
               ))}
               <div className="pt-4 border-t border-border dark:border-white/10 mt-2">
                 {isAuthenticated ? (
-                  <Button 
+                  <SimpleButton 
                     onClick={() => navigate("/dashboard")} 
                     className="w-full gap-2 bg-red-600 hover:bg-red-700"
                   >
                     Ir para Dashboard
                     <ArrowRightIcon />
-                  </Button>
+                  </SimpleButton>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    <Button 
+                    <SimpleButton 
                       variant="outline" 
                       onClick={() => navigate("/auth")} 
                       className="w-full"
                     >
                       Entrar
-                    </Button>
-                    <Button 
+                    </SimpleButton>
+                    <SimpleButton 
                       onClick={() => navigate("/auth?mode=signup")} 
                       className="w-full gap-2 bg-red-600 hover:bg-red-700"
                     >
                       Comece Grátis
                       <ArrowRightIcon />
-                    </Button>
+                    </SimpleButton>
                   </div>
                 )}
               </div>

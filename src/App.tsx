@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-const CACHE_VERSION = "v2.4.0-full-lazy";
+const CACHE_VERSION = "v2.5.0-simple-button";
 
 // Lazy load de TODOS os componentes não-críticos
 const Toaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));

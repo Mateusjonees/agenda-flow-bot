@@ -1,15 +1,12 @@
-import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
+    <button
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="relative"
+      className="relative h-10 w-10 rounded-md inline-flex items-center justify-center hover:bg-accent transition-colors"
     >
       <svg 
         className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" 
@@ -31,6 +28,6 @@ export function ThemeToggle() {
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
       </svg>
       <span className="sr-only">Alternar tema</span>
-    </Button>
+    </button>
   );
 }

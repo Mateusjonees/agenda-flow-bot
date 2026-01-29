@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
+import { SimpleButton } from "@/components/ui/simple-button";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState, lazy, Suspense, memo, useCallback, useRef } from "react";
+import { useEffect, useState, lazy, Suspense, memo, useCallback } from "react";
 
 const RocketIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -163,14 +163,14 @@ const Landing = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button size="lg" onClick={handleGetStarted} className="h-14 px-8 text-lg gap-3 shadow-xl bg-primary">
+                <SimpleButton size="lg" onClick={handleGetStarted} className="h-14 px-8 text-lg gap-3 shadow-xl bg-primary">
                   {isAuthenticated ? "Acessar Dashboard" : "Começar Teste Grátis"}
                   <RocketIcon />
-                </Button>
-                <Button size="lg" variant="outline" onClick={handleWhatsAppClick} className="h-14 px-8 text-lg gap-3">
+                </SimpleButton>
+                <SimpleButton size="lg" variant="outline" onClick={handleWhatsAppClick} className="h-14 px-8 text-lg gap-3">
                   <MessageIcon />
                   Falar com Vendas
-                </Button>
+                </SimpleButton>
               </div>
 
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-sm text-muted-foreground">
@@ -243,10 +243,10 @@ const Landing = () => {
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               Junte-se a mais de 5.000 empresários que já transformaram sua gestão
             </p>
-            <Button size="lg" onClick={handleGetStarted} className="h-14 md:h-16 px-8 md:px-10 text-lg gap-3 shadow-xl bg-primary">
+            <SimpleButton size="lg" onClick={handleGetStarted} className="h-14 md:h-16 px-8 md:px-10 text-lg gap-3 shadow-xl bg-primary">
               {isAuthenticated ? "Ir para Dashboard" : "Começar Teste Grátis"}
               <ArrowRightIcon />
-            </Button>
+            </SimpleButton>
             <p className="text-sm text-muted-foreground mt-6">
               ✓ Sem cartão &nbsp;•&nbsp; ✓ 7 dias grátis &nbsp;•&nbsp; ✓ Cancele quando quiser
             </p>
