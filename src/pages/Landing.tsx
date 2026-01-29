@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, lazy, Suspense, memo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 const RocketIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -125,10 +126,10 @@ const Landing = () => {
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 text-center lg:text-left">
-              <span className="inline-flex items-center px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border border-primary/30 rounded-full">
+              <Badge className="px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border-primary/30">
                 <SparklesIcon />
                 Sistema de Gestão Completo
-              </span>
+              </Badge>
 
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold leading-tight">
                 <span className="text-foreground">Decole seu</span>
