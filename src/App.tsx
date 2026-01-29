@@ -71,11 +71,12 @@ const App = () => (
           
           <Route path="/*" element={<Suspense fallback={<PageLoader />}><PrivateRoutes /></Suspense>} />
         </Routes>
+        
+        {/* GlobalProviders INSIDE BrowserRouter so useLocation() works */}
+        <Suspense fallback={null}>
+          <GlobalProviders />
+        </Suspense>
       </BrowserRouter>
-      
-      <Suspense fallback={null}>
-        <GlobalProviders />
-      </Suspense>
     </QueryClientProvider>
   </ErrorBoundary>
 );
