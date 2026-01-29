@@ -140,7 +140,7 @@ const Landing = () => {
               </h1>
 
               <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">
-                Sistema completo para <span className="text-foreground font-semibold">salões, clínicas, barbearias</span> e prestadores de serviço.
+                É ideal para <span className="text-foreground font-semibold">MEI, autônomos e pequenos empresários</span> que querem mais organização e menos dor de cabeça no dia a dia.
               </p>
 
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
