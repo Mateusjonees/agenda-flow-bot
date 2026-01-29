@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { supabase } from "@/integrations/supabase/client";
 import logoLight from "@/assets/logo.png";
 
 const MenuIcon = () => (
@@ -30,7 +29,6 @@ interface NavLink {
 
 const navLinks: NavLink[] = [
   { label: "Recursos", sectionId: "recursos" },
-  { label: "Depoimentos", sectionId: "depoimentos" },
   { label: "Preços", sectionId: "precos" },
   { label: "FAQ", sectionId: "faq" },
 ];
@@ -41,19 +39,26 @@ export function PublicNavbar() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-    }, 2000);
+  const supabaseRef = useRef<typeof import("@/integrations/supabase/client").supabase | null>(null);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+  useEffect(() => {
+    let subscription: { unsubscribe: () => void } | null = null;
+    
+    const timer = setTimeout(async () => {
+      const mod = await import("@/integrations/supabase/client");
+      supabaseRef.current = mod.supabase;
+      const { data: { session } } = await mod.supabase.auth.getSession();
       setIsAuthenticated(!!session);
-    });
+      
+      const { data } = mod.supabase.auth.onAuthStateChange((_, session) => {
+        setIsAuthenticated(!!session);
+      });
+      subscription = data.subscription;
+    }, 2000);
 
     return () => {
       clearTimeout(timer);
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 

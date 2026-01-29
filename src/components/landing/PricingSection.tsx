@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -80,9 +79,9 @@ const PricingSection = ({ onGetStarted }: PricingSectionProps) => {
                     {plan.originalPrice && (
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs text-muted-foreground line-through">{plan.originalPrice}</span>
-                        <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/30 px-2 py-0.5">
+                        <span className="text-xs bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 px-2 py-0.5 rounded-full font-semibold">
                           {plan.savings}
-                        </Badge>
+                        </span>
                       </div>
                     )}
                   </div>
