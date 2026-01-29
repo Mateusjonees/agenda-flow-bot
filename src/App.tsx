@@ -4,12 +4,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 
-// Cache version - increment to force cache clear on all machines
-const CACHE_VERSION = "v2.1.1-hotfix-vercel-2025-01-28";
+const CACHE_VERSION = "v2.1.2-lcp-optimize";
 
-// Cache clearing component
 const CacheBuster = () => {
   useEffect(() => {
     const storedVersion = localStorage.getItem("app_cache_version");
@@ -55,7 +52,6 @@ const CacheBuster = () => {
   return null;
 };
 
-// Guards - loaded synchronously as they're always needed
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MaintenanceGuard } from "./components/MaintenanceGuard";
 import { SubscriptionGuard } from "./components/SubscriptionGuard";
@@ -66,7 +62,6 @@ import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
 import { AuthTracker } from "./components/AuthTracker";
 import Layout from "./components/Layout";
 
-// Lazy loaded pages - critical for performance
 const Index = lazy(() => import("./pages/Index"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -97,11 +92,16 @@ const Recursos = lazy(() => import("./pages/Recursos"));
 const Depoimentos = lazy(() => import("./pages/Depoimentos"));
 const Precos = lazy(() => import("./pages/Precos"));
 
-// Lightweight loading fallback
+const LoaderIcon = () => (
+  <svg className="h-8 w-8 animate-spin text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+  </svg>
+);
+
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
     <div className="flex flex-col items-center gap-4">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <LoaderIcon />
       <p className="text-sm text-muted-foreground">Carregando...</p>
     </div>
   </div>
@@ -131,7 +131,6 @@ const App = () => (
             <MaintenanceGuard>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
-                  {/* Rotas públicas (sem guard) */}
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/manutencao" element={<Maintenance />} />
@@ -143,7 +142,6 @@ const App = () => (
                   <Route path="/depoimentos" element={<Depoimentos />} />
                   <Route path="/precos" element={<Precos />} />
                   
-                  {/* Página de configurações (fora do guard para permitir renovação) - apenas admin */}
                   <Route path="/configuracoes" element={
                     <Layout>
                       <PermissionGuard>
@@ -166,7 +164,6 @@ const App = () => (
                     </Layout>
                   } />
                   
-                  {/* Rotas protegidas (com guard de assinatura e permissão) */}
                   <Route path="/dashboard" element={
                     <Layout>
                       <SubscriptionGuard>
@@ -267,7 +264,6 @@ const App = () => (
                     </Layout>
                   } />
                   
-                  {/* WhatsApp E-commerce Routes */}
                   <Route path="/produtos" element={
                     <Layout>
                       <SubscriptionGuard>
@@ -305,7 +301,6 @@ const App = () => (
                     </Layout>
                   } />
                   
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

@@ -40,7 +40,7 @@ const ProductShowcase = lazy(() => import("@/components/landing/ProductShowcase"
 const HowItWorks = lazy(() => import("@/components/landing/HowItWorks"));
 const FeatureGrid = lazy(() => import("@/components/landing/FeatureGrid"));
 const PricingSection = lazy(() => import("@/components/landing/PricingSection"));
-const TestimonialsSection = lazy(() => import("@/components/landing/TestimonialsSection"));
+
 const FAQSection = lazy(() => import("@/components/landing/FAQSection"));
 const HeroMockup = lazy(() => import("@/components/landing/HeroMockup"));
 
@@ -215,11 +215,6 @@ const Landing = () => {
         <HowItWorks />
       </Suspense>
 
-      <section id="depoimentos">
-        <Suspense fallback={<SectionSkeleton />}>
-          <TestimonialsSection />
-        </Suspense>
-      </section>
 
       <section id="precos">
         <Suspense fallback={<SectionSkeleton />}>
