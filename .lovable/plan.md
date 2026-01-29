@@ -1,221 +1,261 @@
 
 
-## Diagnostico DEFINITIVO - Por que ainda esta em 69
+## Plano Definitivo: Chegar a 90+ no Mobile
 
-O problema principal e que o `App.tsx` ainda faz **imports estaticos** de componentes que carregam bibliotecas pesadas:
+### Problema Raiz Identificado
 
-### Cadeia de Bloqueio Atual
+A Landing Page ainda carrega bibliotecas pesadas através do componente `Button`:
 
 ```text
-App.tsx (IMPORTA ESTATICAMENTE)
-  ├── ErrorBoundary.tsx
-  │     └── OfflineState.tsx (leve)
-  ├── MaintenanceGuard.tsx (DINAMICO - OK)
-  ├── SubscriptionGuard.tsx (ESTATICO - PROBLEMA!)
-  │     ├── lucide-react (Lock, AlertCircle, Loader2, Users) ~15KB
-  │     ├── useSubscriptionStatus.tsx
-  │     │     └── supabase/client.ts ~50KB (ESTATICO!)
-  │     ├── Button.tsx (CVA) ~8KB
-  │     └── Alert.tsx (CVA) ~5KB
-  ├── PermissionGuard.tsx (ESTATICO - PROBLEMA!)
-  │     ├── lucide-react (ShieldAlert, Loader2) ~15KB
-  │     ├── useUserRole.tsx
-  │     │     └── supabase/client.ts ~50KB (ESTATICO!)
-  │     └── Button.tsx (CVA) ~8KB
-  └── Layout.tsx (ESTATICO - PROBLEMA!)
-        ├── lucide-react (LogOut, Settings, User) ~15KB
-        └── supabase/client.ts ~50KB (ESTATICO!)
+Landing.tsx / PublicNavbar.tsx / ThemeToggle.tsx
+  └── Button.tsx
+        ├── @radix-ui/react-slot (~3KB)
+        └── class-variance-authority (~8KB) ← ESTE É O VILÃO!
 ```
 
-**Total bloqueante estimado: 150KB+ de JavaScript que precisa ser parseado ANTES de mostrar a Landing Page!**
-
-### O que precisa mudar
-
-O problema nao esta na Landing Page em si - esta nos componentes que sao importados ESTATICAMENTE no App.tsx mas que SO SAO USADOS em rotas autenticadas.
+O CVA (class-variance-authority) sozinho adiciona ~8KB ao bundle inicial, e é usado para variantes de botões que NÃO são necessárias no primeiro render.
 
 ---
 
-## Plano: Lazy Load dos Guards Pesados
+## Estrategia: Botao Leve para Landing
 
-### Fase 1: Criar Versoes Leves dos Guards para Rotas Publicas
+Criar um **SimpleButton** que NÃO usa CVA nem Radix Slot, exclusivo para páginas públicas.
 
-Para a rota `/`, nao precisamos de `SubscriptionGuard`, `PermissionGuard` nem `Layout`. Vamos separar as rotas em dois grupos:
-
-1. **Rotas Publicas**: Sem guards pesados
-2. **Rotas Autenticadas**: Com guards lazy-loaded
-
-### Fase 2: Refatorar App.tsx
+### Fase 1: Criar SimpleButton (Botao Ultra-Leve)
 
 ```tsx
-// ANTES (imports estaticos)
-import { SubscriptionGuard } from "./components/SubscriptionGuard";
-import { PermissionGuard } from "./components/PermissionGuard";
-import Layout from "./components/Layout";
+// src/components/ui/simple-button.tsx
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-// DEPOIS (tudo lazy)
-const SubscriptionGuard = lazy(() => import("./components/SubscriptionGuard").then(m => ({ default: m.SubscriptionGuard })));
-const PermissionGuard = lazy(() => import("./components/PermissionGuard").then(m => ({ default: m.PermissionGuard })));
-const Layout = lazy(() => import("./components/Layout"));
+interface SimpleButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "default" | "outline" | "ghost";
+  size?: "default" | "sm" | "lg" | "icon";
+}
+
+export const SimpleButton = React.forwardRef<HTMLButtonElement, SimpleButtonProps>(
+  ({ className, variant = "default", size = "default", ...props }, ref) => {
+    const baseStyles = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 touch-manipulation";
+    
+    const variants = {
+      default: "bg-primary text-primary-foreground hover:bg-primary/90",
+      outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+      ghost: "hover:bg-accent hover:text-accent-foreground",
+    };
+    
+    const sizes = {
+      default: "h-10 px-4 py-2",
+      sm: "h-9 rounded-md px-3",
+      lg: "h-11 rounded-md px-8",
+      icon: "h-10 w-10",
+    };
+    
+    return (
+      <button
+        ref={ref}
+        className={cn(baseStyles, variants[variant], sizes[size], className)}
+        {...props}
+      />
+    );
+  }
+);
+SimpleButton.displayName = "SimpleButton";
 ```
 
-### Fase 3: Remover lucide-react dos hooks criticos
+**Peso: ~500 bytes vs ~11KB do Button original**
 
-Os hooks `useUserRole.tsx` e `useSubscriptionStatus.tsx` importam estaticamente o Supabase. Isso puxa o SDK inteiro para o bundle inicial.
+---
 
-Soluao: Criar versoes otimizadas que usam import dinamico.
+### Fase 2: Usar SimpleButton na Landing Page
 
-### Fase 4: Substituir lucide-react nos Guards
+Substituir todos os imports de Button nas páginas públicas:
 
-Nos componentes `SubscriptionGuard.tsx` e `PermissionGuard.tsx`, substituir:
-- `Lock`, `AlertCircle`, `Loader2`, `Users`, `ShieldAlert` por SVGs inline
+```tsx
+// Landing.tsx
+// ANTES:
+import { Button } from "@/components/ui/button";
+
+// DEPOIS:
+import { SimpleButton } from "@/components/ui/simple-button";
+```
+
+Mesma substituicao em:
+- `PublicNavbar.tsx`
+- `ThemeToggle.tsx`
+
+---
+
+### Fase 3: Otimizar ThemeToggle
+
+O ThemeToggle usa Button apenas para um icone. Podemos simplificar:
+
+```tsx
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <button
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className="relative h-10 w-10 rounded-md inline-flex items-center justify-center hover:bg-accent transition-colors"
+    >
+      {/* SVGs inline */}
+    </button>
+  );
+}
+```
+
+---
+
+### Fase 4: Preload Agressivo do CSS Critico
+
+No `index.html`, adicionar mais CSS inline para a hero section:
+
+```html
+<style>
+  /* Hero section critical styles */
+  .hero-title { font-size: clamp(2rem, 5vw, 4rem); font-weight: 800; }
+  .hero-badge { display: inline-flex; padding: 0.5rem 1rem; border-radius: 9999px; }
+  .btn-primary { 
+    background: hsl(358 82% 51%); 
+    color: white; 
+    padding: 0.75rem 2rem; 
+    border-radius: 0.5rem;
+    font-weight: 500;
+  }
+</style>
+```
+
+---
+
+### Fase 5: Defer mais sections no Mobile
+
+No `Landing.tsx`, usar `content-visibility: auto` para mais sections:
+
+```tsx
+<section className="defer-mobile">
+  <Suspense fallback={<SectionSkeleton />}>
+    <FAQSection />
+  </Suspense>
+</section>
+```
 
 ---
 
 ## Arquivos a Modificar
 
-| Arquivo | Acao | Prioridade |
-|---------|------|------------|
-| `src/App.tsx` | Lazy load SubscriptionGuard, PermissionGuard, Layout | CRITICO |
-| `src/components/SubscriptionGuard.tsx` | Substituir lucide-react por SVGs inline | ALTO |
-| `src/components/PermissionGuard.tsx` | Substituir lucide-react por SVGs inline | ALTO |
-| `src/components/Layout.tsx` | Substituir lucide-react por SVGs inline, dinamizar Supabase | ALTO |
-| `src/hooks/useSubscriptionStatus.tsx` | Import dinamico do Supabase | MEDIO |
-| `src/hooks/useUserRole.tsx` | Import dinamico do Supabase | MEDIO |
+| Arquivo | Acao | Impacto |
+|---------|------|---------|
+| `src/components/ui/simple-button.tsx` | CRIAR - botao leve sem CVA | CRITICO |
+| `src/pages/Landing.tsx` | Usar SimpleButton | CRITICO |
+| `src/components/PublicNavbar.tsx` | Usar SimpleButton | CRITICO |
+| `src/components/ThemeToggle.tsx` | Usar botao nativo | ALTO |
+| `index.html` | Adicionar mais CSS critico | MEDIO |
+| `src/App.tsx` | Atualizar CACHE_VERSION | BAIXO |
 
 ---
 
 ## Detalhes Tecnicos
 
-### App.tsx (Lazy Load dos Guards)
+### simple-button.tsx (Novo Arquivo)
 
 ```tsx
-import React, { Suspense, lazy, useEffect } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-const CACHE_VERSION = "v2.4.0-full-lazy";
+interface SimpleButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "default" | "outline" | "ghost";
+  size?: "default" | "sm" | "lg" | "icon";
+}
 
-// Componentes de notificacao/UI - lazy
-const Toaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
-const Sonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
-const TooltipProvider = lazy(() => import("@/components/ui/tooltip").then(m => ({ default: m.TooltipProvider })));
-const PasswordResetGuard = lazy(() => import("./components/PasswordResetGuard").then(m => ({ default: m.PasswordResetGuard })));
-const CookieConsent = lazy(() => import("./components/CookieConsent").then(m => ({ default: m.CookieConsent })));
-const PWAUpdatePrompt = lazy(() => import("./components/PWAUpdatePrompt").then(m => ({ default: m.PWAUpdatePrompt })));
-const AuthTracker = lazy(() => import("./components/AuthTracker").then(m => ({ default: m.AuthTracker })));
-
-// Guards AGORA SAO LAZY - removidos os imports estaticos
-const SubscriptionGuard = lazy(() => import("./components/SubscriptionGuard").then(m => ({ default: m.SubscriptionGuard })));
-const PermissionGuard = lazy(() => import("./components/PermissionGuard").then(m => ({ default: m.PermissionGuard })));
-const Layout = lazy(() => import("./components/Layout"));
-
-// ErrorBoundary e MaintenanceGuard continuam estaticos (sao leves)
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import { MaintenanceGuard } from "./components/MaintenanceGuard";
-
-// Pages lazy - igual antes
-const Index = lazy(() => import("./pages/Index"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-// ... resto igual
+export const SimpleButton = React.forwardRef<HTMLButtonElement, SimpleButtonProps>(
+  ({ className, variant = "default", size = "default", ...props }, ref) => {
+    const baseStyles = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 touch-manipulation active:scale-95";
+    
+    const variants: Record<string, string> = {
+      default: "bg-primary text-primary-foreground hover:bg-primary/90",
+      outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+      ghost: "hover:bg-accent hover:text-accent-foreground",
+    };
+    
+    const sizes: Record<string, string> = {
+      default: "h-10 px-4 py-2 min-h-[44px] md:min-h-0",
+      sm: "h-9 rounded-md px-3 min-h-[40px] md:min-h-0",
+      lg: "h-11 rounded-md px-8 min-h-[48px] md:min-h-0",
+      icon: "h-10 w-10 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0",
+    };
+    
+    return (
+      <button
+        ref={ref}
+        className={cn(baseStyles, variants[variant], sizes[size], className)}
+        {...props}
+      />
+    );
+  }
+);
+SimpleButton.displayName = "SimpleButton";
 ```
 
-### SubscriptionGuard.tsx (SVGs Inline)
+### ThemeToggle.tsx (Sem Button)
 
 ```tsx
-// Substituir imports do lucide:
-// import { Lock, AlertCircle, Loader2, Users } from "lucide-react";
+import { useTheme } from "next-themes";
 
-// Por SVGs inline:
-const LockIcon = ({ className }: { className?: string }) => (
-  <svg className={className || "h-5 w-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
-    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-  </svg>
-);
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
 
-const AlertCircleIcon = ({ className }: { className?: string }) => (
-  <svg className={className || "h-5 w-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"/>
-    <line x1="12" y1="8" x2="12" y2="12"/>
-    <line x1="12" y1="16" x2="12.01" y2="16"/>
-  </svg>
-);
-
-const LoaderIcon = ({ className }: { className?: string }) => (
-  <svg className={className || "w-8 h-8 animate-spin"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-  </svg>
-);
-
-const UsersIcon = ({ className }: { className?: string }) => (
-  <svg className={className || "h-5 w-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-    <circle cx="9" cy="7" r="4"/>
-    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-  </svg>
-);
+  return (
+    <button
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className="relative h-10 w-10 rounded-md inline-flex items-center justify-center hover:bg-accent transition-colors"
+    >
+      <svg 
+        className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2"
+      >
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+      </svg>
+      <svg 
+        className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2"
+      >
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+      <span className="sr-only">Alternar tema</span>
+    </button>
+  );
+}
 ```
 
-### PermissionGuard.tsx (SVGs Inline)
+### Landing.tsx (Usando SimpleButton)
 
 ```tsx
-// Substituir:
-// import { ShieldAlert, Loader2 } from "lucide-react";
+// ANTES:
+import { Button } from "@/components/ui/button";
 
-const ShieldAlertIcon = ({ className }: { className?: string }) => (
-  <svg className={className || "h-12 w-12"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
-    <path d="M12 8v4"/>
-    <path d="M12 16h.01"/>
-  </svg>
-);
+// DEPOIS:
+import { SimpleButton } from "@/components/ui/simple-button";
 
-const LoaderIcon = ({ className }: { className?: string }) => (
-  <svg className={className || "h-8 w-8 animate-spin"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-  </svg>
-);
+// E substituir todos os <Button> por <SimpleButton>
 ```
 
-### Layout.tsx (SVGs Inline + Supabase Dinamico)
+### PublicNavbar.tsx (Usando SimpleButton)
 
 ```tsx
-// Substituir:
-// import { supabase } from "@/integrations/supabase/client";
-// import { LogOut, Settings, User as UserIcon } from "lucide-react";
+// ANTES:
+import { Button } from "@/components/ui/button";
 
-// Por:
-const LogOutIcon = () => (
-  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-    <polyline points="16 17 21 12 16 7"/>
-    <line x1="21" y1="12" x2="9" y2="12"/>
-  </svg>
-);
+// DEPOIS:
+import { SimpleButton } from "@/components/ui/simple-button";
 
-const SettingsIcon = () => (
-  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-    <circle cx="12" cy="12" r="3"/>
-  </svg>
-);
-
-const UserIcon = () => (
-  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-    <circle cx="12" cy="7" r="4"/>
-  </svg>
-);
-
-// E usar import dinamico para Supabase:
-useEffect(() => {
-  const loadSupabase = async () => {
-    const { supabase } = await import("@/integrations/supabase/client");
-    // usar supabase...
-  };
-  loadSupabase();
-}, []);
+// E substituir todos os <Button> por <SimpleButton>
 ```
 
 ---
@@ -224,30 +264,31 @@ useEffect(() => {
 
 | Metrica | Atual | Apos Otimizacao |
 |---------|-------|-----------------|
-| Bundle Inicial (rota /) | ~200KB | ~50KB |
-| FCP Mobile | 3.3s | ~1.0s |
-| LCP Mobile | 7.1s | ~1.8s |
-| Speed Index | 3.6s | ~1.5s |
-| Performance Score | 69 | 90-95 |
+| Bundle Inicial (/) | ~80KB | ~60KB |
+| FCP Mobile | 3.3s | ~1.5s |
+| LCP Mobile | 7.0s | ~2.5s |
+| Speed Index | 3.6s | ~2.0s |
+| Performance Score | 70 | 88-92 |
 
 ---
 
 ## Por que VAI funcionar
 
-1. **SubscriptionGuard e PermissionGuard** so sao usados em rotas autenticadas (/dashboard, /clientes, etc) - nao precisam estar no bundle inicial
-2. **Layout** idem - so e usado apos login
-3. **lucide-react** sera completamente removido do critical path - SVGs inline pesam ~500 bytes vs ~15KB
-4. **Supabase SDK** sera carregado APENAS quando necessario, nao no bundle inicial
-5. A Landing Page (`/`) agora tera um bundle minimo sem dependencias pesadas
+1. **CVA removido do critical path** - 8KB a menos no bundle inicial
+2. **Radix Slot removido** - 3KB a menos
+3. **SimpleButton** pesa ~500 bytes vs ~11KB do Button original
+4. **ThemeToggle** agora usa botao nativo sem dependencias
+5. O pattern e identico ao usado por Vercel, Next.js e sites de alta performance
 
 ---
 
 ## Ordem de Implementacao
 
-1. Converter SubscriptionGuard, PermissionGuard, Layout para lazy no App.tsx
-2. Substituir lucide-react por SVGs inline em SubscriptionGuard.tsx
-3. Substituir lucide-react por SVGs inline em PermissionGuard.tsx  
-4. Substituir lucide-react por SVGs inline em Layout.tsx
-5. Atualizar CACHE_VERSION para v2.4.0-full-lazy
-6. Testar no PageSpeed Insights
+1. Criar `simple-button.tsx`
+2. Substituir Button por SimpleButton em `ThemeToggle.tsx`
+3. Substituir Button por SimpleButton em `PublicNavbar.tsx`
+4. Substituir Button por SimpleButton em `Landing.tsx`
+5. Adicionar CSS critico ao `index.html`
+6. Atualizar CACHE_VERSION para `v2.5.0-simple-button`
+7. Testar no PageSpeed Insights
 
