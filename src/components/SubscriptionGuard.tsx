@@ -3,8 +3,38 @@ import { useNavigate } from "react-router-dom";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Lock, AlertCircle, Loader2, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+// SVGs inline para evitar lucide-react no bundle inicial
+const LockIcon = ({ className }: { className?: string }) => (
+  <svg className={className || "h-5 w-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </svg>
+);
+
+const AlertCircleIcon = ({ className }: { className?: string }) => (
+  <svg className={className || "h-5 w-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="8" x2="12" y2="12"/>
+    <line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>
+);
+
+const LoaderIcon = ({ className }: { className?: string }) => (
+  <svg className={className || "w-8 h-8 animate-spin"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+  </svg>
+);
+
+const UsersIcon = ({ className }: { className?: string }) => (
+  <svg className={className || "h-5 w-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+);
 
 // Context para propagar estado read-only
 const ReadOnlyContext = createContext<{ isReadOnly: boolean }>({ 
@@ -32,7 +62,7 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <LoaderIcon className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -52,7 +82,7 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
         {/* ALERTA: Colaborador com licença não paga */}
         {isCollaboratorUnpaid && (
           <Alert variant="destructive" className="border-2">
-            <Users className="h-5 w-5" />
+            <UsersIcon className="h-5 w-5" />
             <AlertDescription className="flex items-center justify-between gap-4">
               <div>
                 <strong className="font-semibold">
@@ -69,7 +99,7 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
         {/* ALERTA: Assinatura Expirada (dono ou geral) */}
         {isReadOnly && !isCollaboratorUnpaid && (
           <Alert variant="destructive" className="border-2">
-            <Lock className="h-5 w-5" />
+            <LockIcon className="h-5 w-5" />
             <AlertDescription className="flex items-center justify-between gap-4">
               <div>
                 <strong className="font-semibold">
@@ -101,7 +131,7 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
         {/* ALERTA: Trial Acabando (últimos 3 dias) - só para dono */}
         {!isTeamMember && isTrial && daysRemaining <= 3 && daysRemaining > 0 && !isReadOnly && (
           <Alert className="border-2 border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
-            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+            <AlertCircleIcon className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
             <AlertDescription className="flex items-center justify-between gap-4">
               <div>
                 <strong className="font-semibold text-yellow-800 dark:text-yellow-200">
@@ -124,7 +154,7 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
         {/* Info para colaborador sobre dias restantes */}
         {isTeamMember && daysRemaining <= 5 && daysRemaining > 0 && !isReadOnly && (
           <Alert className="border-2 border-blue-500 bg-blue-50 dark:bg-blue-950">
-            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <UsersIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <AlertDescription>
               <strong className="font-semibold text-blue-800 dark:text-blue-200">
                 Aviso de Renovação

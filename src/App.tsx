@@ -2,9 +2,9 @@ import React, { Suspense, lazy, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-const CACHE_VERSION = "v2.3.0-zero-blocking";
+const CACHE_VERSION = "v2.4.0-full-lazy";
 
-// Lazy load de componentes não-críticos para o primeiro render
+// Lazy load de TODOS os componentes não-críticos
 const Toaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
 const Sonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
 const TooltipProvider = lazy(() => import("@/components/ui/tooltip").then(m => ({ default: m.TooltipProvider })));
@@ -13,12 +13,14 @@ const CookieConsent = lazy(() => import("./components/CookieConsent").then(m => 
 const PWAUpdatePrompt = lazy(() => import("./components/PWAUpdatePrompt").then(m => ({ default: m.PWAUpdatePrompt })));
 const AuthTracker = lazy(() => import("./components/AuthTracker").then(m => ({ default: m.AuthTracker })));
 
-// Componentes leves podem ficar estáticos
+// Guards pesados agora são LAZY (removidos imports estáticos)
+const SubscriptionGuard = lazy(() => import("./components/SubscriptionGuard").then(m => ({ default: m.SubscriptionGuard })));
+const PermissionGuard = lazy(() => import("./components/PermissionGuard").then(m => ({ default: m.PermissionGuard })));
+const Layout = lazy(() => import("./components/Layout"));
+
+// Componentes leves podem ficar estáticos (não importam bibliotecas pesadas)
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MaintenanceGuard } from "./components/MaintenanceGuard";
-import { SubscriptionGuard } from "./components/SubscriptionGuard";
-import { PermissionGuard } from "./components/PermissionGuard";
-import Layout from "./components/Layout";
 
 // Pages lazy
 const Index = lazy(() => import("./pages/Index"));

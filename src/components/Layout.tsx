@@ -1,9 +1,7 @@
 import React from "react";
 import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, User as UserIcon } from "lucide-react";
 import { SubscriptionPopover } from "@/components/SubscriptionPopover";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
@@ -24,6 +22,29 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import logo from "@/assets/logo.png";
+
+// SVGs inline para evitar lucide-react no bundle inicial
+const LogOutIcon = () => (
+  <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+    <polyline points="16 17 21 12 16 7"/>
+    <line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>
+);
+
+const UserIcon = () => (
+  <svg className="h-4 w-4 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="7" r="4"/>
+  </svg>
+);
 
 interface LayoutProps {
   children: ReactNode;
@@ -64,7 +85,7 @@ function LayoutContent({ children, user, profileImage, navigate, handleLogout }:
                     <Avatar className="h-9 w-9 border-2 border-primary/20">
                       <AvatarImage src={profileImage || undefined} alt="Perfil" />
                       <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70">
-                        <UserIcon className="h-4 w-4 text-primary-foreground" />
+                        <UserIcon />
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -80,12 +101,12 @@ function LayoutContent({ children, user, profileImage, navigate, handleLogout }:
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate("/configuracoes")}>
-                    <Settings className="mr-2 h-4 w-4" />
+                    <SettingsIcon />
                     <span>Configurações</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <LogOutIcon />
                     <span>Sair</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -113,43 +134,47 @@ function LayoutContent({ children, user, profileImage, navigate, handleLogout }:
 const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const [supabaseClient, setSupabaseClient] = useState<any>(null);
 
   useEffect(() => {
-    const checkSession = async () => {
+    const initAuth = async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      setSupabaseClient(supabase);
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate("/auth");
       } else {
         setUser(session.user);
       }
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!session) {
+          navigate("/auth");
+        } else {
+          setUser(session.user);
+        }
+      });
+
+      return () => subscription.unsubscribe();
     };
     
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate("/auth");
-      } else {
-        setUser(session.user);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    initAuth();
   }, [navigate]);
 
   // Buscar foto de perfil
   const { data: businessSettings } = useQuery({
     queryKey: ["business-settings", user?.id],
     queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
+      if (!user || !supabaseClient) return null;
+      const { data } = await supabaseClient
         .from("business_settings")
         .select("profile_image_url")
         .eq("user_id", user.id)
         .single();
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && !!supabaseClient,
   });
 
   const profileImage = businessSettings?.profile_image_url;
@@ -166,7 +191,9 @@ const Layout = ({ children }: LayoutProps) => {
       });
     }
     
-    await supabase.auth.signOut();
+    if (supabaseClient) {
+      await supabaseClient.auth.signOut();
+    }
     toast.success("Logout realizado com sucesso!");
     navigate("/auth");
   };
