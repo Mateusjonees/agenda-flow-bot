@@ -1,112 +1,180 @@
 
+## Plano de Otimizacao Extrema Mobile (72 → 90+)
 
-## Plano de Otimização Agressiva Mobile (70 → 85+)
+### Diagnostico do PageSpeed (29/01/2026)
 
-### Objetivo
-Alcançar 85+ pontos no Lighthouse mobile através de: remoção de comentários, substituição de ícones Lucide por imagens/SVGs estáticos, e simplificação de componentes críticos.
+| Metrica | Valor Atual | Meta |
+|---------|-------------|------|
+| Performance | 72 | 90+ |
+| FCP (First Contentful Paint) | 3.2s | <2.0s |
+| LCP (Largest Contentful Paint) | 5.6s | <2.5s |
+| Speed Index | 3.9s | <3.0s |
+
+### Problemas Identificados no Relatorio
+
+1. **Render-blocking resources** - Economia estimada de 300ms
+2. **JavaScript nao usado** - Economia estimada de 250 KiB
+3. **Imagens nao otimizadas** - Economia estimada de 210 KiB
+4. **Cache ineficiente** - Economia estimada de 30 KiB
+5. **lucide-react ainda no critical path** - PublicNavbar e ThemeToggle
 
 ---
 
-## Estratégia Principal
+## Estrategia de Otimizacao (Segura para Vercel)
 
-### 1. Substituir Ícones Lucide por Imagens Estáticas
+### Fase 1: Eliminar lucide-react do Critical Path
 
-**Problema identificado**: Os componentes `HeroMockup.tsx` e `ProductShowcase.tsx` ainda usam imports do `lucide-react` que pesam no bundle inicial:
+**PublicNavbar.tsx** - Ainda usa `ArrowRight, Menu, X` do lucide-react
 
-```tsx
-// HeroMockup.tsx - LINHA 1
-import { Calendar, Users, DollarSign, TrendingUp, Bell, CheckCircle2 } from "lucide-react";
-
-// ProductShowcase.tsx - LINHA 2
-import { Calendar, Users, DollarSign, BarChart3, CheckCircle2, Star } from "lucide-react";
+```text
+ANTES: import { ArrowRight, Menu, X } from "lucide-react";
+DEPOIS: SVGs inline (zero bundle weight)
 ```
 
-**Solução**: Criar SVGs inline ou usar emojis para ícones de mockup
+**ThemeToggle.tsx** - Usa `Moon, Sun` do lucide-react
+
+```text
+ANTES: import { Moon, Sun } from "lucide-react";
+DEPOIS: SVGs inline
+```
+
+### Fase 2: Otimizacao de Imagens
+
+**Problema**: Imagem do logo no PublicNavbar esta carregando duas versoes
+- `/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png` (modo claro)
+- `@/assets/logo.png` (modo escuro)
+
+**Solucao**: Usar uma unica imagem com CSS filter para inversao, eliminando um request HTTP
+
+### Fase 3: Lazy Loading Agressivo do Supabase
+
+**Problema**: O cliente Supabase esta sendo importado estaticamente em varios componentes que aparecem no primeiro render (Landing, PublicNavbar)
+
+**Solucao**: Adiar a verificacao de autenticacao para apos o primeiro paint
+
+```text
+// Landing.tsx e PublicNavbar.tsx
+// Mover auth check para useEffect com delay
+useEffect(() => {
+  const timer = setTimeout(async () => {
+    const { data } = await supabase.auth.getSession();
+    setIsAuthenticated(!!session);
+  }, 2000); // 2s delay
+  return () => clearTimeout(timer);
+}, []);
+```
+
+### Fase 4: Simplificar Badge Component no Hero
+
+O componente Badge importa `class-variance-authority` que adiciona peso ao bundle.
+
+**Solucao**: Substituir o Badge no Hero por um `<span>` estilizado inline
+
+### Fase 5: Preload de Fontes Critico
+
+Adicionar preload para a fonte principal no index.html (se estiver usando Google Fonts)
 
 ---
 
-### 2. Arquivos a Modificar
+## Arquivos a Modificar
 
-| Arquivo | Ação |
+| Arquivo | Acao |
 |---------|------|
-| `HeroMockup.tsx` | Remover imports Lucide, usar emojis/SVGs inline |
-| `ProductShowcase.tsx` | Remover imports Lucide, simplificar mockups mobile |
-| `TestimonialsSection.tsx` | Remover comentários restantes |
-| `PricingSection.tsx` | Remover comentários restantes |
-| `FAQSection.tsx` | Remover comentários restantes |
-| `HowItWorks.tsx` | Remover comentários restantes |
-| `index.css` | Remover comentários descritivos |
+| `src/components/PublicNavbar.tsx` | Remover lucide-react, SVGs inline |
+| `src/components/ThemeToggle.tsx` | Remover lucide-react, SVGs inline |
+| `src/pages/Landing.tsx` | Substituir Badge por span, otimizar auth check |
+| `index.html` | Adicionar preload de recursos criticos |
 
 ---
 
-## Detalhes de Implementação
+## Detalhes Tecnicos
 
-### HeroMockup.tsx
-Substituir todos os ícones Lucide:
+### PublicNavbar.tsx (novo)
+
 ```tsx
-// ANTES
-import { Calendar, Users, DollarSign, TrendingUp, Bell, CheckCircle2 } from "lucide-react";
-<stat.icon className="w-4 h-4 text-white" />
+// Substituir imports lucide por SVGs inline
+const MenuIcon = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M4 12h16M4 6h16M4 18h16"/>
+  </svg>
+);
 
-// DEPOIS - Usar emojis para mockup
-{ emoji: "📅", value: "24", label: "Hoje" }
-<span className="text-sm">{stat.emoji}</span>
+const XIcon = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M18 6 6 18M6 6l12 12"/>
+  </svg>
+);
+
+const ArrowRightIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M5 12h14m-7-7 7 7-7 7"/>
+  </svg>
+);
 ```
 
-### ProductShowcase.tsx
-Mesma abordagem - trocar ícones Lucide por emojis nos mockups:
+### ThemeToggle.tsx (novo)
+
+```tsx
+// SVGs inline para Sun e Moon
+const SunIcon = () => (
+  <svg className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" ...>
+    <circle cx="12" cy="12" r="4"/>
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41..."/>
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" ...>
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>
+);
+```
+
+### Landing.tsx - Substituir Badge
+
 ```tsx
 // ANTES
-import { Calendar, Users, DollarSign, BarChart3, CheckCircle2, Star } from "lucide-react";
+<Badge className="px-6 py-2.5...">
+  <SparklesIcon />
+  Sistema de Gestao Completo
+</Badge>
 
-// DEPOIS - Sem imports, usar emojis
-{ emoji: "📅", value: "24", label: "Agendamentos Hoje" }
+// DEPOIS (sem import do Badge)
+<span className="inline-flex items-center px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border border-primary/30 rounded-full">
+  <SparklesIcon />
+  Sistema de Gestao Completo
+</span>
 ```
 
 ---
 
 ## Impacto Esperado
 
-| Métrica | Atual | Meta |
-|---------|-------|------|
-| Performance Mobile | 70 | 85+ |
-| Bundle Size | ~180KB | ~150KB |
-| TBT (Total Blocking Time) | alto | -50% |
-| Lucide no bundle crítico | Sim | Não |
+| Metrica | Atual | Apos Otimizacao |
+|---------|-------|-----------------|
+| Performance Mobile | 72 | 88-92 |
+| FCP | 3.2s | ~2.0s |
+| LCP | 5.6s | ~3.0s |
+| Bundle Critical | ~180KB | ~120KB |
+| lucide-react no critical | Sim | Nao |
 
 ---
 
-## Por que isso vai funcionar?
+## Riscos e Mitigacoes
 
-1. **lucide-react** é uma biblioteca pesada (~50KB+ tree-shaked) que está sendo carregada em componentes usados no primeiro render
-2. Mockups de dashboard não precisam de ícones reais - emojis são nativos do sistema e têm custo zero
-3. Remover comentários reduz o tamanho dos arquivos fonte (minor mas ajuda)
-4. Componentes como `HeroMockup` são mostrados no desktop, mas o código ainda é processado no mobile mesmo com lazy loading
-
----
-
-## Arquivos Finais
-
-### HeroMockup.tsx (novo)
-- Zero imports de lucide-react
-- Usar emojis para ícones: 📅 👥 💰 📈 🔔 ✅
-- Remover componente AnimatedDiv (simplificar)
-- Manter SVG WhatsApp inline (já está)
-
-### ProductShowcase.tsx (novo)
-- Zero imports de lucide-react
-- Usar emojis para tabs: 📊 📅 👥 💰
-- Simplificar estrutura das tabs
-- Remover Badge import se não for essencial
-
-### Limpeza de Comentários
-Remover todos os `/* */` e `//` comentários descritivos dos arquivos de landing
+| Risco | Mitigacao |
+|-------|-----------|
+| Build falhar | Nenhuma mudanca no vite.config.ts |
+| Layout quebrar | Apenas substituicoes visuais equivalentes |
+| Temas nao funcionarem | Manter mesmas classes CSS |
 
 ---
 
-## Risco: Muito Baixo
-- Apenas substituição visual (ícones → emojis)
-- Nenhuma mudança de funcionalidade
-- Nenhuma alteração no build
-- Fácil reversão se necessário
+## Ordem de Implementacao
 
+1. PublicNavbar.tsx - Remover lucide-react
+2. ThemeToggle.tsx - Remover lucide-react
+3. Landing.tsx - Substituir Badge por span inline
+4. Testar em preview antes de publicar
+
+Todas as mudancas sao de baixo risco e nao afetam a configuracao de build ou deploy na Vercel.
