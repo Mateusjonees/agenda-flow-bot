@@ -5,14 +5,10 @@ const features = [
   { emoji: "👥", title: "Gestão de Clientes", description: "Histórico completo e cartão fidelidade digital", color: "from-purple-500 to-pink-500" },
   { emoji: "💰", title: "Controle Financeiro", description: "Receitas e fluxo de caixa em tempo real", color: "from-emerald-500 to-teal-500" },
   { emoji: "📊", title: "Relatórios Detalhados", description: "Analytics para decisões baseadas em dados", color: "from-orange-500 to-amber-500" },
-  { emoji: "💬", title: "WhatsApp Automático", description: "Lembretes e pós-venda automático", color: "from-green-500 to-emerald-500" },
-  { emoji: "💳", title: "Pagamentos PIX", description: "Cobranças com confirmação automática", color: "from-cyan-500 to-teal-500" },
-  { emoji: "⭐", title: "Avaliações Automáticas", description: "Solicite avaliações do Google", color: "from-yellow-500 to-orange-500" },
   { emoji: "📄", title: "Propostas Profissionais", description: "Crie e envie propostas em PDF", color: "from-indigo-500 to-violet-500" },
   { emoji: "🔔", title: "Notificações Inteligentes", description: "Alertas de estoque e aniversários", color: "from-rose-500 to-red-500" },
   { emoji: "🕐", title: "Horários Flexíveis", description: "Configure intervalos e folgas", color: "from-slate-500 to-gray-600" },
   { emoji: "🛡️", title: "Dados Seguros", description: "Criptografia e conformidade LGPD", color: "from-teal-500 to-cyan-500" },
-  { emoji: "✨", title: "IA Integrada", description: "Assistente virtual 24h", color: "from-violet-500 to-purple-500" },
 ];
 
 const FeatureGrid = () => {
