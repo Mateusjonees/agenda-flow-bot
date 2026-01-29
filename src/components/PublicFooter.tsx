@@ -76,13 +76,13 @@ export function PublicFooter() {
             <ul className="space-y-3 text-sm">
               <li>
                 <a 
-                  href="https://wa.me/5548988430812" 
+                  href="https://wa.me/5548988127520" 
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
                 >
                   <MessageCircle className="w-4 h-4 text-red-500" />
-                  Vendas: (48) 98843-0812
+                  Vendas: (48) 98812-7520
                 </a>
               </li>
               <li>
