@@ -96,7 +96,7 @@ const Landing = () => {
   }, [isAuthenticated, navigate]);
 
   const handleWhatsAppClick = useCallback(() => {
-    window.open("https://wa.me/554899075189?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão", "_blank");
+    window.open("https://wa.me/5548988127520?text=Olá,%20gostaria%20de%20conhecer%20o%20Foguete%20Gestão", "_blank");
   }, []);
 
   return (
