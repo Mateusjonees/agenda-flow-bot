@@ -1,219 +1,330 @@
 
+## Plano Definitivo: Performance 90+ no Mobile
 
-## Solucao para Atingir Performance 90+ no Mobile
+### Diagnostico REAL do Problema
 
-### Diagnostico dos Problemas Raiz
+O LCP de 7.1s acontece porque o **App.tsx importa estaticamente** varios componentes que, por sua vez, importam bibliotecas pesadas. Isso cria uma **cadeia de imports bloqueantes**:
 
-A pagina `/auth?mode=signup` esta demorando porque:
+```text
+App.tsx
+  ├── PasswordResetGuard.tsx (BLOQUEIA)
+  │     ├── supabase/client.ts (~50KB)
+  │     ├── lucide-react (Loader2, Lock) (~15KB)
+  │     └── Dialog.tsx
+  │           └── lucide-react (X) (+5KB)
+  │           └── @radix-ui/react-dialog (~20KB)
+  ├── Toaster (toaster.tsx)
+  │     └── toast.tsx
+  │           ├── lucide-react (X)
+  │           └── class-variance-authority (~8KB)
+  ├── Button.tsx
+  │     ├── class-variance-authority (~8KB)
+  │     └── @radix-ui/react-slot (~3KB)
+  └── TooltipProvider
+        └── @radix-ui/react-tooltip (~12KB)
+```
 
-| Problema | Impacto | Bloqueio |
-|----------|---------|----------|
-| `MaintenanceGuard` importa Supabase estaticamente | CRITICO | Bloqueia render inicial - faz query ANTES de mostrar qualquer coisa |
-| `react-icons/fa` (FaGoogle) | ALTO | Biblioteca react-icons pesa ~30KB para 1 icone |
-| `AuthTracker` importa `fbPixel` estaticamente | MEDIO | Carrega no bundle principal |
-| Componentes shadcn (Button, Card, Input) usam CVA | MEDIO | CVA (~8KB) no bundle critico |
+**Total bloqueante: ~120KB+ de JavaScript que precisa ser parseado ANTES de pintar qualquer pixel!**
 
 ---
 
-## Estrategia: "Skeleton-First Rendering"
+## Estrategia: "Zero Blocking Imports"
 
-A ideia e mostrar a UI IMEDIATAMENTE e carregar o Supabase em background. O usuario ve o formulario, mas o botao fica desabilitado ate o Supabase estar pronto.
+Vamos eliminar TODOS os imports bloqueantes do critical path usando:
 
-### Fase 1: MaintenanceGuard Assíncrono (PRIORIDADE MAXIMA)
+1. **Lazy load do PasswordResetGuard inteiro**
+2. **Substituir lucide-react por SVGs inline nos componentes UI**
+3. **Lazy load do sistema de Toasts**
+4. **Defer TooltipProvider para depois do mount**
 
-O MaintenanceGuard atual BLOQUEIA tudo ate consultar o banco. Vamos mudar para "assumir que NAO esta em manutencao" e verificar em background.
+---
 
-```text
-ANTES:
-- Import estatico do Supabase
-- Query ANTES de renderizar children
-- Loading state bloqueia tudo
+## Fase 1: PasswordResetGuard Lazy (PRIORIDADE MAXIMA)
 
-DEPOIS:
-- Import dinamico do Supabase
-- Renderiza children IMEDIATAMENTE
-- Verifica manutencao em background (2s delay)
-- Se estiver em manutencao, troca para pagina de manutencao
-```
+O PasswordResetGuard faz import estatico do Supabase e so e usado em casos de recovery. Vamos tornar ele 100% dinamico.
 
-### Fase 2: Substituir FaGoogle por SVG Inline
-
-O icone do Google e simples e pode ser substituido por SVG inline.
+**Mudanca no App.tsx:**
 
 ```tsx
-const GoogleIcon = () => (
-  <svg className="h-5 w-5" viewBox="0 0 24 24">
-    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+const PasswordResetGuard = lazy(() => import("./components/PasswordResetGuard"));
+```
+
+E na rota:
+```tsx
+<Suspense fallback={null}>
+  <PasswordResetGuard>
+    <MaintenanceGuard>
+      ...
+    </MaintenanceGuard>
+  </PasswordResetGuard>
+</Suspense>
+```
+
+---
+
+## Fase 2: Remover lucide-react dos Componentes UI Criticos
+
+Os componentes `dialog.tsx` e `toast.tsx` usam o icone `X` do lucide. Vamos substituir por SVG inline.
+
+**dialog.tsx (linha 3 e 46):**
+```tsx
+const XIcon = () => (
+  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M18 6 6 18"/>
+    <path d="m6 6 12 12"/>
   </svg>
 );
+
+// Usar: <XIcon /> em vez de <X className="h-4 w-4" />
 ```
 
-### Fase 3: AuthTracker com Import Totalmente Dinamico
+**toast.tsx (linha 4 e 76):**
+Mesma substituicao.
 
-O AuthTracker importa `fbPixel` estaticamente. Vamos mudar para import totalmente dinamico.
+---
 
-```text
-ANTES:
-import { fbPixel } from "@/hooks/useFacebookPixel";
+## Fase 3: Lazy Load dos Toasters
 
-DEPOIS:
-// Sem import estatico - tudo dinamico dentro do useEffect
+Os Toasters (Toaster e Sonner) sao necessarios apenas quando ha notificacoes. Vamos carregar lazy.
+
+**App.tsx:**
+```tsx
+const Toaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
+const Sonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
+
+// No render:
+<Suspense fallback={null}>
+  <Toaster />
+  <Sonner />
+</Suspense>
 ```
 
-### Fase 4: Inline CSS Critico no index.html
+---
 
-Adicionar estilos criticos para a pagina de Auth diretamente no HTML para que o layout apareca antes do CSS carregar.
+## Fase 4: Defer TooltipProvider
 
-```html
-<style>
-  .auth-card { /* estilos inline criticos */ }
-  .auth-input { /* estilos inline criticos */ }
-</style>
+O TooltipProvider nao e necessario no primeiro render. Podemos adiar.
+
+**App.tsx:**
+```tsx
+const [tooltipReady, setTooltipReady] = useState(false);
+
+useEffect(() => {
+  const timer = setTimeout(() => setTooltipReady(true), 1000);
+  return () => clearTimeout(timer);
+}, []);
+
+// No render:
+{tooltipReady ? (
+  <TooltipProvider>
+    ...routes...
+  </TooltipProvider>
+) : (
+  <div>...routes sem tooltip...</div>
+)}
+```
+
+Alternativamente, podemos simplesmente lazy load do TooltipProvider.
+
+---
+
+## Fase 5: Otimizar PasswordResetGuard Interno
+
+Se a Fase 1 nao for suficiente, tambem refatoramos o PasswordResetGuard para usar imports dinamicos internamente (como fizemos com MaintenanceGuard).
+
+**PasswordResetGuard.tsx:**
+```tsx
+export const PasswordResetGuard = ({ children }: PasswordResetGuardProps) => {
+  const [needsReset, setNeedsReset] = useState(false);
+  const [DialogComponent, setDialogComponent] = useState(null);
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user?.recovery_sent_at) {
+        const { Dialog, DialogContent } = await import("@/components/ui/dialog");
+        setDialogComponent({ Dialog, DialogContent });
+        setNeedsReset(true);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Renderiza children IMEDIATAMENTE
+  return (
+    <>
+      {needsReset && DialogComponent && <ResetPasswordModal />}
+      {children}
+    </>
+  );
+};
 ```
 
 ---
 
 ## Arquivos a Modificar
 
-| Arquivo | Acao | Prioridade |
-|---------|------|------------|
-| `src/components/MaintenanceGuard.tsx` | Import dinamico, render children primeiro | CRITICO |
-| `src/pages/Auth.tsx` | Trocar FaGoogle por SVG inline | ALTA |
-| `src/components/AuthTracker.tsx` | Remover import estatico de fbPixel | ALTA |
-| `index.html` | Adicionar CSS inline para Auth | MEDIA |
-| `src/App.tsx` | Atualizar CACHE_VERSION | BAIXA |
+| Arquivo | Acao | Impacto |
+|---------|------|---------|
+| `src/App.tsx` | Lazy load PasswordResetGuard, Toasters | CRITICO |
+| `src/components/PasswordResetGuard.tsx` | Imports dinamicos, SVGs inline | CRITICO |
+| `src/components/ui/dialog.tsx` | Trocar X do lucide por SVG | ALTO |
+| `src/components/ui/toast.tsx` | Trocar X do lucide por SVG | ALTO |
+| `src/components/ui/button.tsx` | Considerar remover Slot (opcional) | MEDIO |
 
 ---
 
 ## Detalhes Tecnicos
 
-### MaintenanceGuard.tsx (Nova Versao)
+### App.tsx (Nova Versao Otimizada)
 
 ```tsx
-import { ReactNode, useEffect, useState } from "react";
+import React, { Suspense, lazy } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 
-interface MaintenanceGuardProps {
+const CACHE_VERSION = "v2.3.0-zero-blocking";
+
+// Componentes lazy - NAO bloqueiam o render inicial
+const Toaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
+const Sonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
+const PasswordResetGuard = lazy(() => import("./components/PasswordResetGuard").then(m => ({ default: m.PasswordResetGuard })));
+const CookieConsent = lazy(() => import("./components/CookieConsent").then(m => ({ default: m.CookieConsent })));
+const PWAUpdatePrompt = lazy(() => import("./components/PWAUpdatePrompt").then(m => ({ default: m.PWAUpdatePrompt })));
+const AuthTracker = lazy(() => import("./components/AuthTracker").then(m => ({ default: m.AuthTracker })));
+
+// Componentes de erro/offline sao leves, podem ficar estaticos
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { MaintenanceGuard } from "./components/MaintenanceGuard";
+
+// Pages lazy
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+// ... resto das pages
+```
+
+### dialog.tsx (Sem lucide-react)
+
+```tsx
+import * as React from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { cn } from "@/lib/utils";
+
+const XIcon = () => (
+  <svg className="h-5 w-5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M18 6 6 18"/>
+    <path d="m6 6 12 12"/>
+  </svg>
+);
+
+// ... resto do codigo, usando <XIcon /> em vez de <X />
+```
+
+### toast.tsx (Sem lucide-react)
+
+```tsx
+// Mesma abordagem - SVG inline para o X
+const XIcon = () => (
+  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M18 6 6 18"/>
+    <path d="m6 6 12 12"/>
+  </svg>
+);
+```
+
+### PasswordResetGuard.tsx (Imports Dinamicos)
+
+```tsx
+import { useState, useEffect, ReactNode } from "react";
+
+interface PasswordResetGuardProps {
   children: ReactNode;
 }
 
-export const MaintenanceGuard = ({ children }: MaintenanceGuardProps) => {
-  const [MaintenancePage, setMaintenancePage] = useState<React.ComponentType<any> | null>(null);
-  const [maintenanceData, setMaintenanceData] = useState<{ message: string; estimatedReturn: string } | null>(null);
+const LoaderIcon = () => (
+  <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+  </svg>
+);
+
+const LockIcon = ({ className }: { className?: string }) => (
+  <svg className={className || "h-4 w-4"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </svg>
+);
+
+export const PasswordResetGuard = ({ children }: PasswordResetGuardProps) => {
+  const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [supabaseClient, setSupabaseClient] = useState<any>(null);
+  const [UIComponents, setUIComponents] = useState<any>(null);
 
   useEffect(() => {
     const timer = setTimeout(async () => {
       const { supabase } = await import("@/integrations/supabase/client");
+      setSupabaseClient(supabase);
+
+      const { data: { session } } = await supabase.auth.getSession();
       
-      const checkMaintenance = async () => {
-        try {
-          const { data } = await supabase
-            .from("business_settings")
-            .select("*")
-            .limit(1)
-            .maybeSingle();
+      if (session?.user?.recovery_sent_at) {
+        const [dialogModule, buttonModule, inputModule, labelModule] = await Promise.all([
+          import("@/components/ui/dialog"),
+          import("@/components/ui/button"),
+          import("@/components/ui/input"),
+          import("@/components/ui/label")
+        ]);
+        
+        setUIComponents({
+          Dialog: dialogModule.Dialog,
+          DialogContent: dialogModule.DialogContent,
+          Button: buttonModule.Button,
+          Input: inputModule.Input,
+          Label: labelModule.Label
+        });
+        setNeedsPasswordReset(true);
+      }
 
-          if (data && (data as any).is_maintenance_mode) {
-            const Maintenance = (await import("@/pages/Maintenance")).default;
-            setMaintenancePage(() => Maintenance);
-            setMaintenanceData({
-              message: (data as any).maintenance_message || "",
-              estimatedReturn: (data as any).maintenance_estimated_return || ""
-            });
-          }
-        } catch (error) {
-          console.error("Erro ao verificar manutencao:", error);
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setNeedsPasswordReset(true);
         }
-      };
+      });
 
-      checkMaintenance();
-
-      const channel = supabase
-        .channel('maintenance-settings-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'business_settings' }, checkMaintenance)
-        .subscribe();
-
-      return () => supabase.removeChannel(channel);
-    }, 2000);
+      return () => subscription.unsubscribe();
+    }, 500);
 
     return () => clearTimeout(timer);
   }, []);
 
-  if (MaintenancePage && maintenanceData) {
-    return <MaintenancePage message={maintenanceData.message} estimatedReturn={maintenanceData.estimatedReturn} showNotificationSignup />;
-  }
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabaseClient) return;
+    // ... logica de reset (mesma de antes)
+  };
 
-  return <>{children}</>;
+  // Renderiza children IMEDIATAMENTE
+  // Modal so aparece quando necessario E componentes carregados
+  return (
+    <>
+      {needsPasswordReset && UIComponents && (
+        <UIComponents.Dialog open={needsPasswordReset} onOpenChange={() => {}}>
+          <UIComponents.DialogContent>
+            {/* Formulario de reset */}
+          </UIComponents.DialogContent>
+        </UIComponents.Dialog>
+      )}
+      {children}
+    </>
+  );
 };
-```
 
-### Auth.tsx (Trocar FaGoogle)
-
-```tsx
-// REMOVER:
-import { FaGoogle } from "react-icons/fa";
-
-// ADICIONAR:
-const GoogleIcon = () => (
-  <svg className="h-5 w-5" viewBox="0 0 24 24">
-    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-  </svg>
-);
-
-// Usar: <GoogleIcon /> em vez de <FaGoogle />
-```
-
-### AuthTracker.tsx (Sem Import Estatico)
-
-```tsx
-import { useEffect, useRef } from "react";
-
-export const AuthTracker = () => {
-  const hasTrackedNewUser = useRef<string | null>(null);
-
-  useEffect(() => {
-    let subscription: { unsubscribe: () => void } | null = null;
-    
-    const timer = setTimeout(async () => {
-      const [{ supabase }, { fbPixel }] = await Promise.all([
-        import("@/integrations/supabase/client"),
-        import("@/hooks/useFacebookPixel")
-      ]);
-      
-      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          const user = session.user;
-          const provider = user.app_metadata?.provider || 'email';
-          const isNewUser = Date.now() - new Date(user.created_at).getTime() < 60000;
-          
-          const trackingKey = `${user.id}-${isNewUser ? 'new' : 'existing'}`;
-          if (hasTrackedNewUser.current === trackingKey) return;
-          hasTrackedNewUser.current = trackingKey;
-
-          if (provider !== 'email' && isNewUser) {
-            fbPixel.track('CompleteRegistration', { content_name: provider, status: 'completed' });
-            fbPixel.track('StartTrial', { value: 0, currency: 'BRL', content_name: 'trial_7_days' });
-          }
-
-          fbPixel.trackCustom('Login', { method: provider, is_new_user: isNewUser });
-        }
-      });
-      subscription = data.subscription;
-    }, 2500);
-
-    return () => {
-      clearTimeout(timer);
-      subscription?.unsubscribe();
-    };
-  }, []);
-
-  return null;
-};
+export default PasswordResetGuard;
 ```
 
 ---
@@ -222,19 +333,33 @@ export const AuthTracker = () => {
 
 | Metrica | Atual | Apos Otimizacao |
 |---------|-------|-----------------|
-| FCP Mobile | 3.3s | ~1.5s |
-| LCP Mobile | 7.2s | ~2.5s |
-| Speed Index | 4.7s | ~2.5s |
-| Performance Score | 70 | 88-92 |
+| FCP Mobile | 3.2s | ~1.2s |
+| LCP Mobile | 7.1s | ~2.0s |
+| Speed Index | 3.6s | ~1.8s |
+| Performance Score | ~70 | 90-95 |
+| Bundle Inicial | ~200KB | ~60KB |
 
 ---
 
-## Por que vai funcionar
+## Por que VAI funcionar desta vez
 
-1. **MaintenanceGuard** atual faz QUERY BLOQUEANTE antes de renderizar - isso adiciona ~2-3s ao LCP
-2. **react-icons** carrega ~30KB para 1 icone - SVG inline e ~500 bytes
-3. **fbPixel** importado estaticamente adiciona peso ao bundle inicial
-4. O pattern "render first, load data later" e o padrao usado por sites de alta performance
+1. **PasswordResetGuard** era import ESTATICO que puxava Supabase + Lucide + Dialog - agora e lazy
+2. **Toasters** eram imports estaticos - agora sao lazy
+3. **Lucide-react** estava em 4 componentes UI criticos - agora e SVG inline
+4. **TooltipProvider** ainda e estatico mas Radix tooltip e relativamente leve
+5. O pattern e o MESMO usado por Next.js, Remix e sites de alta performance
+
+---
+
+## Ordem de Implementacao
+
+1. Substituir X do lucide por SVG em `dialog.tsx` e `toast.tsx`
+2. Lazy load do PasswordResetGuard no App.tsx
+3. Lazy load dos Toasters no App.tsx
+4. Refatorar PasswordResetGuard para imports dinamicos
+5. Lazy load de CookieConsent, PWAUpdatePrompt, AuthTracker
+6. Atualizar CACHE_VERSION
+7. Testar no PageSpeed Insights
 
 ---
 
@@ -242,7 +367,7 @@ export const AuthTracker = () => {
 
 | Risco | Mitigacao |
 |-------|-----------|
-| Manutencao nao detectada imediatamente | Usuario vera a pagina por 2s antes de ser redirecionado (aceitavel) |
-| Icone Google diferente | SVG oficial do Google, cores exatas |
-| Tracking falhar | fbPixel so dispara apos 2.5s de qualquer forma |
-
+| Toasts nao aparecem | Fallback null, toast aparece apos carregamento (~100ms) |
+| Modal de reset demora | Delay de 500ms e aceitavel para caso raro de recovery |
+| SVGs diferentes | Usando paths exatos do Lucide, visual identico |
+| ErrorBoundary nao pega lazy | ErrorBoundary continua estatico, e leve |
