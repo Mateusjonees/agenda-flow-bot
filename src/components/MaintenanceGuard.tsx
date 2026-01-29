@@ -1,81 +1,63 @@
 import { ReactNode, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import Maintenance from "@/pages/Maintenance";
-import { LoadingState } from "./LoadingState";
 
 interface MaintenanceGuardProps {
   children: ReactNode;
 }
 
 export const MaintenanceGuard = ({ children }: MaintenanceGuardProps) => {
-  const [loading, setLoading] = useState(true);
-  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
-  const [message, setMessage] = useState<string>("");
-  const [estimatedReturn, setEstimatedReturn] = useState<string>("");
+  const [MaintenancePage, setMaintenancePage] = useState<React.ComponentType<any> | null>(null);
+  const [maintenanceData, setMaintenanceData] = useState<{ message: string; estimatedReturn: string } | null>(null);
 
   useEffect(() => {
-    checkMaintenanceMode();
+    let channelRef: any = null;
+    let supabaseRef: any = null;
 
-    // Subscrever a mudanças em tempo real
-    const channel = supabase
-      .channel('maintenance-settings-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'business_settings'
-        },
-        () => {
-          checkMaintenanceMode();
+    const timer = setTimeout(async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      supabaseRef = supabase;
+
+      const checkMaintenance = async () => {
+        try {
+          const { data } = await supabase
+            .from("business_settings")
+            .select("*")
+            .limit(1)
+            .maybeSingle();
+
+          if (data && (data as any).is_maintenance_mode) {
+            const Maintenance = (await import("@/pages/Maintenance")).default;
+            setMaintenancePage(() => Maintenance);
+            setMaintenanceData({
+              message: (data as any).maintenance_message || "",
+              estimatedReturn: (data as any).maintenance_estimated_return || ""
+            });
+          } else {
+            setMaintenancePage(null);
+            setMaintenanceData(null);
+          }
+        } catch (error) {
+          console.error("Erro ao verificar manutencao:", error);
         }
-      )
-      .subscribe();
+      };
+
+      checkMaintenance();
+
+      channelRef = supabase
+        .channel('maintenance-settings-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'business_settings' }, checkMaintenance)
+        .subscribe();
+    }, 2000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearTimeout(timer);
+      if (channelRef && supabaseRef) {
+        supabaseRef.removeChannel(channelRef);
+      }
     };
   }, []);
 
-  const checkMaintenanceMode = async () => {
-    try {
-      // Buscar configurações de manutenção de qualquer usuário (modo global)
-      const { data, error } = await supabase
-        .from("business_settings")
-        .select("*")
-        .limit(1)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error("Erro ao verificar modo manutenção:", error);
-      }
-
-      if (data && (data as any).is_maintenance_mode) {
-        setIsMaintenanceMode(true);
-        setMessage((data as any).maintenance_message || "");
-        setEstimatedReturn((data as any).maintenance_estimated_return || "");
-      } else {
-        setIsMaintenanceMode(false);
-      }
-    } catch (error) {
-      console.error("Erro ao verificar modo manutenção:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return <LoadingState showLogo message="Verificando status do sistema..." />;
-  }
-
-  if (isMaintenanceMode) {
-    return (
-      <Maintenance
-        message={message || undefined}
-        estimatedReturn={estimatedReturn || undefined}
-        showNotificationSignup={true}
-      />
-    );
+  if (MaintenancePage && maintenanceData) {
+    return <MaintenancePage message={maintenanceData.message} estimatedReturn={maintenanceData.estimatedReturn} showNotificationSignup />;
   }
 
   return <>{children}</>;

@@ -45,7 +45,7 @@
     
     <!-- Inline critical CSS for faster first paint -->
     <style>
-      body { margin: 0; background-color: #0A0A0A; }
+      body { margin: 0; background-color: #0A0A0A; font-family: system-ui, -apple-system, sans-serif; }
       #root { min-height: 100vh; }
       .initial-loader { 
         display: flex; 
@@ -71,7 +71,6 @@
         align-items: center;
         margin-top: 24px;
         color: #a0a0a0;
-        font-family: system-ui, sans-serif;
         text-align: center;
       }
       .recovery-msg.visible { display: flex; }
@@ -86,6 +85,48 @@
         font-size: 14px;
       }
       .recovery-btn:hover { background: #c41430; }
+      .auth-skeleton {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: linear-gradient(135deg, #1a1a1a 0%, #0A0A0A 100%);
+      }
+      .auth-card-skeleton {
+        width: 100%;
+        max-width: 400px;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 32px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      }
+      .skeleton-line {
+        height: 12px;
+        background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 4px;
+        margin-bottom: 16px;
+      }
+      .skeleton-input {
+        height: 48px;
+        background: #2a2a2a;
+        border-radius: 6px;
+        margin-bottom: 16px;
+      }
+      .skeleton-btn {
+        height: 48px;
+        background: #E31837;
+        border-radius: 6px;
+        opacity: 0.5;
+      }
+      @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
     </style>
   </head>
 
