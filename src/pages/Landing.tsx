@@ -99,7 +99,7 @@ const Landing = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
+    <div className="min-h-screen bg-background overflow-hidden" data-react-loaded>
       {showWhatsApp && (
         <button
           onClick={handleWhatsAppClick}
