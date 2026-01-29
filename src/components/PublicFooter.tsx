@@ -1,30 +1,25 @@
 import { Link, useNavigate } from "react-router-dom";
+import { MessageCircle, HeadphonesIcon, Clock, Shield, Lock } from "lucide-react";
 import logoLight from "@/assets/logo.png";
 
 export function PublicFooter() {
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
-  
+
   return (
     <footer className="bg-background dark:bg-[#1a1f2e] border-t border-border dark:border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16">
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <img 
-                src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png" 
-                alt="Foguete" 
+              <img
+                src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png"
+                alt="Foguete"
                 width={64}
                 height={64}
-                className="h-16 w-auto dark:hidden" 
+                className="h-16 w-auto dark:hidden"
               />
-              <img 
-                src={logoLight} 
-                alt="Foguete" 
-                width={64}
-                height={64}
-                className="h-16 w-auto hidden dark:block" 
-              />
+              <img src={logoLight} alt="Foguete" width={64} height={64} className="h-16 w-auto hidden dark:block" />
               <span className="text-xl font-bold text-foreground">Foguete</span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -36,34 +31,22 @@ export function PublicFooter() {
             <h3 className="font-bold text-foreground mb-5 text-base">Produto</h3>
             <ul className="space-y-3 text-sm">
               <li>
-                <Link 
-                  to="/recursos" 
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
+                <Link to="/recursos" className="text-muted-foreground hover:text-foreground transition-colors">
                   Funcionalidades
                 </Link>
               </li>
               <li>
-                <Link 
-                  to="/precos" 
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
+                <Link to="/precos" className="text-muted-foreground hover:text-foreground transition-colors">
                   Preços
                 </Link>
               </li>
               <li>
-                <Link 
-                  to="/depoimentos" 
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
+                <Link to="/depoimentos" className="text-muted-foreground hover:text-foreground transition-colors">
                   Depoimentos
                 </Link>
               </li>
               <li>
-                <Link 
-                  to="/faq" 
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
+                <Link to="/faq" className="text-muted-foreground hover:text-foreground transition-colors">
                   FAQ
                 </Link>
               </li>
@@ -74,24 +57,24 @@ export function PublicFooter() {
             <h3 className="font-bold text-foreground mb-5 text-base">Contato</h3>
             <ul className="space-y-3 text-sm">
               <li>
-                <a 
-                  href="https://wa.me/5548988127520" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                <a
+                  href="https://wa.me/5548988127520"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
                 >
-                  <span className="text-base">💬</span>
-                  Vendas: (48) 98812-7520
+                  <MessageCircle className="w-4 h-4 text-red-500" />
+                  Vendas: (48)98812-7520
                 </a>
               </li>
               <li>
-                <a 
-                  href="https://wa.me/554899075189" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                <a
+                  href="https://wa.me/554899075189"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
                 >
-                  <span className="text-base">🎧</span>
+                  <HeadphonesIcon className="w-4 h-4 text-red-500" />
                   Suporte: (48) 99075-1889
                 </a>
               </li>
@@ -102,11 +85,11 @@ export function PublicFooter() {
             <h3 className="font-bold text-foreground mb-5 text-base">Horário</h3>
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2 text-muted-foreground">
-                <span className="text-base">🕐</span>
+                <Clock className="w-4 h-4 text-red-500 flex-shrink-0" />
                 Seg - Sex: 9h às 18h
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
-                <span className="text-base">🛡️</span>
+                <Shield className="w-4 h-4 text-red-500 flex-shrink-0" />
                 Suporte 24/7 via WhatsApp
               </li>
             </ul>
@@ -119,20 +102,17 @@ export function PublicFooter() {
               © {currentYear} Foguete Gestão Empresarial. Todos os direitos reservados.
             </p>
             <div className="flex items-center gap-6 text-sm">
-              <Link 
-                to="/politica-privacidade" 
+              <Link
+                to="/politica-privacidade"
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 Privacidade
               </Link>
-              <Link 
-                to="/termos-servico" 
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <Link to="/termos-servico" className="text-muted-foreground hover:text-foreground transition-colors">
                 Termos
               </Link>
               <div className="flex items-center gap-2 text-muted-foreground">
-                <span className="text-base">🔒</span>
+                <Lock className="w-4 h-4 text-red-500" />
                 LGPD
               </div>
             </div>

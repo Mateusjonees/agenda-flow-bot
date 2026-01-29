@@ -22,9 +22,7 @@ const PoliticaPrivacidade = () => {
 
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         <div className="prose prose-sm dark:prose-invert max-w-none">
-          <p className="text-muted-foreground mb-8">
-            Última atualização: 13 de Dezembro de 2025
-          </p>
+          <p className="text-muted-foreground mb-8">Última atualização: 13 de Dezembro de 2025</p>
 
           <section className="mb-10">
             <div className="flex items-center gap-3 mb-4">
@@ -48,9 +46,7 @@ const PoliticaPrivacidade = () => {
               <Database className="h-6 w-6 text-primary" />
               <h2 className="text-2xl font-semibold m-0">2. Como Usamos suas Informações</h2>
             </div>
-            <p className="text-muted-foreground">
-              Utilizamos as informações coletadas para:
-            </p>
+            <p className="text-muted-foreground">Utilizamos as informações coletadas para:</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Fornecer, manter e melhorar nossos serviços</li>
               <li>Processar transações e enviar notificações relacionadas</li>
@@ -115,39 +111,40 @@ const PoliticaPrivacidade = () => {
           <section className="mb-10">
             <h2 className="text-2xl font-semibold">6. Cookies e Tecnologias Similares</h2>
             <p className="text-muted-foreground">
-              Utilizamos cookies e tecnologias similares para melhorar sua experiência, 
-              lembrar suas preferências e analisar o uso da plataforma. Você pode 
-              gerenciar suas preferências de cookies nas configurações do navegador.
+              Utilizamos cookies e tecnologias similares para melhorar sua experiência, lembrar suas preferências e
+              analisar o uso da plataforma. Você pode gerenciar suas preferências de cookies nas configurações do
+              navegador.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-semibold">7. Retenção de Dados</h2>
             <p className="text-muted-foreground">
-              Mantemos suas informações pelo tempo necessário para fornecer nossos serviços 
-              e cumprir obrigações legais. Após o encerramento da conta, seus dados serão 
-              mantidos por até 5 anos para fins legais e fiscais, após o que serão excluídos 
-              de forma segura.
+              Mantemos suas informações pelo tempo necessário para fornecer nossos serviços e cumprir obrigações legais.
+              Após o encerramento da conta, seus dados serão mantidos por até 5 anos para fins legais e fiscais, após o
+              que serão excluídos de forma segura.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-semibold">8. Contato</h2>
             <p className="text-muted-foreground">
-              Para exercer seus direitos ou esclarecer dúvidas sobre esta política, 
-              entre em contato conosco:
+              Para exercer seus direitos ou esclarecer dúvidas sobre esta política, entre em contato conosco:
             </p>
             <ul className="list-none pl-0 text-muted-foreground space-y-2 mt-4">
-              <li><strong>WhatsApp:</strong> (48) 98843-0812</li>
-              <li><strong>E-mail:</strong> contato@foguetegestao.com.br</li>
+              <li>
+                <strong>WhatsApp:</strong> (48)98812-7520
+              </li>
+              <li>
+                <strong>E-mail:</strong> contato@foguetegestao.com.br
+              </li>
             </ul>
           </section>
 
           <section className="mt-12 p-6 bg-muted/50 rounded-lg">
             <p className="text-sm text-muted-foreground text-center">
-              Esta política pode ser atualizada periodicamente. Recomendamos que você 
-              revise esta página regularmente para se manter informado sobre como 
-              protegemos suas informações.
+              Esta política pode ser atualizada periodicamente. Recomendamos que você revise esta página regularmente
+              para se manter informado sobre como protegemos suas informações.
             </p>
           </section>
         </div>

@@ -22,24 +22,20 @@ const TermosServico = () => {
 
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         <div className="prose prose-sm dark:prose-invert max-w-none">
-          <p className="text-muted-foreground mb-8">
-            Última atualização: 13 de Dezembro de 2025
-          </p>
+          <p className="text-muted-foreground mb-8">Última atualização: 13 de Dezembro de 2025</p>
 
           <section className="mb-10">
             <h2 className="text-2xl font-semibold">1. Aceitação dos Termos</h2>
             <p className="text-muted-foreground">
-              Ao acessar e utilizar o Foguete Gestão Empresarial ("Plataforma"), você concorda 
-              em cumprir e estar vinculado a estes Termos de Serviço. Se você não concordar 
-              com qualquer parte destes termos, não poderá acessar ou usar nossos serviços.
+              Ao acessar e utilizar o Foguete Gestão Empresarial ("Plataforma"), você concorda em cumprir e estar
+              vinculado a estes Termos de Serviço. Se você não concordar com qualquer parte destes termos, não poderá
+              acessar ou usar nossos serviços.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-semibold">2. Descrição do Serviço</h2>
-            <p className="text-muted-foreground">
-              O Foguete é uma plataforma de gestão empresarial que oferece:
-            </p>
+            <p className="text-muted-foreground">O Foguete é uma plataforma de gestão empresarial que oferece:</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Gerenciamento de agendamentos e agenda</li>
               <li>Cadastro e gestão de clientes (CRM)</li>
@@ -57,18 +53,24 @@ const TermosServico = () => {
               <CreditCard className="h-6 w-6 text-primary" />
               <h2 className="text-2xl font-semibold m-0">3. Planos e Pagamentos</h2>
             </div>
-            <p className="text-muted-foreground">
-              A Plataforma oferece diferentes planos de assinatura:
-            </p>
+            <p className="text-muted-foreground">A Plataforma oferece diferentes planos de assinatura:</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Trial Gratuito:</strong> 7 dias de acesso completo para novos usuários</li>
-              <li><strong>Plano Mensal:</strong> R$ 49,00/mês</li>
-              <li><strong>Plano Semestral:</strong> R$ 259,00 (economia de 12%)</li>
-              <li><strong>Plano Anual:</strong> R$ 475,00 (economia de 19%)</li>
+              <li>
+                <strong>Trial Gratuito:</strong> 7 dias de acesso completo para novos usuários
+              </li>
+              <li>
+                <strong>Plano Mensal:</strong> R$ 49,00/mês
+              </li>
+              <li>
+                <strong>Plano Semestral:</strong> R$ 259,00 (economia de 12%)
+              </li>
+              <li>
+                <strong>Plano Anual:</strong> R$ 475,00 (economia de 19%)
+              </li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              Os pagamentos são processados via Mercado Pago (PIX ou cartão de crédito). 
-              A renovação das assinaturas é automática, podendo ser cancelada a qualquer momento.
+              Os pagamentos são processados via Mercado Pago (PIX ou cartão de crédito). A renovação das assinaturas é
+              automática, podendo ser cancelada a qualquer momento.
             </p>
           </section>
 
@@ -78,8 +80,8 @@ const TermosServico = () => {
               <h2 className="text-2xl font-semibold m-0">4. Cancelamento e Reembolso</h2>
             </div>
             <p className="text-muted-foreground">
-              Você pode cancelar sua assinatura a qualquer momento através das configurações 
-              da sua conta. Após o cancelamento:
+              Você pode cancelar sua assinatura a qualquer momento através das configurações da sua conta. Após o
+              cancelamento:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Você manterá acesso até o fim do período pago</li>
@@ -94,9 +96,7 @@ const TermosServico = () => {
               <AlertTriangle className="h-6 w-6 text-primary" />
               <h2 className="text-2xl font-semibold m-0">5. Uso Aceitável</h2>
             </div>
-            <p className="text-muted-foreground">
-              Ao utilizar a Plataforma, você concorda em:
-            </p>
+            <p className="text-muted-foreground">Ao utilizar a Plataforma, você concorda em:</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Fornecer informações verdadeiras e precisas</li>
               <li>Manter a segurança de suas credenciais de acesso</li>
@@ -112,9 +112,7 @@ const TermosServico = () => {
               <Ban className="h-6 w-6 text-primary" />
               <h2 className="text-2xl font-semibold m-0">6. Suspensão e Encerramento</h2>
             </div>
-            <p className="text-muted-foreground">
-              Reservamo-nos o direito de suspender ou encerrar sua conta caso:
-            </p>
+            <p className="text-muted-foreground">Reservamo-nos o direito de suspender ou encerrar sua conta caso:</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Viole estes Termos de Serviço</li>
               <li>Utilize a plataforma de forma fraudulenta</li>
@@ -126,10 +124,9 @@ const TermosServico = () => {
           <section className="mb-10">
             <h2 className="text-2xl font-semibold">7. Propriedade Intelectual</h2>
             <p className="text-muted-foreground">
-              Todo o conteúdo da Plataforma, incluindo código, design, marcas e logotipos, 
-              são de propriedade exclusiva do Foguete Gestão Empresarial. Os dados inseridos 
-              por você na plataforma permanecem de sua propriedade, e você nos concede 
-              licença para processá-los conforme necessário para fornecer os serviços.
+              Todo o conteúdo da Plataforma, incluindo código, design, marcas e logotipos, são de propriedade exclusiva
+              do Foguete Gestão Empresarial. Os dados inseridos por você na plataforma permanecem de sua propriedade, e
+              você nos concede licença para processá-los conforme necessário para fornecer os serviços.
             </p>
           </section>
 
@@ -139,8 +136,7 @@ const TermosServico = () => {
               <h2 className="text-2xl font-semibold m-0">8. Limitação de Responsabilidade</h2>
             </div>
             <p className="text-muted-foreground">
-              A Plataforma é fornecida "como está", sem garantias de qualquer tipo. Não nos 
-              responsabilizamos por:
+              A Plataforma é fornecida "como está", sem garantias de qualquer tipo. Não nos responsabilizamos por:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Perdas ou danos decorrentes do uso da plataforma</li>
@@ -153,35 +149,36 @@ const TermosServico = () => {
           <section className="mb-10">
             <h2 className="text-2xl font-semibold">9. Alterações nos Termos</h2>
             <p className="text-muted-foreground">
-              Podemos atualizar estes Termos periodicamente. Alterações significativas serão 
-              comunicadas por e-mail ou notificação na plataforma. O uso continuado após as 
-              alterações constitui aceitação dos novos termos.
+              Podemos atualizar estes Termos periodicamente. Alterações significativas serão comunicadas por e-mail ou
+              notificação na plataforma. O uso continuado após as alterações constitui aceitação dos novos termos.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-semibold">10. Lei Aplicável</h2>
             <p className="text-muted-foreground">
-              Estes Termos são regidos pelas leis da República Federativa do Brasil. 
-              Qualquer disputa será resolvida no foro da comarca de Florianópolis/SC.
+              Estes Termos são regidos pelas leis da República Federativa do Brasil. Qualquer disputa será resolvida no
+              foro da comarca de Florianópolis/SC.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-semibold">11. Contato</h2>
-            <p className="text-muted-foreground">
-              Para dúvidas sobre estes Termos de Serviço, entre em contato:
-            </p>
+            <p className="text-muted-foreground">Para dúvidas sobre estes Termos de Serviço, entre em contato:</p>
             <ul className="list-none pl-0 text-muted-foreground space-y-2 mt-4">
-              <li><strong>WhatsApp:</strong> (48) 98843-0812</li>
-              <li><strong>E-mail:</strong> contato@foguetegestao.com.br</li>
+              <li>
+                <strong>WhatsApp:</strong> (48) 98812-7520
+              </li>
+              <li>
+                <strong>E-mail:</strong> contato@foguetegestao.com.br
+              </li>
             </ul>
           </section>
 
           <section className="mt-12 p-6 bg-muted/50 rounded-lg">
             <p className="text-sm text-muted-foreground text-center">
-              Ao utilizar o Foguete Gestão Empresarial, você confirma que leu, entendeu 
-              e concorda com estes Termos de Serviço.
+              Ao utilizar o Foguete Gestão Empresarial, você confirma que leu, entendeu e concorda com estes Termos de
+              Serviço.
             </p>
           </section>
         </div>
