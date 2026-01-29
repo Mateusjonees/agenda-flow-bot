@@ -33,69 +33,6 @@ const ArrowRightIcon = () => (
   </svg>
 );
 
-const PlayIcon = () => (
-  <svg className="w-10 h-10 md:w-12 md:h-12" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M8 5v14l11-7z" />
-  </svg>
-);
-
-// Inline Hero Video Testimonial component
-const HeroVideoTestimonial = memo(() => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const videoId = "N06cYxIykSw";
-
-  return (
-    <div className="w-full max-w-xs mx-auto lg:max-w-sm">
-      {/* Story/Shorts format container - 9:16 aspect ratio */}
-      <div className="relative rounded-2xl lg:rounded-3xl overflow-hidden shadow-2xl border border-border/50 bg-muted" 
-           style={{ aspectRatio: '9/16' }}>
-        {!isLoaded ? (
-          <button
-            onClick={() => setIsLoaded(true)}
-            className="absolute inset-0 flex items-center justify-center cursor-pointer group"
-            aria-label="Reproduzir depoimento"
-          >
-            {/* YouTube Shorts thumbnail */}
-            <img 
-              src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
-              alt="Depoimento de cliente"
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="lazy"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-              }}
-            />
-            
-            {/* Overlay gradient */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/10 group-hover:from-black/70 transition-colors" />
-            
-            {/* Play button */}
-            <div className="relative z-10 w-16 h-16 md:w-20 md:h-20 bg-primary/90 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-primary transition-all duration-300 shadow-xl shadow-primary/30">
-              <span className="text-white ml-1"><PlayIcon /></span>
-            </div>
-            
-            {/* Label badge */}
-            <div className="absolute top-4 left-4 z-10">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-sm text-white text-xs font-medium">
-                💬 Depoimento
-              </span>
-            </div>
-          </button>
-        ) : (
-          <iframe
-            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
-            title="Depoimento de cliente"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="absolute inset-0 w-full h-full"
-          />
-        )}
-      </div>
-    </div>
-  );
-});
-HeroVideoTestimonial.displayName = 'HeroVideoTestimonial';
-
 const PublicNavbar = lazy(() => import("@/components/PublicNavbar"));
 const PublicFooter = lazy(() => import("@/components/PublicFooter"));
 const VideoSection = lazy(() => import("@/components/landing/VideoSection"));
@@ -103,7 +40,10 @@ const ProductShowcase = lazy(() => import("@/components/landing/ProductShowcase"
 const HowItWorks = lazy(() => import("@/components/landing/HowItWorks"));
 const FeatureGrid = lazy(() => import("@/components/landing/FeatureGrid"));
 const PricingSection = lazy(() => import("@/components/landing/PricingSection"));
+const VideoTestimonialSection = lazy(() => import("@/components/landing/VideoTestimonialSection"));
+
 const FAQSection = lazy(() => import("@/components/landing/FAQSection"));
+const HeroMockup = lazy(() => import("@/components/landing/HeroMockup"));
 
 const SectionSkeleton = memo(() => (
   <div className="py-16 flex items-center justify-center">
@@ -187,7 +127,7 @@ const Landing = () => {
         <div className="md:hidden absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
 
         <div className="container mx-auto px-4 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 text-center lg:text-left">
               <span className="inline-flex items-center rounded-full border px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border-primary/30">
                 <SparklesIcon />
@@ -250,9 +190,10 @@ const Landing = () => {
               </div>
             </div>
 
-            {/* Video Testimonial - visible on all sizes */}
-            <div className="flex items-center justify-center">
-              <HeroVideoTestimonial />
+            <div className="hidden lg:block">
+              <Suspense fallback={<div className="w-full h-96 bg-muted/30 rounded-2xl animate-pulse" />}>
+                <HeroMockup />
+              </Suspense>
             </div>
           </div>
         </div>
@@ -274,6 +215,11 @@ const Landing = () => {
       <Suspense fallback={<SectionSkeleton />}>
         <HowItWorks />
       </Suspense>
+
+      <Suspense fallback={<SectionSkeleton />}>
+        <VideoTestimonialSection />
+      </Suspense>
+
 
       <section id="precos">
         <Suspense fallback={<SectionSkeleton />}>
