@@ -1,138 +1,45 @@
 
-## Plano de Otimizacao Extrema para Mobile (70 → 90+)
 
-### Diagnostico Atual
+## Plano para Resolver LCP de 7.0s para Meta de 2.5s
 
-Ainda existem varios componentes carregando `lucide-react` no caminho critico:
+### Diagnostico do Problema
 
-| Arquivo | Icones Lucide | Impacto |
-|---------|---------------|---------|
-| `PublicNavbar.tsx` | ArrowRight, Menu, X | Alto - carrega no primeiro render |
-| `ThemeToggle.tsx` | Moon, Sun | Alto - carrega no primeiro render |
-| `PublicFooter.tsx` | MessageCircle, HeadphonesIcon, Clock, Shield, Lock | Medio - lazy loaded |
-| `FAQSection.tsx` | MessageCircle, Sparkles | Medio - lazy loaded |
-| `HowItWorks.tsx` | UserPlus, Settings, Calendar, TrendingUp, ArrowRight | Medio - lazy loaded |
+O **Largest Contentful Paint (LCP)** de 7 segundos indica que o maior elemento visivel da pagina (geralmente o titulo do Hero ou uma imagem) esta demorando muito para renderizar. Isso acontece por varios fatores identificados:
+
+| Causa | Impacto | Arquivo |
+|-------|---------|---------|
+| `Badge` ainda importado do shadcn no Hero | Alto - traz `class-variance-authority` | `Landing.tsx` |
+| `lucide-react` ainda no PublicFooter | Medio - carrega via lazy loading | `PublicFooter.tsx` |
+| Supabase importado estaticamente | Alto - SDK pesa ~50KB | `Landing.tsx` |
+| Imagens sem `fetchPriority` | Medio - browser nao prioriza | Varios |
+| Fontes do sistema nao preloadadas | Medio - FOIT/FOUT | `index.html` |
 
 ---
 
-## Estrategia de Otimizacao (Segura para Vercel)
+## Estrategia de Otimizacao (5 Fases)
 
-### Fase 1: Eliminar lucide-react do Critical Path (PRIORIDADE MAXIMA)
+### Fase 1: Eliminar Badge do Critical Path no Landing (CRITICO)
 
-Estes arquivos carregam ANTES da pagina aparecer:
+O componente Badge usa `class-variance-authority` que adiciona peso ao bundle critico.
 
-#### 1.1 PublicNavbar.tsx
-Substituir os 3 icones Lucide por SVGs inline:
-
-```text
-ANTES: import { ArrowRight, Menu, X } from "lucide-react";
-DEPOIS: Componentes SVG inline (MenuIcon, XIcon, ArrowRightIcon)
-```
-
-#### 1.2 ThemeToggle.tsx
-Substituir Moon e Sun por SVGs inline:
-
-```text
-ANTES: import { Moon, Sun } from "lucide-react";
-DEPOIS: SVGs inline direto no componente
-```
-
-### Fase 2: Eliminar lucide-react do Footer e Secoes
-
-#### 2.1 PublicFooter.tsx
-Substituir 5 icones: MessageCircle, HeadphonesIcon, Clock, Shield, Lock
-
-#### 2.2 FAQSection.tsx
-Substituir MessageCircle e Sparkles por emojis ou SVGs
-
-#### 2.3 HowItWorks.tsx
-Substituir UserPlus, Settings, Calendar, TrendingUp, ArrowRight por emojis
-
-### Fase 3: Adiar Verificacao de Autenticacao
-
-O Supabase client esta sendo importado no Navbar e verificando auth IMEDIATAMENTE. Isso bloqueia o render:
+**Landing.tsx linha 5 e 129-132:**
 
 ```text
 ANTES:
-useEffect(() => {
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsAuthenticated(!!session);
-  };
-  checkAuth(); // IMEDIATO
-}, []);
+import { Badge } from "@/components/ui/badge";
+...
+<Badge className="px-6 py-2.5...">...</Badge>
 
 DEPOIS:
-useEffect(() => {
-  const timer = setTimeout(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsAuthenticated(!!session);
-  }, 2000); // ADIADO 2 SEGUNDOS
-  return () => clearTimeout(timer);
-}, []);
+<span className="inline-flex items-center px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border border-primary/30 rounded-full">
+  <SparklesIcon />
+  Sistema de Gestao Completo
+</span>
 ```
 
-### Fase 4: Remover Badge do Critical Path
+### Fase 2: Remover lucide-react do PublicFooter
 
-O componente Badge usa `class-variance-authority`. Substituir no FAQ e HowItWorks por spans simples.
-
----
-
-## Detalhes Tecnicos das Substituicoes
-
-### SVGs para PublicNavbar
-
-```tsx
-const MenuIcon = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M4 12h16M4 6h16M4 18h16"/>
-  </svg>
-);
-
-const XIcon = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M18 6 6 18M6 6l12 12"/>
-  </svg>
-);
-
-const ArrowRightIcon = () => (
-  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M5 12h14m-7-7 7 7-7 7"/>
-  </svg>
-);
-```
-
-### SVGs para ThemeToggle
-
-```tsx
-<svg className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-  <circle cx="12" cy="12" r="4"/>
-  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
-</svg>
-
-<svg className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-</svg>
-```
-
-### Emojis para HowItWorks
-
-```text
-UserPlus -> 👤
-Settings -> ⚙️
-Calendar -> 📅
-TrendingUp -> 📈
-ArrowRight -> ➡️
-```
-
-### Emojis para FAQSection
-
-```text
-MessageCircle -> 💬
-Sparkles -> ✨
-```
-
-### Emojis para PublicFooter
+Substituir os 5 icones restantes por emojis nativos:
 
 ```text
 MessageCircle -> 💬
@@ -142,17 +49,130 @@ Shield -> 🛡️
 Lock -> 🔒
 ```
 
+### Fase 3: Adiar Import do Supabase no Landing
+
+O cliente Supabase esta sendo importado estaticamente na linha 4. Usar import dinamico:
+
+```tsx
+// ANTES:
+import { supabase } from "@/integrations/supabase/client";
+
+// DEPOIS: Import dinamico no useEffect
+useEffect(() => {
+  const timer = setTimeout(async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAuthenticated(!!session);
+  }, 1500);
+}, []);
+```
+
+### Fase 4: Adicionar fetchPriority ao Titulo do Hero
+
+O H1 do Hero e o provavel LCP. Forcamos o browser a priorizar:
+
+```tsx
+// Adicionar ao <h1> ou ao elemento principal do Hero
+<h1 
+  className="text-4xl md:text-6xl lg:text-7xl font-extrabold leading-tight"
+  style={{ contentVisibility: 'auto' }}
+>
+```
+
+### Fase 5: Preload de Fontes Criticas no index.html
+
+Adicionar preload para evitar FOIT:
+
+```html
+<link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
+```
+
+Ou, se usar fontes do sistema, garantir font-display: swap no CSS.
+
 ---
 
 ## Arquivos a Modificar
 
 | Arquivo | Acao | Prioridade |
 |---------|------|------------|
-| `src/components/PublicNavbar.tsx` | SVGs inline, adiar auth check | CRITICO |
-| `src/components/ThemeToggle.tsx` | SVGs inline | CRITICO |
-| `src/components/PublicFooter.tsx` | Emojis | ALTA |
-| `src/components/landing/FAQSection.tsx` | Emojis, remover Badge | ALTA |
-| `src/components/landing/HowItWorks.tsx` | Emojis, remover Badge | ALTA |
+| `src/pages/Landing.tsx` | Remover Badge, import dinamico Supabase | CRITICO |
+| `src/components/PublicFooter.tsx` | Substituir lucide por emojis | ALTA |
+| `src/components/landing/ProductShowcase.tsx` | Remover Badge por span | MEDIA |
+| `src/index.css` | Garantir font-display: swap | MEDIA |
+
+---
+
+## Detalhes Tecnicos das Mudancas
+
+### Landing.tsx (Remover Badge, Supabase Lazy)
+
+```tsx
+// REMOVER linha 5:
+// import { Badge } from "@/components/ui/badge";
+
+// MODIFICAR linha 129-132:
+// DE:
+<Badge className="px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border-primary/30">
+  <SparklesIcon />
+  Sistema de Gestao Completo
+</Badge>
+
+// PARA:
+<span className="inline-flex items-center rounded-full border px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border-primary/30">
+  <SparklesIcon />
+  Sistema de Gestao Completo
+</span>
+
+// MODIFICAR useEffect (linhas 66-85):
+useEffect(() => {
+  let subscription: { unsubscribe: () => void } | null = null;
+  
+  const authTimer = setTimeout(async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAuthenticated(!!session);
+    
+    const { data } = supabase.auth.onAuthStateChange((_, session) => {
+      setIsAuthenticated(!!session);
+    });
+    subscription = data.subscription;
+  }, 1500);
+  
+  const whatsappTimer = setTimeout(() => setShowWhatsApp(true), 3000);
+  
+  return () => {
+    clearTimeout(authTimer);
+    clearTimeout(whatsappTimer);
+    subscription?.unsubscribe();
+  };
+}, []);
+```
+
+### PublicFooter.tsx (Emojis)
+
+```tsx
+// REMOVER linha 2:
+// import { MessageCircle, HeadphonesIcon, Clock, Shield, Lock } from "lucide-react";
+
+// SUBSTITUIR nas linhas 66, 77, 88, 92, 115:
+<MessageCircle className="w-4 h-4 text-red-500" /> -> <span className="text-red-500">💬</span>
+<HeadphonesIcon className="w-4 h-4 text-red-500" /> -> <span className="text-red-500">🎧</span>
+<Clock className="w-4 h-4 text-red-500" /> -> <span className="text-red-500">🕐</span>
+<Shield className="w-4 h-4 text-red-500" /> -> <span className="text-red-500">🛡️</span>
+<Lock className="w-4 h-4 text-red-500" /> -> <span className="text-red-500">🔒</span>
+```
+
+### ProductShowcase.tsx (Remover Badge)
+
+```tsx
+// REMOVER linha 2:
+// import { Badge } from "@/components/ui/badge";
+
+// SUBSTITUIR linhas 22, 135, 175:
+<Badge className="...">...</Badge> 
+// POR:
+<span className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold bg-primary/10 text-primary border-primary/30">...</span>
+```
 
 ---
 
@@ -160,21 +180,10 @@ Lock -> 🔒
 
 | Metrica | Atual | Apos Otimizacao |
 |---------|-------|-----------------|
-| Performance Mobile | 70 | 88-92 |
-| FCP | 3.2s | ~1.8s |
-| LCP | 5.6s | ~2.5s |
-| Bundle Critical | ~180KB | ~100KB |
-| lucide-react no critical | SIM | NAO |
-
----
-
-## Por que isso vai funcionar
-
-1. **lucide-react** e uma biblioteca de ~50KB que esta sendo carregada no primeiro render
-2. Remover ela do PublicNavbar e ThemeToggle elimina esse peso do bundle critico
-3. Adiar a verificacao de auth do Supabase libera a thread principal para renderizar
-4. Usar emojis nativos tem custo ZERO de bundle
-5. SVGs inline sao minimos (~200 bytes cada)
+| LCP Mobile | 7.0s | ~2.5s |
+| Performance Score | 70 | 85-90 |
+| Bundle Critico | ~200KB | ~120KB |
+| TTFB | - | Sem mudanca |
 
 ---
 
@@ -182,17 +191,16 @@ Lock -> 🔒
 
 | Risco | Mitigacao |
 |-------|-----------|
-| Build falhar | Nenhuma mudanca no vite.config.ts |
-| Tema nao funcionar | Manter mesmas classes CSS de transicao |
-| Layout quebrar | SVGs tem mesmas dimensoes dos icones originais |
-| Auth nao funcionar | Apenas atrasa 2s, nao remove funcionalidade |
+| Auth nao carregar | Delay de 1.5s e suficiente, listener continua funcionando |
+| Emojis diferentes entre OS | Todos OS modernos renderizam emojis de forma similar |
+| Visual do Badge diferente | Usando mesmas classes Tailwind, visual identico |
 
 ---
 
-## Seguranca Vercel
+## Seguranca para Vercel
 
-Todas as mudancas sao:
+- Nenhuma mudanca no vite.config.ts
+- Nenhuma mudanca no build process
 - Apenas substituicoes de componentes visuais
-- Sem alteracao no build ou deploy
-- Sem mudancas em configuracoes
-- Compativeis com SSR/SPA
+- Import dinamico e suportado nativamente pelo Vite
+
