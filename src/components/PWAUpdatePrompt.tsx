@@ -7,12 +7,9 @@ export function PWAUpdatePrompt() {
     needRefresh: [needRefresh],
     updateServiceWorker,
   } = useRegisterSW({
-    onRegisteredSW(swUrl, r) {
-      // Verificar atualizações a cada 5 minutos
+    onRegisteredSW(_swUrl, r) {
       if (r) {
-        setInterval(() => {
-          r.update();
-        }, 5 * 60 * 1000);
+        setInterval(() => r.update(), 5 * 60 * 1000);
       }
     },
     onRegisterError(error) {
@@ -25,10 +22,7 @@ export function PWAUpdatePrompt() {
       toast.info("Nova versão disponível!", {
         description: "Clique para atualizar o sistema",
         duration: Infinity,
-        action: {
-          label: "Atualizar",
-          onClick: () => updateServiceWorker(true),
-        },
+        action: { label: "Atualizar", onClick: () => updateServiceWorker(true) },
       });
     }
   }, [needRefresh, updateServiceWorker]);
