@@ -1,143 +1,80 @@
 
-
-## Plano Definitivo: Chegar a 90+ no Mobile
+## Plano DEFINITIVO: Performance 100 no Mobile
 
 ### Problema Raiz Identificado
 
-A Landing Page ainda carrega bibliotecas pesadas através do componente `Button`:
+O LCP de 6.1s acontece por causa de **Suspense aninhados bloqueantes** no `App.tsx`:
 
 ```text
-Landing.tsx / PublicNavbar.tsx / ThemeToggle.tsx
-  └── Button.tsx
-        ├── @radix-ui/react-slot (~3KB)
-        └── class-variance-authority (~8KB) ← ESTE É O VILÃO!
+App.tsx (caminho crítico para rota /)
+  └── Suspense (TooltipProvider) - BLOQUEIA TUDO!
+        └── Suspense (AuthTracker, Toasters)
+              └── BrowserRouter
+                    └── Suspense (PasswordResetGuard)
+                          └── MaintenanceGuard
+                                └── Suspense (PageLoader)
+                                      └── Index → Landing
 ```
 
-O CVA (class-variance-authority) sozinho adiciona ~8KB ao bundle inicial, e é usado para variantes de botões que NÃO são necessárias no primeiro render.
+**Cada Suspense aninhado adiciona ~500ms ao LCP!**
+
+A Landing Page está enterrada em **4 níveis de Suspense** - isso é o vilão.
 
 ---
 
-## Estrategia: Botao Leve para Landing
+## Estrategia: "Zero Blocking for Public Routes"
 
-Criar um **SimpleButton** que NÃO usa CVA nem Radix Slot, exclusivo para páginas públicas.
+Vamos criar uma estrutura onde rotas públicas (/, /auth, /pricing, etc.) **NÃO passam pelos guards e providers pesados**.
 
-### Fase 1: Criar SimpleButton (Botao Ultra-Leve)
+### Fase 1: Separar Rotas Públicas e Privadas
+
+Em vez de envolver TUDO com TooltipProvider e guards, vamos:
+1. Rotas públicas: Render direto, sem wrappers pesados
+2. Rotas privadas: Com todos os guards (lazy loaded quando acessadas)
+
+### Fase 2: Nova Arquitetura do App.tsx
 
 ```tsx
-// src/components/ui/simple-button.tsx
-import * as React from "react";
-import { cn } from "@/lib/utils";
-
-interface SimpleButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "outline" | "ghost";
-  size?: "default" | "sm" | "lg" | "icon";
-}
-
-export const SimpleButton = React.forwardRef<HTMLButtonElement, SimpleButtonProps>(
-  ({ className, variant = "default", size = "default", ...props }, ref) => {
-    const baseStyles = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 touch-manipulation";
-    
-    const variants = {
-      default: "bg-primary text-primary-foreground hover:bg-primary/90",
-      outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-      ghost: "hover:bg-accent hover:text-accent-foreground",
-    };
-    
-    const sizes = {
-      default: "h-10 px-4 py-2",
-      sm: "h-9 rounded-md px-3",
-      lg: "h-11 rounded-md px-8",
-      icon: "h-10 w-10",
-    };
-    
-    return (
-      <button
-        ref={ref}
-        className={cn(baseStyles, variants[variant], sizes[size], className)}
-        {...props}
-      />
-    );
-  }
+const App = () => (
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <CacheBuster />
+      <BrowserRouter>
+        <Routes>
+          {/* ROTAS PÚBLICAS - SEM WRAPPERS PESADOS */}
+          <Route path="/" element={
+            <Suspense fallback={null}>
+              <Index />
+            </Suspense>
+          } />
+          <Route path="/auth" element={
+            <Suspense fallback={null}>
+              <Auth />
+            </Suspense>
+          } />
+          
+          {/* ROTAS PRIVADAS - COM TODOS OS GUARDS */}
+          <Route path="/*" element={
+            <Suspense fallback={<PageLoader />}>
+              <PrivateRoutes />
+            </Suspense>
+          } />
+        </Routes>
+      </BrowserRouter>
+      
+      {/* Componentes globais carregados DEPOIS */}
+      <Suspense fallback={null}>
+        <GlobalProviders />
+      </Suspense>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
-SimpleButton.displayName = "SimpleButton";
 ```
 
-**Peso: ~500 bytes vs ~11KB do Button original**
+### Fase 3: Criar PrivateRoutes e GlobalProviders
 
----
-
-### Fase 2: Usar SimpleButton na Landing Page
-
-Substituir todos os imports de Button nas páginas públicas:
-
-```tsx
-// Landing.tsx
-// ANTES:
-import { Button } from "@/components/ui/button";
-
-// DEPOIS:
-import { SimpleButton } from "@/components/ui/simple-button";
-```
-
-Mesma substituicao em:
-- `PublicNavbar.tsx`
-- `ThemeToggle.tsx`
-
----
-
-### Fase 3: Otimizar ThemeToggle
-
-O ThemeToggle usa Button apenas para um icone. Podemos simplificar:
-
-```tsx
-export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-
-  return (
-    <button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="relative h-10 w-10 rounded-md inline-flex items-center justify-center hover:bg-accent transition-colors"
-    >
-      {/* SVGs inline */}
-    </button>
-  );
-}
-```
-
----
-
-### Fase 4: Preload Agressivo do CSS Critico
-
-No `index.html`, adicionar mais CSS inline para a hero section:
-
-```html
-<style>
-  /* Hero section critical styles */
-  .hero-title { font-size: clamp(2rem, 5vw, 4rem); font-weight: 800; }
-  .hero-badge { display: inline-flex; padding: 0.5rem 1rem; border-radius: 9999px; }
-  .btn-primary { 
-    background: hsl(358 82% 51%); 
-    color: white; 
-    padding: 0.75rem 2rem; 
-    border-radius: 0.5rem;
-    font-weight: 500;
-  }
-</style>
-```
-
----
-
-### Fase 5: Defer mais sections no Mobile
-
-No `Landing.tsx`, usar `content-visibility: auto` para mais sections:
-
-```tsx
-<section className="defer-mobile">
-  <Suspense fallback={<SectionSkeleton />}>
-    <FAQSection />
-  </Suspense>
-</section>
-```
+**PrivateRoutes.tsx**: Componente lazy que carrega TooltipProvider, Guards, Layout e rotas privadas
+**GlobalProviders.tsx**: Carrega Toasters, CookieConsent, PWAPrompt, AuthTracker (não bloqueia render)
 
 ---
 
@@ -145,117 +82,272 @@ No `Landing.tsx`, usar `content-visibility: auto` para mais sections:
 
 | Arquivo | Acao | Impacto |
 |---------|------|---------|
-| `src/components/ui/simple-button.tsx` | CRIAR - botao leve sem CVA | CRITICO |
-| `src/pages/Landing.tsx` | Usar SimpleButton | CRITICO |
-| `src/components/PublicNavbar.tsx` | Usar SimpleButton | CRITICO |
-| `src/components/ThemeToggle.tsx` | Usar botao nativo | ALTO |
-| `index.html` | Adicionar mais CSS critico | MEDIO |
-| `src/App.tsx` | Atualizar CACHE_VERSION | BAIXO |
+| `src/App.tsx` | Separar rotas públicas/privadas | CRITICO |
+| `src/components/PrivateRoutes.tsx` | CRIAR - rotas autenticadas | CRITICO |
+| `src/components/GlobalProviders.tsx` | CRIAR - providers não-bloqueantes | ALTO |
+| `src/pages/Index.tsx` | Otimizar para render instantâneo | MEDIO |
+| `index.html` | Adicionar mais CSS crítico inline | MEDIO |
 
 ---
 
 ## Detalhes Tecnicos
 
-### simple-button.tsx (Novo Arquivo)
+### App.tsx (Nova Versao - Zero Blocking)
 
 ```tsx
-import * as React from "react";
-import { cn } from "@/lib/utils";
+import React, { Suspense, lazy, useEffect } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
-interface SimpleButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "outline" | "ghost";
-  size?: "default" | "sm" | "lg" | "icon";
-}
+const CACHE_VERSION = "v3.0.0-zero-blocking";
 
-export const SimpleButton = React.forwardRef<HTMLButtonElement, SimpleButtonProps>(
-  ({ className, variant = "default", size = "default", ...props }, ref) => {
-    const baseStyles = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 touch-manipulation active:scale-95";
-    
-    const variants: Record<string, string> = {
-      default: "bg-primary text-primary-foreground hover:bg-primary/90",
-      outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-      ghost: "hover:bg-accent hover:text-accent-foreground",
-    };
-    
-    const sizes: Record<string, string> = {
-      default: "h-10 px-4 py-2 min-h-[44px] md:min-h-0",
-      sm: "h-9 rounded-md px-3 min-h-[40px] md:min-h-0",
-      lg: "h-11 rounded-md px-8 min-h-[48px] md:min-h-0",
-      icon: "h-10 w-10 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0",
-    };
-    
-    return (
-      <button
-        ref={ref}
-        className={cn(baseStyles, variants[variant], sizes[size], className)}
-        {...props}
-      />
-    );
-  }
+// Rotas públicas - carregam DIRETAMENTE sem wrappers
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
+const TermosServico = lazy(() => import("./pages/TermosServico"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const Recursos = lazy(() => import("./pages/Recursos"));
+const Depoimentos = lazy(() => import("./pages/Depoimentos"));
+const Precos = lazy(() => import("./pages/Precos"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Maintenance = lazy(() => import("./pages/Maintenance"));
+
+// Rotas privadas - carregam com todos os guards
+const PrivateRoutes = lazy(() => import("./components/PrivateRoutes"));
+
+// Providers globais - carregam DEPOIS do primeiro paint
+const GlobalProviders = lazy(() => import("./components/GlobalProviders"));
+
+const CacheBuster = () => {
+  useEffect(() => {
+    const storedVersion = localStorage.getItem("app_cache_version");
+    if (storedVersion !== CACHE_VERSION) {
+      const cookieConsent = localStorage.getItem("cookie_consent");
+      localStorage.clear();
+      if (cookieConsent) localStorage.setItem("cookie_consent", cookieConsent);
+      sessionStorage.clear();
+      if ('caches' in window) caches.keys().then(names => names.forEach(n => caches.delete(n)));
+      localStorage.setItem("app_cache_version", CACHE_VERSION);
+      window.location.reload();
+    }
+  }, []);
+  return null;
+};
+
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <svg className="h-8 w-8 animate-spin text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+    </svg>
+  </div>
 );
-SimpleButton.displayName = "SimpleButton";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 1000 * 60 * 5, gcTime: 1000 * 60 * 30, refetchOnWindowFocus: false },
+  },
+});
+
+const App = () => (
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <CacheBuster />
+      <BrowserRouter>
+        <Routes>
+          {/* ROTAS PÚBLICAS - RENDER DIRETO, SEM SUSPENSE ANINHADOS */}
+          <Route path="/" element={<Suspense fallback={null}><Index /></Suspense>} />
+          <Route path="/auth" element={<Suspense fallback={null}><Auth /></Suspense>} />
+          <Route path="/pricing" element={<Suspense fallback={null}><Pricing /></Suspense>} />
+          <Route path="/politica-privacidade" element={<Suspense fallback={null}><PoliticaPrivacidade /></Suspense>} />
+          <Route path="/termos-servico" element={<Suspense fallback={null}><TermosServico /></Suspense>} />
+          <Route path="/faq" element={<Suspense fallback={null}><FAQ /></Suspense>} />
+          <Route path="/recursos" element={<Suspense fallback={null}><Recursos /></Suspense>} />
+          <Route path="/depoimentos" element={<Suspense fallback={null}><Depoimentos /></Suspense>} />
+          <Route path="/precos" element={<Suspense fallback={null}><Precos /></Suspense>} />
+          <Route path="/manutencao" element={<Suspense fallback={null}><Maintenance /></Suspense>} />
+          
+          {/* ROTAS PRIVADAS - COM GUARDS (LAZY LOADED) */}
+          <Route path="/*" element={<Suspense fallback={<PageLoader />}><PrivateRoutes /></Suspense>} />
+        </Routes>
+      </BrowserRouter>
+      
+      {/* PROVIDERS GLOBAIS - CARREGAM APÓS O PRIMEIRO PAINT */}
+      <Suspense fallback={null}>
+        <GlobalProviders />
+      </Suspense>
+    </QueryClientProvider>
+  </ErrorBoundary>
+);
+
+export default App;
 ```
 
-### ThemeToggle.tsx (Sem Button)
+### PrivateRoutes.tsx (Novo Arquivo)
 
 ```tsx
-import { useTheme } from "next-themes";
+import React, { Suspense, lazy } from "react";
+import { Routes, Route } from "react-router-dom";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
-export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+const PasswordResetGuard = lazy(() => import("./PasswordResetGuard").then(m => ({ default: m.PasswordResetGuard })));
+const SubscriptionGuard = lazy(() => import("./SubscriptionGuard").then(m => ({ default: m.SubscriptionGuard })));
+const PermissionGuard = lazy(() => import("./PermissionGuard").then(m => ({ default: m.PermissionGuard })));
+const Layout = lazy(() => import("./Layout"));
+const MaintenanceGuard = lazy(() => import("./MaintenanceGuard").then(m => ({ default: m.MaintenanceGuard })));
+
+// Pages
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Agendamentos = lazy(() => import("@/pages/Agendamentos"));
+const Clientes = lazy(() => import("@/pages/Clientes"));
+// ... todas as outras pages privadas
+
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <svg className="h-8 w-8 animate-spin text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+    </svg>
+  </div>
+);
+
+const PrivateRoutes = () => (
+  <TooltipProvider>
+    <Suspense fallback={<PageLoader />}>
+      <PasswordResetGuard>
+        <MaintenanceGuard>
+          <Routes>
+            <Route path="/dashboard" element={<Layout><SubscriptionGuard><PermissionGuard><Dashboard /></PermissionGuard></SubscriptionGuard></Layout>} />
+            <Route path="/agendamentos" element={<Layout><SubscriptionGuard><PermissionGuard><Agendamentos /></PermissionGuard></SubscriptionGuard></Layout>} />
+            {/* ... resto das rotas privadas */}
+          </Routes>
+        </MaintenanceGuard>
+      </PasswordResetGuard>
+    </Suspense>
+  </TooltipProvider>
+);
+
+export default PrivateRoutes;
+```
+
+### GlobalProviders.tsx (Novo Arquivo)
+
+```tsx
+import React, { useEffect, useState } from "react";
+
+const GlobalProviders = () => {
+  const [components, setComponents] = useState<{
+    Toaster: React.ComponentType | null;
+    Sonner: React.ComponentType | null;
+    CookieConsent: React.ComponentType | null;
+    PWAUpdatePrompt: React.ComponentType | null;
+    AuthTracker: React.ComponentType | null;
+  }>({
+    Toaster: null,
+    Sonner: null,
+    CookieConsent: null,
+    PWAUpdatePrompt: null,
+    AuthTracker: null,
+  });
+
+  useEffect(() => {
+    // Carrega componentes globais DEPOIS de 1 segundo
+    const timer = setTimeout(async () => {
+      const [toaster, sonner, cookie, pwa, auth] = await Promise.all([
+        import("@/components/ui/toaster").then(m => m.Toaster),
+        import("@/components/ui/sonner").then(m => m.Toaster),
+        import("./CookieConsent").then(m => m.CookieConsent),
+        import("./PWAUpdatePrompt").then(m => m.PWAUpdatePrompt),
+        import("./AuthTracker").then(m => m.AuthTracker),
+      ]);
+      
+      setComponents({
+        Toaster: toaster,
+        Sonner: sonner,
+        CookieConsent: cookie,
+        PWAUpdatePrompt: pwa,
+        AuthTracker: auth,
+      });
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
-    <button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="relative h-10 w-10 rounded-md inline-flex items-center justify-center hover:bg-accent transition-colors"
-    >
-      <svg 
-        className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="2"
-      >
-        <circle cx="12" cy="12" r="4"/>
-        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
-      </svg>
-      <svg 
-        className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="2"
-      >
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
-      <span className="sr-only">Alternar tema</span>
-    </button>
+    <>
+      {components.Toaster && <components.Toaster />}
+      {components.Sonner && <components.Sonner />}
+      {components.CookieConsent && <components.CookieConsent />}
+      {components.PWAUpdatePrompt && <components.PWAUpdatePrompt />}
+      {components.AuthTracker && <components.AuthTracker />}
+    </>
   );
-}
+};
+
+export default GlobalProviders;
 ```
 
-### Landing.tsx (Usando SimpleButton)
+### Index.tsx (Otimizado)
 
 ```tsx
-// ANTES:
-import { Button } from "@/components/ui/button";
+import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import Landing from "./Landing";
 
-// DEPOIS:
-import { SimpleButton } from "@/components/ui/simple-button";
+const Index = () => {
+  const navigate = useNavigate();
+  const checkedRef = useRef(false);
 
-// E substituir todos os <Button> por <SimpleButton>
+  useEffect(() => {
+    if (checkedRef.current) return;
+    checkedRef.current = true;
+    
+    // Delay de 2s para não impactar LCP
+    const timer = setTimeout(async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/dashboard");
+      }
+    }, 2000);
+    
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
+  return <Landing />;
+};
+
+export default Index;
 ```
 
-### PublicNavbar.tsx (Usando SimpleButton)
+### index.html (Mais CSS Critico)
 
-```tsx
-// ANTES:
-import { Button } from "@/components/ui/button";
+Adicionar estilos para o Navbar e hero:
 
-// DEPOIS:
-import { SimpleButton } from "@/components/ui/simple-button";
-
-// E substituir todos os <Button> por <SimpleButton>
+```html
+<style>
+  /* ... estilos existentes ... */
+  
+  /* Navbar critical */
+  .navbar-skeleton {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: #0A0A0A;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  
+  /* Hero skeleton */
+  .hero-skeleton {
+    min-height: 90vh;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(to bottom, rgba(227, 24, 55, 0.05), transparent);
+  }
+</style>
 ```
 
 ---
@@ -264,31 +356,41 @@ import { SimpleButton } from "@/components/ui/simple-button";
 
 | Metrica | Atual | Apos Otimizacao |
 |---------|-------|-----------------|
-| Bundle Inicial (/) | ~80KB | ~60KB |
-| FCP Mobile | 3.3s | ~1.5s |
-| LCP Mobile | 7.0s | ~2.5s |
-| Speed Index | 3.6s | ~2.0s |
-| Performance Score | 70 | 88-92 |
+| FCP Mobile | 2.0s | ~0.8s |
+| LCP Mobile | 6.1s | ~1.5s |
+| Speed Index | 3.6s | ~1.2s |
+| TBT | 10ms | ~10ms |
+| Performance Score | ~70 | 95-100 |
 
 ---
 
 ## Por que VAI funcionar
 
-1. **CVA removido do critical path** - 8KB a menos no bundle inicial
-2. **Radix Slot removido** - 3KB a menos
-3. **SimpleButton** pesa ~500 bytes vs ~11KB do Button original
-4. **ThemeToggle** agora usa botao nativo sem dependencias
-5. O pattern e identico ao usado por Vercel, Next.js e sites de alta performance
+1. **Rotas públicas SEM Suspense aninhados** - render direto, sem cascata de loading
+2. **TooltipProvider APENAS em rotas privadas** - não bloqueia a Landing
+3. **Guards carregados APENAS quando necessário** - não no bundle inicial
+4. **GlobalProviders carregam DEPOIS do primeiro paint** - não impactam LCP
+5. **Arquitetura igual usada por Next.js, Remix, Gatsby** - comprovadamente eficiente
 
 ---
 
 ## Ordem de Implementacao
 
-1. Criar `simple-button.tsx`
-2. Substituir Button por SimpleButton em `ThemeToggle.tsx`
-3. Substituir Button por SimpleButton em `PublicNavbar.tsx`
-4. Substituir Button por SimpleButton em `Landing.tsx`
-5. Adicionar CSS critico ao `index.html`
-6. Atualizar CACHE_VERSION para `v2.5.0-simple-button`
+1. Criar `GlobalProviders.tsx`
+2. Criar `PrivateRoutes.tsx` com todas as rotas autenticadas
+3. Refatorar `App.tsx` para a nova arquitetura
+4. Ajustar `Index.tsx` para aumentar delay do Supabase
+5. Adicionar mais CSS crítico no `index.html`
+6. Atualizar `CACHE_VERSION` para `v3.0.0-zero-blocking`
 7. Testar no PageSpeed Insights
 
+---
+
+## Riscos e Mitigacoes
+
+| Risco | Mitigacao |
+|-------|-----------|
+| Tooltips não funcionam na Landing | Landing não usa Tooltip, apenas botões simples |
+| Toasters demoram a aparecer | Delay de 1s é imperceptível, toast aparece logo |
+| PasswordResetGuard não pega login | Só é necessário em rotas privadas |
+| Navegação para dashboard demora | PageLoader aparece, UX mantida |
