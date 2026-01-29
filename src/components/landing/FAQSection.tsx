@@ -1,6 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Sparkles } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 
@@ -52,10 +50,10 @@ const FAQSection = () => {
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <Badge className="px-4 py-2 mb-6 bg-accent/10 text-accent border-accent/30">
-              <Sparkles className="w-4 h-4 mr-2" />
+            <span className="inline-flex items-center gap-2 px-4 py-2 mb-6 bg-accent/10 text-accent border border-accent/30 rounded-full text-sm font-medium">
+              <span>✨</span>
               FAQ
-            </Badge>
+            </span>
             <h2 className="text-3xl md:text-4xl font-extrabold text-foreground mb-4">
               Perguntas <span className="text-gradient-primary">Frequentes</span>
             </h2>
@@ -90,7 +88,7 @@ const FAQSection = () => {
               className="gap-2 h-12 px-6" 
               onClick={handleSupportClick}
             >
-              <MessageCircle className="w-4 h-4" />
+              <span>💬</span>
               Falar com Suporte
             </Button>
           </div>

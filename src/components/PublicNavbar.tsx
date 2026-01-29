@@ -2,9 +2,26 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { ArrowRight, Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import logoLight from "@/assets/logo.png";
+
+const MenuIcon = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M4 12h16M4 6h16M4 18h16"/>
+  </svg>
+);
+
+const XIcon = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M18 6 6 18M6 6l12 12"/>
+  </svg>
+);
+
+const ArrowRightIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M5 12h14m-7-7 7 7-7 7"/>
+  </svg>
+);
 
 interface NavLink {
   label: string;
@@ -25,21 +42,22 @@ export function PublicNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const timer = setTimeout(async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
-    };
-    checkAuth();
+    }, 2000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setIsAuthenticated(!!session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const scrollToSection = (sectionId: string) => {
-    // If not on landing page, navigate first
     if (location.pathname !== "/") {
       navigate("/");
       setTimeout(() => {
@@ -103,7 +121,7 @@ export function PublicNavbar() {
                 className="gap-2 bg-red-600 hover:bg-red-700 text-white"
               >
                 Ir para Dashboard
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRightIcon />
               </Button>
             ) : (
               <>
@@ -119,7 +137,7 @@ export function PublicNavbar() {
                   className="gap-2 bg-red-600 hover:bg-red-700 text-white shadow-lg"
                 >
                   Comece Grátis
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRightIcon />
                 </Button>
               </>
             )}
@@ -133,7 +151,7 @@ export function PublicNavbar() {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="text-foreground hover:bg-accent"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? <XIcon /> : <MenuIcon />}
             </Button>
           </div>
         </div>
@@ -157,7 +175,7 @@ export function PublicNavbar() {
                     className="w-full gap-2 bg-red-600 hover:bg-red-700"
                   >
                     Ir para Dashboard
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRightIcon />
                   </Button>
                 ) : (
                   <div className="flex flex-col gap-2">
@@ -173,7 +191,7 @@ export function PublicNavbar() {
                       className="w-full gap-2 bg-red-600 hover:bg-red-700"
                     >
                       Comece Grátis
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRightIcon />
                     </Button>
                   </div>
                 )}

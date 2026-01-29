@@ -1,27 +1,24 @@
-import { UserPlus, Settings, Calendar, TrendingUp, ArrowRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-
 const steps = [
   {
-    icon: UserPlus,
+    emoji: "👤",
     title: "Crie sua conta",
     description: "Cadastre-se em menos de 2 minutos. Sem cartão de crédito, sem compromisso.",
     color: "from-blue-500 to-cyan-500",
   },
   {
-    icon: Settings,
+    emoji: "⚙️",
     title: "Configure seu negócio",
     description: "Adicione seus serviços, horários e personalize sua agenda do seu jeito.",
     color: "from-purple-500 to-pink-500",
   },
   {
-    icon: Calendar,
+    emoji: "📅",
     title: "Comece a agendar",
     description: "Receba agendamentos, envie lembretes automáticos e gerencie tudo online.",
     color: "from-emerald-500 to-teal-500",
   },
   {
-    icon: TrendingUp,
+    emoji: "📈",
     title: "Acompanhe resultados",
     description: "Veja seu negócio crescer com relatórios e insights em tempo real.",
     color: "from-orange-500 to-amber-500",
@@ -34,10 +31,10 @@ const HowItWorks = () => {
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <Badge className="px-4 py-2 mb-6 bg-accent/10 text-accent border-accent/30">
-              <Settings className="w-4 h-4 mr-2" />
+            <span className="inline-flex items-center gap-2 px-4 py-2 mb-6 bg-accent/10 text-accent border border-accent/30 rounded-full text-sm font-medium">
+              <span>⚙️</span>
               Simples e Rápido
-            </Badge>
+            </span>
             <h2 className="text-4xl md:text-5xl font-extrabold text-foreground mb-4">
               Como <span className="text-gradient-primary">funciona</span>
             </h2>
@@ -58,7 +55,7 @@ const HowItWorks = () => {
                 <div className="flex flex-col items-center mb-6">
                   <div className="relative">
                     <div className={`w-16 h-16 bg-gradient-to-br ${step.color} rounded-2xl flex items-center justify-center shadow-lg`}>
-                      <step.icon className="w-8 h-8 text-white" />
+                      <span className="text-2xl">{step.emoji}</span>
                     </div>
                     <div className="absolute -top-2 -right-2 w-6 h-6 bg-card border-2 border-primary rounded-full flex items-center justify-center text-xs font-bold text-primary">
                       {index + 1}
@@ -73,7 +70,7 @@ const HowItWorks = () => {
 
                 {index < steps.length - 1 && (
                   <div className="md:hidden flex justify-center my-4">
-                    <ArrowRight className="w-6 h-6 text-primary/50 rotate-90" />
+                    <span className="text-primary/50 text-xl rotate-90">➡️</span>
                   </div>
                 )}
               </div>
