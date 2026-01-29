@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -19,10 +18,10 @@ const ProductShowcase = () => {
       <div className="container mx-auto px-4 relative">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <Badge className="px-4 py-2 mb-6 bg-primary/10 text-primary border-primary/30">
+            <span className="inline-flex items-center rounded-full border px-4 py-2 mb-6 text-sm font-semibold bg-primary/10 text-primary border-primary/30">
               <span className="mr-2">📊</span>
               Conheça o Sistema
-            </Badge>
+            </span>
             <h2 className="text-4xl md:text-5xl font-extrabold text-foreground mb-4">
               Veja o Foguete em <span className="text-gradient-primary">ação</span>
             </h2>
@@ -132,7 +131,7 @@ const AgendaMockup = () => (
   <div className="space-y-4 animate-fade-in">
     <div className="flex items-center justify-between">
       <h3 className="font-semibold text-foreground">Terça-feira, 10 de Janeiro</h3>
-      <Badge variant="secondary">8 agendamentos</Badge>
+      <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold bg-secondary text-secondary-foreground">8 agendamentos</span>
     </div>
     
     <div className="grid gap-3">
@@ -172,7 +171,7 @@ const ClientesMockup = () => (
   <div className="space-y-4 animate-fade-in">
     <div className="flex items-center justify-between">
       <h3 className="font-semibold text-foreground">Seus Clientes</h3>
-      <Badge variant="secondary">156 clientes</Badge>
+      <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold bg-secondary text-secondary-foreground">156 clientes</span>
     </div>
     
     <div className="grid gap-3">

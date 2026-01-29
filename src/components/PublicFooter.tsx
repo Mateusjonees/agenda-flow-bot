@@ -1,9 +1,7 @@
-import { Link, useNavigate } from "react-router-dom";
-import { MessageCircle, HeadphonesIcon, Clock, Shield, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
 import logoLight from "@/assets/logo.png";
 
 export function PublicFooter() {
-  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -63,7 +61,7 @@ export function PublicFooter() {
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
                 >
-                  <MessageCircle className="w-4 h-4 text-red-500" />
+                  <span>💬</span>
                   Vendas: (48)98812-7520
                 </a>
               </li>
@@ -74,7 +72,7 @@ export function PublicFooter() {
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
                 >
-                  <HeadphonesIcon className="w-4 h-4 text-red-500" />
+                  <span>🎧</span>
                   Suporte: (48) 99075-1889
                 </a>
               </li>
@@ -85,11 +83,11 @@ export function PublicFooter() {
             <h3 className="font-bold text-foreground mb-5 text-base">Horário</h3>
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2 text-muted-foreground">
-                <Clock className="w-4 h-4 text-red-500 flex-shrink-0" />
+                <span className="flex-shrink-0">🕐</span>
                 Seg - Sex: 9h às 18h
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
-                <Shield className="w-4 h-4 text-red-500 flex-shrink-0" />
+                <span className="flex-shrink-0">🛡️</span>
                 Suporte 24/7 via WhatsApp
               </li>
             </ul>
@@ -112,7 +110,7 @@ export function PublicFooter() {
                 Termos
               </Link>
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Lock className="w-4 h-4 text-red-500" />
+                <span>🔒</span>
                 LGPD
               </div>
             </div>
