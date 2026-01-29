@@ -1,80 +1,209 @@
 
-## Plano DEFINITIVO: Performance 100 no Mobile
 
-### Problema Raiz Identificado
+## Plano: Estratégia "Static Hero First" - LCP 100 no Mobile
 
-O LCP de 6.1s acontece por causa de **Suspense aninhados bloqueantes** no `App.tsx`:
+### Diagnóstico: O Que REALMENTE Causa o LCP de 5.6s
 
-```text
-App.tsx (caminho crítico para rota /)
-  └── Suspense (TooltipProvider) - BLOQUEIA TUDO!
-        └── Suspense (AuthTracker, Toasters)
-              └── BrowserRouter
-                    └── Suspense (PasswordResetGuard)
-                          └── MaintenanceGuard
-                                └── Suspense (PageLoader)
-                                      └── Index → Landing
-```
+Todas as otimizações anteriores focaram em **JavaScript** (lazy loading, Suspense, etc.), mas o problema real do LCP no mobile e:
 
-**Cada Suspense aninhado adiciona ~500ms ao LCP!**
+1. **React precisa carregar antes de renderizar QUALQUER coisa** - mesmo com `fallback={null}`, o navegador espera o bundle JS
+2. **A imagem do logo no Navbar** (`/lovable-uploads/80412b3c-...`) e carregada com `loading="eager"` mas depende do React montar
+3. **O conteudo "above the fold"** (hero section) so aparece APOS o JavaScript executar
 
-A Landing Page está enterrada em **4 níveis de Suspense** - isso é o vilão.
+**O LCP acontece quando o navegador finalmente renderiza o conteudo visivel - e isso so ocorre DEPOIS que o React executa.**
 
 ---
 
-## Estrategia: "Zero Blocking for Public Routes"
+## Nova Estrategia: HTML Estatico no index.html
 
-Vamos criar uma estrutura onde rotas públicas (/, /auth, /pricing, etc.) **NÃO passam pelos guards e providers pesados**.
+Em vez de depender do React para renderizar o hero, vamos **colocar o hero diretamente no index.html** como HTML puro. O React vai "hidratar" sobre ele quando carregar.
 
-### Fase 1: Separar Rotas Públicas e Privadas
+### Beneficio Principal
 
-Em vez de envolver TUDO com TooltipProvider e guards, vamos:
-1. Rotas públicas: Render direto, sem wrappers pesados
-2. Rotas privadas: Com todos os guards (lazy loaded quando acessadas)
+- LCP acontece IMEDIATAMENTE (HTML puro, sem JavaScript)
+- FCP reduz para ~500ms
+- Speed Index melhora drasticamente
 
-### Fase 2: Nova Arquitetura do App.tsx
+---
+
+## Fase 1: Hero Estatico no index.html
+
+Colocar o conteudo principal (navbar + hero) diretamente no HTML:
+
+```html
+<div id="root">
+  <!-- HERO ESTATICO - Renderiza ANTES do JavaScript -->
+  <div id="static-hero" class="static-hero">
+    <header class="static-navbar">
+      <div class="navbar-container">
+        <img src="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png" 
+             alt="Foguete" 
+             width="48" 
+             height="48"
+             fetchpriority="high" />
+        <nav class="navbar-links">
+          <a href="#recursos">Recursos</a>
+          <a href="#precos">Precos</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+        <a href="/auth?mode=signup" class="btn-primary-static">Comece Gratis</a>
+      </div>
+    </header>
+    
+    <section class="hero-section-static">
+      <div class="hero-container">
+        <span class="hero-badge-static">Sistema de Gestao Completo</span>
+        <h1 class="hero-title-static">
+          <span>Decole seu</span><br/>
+          <span class="text-gradient">negocio</span>
+        </h1>
+        <p class="hero-subtitle-static">
+          Sistema completo para saloes, clinicas, barbearias e prestadores de servico.
+        </p>
+        <div class="hero-buttons-static">
+          <a href="/auth?mode=signup" class="btn-primary-static btn-lg">
+            Comecar Teste Gratis
+          </a>
+          <a href="https://wa.me/554899075189" class="btn-outline-static btn-lg">
+            Falar com Vendas
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+  <!-- React vai substituir este conteudo quando carregar -->
+  <div class="initial-loader" id="initial-loader" style="display:none;">
+    ...
+  </div>
+</div>
+```
+
+---
+
+## Fase 2: CSS Critico Inline Completo
+
+O CSS do hero deve estar INLINE no `<head>` para renderizar instantaneamente:
+
+```html
+<style>
+  /* Reset */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  /* Static Hero */
+  .static-hero { min-height: 100vh; background: #0A0A0A; color: #fafafa; }
+  
+  /* Navbar */
+  .static-navbar { 
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    height: 64px; background: #0A0A0A; border-bottom: 1px solid #1a1a1a;
+  }
+  .navbar-container {
+    max-width: 1280px; margin: 0 auto; padding: 0 1rem;
+    height: 100%; display: flex; align-items: center; justify-content: space-between;
+  }
+  .navbar-links { display: none; }
+  @media (min-width: 768px) { .navbar-links { display: flex; gap: 1rem; } }
+  .navbar-links a { color: #a0a0a0; text-decoration: none; font-size: 0.875rem; }
+  
+  /* Hero Section */
+  .hero-section-static {
+    min-height: 90vh; display: flex; align-items: center;
+    padding: 80px 1rem 2rem; text-align: center;
+  }
+  .hero-container { max-width: 800px; margin: 0 auto; }
+  .hero-badge-static {
+    display: inline-block; padding: 0.5rem 1rem; border-radius: 9999px;
+    background: rgba(227, 24, 55, 0.1); color: #E31837;
+    font-size: 0.875rem; font-weight: 600; border: 1px solid rgba(227, 24, 55, 0.3);
+  }
+  .hero-title-static {
+    font-size: clamp(2rem, 6vw, 4rem); font-weight: 800;
+    line-height: 1.1; margin-top: 1.5rem;
+  }
+  .text-gradient {
+    background: linear-gradient(135deg, #E31837, #FF6B35);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-subtitle-static {
+    font-size: 1.125rem; color: #a0a0a0; margin-top: 1rem; max-width: 600px; margin-inline: auto;
+  }
+  .hero-buttons-static { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 2rem; }
+  
+  /* Buttons */
+  .btn-primary-static {
+    background: #E31837; color: white; padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem; font-weight: 500; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 0.5rem;
+  }
+  .btn-outline-static {
+    background: transparent; border: 1px solid #333; color: white;
+    padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: 500;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;
+  }
+  .btn-lg { padding: 0.875rem 2rem; font-size: 1rem; }
+  
+  /* Hide static when React loads */
+  .react-loaded .static-hero { display: none; }
+</style>
+```
+
+---
+
+## Fase 3: Script para Transicao Suave
+
+Quando o React carregar, ele vai remover o hero estatico:
+
+```javascript
+// No final do script de inicializacao
+window.addEventListener('load', function() {
+  // Aguarda o React montar
+  var observer = new MutationObserver(function() {
+    var reactContent = document.querySelector('[data-react-loaded]');
+    if (reactContent) {
+      document.documentElement.classList.add('react-loaded');
+      var staticHero = document.getElementById('static-hero');
+      if (staticHero) staticHero.remove();
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+});
+```
+
+---
+
+## Fase 4: Marcar React como Carregado
+
+No componente Landing, adicionar atributo para indicar que React carregou:
 
 ```tsx
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <CacheBuster />
-      <BrowserRouter>
-        <Routes>
-          {/* ROTAS PÚBLICAS - SEM WRAPPERS PESADOS */}
-          <Route path="/" element={
-            <Suspense fallback={null}>
-              <Index />
-            </Suspense>
-          } />
-          <Route path="/auth" element={
-            <Suspense fallback={null}>
-              <Auth />
-            </Suspense>
-          } />
-          
-          {/* ROTAS PRIVADAS - COM TODOS OS GUARDS */}
-          <Route path="/*" element={
-            <Suspense fallback={<PageLoader />}>
-              <PrivateRoutes />
-            </Suspense>
-          } />
-        </Routes>
-      </BrowserRouter>
-      
-      {/* Componentes globais carregados DEPOIS */}
-      <Suspense fallback={null}>
-        <GlobalProviders />
-      </Suspense>
-    </QueryClientProvider>
-  </ErrorBoundary>
+// Landing.tsx
+return (
+  <div className="min-h-screen bg-background overflow-hidden" data-react-loaded>
+    ...
+  </div>
 );
 ```
 
-### Fase 3: Criar PrivateRoutes e GlobalProviders
+---
 
-**PrivateRoutes.tsx**: Componente lazy que carrega TooltipProvider, Guards, Layout e rotas privadas
-**GlobalProviders.tsx**: Carrega Toasters, CookieConsent, PWAPrompt, AuthTracker (não bloqueia render)
+## Fase 5: Otimizar Imagem do Logo
+
+A imagem `/lovable-uploads/80412b3c-...` precisa ser otimizada:
+
+1. Usar `<link rel="preload">` com fetchpriority high
+2. Garantir dimensoes explicitas (width/height)
+3. Considerar converter para WebP ou SVG
+
+```html
+<!-- No head do index.html -->
+<link rel="preload" 
+      href="/lovable-uploads/80412b3c-5edc-43b9-ab6d-a607dcdc2156.png" 
+      as="image" 
+      type="image/png"
+      fetchpriority="high" />
+```
 
 ---
 
@@ -82,273 +211,39 @@ const App = () => (
 
 | Arquivo | Acao | Impacto |
 |---------|------|---------|
-| `src/App.tsx` | Separar rotas públicas/privadas | CRITICO |
-| `src/components/PrivateRoutes.tsx` | CRIAR - rotas autenticadas | CRITICO |
-| `src/components/GlobalProviders.tsx` | CRIAR - providers não-bloqueantes | ALTO |
-| `src/pages/Index.tsx` | Otimizar para render instantâneo | MEDIO |
-| `index.html` | Adicionar mais CSS crítico inline | MEDIO |
+| `index.html` | Adicionar hero estatico + CSS inline completo | CRITICO |
+| `src/pages/Landing.tsx` | Adicionar `data-react-loaded` | MEDIO |
+| `src/App.tsx` | Atualizar CACHE_VERSION | BAIXO |
 
 ---
 
 ## Detalhes Tecnicos
 
-### App.tsx (Nova Versao - Zero Blocking)
+### index.html (Nova Versao com Hero Estatico)
+
+O arquivo index.html sera reescrito para incluir:
+- Hero estatico completo (navbar + hero section)
+- CSS inline para todo o conteudo above-the-fold
+- Script de transicao para quando React carregar
+- Preload da imagem do logo
+
+### Landing.tsx (Ajuste Minimo)
+
+Adicionar apenas o atributo `data-react-loaded` no container principal:
 
 ```tsx
-import React, { Suspense, lazy, useEffect } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ErrorBoundary } from "./components/ErrorBoundary";
-
-const CACHE_VERSION = "v3.0.0-zero-blocking";
-
-// Rotas públicas - carregam DIRETAMENTE sem wrappers
-const Index = lazy(() => import("./pages/Index"));
-const Auth = lazy(() => import("./pages/Auth"));
-const Pricing = lazy(() => import("./pages/Pricing"));
-const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
-const TermosServico = lazy(() => import("./pages/TermosServico"));
-const FAQ = lazy(() => import("./pages/FAQ"));
-const Recursos = lazy(() => import("./pages/Recursos"));
-const Depoimentos = lazy(() => import("./pages/Depoimentos"));
-const Precos = lazy(() => import("./pages/Precos"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const Maintenance = lazy(() => import("./pages/Maintenance"));
-
-// Rotas privadas - carregam com todos os guards
-const PrivateRoutes = lazy(() => import("./components/PrivateRoutes"));
-
-// Providers globais - carregam DEPOIS do primeiro paint
-const GlobalProviders = lazy(() => import("./components/GlobalProviders"));
-
-const CacheBuster = () => {
-  useEffect(() => {
-    const storedVersion = localStorage.getItem("app_cache_version");
-    if (storedVersion !== CACHE_VERSION) {
-      const cookieConsent = localStorage.getItem("cookie_consent");
-      localStorage.clear();
-      if (cookieConsent) localStorage.setItem("cookie_consent", cookieConsent);
-      sessionStorage.clear();
-      if ('caches' in window) caches.keys().then(names => names.forEach(n => caches.delete(n)));
-      localStorage.setItem("app_cache_version", CACHE_VERSION);
-      window.location.reload();
-    }
-  }, []);
-  return null;
-};
-
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <svg className="h-8 w-8 animate-spin text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-    </svg>
-  </div>
-);
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 1000 * 60 * 5, gcTime: 1000 * 60 * 30, refetchOnWindowFocus: false },
-  },
-});
-
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <CacheBuster />
-      <BrowserRouter>
-        <Routes>
-          {/* ROTAS PÚBLICAS - RENDER DIRETO, SEM SUSPENSE ANINHADOS */}
-          <Route path="/" element={<Suspense fallback={null}><Index /></Suspense>} />
-          <Route path="/auth" element={<Suspense fallback={null}><Auth /></Suspense>} />
-          <Route path="/pricing" element={<Suspense fallback={null}><Pricing /></Suspense>} />
-          <Route path="/politica-privacidade" element={<Suspense fallback={null}><PoliticaPrivacidade /></Suspense>} />
-          <Route path="/termos-servico" element={<Suspense fallback={null}><TermosServico /></Suspense>} />
-          <Route path="/faq" element={<Suspense fallback={null}><FAQ /></Suspense>} />
-          <Route path="/recursos" element={<Suspense fallback={null}><Recursos /></Suspense>} />
-          <Route path="/depoimentos" element={<Suspense fallback={null}><Depoimentos /></Suspense>} />
-          <Route path="/precos" element={<Suspense fallback={null}><Precos /></Suspense>} />
-          <Route path="/manutencao" element={<Suspense fallback={null}><Maintenance /></Suspense>} />
-          
-          {/* ROTAS PRIVADAS - COM GUARDS (LAZY LOADED) */}
-          <Route path="/*" element={<Suspense fallback={<PageLoader />}><PrivateRoutes /></Suspense>} />
-        </Routes>
-      </BrowserRouter>
-      
-      {/* PROVIDERS GLOBAIS - CARREGAM APÓS O PRIMEIRO PAINT */}
-      <Suspense fallback={null}>
-        <GlobalProviders />
-      </Suspense>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
-
-export default App;
+<div className="min-h-screen bg-background overflow-hidden" data-react-loaded>
 ```
 
-### PrivateRoutes.tsx (Novo Arquivo)
+---
 
-```tsx
-import React, { Suspense, lazy } from "react";
-import { Routes, Route } from "react-router-dom";
-import { TooltipProvider } from "@/components/ui/tooltip";
+## Por que Esta Estrategia VAI Funcionar
 
-const PasswordResetGuard = lazy(() => import("./PasswordResetGuard").then(m => ({ default: m.PasswordResetGuard })));
-const SubscriptionGuard = lazy(() => import("./SubscriptionGuard").then(m => ({ default: m.SubscriptionGuard })));
-const PermissionGuard = lazy(() => import("./PermissionGuard").then(m => ({ default: m.PermissionGuard })));
-const Layout = lazy(() => import("./Layout"));
-const MaintenanceGuard = lazy(() => import("./MaintenanceGuard").then(m => ({ default: m.MaintenanceGuard })));
-
-// Pages
-const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const Agendamentos = lazy(() => import("@/pages/Agendamentos"));
-const Clientes = lazy(() => import("@/pages/Clientes"));
-// ... todas as outras pages privadas
-
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <svg className="h-8 w-8 animate-spin text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-    </svg>
-  </div>
-);
-
-const PrivateRoutes = () => (
-  <TooltipProvider>
-    <Suspense fallback={<PageLoader />}>
-      <PasswordResetGuard>
-        <MaintenanceGuard>
-          <Routes>
-            <Route path="/dashboard" element={<Layout><SubscriptionGuard><PermissionGuard><Dashboard /></PermissionGuard></SubscriptionGuard></Layout>} />
-            <Route path="/agendamentos" element={<Layout><SubscriptionGuard><PermissionGuard><Agendamentos /></PermissionGuard></SubscriptionGuard></Layout>} />
-            {/* ... resto das rotas privadas */}
-          </Routes>
-        </MaintenanceGuard>
-      </PasswordResetGuard>
-    </Suspense>
-  </TooltipProvider>
-);
-
-export default PrivateRoutes;
-```
-
-### GlobalProviders.tsx (Novo Arquivo)
-
-```tsx
-import React, { useEffect, useState } from "react";
-
-const GlobalProviders = () => {
-  const [components, setComponents] = useState<{
-    Toaster: React.ComponentType | null;
-    Sonner: React.ComponentType | null;
-    CookieConsent: React.ComponentType | null;
-    PWAUpdatePrompt: React.ComponentType | null;
-    AuthTracker: React.ComponentType | null;
-  }>({
-    Toaster: null,
-    Sonner: null,
-    CookieConsent: null,
-    PWAUpdatePrompt: null,
-    AuthTracker: null,
-  });
-
-  useEffect(() => {
-    // Carrega componentes globais DEPOIS de 1 segundo
-    const timer = setTimeout(async () => {
-      const [toaster, sonner, cookie, pwa, auth] = await Promise.all([
-        import("@/components/ui/toaster").then(m => m.Toaster),
-        import("@/components/ui/sonner").then(m => m.Toaster),
-        import("./CookieConsent").then(m => m.CookieConsent),
-        import("./PWAUpdatePrompt").then(m => m.PWAUpdatePrompt),
-        import("./AuthTracker").then(m => m.AuthTracker),
-      ]);
-      
-      setComponents({
-        Toaster: toaster,
-        Sonner: sonner,
-        CookieConsent: cookie,
-        PWAUpdatePrompt: pwa,
-        AuthTracker: auth,
-      });
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <>
-      {components.Toaster && <components.Toaster />}
-      {components.Sonner && <components.Sonner />}
-      {components.CookieConsent && <components.CookieConsent />}
-      {components.PWAUpdatePrompt && <components.PWAUpdatePrompt />}
-      {components.AuthTracker && <components.AuthTracker />}
-    </>
-  );
-};
-
-export default GlobalProviders;
-```
-
-### Index.tsx (Otimizado)
-
-```tsx
-import { useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import Landing from "./Landing";
-
-const Index = () => {
-  const navigate = useNavigate();
-  const checkedRef = useRef(false);
-
-  useEffect(() => {
-    if (checkedRef.current) return;
-    checkedRef.current = true;
-    
-    // Delay de 2s para não impactar LCP
-    const timer = setTimeout(async () => {
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate("/dashboard");
-      }
-    }, 2000);
-    
-    return () => clearTimeout(timer);
-  }, [navigate]);
-
-  return <Landing />;
-};
-
-export default Index;
-```
-
-### index.html (Mais CSS Critico)
-
-Adicionar estilos para o Navbar e hero:
-
-```html
-<style>
-  /* ... estilos existentes ... */
-  
-  /* Navbar critical */
-  .navbar-skeleton {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 64px;
-    background: #0A0A0A;
-    border-bottom: 1px solid #1a1a1a;
-  }
-  
-  /* Hero skeleton */
-  .hero-skeleton {
-    min-height: 90vh;
-    display: flex;
-    align-items: center;
-    background: linear-gradient(to bottom, rgba(227, 24, 55, 0.05), transparent);
-  }
-</style>
-```
+1. **LCP nao depende mais do JavaScript** - O hero renderiza do HTML puro
+2. **Tecnica usada por Google, Airbnb, Netflix** - Server-side ou static hero
+3. **FCP e LCP acontecem quase simultaneamente** - HTML parse e imediato
+4. **Nenhuma cascata de carregamento** - Tudo esta inline
+5. **React "hidrata" sobre o conteudo existente** - Transicao suave
 
 ---
 
@@ -356,41 +251,21 @@ Adicionar estilos para o Navbar e hero:
 
 | Metrica | Atual | Apos Otimizacao |
 |---------|-------|-----------------|
-| FCP Mobile | 2.0s | ~0.8s |
-| LCP Mobile | 6.1s | ~1.5s |
-| Speed Index | 3.6s | ~1.2s |
-| TBT | 10ms | ~10ms |
+| FCP Mobile | 2.0s | ~0.5s |
+| LCP Mobile | 5.6s | ~0.8s |
+| Speed Index | 3.6s | ~1.0s |
 | Performance Score | ~70 | 95-100 |
 
 ---
 
-## Por que VAI funcionar
+## Diferenca Chave das Tentativas Anteriores
 
-1. **Rotas públicas SEM Suspense aninhados** - render direto, sem cascata de loading
-2. **TooltipProvider APENAS em rotas privadas** - não bloqueia a Landing
-3. **Guards carregados APENAS quando necessário** - não no bundle inicial
-4. **GlobalProviders carregam DEPOIS do primeiro paint** - não impactam LCP
-5. **Arquitetura igual usada por Next.js, Remix, Gatsby** - comprovadamente eficiente
+| Tentativas Anteriores | Esta Estrategia |
+|----------------------|-----------------|
+| Otimizar carregamento do React | Nao depender do React para LCP |
+| Lazy loading de componentes | Conteudo ja esta no HTML |
+| Suspense com fallback | Hero estatico, sem fallback |
+| Reduzir bundle JS | HTML puro renderiza primeiro |
 
----
+**Esta e a unica forma de atingir LCP sub-1s em uma SPA sem SSR.**
 
-## Ordem de Implementacao
-
-1. Criar `GlobalProviders.tsx`
-2. Criar `PrivateRoutes.tsx` com todas as rotas autenticadas
-3. Refatorar `App.tsx` para a nova arquitetura
-4. Ajustar `Index.tsx` para aumentar delay do Supabase
-5. Adicionar mais CSS crítico no `index.html`
-6. Atualizar `CACHE_VERSION` para `v3.0.0-zero-blocking`
-7. Testar no PageSpeed Insights
-
----
-
-## Riscos e Mitigacoes
-
-| Risco | Mitigacao |
-|-------|-----------|
-| Tooltips não funcionam na Landing | Landing não usa Tooltip, apenas botões simples |
-| Toasters demoram a aparecer | Delay de 1s é imperceptível, toast aparece logo |
-| PasswordResetGuard não pega login | Só é necessário em rotas privadas |
-| Navegação para dashboard demora | PageLoader aparece, UX mantida |
