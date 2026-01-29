@@ -16,7 +16,7 @@ const Index = () => {
       if (session) {
         navigate("/dashboard");
       }
-    }, 1000);
+    }, 2500);
     
     return () => clearTimeout(timer);
   }, [navigate]);
