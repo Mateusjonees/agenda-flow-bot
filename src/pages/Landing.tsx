@@ -1,8 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState, lazy, Suspense, memo, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
+import { useEffect, useState, lazy, Suspense, memo, useCallback, useRef } from "react";
 
 const RocketIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -64,13 +62,17 @@ const Landing = () => {
   const [showWhatsApp, setShowWhatsApp] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setIsAuthenticated(!!session);
-    });
+    let subscription: { unsubscribe: () => void } | null = null;
     
     const authTimer = setTimeout(async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
+      
+      const { data } = supabase.auth.onAuthStateChange((_, session) => {
+        setIsAuthenticated(!!session);
+      });
+      subscription = data.subscription;
     }, 1500);
     
     const whatsappTimer = setTimeout(() => {
@@ -78,9 +80,9 @@ const Landing = () => {
     }, 3000);
     
     return () => {
-      subscription.unsubscribe();
       clearTimeout(authTimer);
       clearTimeout(whatsappTimer);
+      subscription?.unsubscribe();
     };
   }, []);
 
@@ -126,10 +128,10 @@ const Landing = () => {
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 text-center lg:text-left">
-              <Badge className="px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border-primary/30">
+              <span className="inline-flex items-center rounded-full border px-6 py-2.5 text-sm font-semibold bg-primary/10 text-primary border-primary/30">
                 <SparklesIcon />
                 Sistema de Gestão Completo
-              </Badge>
+              </span>
 
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold leading-tight">
                 <span className="text-foreground">Decole seu</span>
