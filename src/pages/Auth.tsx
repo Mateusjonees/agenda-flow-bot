@@ -83,8 +83,6 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [cpf, setCpf] = useState("");
-  const [cpfError, setCpfError] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [supabaseClient, setSupabaseClient] = useState<any>(null);
@@ -147,11 +145,6 @@ const Auth = () => {
     }
   }, [supabaseClient, email, password, pixelFns]);
 
-  const handleCpfChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCPF(e.target.value);
-    setCpf(formatted);
-    setCpfError("");
-  }, []);
 
   const handleSignUp = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,17 +152,12 @@ const Auth = () => {
       toast.error("Aguarde o carregamento...");
       return;
     }
-    if (!email || !password || !name || !cpf) {
+    if (!email || !password || !name) {
       toast.error("Preencha todos os campos");
       return;
     }
     if (password.length < 6) {
       toast.error("A senha deve ter no mínimo 6 caracteres");
-      return;
-    }
-    if (!validateCPF(cpf)) {
-      setCpfError("CPF inválido");
-      toast.error("CPF inválido. Verifique o número digitado.");
       return;
     }
     setLoading(true);
@@ -178,14 +166,13 @@ const Auth = () => {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: { name, cpf: cpf.replace(/\D/g, '') }
+        data: { name }
       }
     });
     if (!error && data.user) {
       await supabaseClient.from("profiles").upsert({
         id: data.user.id,
-        full_name: name,
-        cpf: cpf.replace(/\D/g, '')
+        full_name: name
       });
     }
     setLoading(false);
@@ -204,7 +191,7 @@ const Auth = () => {
       }
       toast.success("Conta criada! Verifique seu e-mail para confirmar.");
     }
-  }, [supabaseClient, email, password, name, cpf, pixelFns]);
+  }, [supabaseClient, email, password, name, pixelFns]);
 
   const handleForgotPassword = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -325,11 +312,6 @@ const Auth = () => {
                 <div className="space-y-1">
                   <Label htmlFor="signup-name" className="text-foreground font-medium text-sm">Nome</Label>
                   <Input id="signup-name" type="text" placeholder="Seu nome completo" value={name} onChange={e => setName(e.target.value)} disabled={loading} required className="h-10" />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="signup-cpf" className="text-foreground font-medium text-sm">CPF</Label>
-                  <Input id="signup-cpf" type="text" placeholder="000.000.000-00" value={cpf} onChange={handleCpfChange} disabled={loading} required className={`h-10 ${cpfError ? 'border-destructive' : ''}`} />
-                  {cpfError && <p className="text-xs text-destructive">{cpfError}</p>}
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="signup-email" className="text-foreground font-medium text-sm">Email</Label>
