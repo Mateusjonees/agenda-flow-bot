@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 const LoaderIcon = () => (
@@ -82,6 +83,9 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [name, setName] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -152,12 +156,16 @@ const Auth = () => {
       toast.error("Aguarde o carregamento...");
       return;
     }
-    if (!email || !password || !name) {
+    if (!email || !password || !name || !confirmPassword) {
       toast.error("Preencha todos os campos");
       return;
     }
     if (password.length < 6) {
       toast.error("A senha deve ter no mínimo 6 caracteres");
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("As senhas não coincidem");
       return;
     }
     setLoading(true);
@@ -191,7 +199,7 @@ const Auth = () => {
       }
       toast.success("Conta criada! Verifique seu e-mail para confirmar.");
     }
-  }, [supabaseClient, email, password, name, pixelFns]);
+  }, [supabaseClient, email, password, confirmPassword, name, pixelFns]);
 
   const handleForgotPassword = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -287,7 +295,16 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-foreground font-medium">Senha</Label>
-                  <Input id="password" type="password" placeholder="•••••••" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} required className="h-12" />
+                  <div className="relative">
+                    <Input id="password" type={showPassword ? "text" : "password"} placeholder="•••••••" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} required className="h-12 pr-10" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full h-12 text-base font-semibold shadow-lg" disabled={loading || !supabaseClient}>
                   {loading ? <><LoaderIcon /> <span className="ml-2">Entrando...</span></> : "Entrar"}
@@ -319,7 +336,29 @@ const Auth = () => {
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="signup-password" className="text-foreground font-medium text-sm">Crie Sua Senha</Label>
-                  <Input id="signup-password" type="password" placeholder="Mínimo 6 caracteres" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} required minLength={6} className="h-10" />
+                  <div className="relative">
+                    <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="Mínimo 6 caracteres" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} required minLength={6} className="h-10 pr-10" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="signup-confirm-password" className="text-foreground font-medium text-sm">Confirme Sua Senha</Label>
+                  <div className="relative">
+                    <Input id="signup-confirm-password" type={showConfirmPassword ? "text" : "password"} placeholder="Digite a senha novamente" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} disabled={loading} required minLength={6} className="h-10 pr-10" />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full h-10 text-sm font-semibold shadow-lg" disabled={loading || !supabaseClient}>
                   {loading ? <><LoaderIcon /> <span className="ml-2">Criando conta...</span></> : "Criar Conta"}
