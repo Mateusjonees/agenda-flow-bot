@@ -141,7 +141,10 @@ const Auth = () => {
     const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      const errorMessage = error.message === "Invalid login credentials" 
+        ? "E-mail ou senha incorretos" 
+        : error.message;
+      toast.error(errorMessage);
     } else {
       if (pixelFns) pixelFns().trackLogin?.('email');
       toast.success("Login realizado com sucesso!");
