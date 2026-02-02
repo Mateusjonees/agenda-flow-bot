@@ -12,6 +12,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import AIAssistantButton from "@/components/AIAssistantButton";
+import { useAIButton } from "@/contexts/AIButtonContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -54,6 +55,7 @@ interface LayoutProps {
 // Componente interno que usa useSidebar
 function LayoutContent({ children, user, profileImage, navigate, handleLogout }: any) {
   const { isMobile, open } = useSidebar();
+  const { hideGlobalButton } = useAIButton();
 
   return (
     <div className="min-h-screen flex w-full bg-background">
@@ -128,7 +130,8 @@ function LayoutContent({ children, user, profileImage, navigate, handleLogout }:
           </div>
         </main>
         
-        <AIAssistantButton />
+        {/* Esconde botão IA quando o painel do cliente está aberto */}
+        {!hideGlobalButton && <AIAssistantButton />}
       </div>
     </div>
   );

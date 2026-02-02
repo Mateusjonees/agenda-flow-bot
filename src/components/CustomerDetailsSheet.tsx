@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +12,7 @@ import { CustomerDocuments } from "./CustomerDocuments";
 import { useIsMobile } from "@/hooks/use-mobile";
 import CustomerAIPanel from "./CustomerAIPanel";
 import { AnimatePresence } from "framer-motion";
+import { useAIButton } from "@/contexts/AIButtonContext";
 
 interface Customer {
   id: string;
@@ -79,6 +80,13 @@ export const CustomerDetailsSheet = ({
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const { setHideGlobalButton } = useAIButton();
+
+  // Esconder botão global quando sheet está aberto
+  useEffect(() => {
+    setHideGlobalButton(open);
+    return () => setHideGlobalButton(false);
+  }, [open, setHideGlobalButton]);
 
   // Reset states when sheet closes
   useEffect(() => {
