@@ -11,6 +11,7 @@ import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { NotificationBell } from "@/components/NotificationBell";
 import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import AIAssistantButton from "@/components/AIAssistantButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -126,6 +127,8 @@ function LayoutContent({ children, user, profileImage, navigate, handleLogout }:
             {children}
           </div>
         </main>
+        
+        <AIAssistantButton />
       </div>
     </div>
   );
