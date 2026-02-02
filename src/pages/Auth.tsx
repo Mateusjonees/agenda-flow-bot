@@ -100,7 +100,7 @@ const Auth = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    const timer = setTimeout(async () => {
+    const loadSupabase = async () => {
       const { supabase } = await import("@/integrations/supabase/client");
       setSupabaseClient(supabase);
 
@@ -115,9 +115,8 @@ const Auth = () => {
       });
 
       return () => subscription.unsubscribe();
-    }, 100);
-
-    return () => clearTimeout(timer);
+    };
+    loadSupabase();
   }, [navigate]);
 
   useEffect(() => {
@@ -197,18 +196,10 @@ const Auth = () => {
         fns.trackStartTrial?.({ value: 0 });
         fns.trackLead?.({ content_name: 'signup', content_category: 'registration' });
       }
-      // Notificação detalhada sobre verificação de email
-      toast.success("Conta criada com sucesso! 🎉", {
+      toast.success("Conta criada com sucesso!", {
         duration: 8000,
-        description: "📧 Enviamos um email de verificação para você. Confira sua caixa de entrada e a pasta de SPAM.",
+        description: `Enviamos um email de verificação para ${email}. Verifique sua caixa de entrada e também a pasta de spam para ativar sua conta.`,
       });
-      // Segunda notificação de lembrete
-      setTimeout(() => {
-        toast.info("💡 Dica: Verifique a caixa de SPAM!", {
-          duration: 6000,
-          description: "Muitos provedores enviam emails de verificação para a pasta de spam ou lixo eletrônico.",
-        });
-      }, 2000);
     }
   }, [supabaseClient, email, password, confirmPassword, name, pixelFns]);
 

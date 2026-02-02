@@ -64,6 +64,8 @@ const addNoscriptFallback = () => {
   document.body.appendChild(noscript);
 };
 
+const PUBLIC_ROUTES = ['/', '/auth', '/pricing', '/precos', '/faq', '/recursos', '/depoimentos', '/politica-privacidade', '/termos-servico', '/download'];
+
 const usePageViewTracking = () => {
   const location = useLocation();
   
@@ -76,8 +78,14 @@ const usePageViewTracking = () => {
 
 export function CookieConsent() {
   const [showBanner, setShowBanner] = useState(false);
+  const location = useLocation();
   
   usePageViewTracking();
+
+  // Só mostrar em rotas públicas
+  const isPublicRoute = PUBLIC_ROUTES.some(route => 
+    location.pathname === route || location.pathname.startsWith(route + '/')
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -110,7 +118,7 @@ export function CookieConsent() {
     setShowBanner(false);
   };
 
-  if (!showBanner) return null;
+  if (!showBanner || !isPublicRoute) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-background/95 backdrop-blur-sm border-t shadow-lg">
