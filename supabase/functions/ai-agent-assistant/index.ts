@@ -764,27 +764,42 @@ ${appointments && appointments.length > 0 ? `\n📋 **Últimos Agendamentos:**\n
             <p><strong>Saldo:</strong> R$ ${(receitas - despesas).toFixed(2)}</p>
           `;
         } else if (args.tipo === "clientes") {
-          tituloRelatorio = "Lista de Clientes";
-          
-          const { data: customers } = await supabase
+          let periodoTexto = "Todos";
+          let query = supabase
             .from("customers")
             .select("*")
-            .eq("user_id", ownerId)
-            .order("name")
-            .limit(100);
+            .eq("user_id", ownerId);
+          
+          // Filtrar por período se especificado
+          if (args.periodo === "hoje") {
+            query = query.gte("created_at", today.toISOString());
+            periodoTexto = "Cadastrados Hoje";
+          } else if (args.periodo === "semana") {
+            query = query.gte("created_at", weekStart.toISOString());
+            periodoTexto = "Cadastrados na Semana";
+          } else if (args.periodo === "mes") {
+            query = query.gte("created_at", monthStart.toISOString());
+            periodoTexto = "Cadastrados no Mês";
+          }
+          
+          const { data: customers } = await query.order("name").limit(200);
+          
+          tituloRelatorio = `Lista de Clientes - ${periodoTexto}`;
 
           conteudoRelatorio = `
+            <p><strong>Período:</strong> ${periodoTexto}</p>
+            <p><strong>Total:</strong> ${customers?.length || 0} clientes</p>
             <table>
-              <tr><th>Nome</th><th>Telefone</th><th>Email</th></tr>
+              <tr><th>Nome</th><th>Telefone</th><th>Email</th><th>Cadastrado em</th></tr>
               ${(customers || []).map((c: any) => `
                 <tr>
                   <td>${c.name}</td>
                   <td>${c.phone || "-"}</td>
                   <td>${c.email || "-"}</td>
+                  <td>${c.created_at ? new Date(c.created_at).toLocaleDateString("pt-BR") : "-"}</td>
                 </tr>
               `).join("")}
             </table>
-            <p><em>Total: ${customers?.length || 0} clientes</em></p>
           `;
         } else if (args.tipo === "financeiro") {
           tituloRelatorio = `Relatório Financeiro - ${args.periodo || "Mês"}`;

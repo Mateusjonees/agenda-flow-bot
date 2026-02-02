@@ -35,6 +35,7 @@ const UserIcon = () => (
 interface Message {
   role: "user" | "assistant";
   content: string;
+  pdfHtml?: string;
 }
 
 interface AIAssistantChatProps {
@@ -139,7 +140,8 @@ export default function AIAssistantChat({ onClose, context }: AIAssistantChatPro
 
       const assistantMessage: Message = {
         role: "assistant",
-        content: data.content || "Desculpe, não consegui processar sua solicitação."
+        content: data.content || "Desculpe, não consegui processar sua solicitação.",
+        pdfHtml: data.pdf_html
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -154,10 +156,9 @@ export default function AIAssistantChat({ onClose, context }: AIAssistantChatPro
         }
       }
 
-      // Se gerou PDF, abrir em nova aba
-      if (data.pdf_url) {
-        window.open(data.pdf_url, "_blank");
-        toast.success("PDF gerado com sucesso!");
+      // Se gerou PDF, mostrar toast
+      if (data.pdf_html) {
+        toast.success("📄 Relatório gerado! Clique no botão para baixar.");
       }
 
     } catch (error) {
@@ -240,9 +241,25 @@ export default function AIAssistantChat({ onClose, context }: AIAssistantChatPro
                     : "bg-muted"
                 }`}
               >
-                {message.role === "assistant" ? (
+              {message.role === "assistant" ? (
                   <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
                     <ReactMarkdown>{message.content}</ReactMarkdown>
+                    {message.pdfHtml && (
+                      <Button
+                        size="sm"
+                        className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600"
+                        onClick={() => {
+                          const printWindow = window.open('', '_blank');
+                          if (printWindow) {
+                            printWindow.document.write(message.pdfHtml!);
+                            printWindow.document.close();
+                            setTimeout(() => printWindow.print(), 500);
+                          }
+                        }}
+                      >
+                        📄 Baixar/Imprimir PDF
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm">{message.content}</p>
