@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_accounts: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          parent_id: string | null
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          parent_id?: string | null
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          parent_id?: string | null
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_accounts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           created_at: string | null
@@ -358,6 +402,36 @@ export type Database = {
         }
         Relationships: []
       }
+      cost_centers: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       coupons: {
         Row: {
           code: string
@@ -629,48 +703,76 @@ export type Database = {
       }
       financial_transactions: {
         Row: {
+          account_id: string | null
           amount: number
           appointment_id: string | null
           category_id: string | null
+          cost_center_id: string | null
           created_at: string | null
           description: string | null
+          document_number: string | null
+          due_date: string | null
           id: string
           notes: string | null
+          paid_date: string | null
           payment_method: string | null
+          recurrence: string | null
           status: string | null
+          supplier_id: string | null
           transaction_date: string | null
           type: string
           user_id: string | null
         }
         Insert: {
+          account_id?: string | null
           amount: number
           appointment_id?: string | null
           category_id?: string | null
+          cost_center_id?: string | null
           created_at?: string | null
           description?: string | null
+          document_number?: string | null
+          due_date?: string | null
           id?: string
           notes?: string | null
+          paid_date?: string | null
           payment_method?: string | null
+          recurrence?: string | null
           status?: string | null
+          supplier_id?: string | null
           transaction_date?: string | null
           type: string
           user_id?: string | null
         }
         Update: {
+          account_id?: string | null
           amount?: number
           appointment_id?: string | null
           category_id?: string | null
+          cost_center_id?: string | null
           created_at?: string | null
           description?: string | null
+          document_number?: string | null
+          due_date?: string | null
           id?: string
           notes?: string | null
+          paid_date?: string | null
           payment_method?: string | null
+          recurrence?: string | null
           status?: string | null
+          supplier_id?: string | null
           transaction_date?: string | null
           type?: string
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "financial_transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "financial_transactions_appointment_id_fkey"
             columns: ["appointment_id"]
@@ -683,6 +785,20 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -2065,6 +2181,60 @@ export type Database = {
           },
         ]
       }
+      suppliers: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string | null
+          document: string | null
+          document_type: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          state: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          document?: string | null
+          document_type?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          document?: string | null
+          document_type?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           color: string | null
@@ -2501,6 +2671,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_default_accounting_accounts: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       decrement_product_stock: {
         Args: { product_id: string; quantity: number }
         Returns: undefined
