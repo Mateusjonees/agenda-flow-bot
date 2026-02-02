@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { AIButtonProvider } from "./contexts/AIButtonContext";
 
 const CACHE_VERSION = "v3.1.0-static-hero";
 
@@ -55,28 +56,30 @@ const queryClient = new QueryClient({
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <CacheBuster />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Suspense fallback={null}><Index /></Suspense>} />
-          <Route path="/auth" element={<Suspense fallback={null}><Auth /></Suspense>} />
-          <Route path="/pricing" element={<Suspense fallback={null}><Pricing /></Suspense>} />
-          <Route path="/politica-privacidade" element={<Suspense fallback={null}><PoliticaPrivacidade /></Suspense>} />
-          <Route path="/termos-servico" element={<Suspense fallback={null}><TermosServico /></Suspense>} />
-          <Route path="/faq" element={<Suspense fallback={null}><FAQ /></Suspense>} />
-          <Route path="/recursos" element={<Suspense fallback={null}><Recursos /></Suspense>} />
-          <Route path="/depoimentos" element={<Suspense fallback={null}><Depoimentos /></Suspense>} />
-          <Route path="/precos" element={<Suspense fallback={null}><Precos /></Suspense>} />
-          <Route path="/manutencao" element={<Suspense fallback={null}><Maintenance /></Suspense>} />
+      <AIButtonProvider>
+        <CacheBuster />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Suspense fallback={null}><Index /></Suspense>} />
+            <Route path="/auth" element={<Suspense fallback={null}><Auth /></Suspense>} />
+            <Route path="/pricing" element={<Suspense fallback={null}><Pricing /></Suspense>} />
+            <Route path="/politica-privacidade" element={<Suspense fallback={null}><PoliticaPrivacidade /></Suspense>} />
+            <Route path="/termos-servico" element={<Suspense fallback={null}><TermosServico /></Suspense>} />
+            <Route path="/faq" element={<Suspense fallback={null}><FAQ /></Suspense>} />
+            <Route path="/recursos" element={<Suspense fallback={null}><Recursos /></Suspense>} />
+            <Route path="/depoimentos" element={<Suspense fallback={null}><Depoimentos /></Suspense>} />
+            <Route path="/precos" element={<Suspense fallback={null}><Precos /></Suspense>} />
+            <Route path="/manutencao" element={<Suspense fallback={null}><Maintenance /></Suspense>} />
+            
+            <Route path="/*" element={<Suspense fallback={<PageLoader />}><PrivateRoutes /></Suspense>} />
+          </Routes>
           
-          <Route path="/*" element={<Suspense fallback={<PageLoader />}><PrivateRoutes /></Suspense>} />
-        </Routes>
-        
-        {/* GlobalProviders INSIDE BrowserRouter so useLocation() works */}
-        <Suspense fallback={null}>
-          <GlobalProviders />
-        </Suspense>
-      </BrowserRouter>
+          {/* GlobalProviders INSIDE BrowserRouter so useLocation() works */}
+          <Suspense fallback={null}>
+            <GlobalProviders />
+          </Suspense>
+        </BrowserRouter>
+      </AIButtonProvider>
     </QueryClientProvider>
   </ErrorBoundary>
 );
