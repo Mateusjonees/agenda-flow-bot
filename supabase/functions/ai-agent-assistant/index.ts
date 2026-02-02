@@ -716,17 +716,23 @@ ${appointments && appointments.length > 0 ? `\n📋 **Últimos Agendamentos:**\n
 
       case "gerar_pdf_relatorio": {
         const businessName = businessSettings?.business_name || "Meu Negócio";
+        const businessLogo = businessSettings?.profile_image_url || "";
+        const businessAddress = businessSettings?.address || "";
+        const businessPhone = businessSettings?.whatsapp_number || "";
+        const businessEmail = businessSettings?.email || "";
         const dataAtual = new Date().toLocaleDateString("pt-BR");
+        const horaAtual = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
         
         let conteudoRelatorio = "";
         let tituloRelatorio = "";
+        let totalRegistros = 0;
 
         if (args.tipo === "resumo_diario") {
           tituloRelatorio = "Resumo Diário";
           
           const { data: appointments } = await supabase
             .from("appointments")
-            .select("*, customers(name), services(name)")
+            .select("*, customers(name), services(name, price)")
             .eq("user_id", ownerId)
             .gte("start_time", today.toISOString())
             .lt("start_time", tomorrow.toISOString())
@@ -744,65 +750,117 @@ ${appointments && appointments.length > 0 ? `\n📋 **Últimos Agendamentos:**\n
             else despesas += Number(t.amount);
           });
 
+          totalRegistros = (appointments?.length || 0) + (transactions?.length || 0);
+
           conteudoRelatorio = `
-            <h2>Agendamentos do Dia</h2>
-            <table>
-              <tr><th>Horário</th><th>Cliente</th><th>Serviço</th><th>Status</th></tr>
-              ${(appointments || []).map((a: any) => `
-                <tr>
-                  <td>${new Date(a.start_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</td>
-                  <td>${a.customers?.name || "-"}</td>
-                  <td>${a.services?.name || a.title}</td>
-                  <td>${a.status || "Agendado"}</td>
-                </tr>
-              `).join("")}
-            </table>
+            <div class="section">
+              <h2>📅 Agendamentos do Dia</h2>
+              <p class="section-desc">Total de ${appointments?.length || 0} agendamentos</p>
+              ${(appointments && appointments.length > 0) ? `
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Horário</th>
+                      <th>Cliente</th>
+                      <th>Serviço</th>
+                      <th>Valor</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${appointments.map((a: any) => `
+                      <tr>
+                        <td><strong>${new Date(a.start_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</strong></td>
+                        <td>${a.customers?.name || "Cliente não informado"}</td>
+                        <td>${a.services?.name || a.title || "-"}</td>
+                        <td>R$ ${(a.price || a.services?.price || 0).toFixed(2)}</td>
+                        <td><span class="badge badge-${a.status === 'completed' ? 'success' : a.status === 'cancelled' ? 'danger' : 'pending'}">${a.status === 'completed' ? 'Concluído' : a.status === 'cancelled' ? 'Cancelado' : 'Agendado'}</span></td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              ` : '<p class="empty-state">Nenhum agendamento para hoje.</p>'}
+            </div>
             
-            <h2>Resumo Financeiro</h2>
-            <p><strong>Receitas:</strong> R$ ${receitas.toFixed(2)}</p>
-            <p><strong>Despesas:</strong> R$ ${despesas.toFixed(2)}</p>
-            <p><strong>Saldo:</strong> R$ ${(receitas - despesas).toFixed(2)}</p>
+            <div class="section">
+              <h2>💰 Resumo Financeiro do Dia</h2>
+              <div class="summary-grid">
+                <div class="summary-card income">
+                  <span class="summary-label">Receitas</span>
+                  <span class="summary-value">R$ ${receitas.toFixed(2)}</span>
+                </div>
+                <div class="summary-card expense">
+                  <span class="summary-label">Despesas</span>
+                  <span class="summary-value">R$ ${despesas.toFixed(2)}</span>
+                </div>
+                <div class="summary-card ${(receitas - despesas) >= 0 ? 'profit' : 'loss'}">
+                  <span class="summary-label">Saldo</span>
+                  <span class="summary-value">R$ ${(receitas - despesas).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
           `;
         } else if (args.tipo === "clientes") {
-          let periodoTexto = "Todos";
+          let periodoTexto = "Todos os Clientes";
           let query = supabase
             .from("customers")
             .select("*")
             .eq("user_id", ownerId);
           
-          // Filtrar por período se especificado
           if (args.periodo === "hoje") {
             query = query.gte("created_at", today.toISOString());
-            periodoTexto = "Cadastrados Hoje";
+            periodoTexto = "Clientes Cadastrados Hoje";
           } else if (args.periodo === "semana") {
             query = query.gte("created_at", weekStart.toISOString());
-            periodoTexto = "Cadastrados na Semana";
+            periodoTexto = "Clientes Cadastrados na Semana";
           } else if (args.periodo === "mes") {
             query = query.gte("created_at", monthStart.toISOString());
-            periodoTexto = "Cadastrados no Mês";
+            periodoTexto = "Clientes Cadastrados no Mês";
           }
           
-          const { data: customers } = await query.order("name").limit(200);
+          const { data: customers } = await query.order("name").limit(500);
+          totalRegistros = customers?.length || 0;
           
-          tituloRelatorio = `Lista de Clientes - ${periodoTexto}`;
+          tituloRelatorio = periodoTexto;
 
           conteudoRelatorio = `
-            <p><strong>Período:</strong> ${periodoTexto}</p>
-            <p><strong>Total:</strong> ${customers?.length || 0} clientes</p>
-            <table>
-              <tr><th>Nome</th><th>Telefone</th><th>Email</th><th>Cadastrado em</th></tr>
-              ${(customers || []).map((c: any) => `
-                <tr>
-                  <td>${c.name}</td>
-                  <td>${c.phone || "-"}</td>
-                  <td>${c.email || "-"}</td>
-                  <td>${c.created_at ? new Date(c.created_at).toLocaleDateString("pt-BR") : "-"}</td>
-                </tr>
-              `).join("")}
-            </table>
+            <div class="section">
+              <div class="summary-grid">
+                <div class="summary-card primary">
+                  <span class="summary-label">Total de Clientes</span>
+                  <span class="summary-value">${totalRegistros}</span>
+                </div>
+              </div>
+              
+              ${(customers && customers.length > 0) ? `
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Nome</th>
+                      <th>Telefone</th>
+                      <th>Email</th>
+                      <th>Cadastrado em</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${customers.map((c: any, index: number) => `
+                      <tr>
+                        <td>${index + 1}</td>
+                        <td><strong>${c.name}</strong></td>
+                        <td>${c.phone || "-"}</td>
+                        <td>${c.email || "-"}</td>
+                        <td>${c.created_at ? new Date(c.created_at).toLocaleDateString("pt-BR") : "-"}</td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              ` : '<p class="empty-state">Nenhum cliente encontrado no período.</p>'}
+            </div>
           `;
         } else if (args.tipo === "financeiro") {
-          tituloRelatorio = `Relatório Financeiro - ${args.periodo || "Mês"}`;
+          const periodoLabel = args.periodo === "semana" ? "Últimos 7 Dias" : args.periodo === "hoje" ? "Hoje" : "Último Mês";
+          tituloRelatorio = `Relatório Financeiro - ${periodoLabel}`;
           
           let startDate = monthStart;
           if (args.periodo === "semana") startDate = weekStart;
@@ -810,36 +868,75 @@ ${appointments && appointments.length > 0 ? `\n📋 **Últimos Agendamentos:**\n
 
           const { data: transactions } = await supabase
             .from("financial_transactions")
-            .select("*")
+            .select("*, financial_categories(name)")
             .eq("user_id", ownerId)
             .gte("transaction_date", startDate.toISOString().split("T")[0])
             .order("transaction_date", { ascending: false });
 
+          totalRegistros = transactions?.length || 0;
+
           let receitas = 0, despesas = 0;
+          const categorias: Record<string, { receitas: number; despesas: number }> = {};
+          
           (transactions || []).forEach((t: any) => {
-            if (t.type === "income") receitas += Number(t.amount);
-            else despesas += Number(t.amount);
+            const catName = t.financial_categories?.name || "Sem categoria";
+            if (!categorias[catName]) categorias[catName] = { receitas: 0, despesas: 0 };
+            
+            if (t.type === "income") {
+              receitas += Number(t.amount);
+              categorias[catName].receitas += Number(t.amount);
+            } else {
+              despesas += Number(t.amount);
+              categorias[catName].despesas += Number(t.amount);
+            }
           });
 
           conteudoRelatorio = `
-            <div class="summary">
-              <div class="summary-item income"><strong>Receitas:</strong> R$ ${receitas.toFixed(2)}</div>
-              <div class="summary-item expense"><strong>Despesas:</strong> R$ ${despesas.toFixed(2)}</div>
-              <div class="summary-item balance"><strong>Saldo:</strong> R$ ${(receitas - despesas).toFixed(2)}</div>
+            <div class="section">
+              <h2>📊 Resumo Geral</h2>
+              <div class="summary-grid">
+                <div class="summary-card income">
+                  <span class="summary-label">Total Receitas</span>
+                  <span class="summary-value">R$ ${receitas.toFixed(2)}</span>
+                </div>
+                <div class="summary-card expense">
+                  <span class="summary-label">Total Despesas</span>
+                  <span class="summary-value">R$ ${despesas.toFixed(2)}</span>
+                </div>
+                <div class="summary-card ${(receitas - despesas) >= 0 ? 'profit' : 'loss'}">
+                  <span class="summary-label">Resultado</span>
+                  <span class="summary-value">R$ ${(receitas - despesas).toFixed(2)}</span>
+                </div>
+              </div>
             </div>
             
-            <h2>Transações</h2>
-            <table>
-              <tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Valor</th></tr>
-              ${(transactions || []).map((t: any) => `
-                <tr>
-                  <td>${new Date(t.transaction_date).toLocaleDateString("pt-BR")}</td>
-                  <td>${t.type === "income" ? "Receita" : "Despesa"}</td>
-                  <td>${t.description || "-"}</td>
-                  <td class="${t.type}">R$ ${Number(t.amount).toFixed(2)}</td>
-                </tr>
-              `).join("")}
-            </table>
+            <div class="section">
+              <h2>📝 Transações (${totalRegistros})</h2>
+              ${(transactions && transactions.length > 0) ? `
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Tipo</th>
+                      <th>Categoria</th>
+                      <th>Descrição</th>
+                      <th>Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${transactions.map((t: any) => `
+                      <tr>
+                        <td>${new Date(t.transaction_date).toLocaleDateString("pt-BR")}</td>
+                        <td><span class="badge badge-${t.type === 'income' ? 'success' : 'danger'}">${t.type === "income" ? "Receita" : "Despesa"}</span></td>
+                        <td>${t.financial_categories?.name || "-"}</td>
+                        <td>${t.description || "-"}</td>
+                        <td class="${t.type === 'income' ? 'text-success' : 'text-danger'}"><strong>R$ ${Number(t.amount).toFixed(2)}</strong></td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              ` : '<p class="empty-state">Nenhuma transação encontrada no período.</p>'}
+            </div>
           `;
         } else if (args.tipo === "estoque") {
           tituloRelatorio = "Relatório de Estoque";
@@ -850,63 +947,297 @@ ${appointments && appointments.length > 0 ? `\n📋 **Últimos Agendamentos:**\n
             .eq("user_id", ownerId)
             .order("name");
 
+          totalRegistros = items?.length || 0;
+          const itemsBaixos = (items || []).filter((i: any) => (i.current_stock || 0) <= (i.min_quantity || 0)).length;
+          const valorTotalEstoque = (items || []).reduce((acc: number, i: any) => acc + ((i.current_stock || 0) * (i.unit_price || 0)), 0);
+
           conteudoRelatorio = `
-            <table>
-              <tr><th>Item</th><th>Quantidade</th><th>Unidade</th><th>Mín.</th><th>Status</th></tr>
-              ${(items || []).map((i: any) => {
-                const baixo = (i.current_stock || 0) <= (i.min_quantity || 0);
-                return `
-                  <tr class="${baixo ? 'low-stock' : ''}">
-                    <td>${i.name}</td>
-                    <td>${i.current_stock || 0}</td>
-                    <td>${i.unit || "un"}</td>
-                    <td>${i.min_quantity || "-"}</td>
-                    <td>${baixo ? "⚠️ Baixo" : "✅ OK"}</td>
-                  </tr>
-                `;
-              }).join("")}
-            </table>
+            <div class="section">
+              <h2>📦 Resumo do Estoque</h2>
+              <div class="summary-grid">
+                <div class="summary-card primary">
+                  <span class="summary-label">Total de Itens</span>
+                  <span class="summary-value">${totalRegistros}</span>
+                </div>
+                <div class="summary-card ${itemsBaixos > 0 ? 'warning' : 'success'}">
+                  <span class="summary-label">Estoque Baixo</span>
+                  <span class="summary-value">${itemsBaixos}</span>
+                </div>
+                <div class="summary-card profit">
+                  <span class="summary-label">Valor em Estoque</span>
+                  <span class="summary-value">R$ ${valorTotalEstoque.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="section">
+              <h2>📋 Lista de Produtos</h2>
+              ${(items && items.length > 0) ? `
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Categoria</th>
+                      <th>Quantidade</th>
+                      <th>Unidade</th>
+                      <th>Mínimo</th>
+                      <th>Preço Unit.</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${items.map((i: any) => {
+                      const baixo = (i.current_stock || 0) <= (i.min_quantity || 0);
+                      return `
+                        <tr class="${baixo ? 'row-warning' : ''}">
+                          <td><strong>${i.name}</strong></td>
+                          <td>${i.category || "-"}</td>
+                          <td><strong>${i.current_stock || 0}</strong></td>
+                          <td>${i.unit || "un"}</td>
+                          <td>${i.min_quantity || "-"}</td>
+                          <td>R$ ${(i.unit_price || 0).toFixed(2)}</td>
+                          <td><span class="badge badge-${baixo ? 'warning' : 'success'}">${baixo ? "⚠️ Baixo" : "✅ OK"}</span></td>
+                        </tr>
+                      `;
+                    }).join("")}
+                  </tbody>
+                </table>
+              ` : '<p class="empty-state">Nenhum item no estoque.</p>'}
+            </div>
           `;
         }
 
         const pdfHtml = `
           <!DOCTYPE html>
-          <html>
+          <html lang="pt-BR">
           <head>
             <meta charset="UTF-8">
+            <title>${tituloRelatorio} - ${businessName}</title>
             <style>
-              body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
-              h1 { color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 10px; }
-              h2 { color: #4f46e5; margin-top: 30px; }
-              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-              th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-              th { background: #7c3aed; color: white; }
-              tr:nth-child(even) { background: #f9f9f9; }
-              .summary { display: flex; gap: 20px; margin: 20px 0; }
-              .summary-item { padding: 15px; border-radius: 8px; flex: 1; }
-              .income { background: #d1fae5; color: #065f46; }
-              .expense { background: #fee2e2; color: #991b1b; }
-              .balance { background: #e0e7ff; color: #3730a3; }
-              .low-stock { background: #fef3c7; }
-              .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
-              .date { color: #666; }
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { 
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                padding: 30px;
+                color: #1a1a2e;
+                background: #fff;
+                line-height: 1.6;
+              }
+              
+              /* Header com Logo */
+              .header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                border-bottom: 3px solid #7c3aed;
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+              }
+              .header-left {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+              }
+              .logo {
+                width: 80px;
+                height: 80px;
+                border-radius: 12px;
+                object-fit: cover;
+                border: 2px solid #e0e0e0;
+              }
+              .logo-placeholder {
+                width: 80px;
+                height: 80px;
+                border-radius: 12px;
+                background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 28px;
+                font-weight: bold;
+              }
+              .company-info h1 {
+                font-size: 24px;
+                color: #1a1a2e;
+                margin-bottom: 4px;
+              }
+              .company-info p {
+                font-size: 12px;
+                color: #666;
+              }
+              .header-right {
+                text-align: right;
+              }
+              .report-title {
+                font-size: 18px;
+                color: #7c3aed;
+                font-weight: 600;
+                margin-bottom: 8px;
+              }
+              .report-date {
+                font-size: 12px;
+                color: #888;
+              }
+              
+              /* Sections */
+              .section {
+                margin-bottom: 30px;
+              }
+              .section h2 {
+                font-size: 16px;
+                color: #4f46e5;
+                margin-bottom: 15px;
+                padding-bottom: 8px;
+                border-bottom: 2px solid #e0e7ff;
+              }
+              .section-desc {
+                font-size: 13px;
+                color: #666;
+                margin-bottom: 15px;
+              }
+              
+              /* Summary Grid */
+              .summary-grid {
+                display: flex;
+                gap: 15px;
+                margin-bottom: 25px;
+                flex-wrap: wrap;
+              }
+              .summary-card {
+                flex: 1;
+                min-width: 150px;
+                padding: 20px;
+                border-radius: 12px;
+                text-align: center;
+              }
+              .summary-card .summary-label {
+                display: block;
+                font-size: 12px;
+                font-weight: 500;
+                margin-bottom: 8px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+              }
+              .summary-card .summary-value {
+                display: block;
+                font-size: 22px;
+                font-weight: 700;
+              }
+              .summary-card.income { background: #d1fae5; color: #065f46; }
+              .summary-card.expense { background: #fee2e2; color: #991b1b; }
+              .summary-card.profit { background: #d1fae5; color: #065f46; }
+              .summary-card.loss { background: #fee2e2; color: #991b1b; }
+              .summary-card.primary { background: #e0e7ff; color: #3730a3; }
+              .summary-card.warning { background: #fef3c7; color: #92400e; }
+              .summary-card.success { background: #d1fae5; color: #065f46; }
+              
+              /* Tables */
+              table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin: 15px 0;
+                font-size: 13px;
+              }
+              thead th {
+                background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+                color: white;
+                padding: 12px 10px;
+                text-align: left;
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+              }
+              tbody td {
+                padding: 10px;
+                border-bottom: 1px solid #e0e0e0;
+              }
+              tbody tr:nth-child(even) { background: #f9fafb; }
+              tbody tr:hover { background: #f0f0ff; }
+              tbody tr.row-warning { background: #fef3c7 !important; }
+              
+              /* Badges */
+              .badge {
+                display: inline-block;
+                padding: 4px 10px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+              }
+              .badge-success { background: #d1fae5; color: #065f46; }
+              .badge-danger { background: #fee2e2; color: #991b1b; }
+              .badge-warning { background: #fef3c7; color: #92400e; }
+              .badge-pending { background: #e0e7ff; color: #3730a3; }
+              
+              /* Text Colors */
+              .text-success { color: #059669; }
+              .text-danger { color: #dc2626; }
+              
+              /* Empty State */
+              .empty-state {
+                text-align: center;
+                padding: 40px;
+                color: #888;
+                background: #f9fafb;
+                border-radius: 12px;
+                font-style: italic;
+              }
+              
+              /* Footer */
+              .footer {
+                margin-top: 40px;
+                padding-top: 20px;
+                border-top: 1px solid #e0e0e0;
+                text-align: center;
+                font-size: 11px;
+                color: #888;
+              }
+              .footer strong {
+                color: #7c3aed;
+              }
+              
+              @media print {
+                body { padding: 15px; }
+                .summary-card { page-break-inside: avoid; }
+                table { page-break-inside: auto; }
+                tr { page-break-inside: avoid; }
+              }
             </style>
           </head>
           <body>
             <div class="header">
-              <div>
-                <h1>${businessName}</h1>
-                <h2>${tituloRelatorio}</h2>
+              <div class="header-left">
+                ${businessLogo 
+                  ? `<img src="${businessLogo}" alt="Logo" class="logo" />`
+                  : `<div class="logo-placeholder">${(businessName || "E")[0].toUpperCase()}</div>`
+                }
+                <div class="company-info">
+                  <h1>${businessName}</h1>
+                  ${businessAddress ? `<p>📍 ${businessAddress}</p>` : ''}
+                  ${businessPhone ? `<p>📱 ${businessPhone}</p>` : ''}
+                  ${businessEmail ? `<p>✉️ ${businessEmail}</p>` : ''}
+                </div>
               </div>
-              <div class="date">Gerado em: ${dataAtual}</div>
+              <div class="header-right">
+                <div class="report-title">${tituloRelatorio}</div>
+                <div class="report-date">Gerado em: ${dataAtual} às ${horaAtual}</div>
+                <div class="report-date">${totalRegistros} registro(s)</div>
+              </div>
             </div>
+            
             ${conteudoRelatorio}
+            
+            <div class="footer">
+              <p>Relatório gerado automaticamente pelo <strong>Sistema Foguete Empresarial</strong></p>
+              <p>© ${new Date().getFullYear()} - Todos os direitos reservados</p>
+            </div>
           </body>
           </html>
         `;
 
         return { 
-          result: `✅ Relatório "${tituloRelatorio}" gerado com sucesso!\n\n📄 Clique no botão para baixar o PDF ou use os comandos abaixo para imprimir.`,
+          result: `✅ Relatório "${tituloRelatorio}" gerado com sucesso!\n\n📊 **Dados incluídos:** ${totalRegistros} registro(s)\n📅 **Data:** ${dataAtual}\n\n👆 Clique no botão abaixo para baixar ou imprimir o PDF.`,
           pdfHtml
         };
       }
@@ -949,7 +1280,7 @@ serve(async (req) => {
 
     const { data: settings } = await supabase
       .from("business_settings")
-      .select("business_name, business_type, ai_training")
+      .select("business_name, business_type, ai_training, profile_image_url, address, whatsapp_number, email")
       .eq("user_id", ownerId)
       .single();
 
