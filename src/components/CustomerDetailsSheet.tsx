@@ -369,6 +369,8 @@ export const CustomerDetailsSheet = ({
             customerId: customer.id,
             customerName: customer.name
           }}
+          defaultOpen
+          onDismiss={() => setShowAIAssistant(false)}
         />
       )}
     </>

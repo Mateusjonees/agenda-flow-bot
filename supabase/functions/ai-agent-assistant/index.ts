@@ -253,8 +253,8 @@ const tools = [
           },
           periodo: { 
             type: "string", 
-            enum: ["hoje", "semana", "mes"],
-            description: "Período do relatório" 
+            enum: ["hoje", "semana", "mes", "90_dias"],
+            description: "Período do relatório (ex: hoje, semana, mes, 90_dias)" 
           }
         },
         required: ["tipo"]
@@ -859,18 +859,30 @@ ${appointments && appointments.length > 0 ? `\n📋 **Últimos Agendamentos:**\n
             </div>
           `;
         } else if (args.tipo === "financeiro") {
-          const periodoLabel = args.periodo === "semana" ? "Últimos 7 Dias" : args.periodo === "hoje" ? "Hoje" : "Último Mês";
+          const periodoLabel = args.periodo === "90_dias"
+            ? "Últimos 90 Dias"
+            : args.periodo === "semana"
+              ? "Últimos 7 Dias"
+              : args.periodo === "hoje"
+                ? "Hoje"
+                : "Mês atual";
           tituloRelatorio = `Relatório Financeiro - ${periodoLabel}`;
           
           let startDate = monthStart;
-          if (args.periodo === "semana") startDate = weekStart;
+          if (args.periodo === "90_dias") {
+            startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - 90);
+          } else if (args.periodo === "semana") startDate = weekStart;
           else if (args.periodo === "hoje") startDate = today;
+
+          const endDateStr = today.toISOString().split("T")[0];
 
           const { data: transactions } = await supabase
             .from("financial_transactions")
             .select("*, financial_categories(name)")
             .eq("user_id", ownerId)
             .gte("transaction_date", startDate.toISOString().split("T")[0])
+            .lte("transaction_date", endDateStr)
             .order("transaction_date", { ascending: false });
 
           totalRegistros = transactions?.length || 0;
