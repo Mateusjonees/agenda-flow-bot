@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, TrendingUp, TrendingDown, DollarSign, PieChart, Download, Filter, Upload } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, DollarSign, PieChart, Download, Filter, Upload, Building2, Folder, Calculator, Trash2 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DailyClosing } from "@/components/DailyClosing";
@@ -16,6 +16,9 @@ import { FinancialTransactionDialog } from "@/components/FinancialTransactionDia
 import { useToast } from "@/hooks/use-toast";
 import { ImportDataDialog, FieldMapping } from "@/components/ImportDataDialog";
 import { ExportButton } from "@/components/ExportButton";
+import { ExchangeRatesWidget } from "@/components/ExchangeRatesWidget";
+import { SupplierDialog } from "@/components/SupplierDialog";
+import { CostCenterDialog } from "@/components/CostCenterDialog";
 
 interface FinancialSummary {
   income: number;
@@ -52,7 +55,11 @@ const Financeiro = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+  const [costCenterDialogOpen, setCostCenterDialogOpen] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [costCenters, setCostCenters] = useState<any[]>([]);
   const [newCategory, setNewCategory] = useState({
     name: "",
     type: "expense",
@@ -67,6 +74,8 @@ const Financeiro = () => {
   useEffect(() => {
     fetchFinancialData();
     fetchCategories();
+    fetchSuppliers();
+    fetchCostCenters();
   }, [filters]);
 
   const fetchCategories = async () => {
@@ -84,6 +93,30 @@ const Financeiro = () => {
     } else {
       setCategories(data || []);
     }
+  };
+
+  const fetchSuppliers = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("suppliers")
+      .select("*")
+      .eq("is_active", true)
+      .order("name");
+    setSuppliers(data || []);
+  };
+
+  const fetchCostCenters = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("cost_centers")
+      .select("*")
+      .eq("is_active", true)
+      .order("name");
+    setCostCenters(data || []);
   };
 
   const fetchFinancialData = async () => {
@@ -509,9 +542,10 @@ const Financeiro = () => {
 
       {/* Tabs for different views */}
       <Tabs defaultValue="transactions" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="transactions">Transações</TabsTrigger>
           <TabsTrigger value="categories">Categorias</TabsTrigger>
+          <TabsTrigger value="accounting">Contábil</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
         </TabsList>
 
@@ -624,6 +658,111 @@ const Financeiro = () => {
           </Card>
         </TabsContent>
 
+        {/* Aba Contábil */}
+        <TabsContent value="accounting" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            {/* Widget de Cotações */}
+            <ExchangeRatesWidget />
+
+            {/* Fornecedores */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="w-5 h-5" />
+                      Fornecedores
+                    </CardTitle>
+                    <CardDescription>Cadastro de fornecedores para despesas</CardDescription>
+                  </div>
+                  <Button onClick={() => setSupplierDialogOpen(true)} disabled={isReadOnly}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {suppliers.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Building2 className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p>Nenhum fornecedor cadastrado</p>
+                    <Button 
+                      variant="link" 
+                      onClick={() => setSupplierDialogOpen(true)}
+                      className="mt-2"
+                    >
+                      Cadastrar primeiro fornecedor
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {suppliers.map((sup) => (
+                      <div key={sup.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div>
+                          <p className="font-medium">{sup.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {sup.document ? `${sup.document_type?.toUpperCase()}: ${sup.document}` : "Sem documento"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {sup.email && (
+                            <span className="text-xs text-muted-foreground">{sup.email}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Centros de Custo */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Folder className="w-5 h-5" />
+                    Centros de Custo
+                  </CardTitle>
+                  <CardDescription>Classifique transações por área ou projeto</CardDescription>
+                </div>
+                <Button onClick={() => setCostCenterDialogOpen(true)} disabled={isReadOnly}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Centro
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {costCenters.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Folder className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p>Nenhum centro de custo cadastrado</p>
+                  <Button 
+                    variant="link" 
+                    onClick={() => setCostCenterDialogOpen(true)}
+                    className="mt-2"
+                  >
+                    Criar primeiro centro de custo
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid gap-2 md:grid-cols-3">
+                  {costCenters.map((cc) => (
+                    <div key={cc.id} className="p-3 bg-muted rounded-lg">
+                      <p className="font-medium">{cc.name}</p>
+                      {cc.description && (
+                        <p className="text-sm text-muted-foreground mt-1">{cc.description}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="reports" className="space-y-4">
           <Card>
             <CardHeader>
@@ -660,6 +799,8 @@ const Financeiro = () => {
       </Tabs>
 
       <FinancialTransactionDialog open={dialogOpen} onOpenChange={setDialogOpen} onSuccess={fetchFinancialData} />
+      <SupplierDialog open={supplierDialogOpen} onOpenChange={setSupplierDialogOpen} onSuccess={fetchSuppliers} />
+      <CostCenterDialog open={costCenterDialogOpen} onOpenChange={setCostCenterDialogOpen} onSuccess={fetchCostCenters} />
     </div>
   );
 };
