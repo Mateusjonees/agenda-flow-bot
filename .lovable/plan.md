@@ -1,120 +1,144 @@
 
-# Plano: Assistente de IA Interno do Sistema
 
-## Resumo
-Vou criar um assistente de IA integrado no sistema que aparece como um botão flutuante. Este assistente funcionará como um agente inteligente que pode executar ações reais no banco de dados através de comandos em linguagem natural.
+# Plano: Melhorias na Autenticação e Cookie Consent
 
-## O que o Assistente vai fazer
+## Resumo das Alterações
 
-### Capacidades principais:
-1. **Agendamentos**: Criar, listar e verificar compromissos
-2. **Clientes**: Buscar e cadastrar clientes
-3. **Financeiro**: Consultar saldo, registrar transações
-4. **Estoque**: Verificar e ajustar itens do inventário  
-5. **Tarefas**: Criar e listar tarefas pendentes
-6. **Relatórios**: Gerar resumo diário do negócio
+Vou implementar 3 melhorias solicitadas:
 
-### Interface do usuário:
-- Botão flutuante com ícone de IA (canto inferior direito)
-- Chat em formato de drawer/modal
-- Respostas em tempo real com streaming
-- Design consistente com o tema do sistema
+1. **Login com Google mais rápido** - Remover o atraso de carregamento do Supabase client
+2. **Cookie Consent apenas no site público** - Mover o banner de cookies para aparecer apenas nas páginas públicas (landing, pricing, etc.), não dentro do sistema logado
+3. **Notificação profissional de verificação de email** - Melhorar a experiência ao criar conta manualmente com mensagem mais clara e profissional
 
-## Arquitetura Técnica
+---
+
+## Detalhes das Mudanças
+
+### 1. Login Google mais Rápido
+
+**Problema atual:** O Supabase client é carregado com um `setTimeout` de 100ms, o que causa um pequeno delay.
+
+**Solução:** Carregar o Supabase client imediatamente na montagem do componente, sem delay artificial.
 
 ```text
-┌──────────────────────────────────────────────────────────────┐
-│                     Frontend (React)                          │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │  AIAssistantButton (Botão Flutuante)                   │  │
-│  │         ↓                                               │  │
-│  │  AIAssistantChat (Interface do Chat)                   │  │
-│  │         ↓                                               │  │
-│  │  Chamada para Edge Function                            │  │
-│  └────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────┘
-                              ↓
-┌──────────────────────────────────────────────────────────────┐
-│               Edge Function: ai-agent-assistant              │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │  1. Recebe mensagem do usuário                         │  │
-│  │  2. Carrega configurações da IA (business_settings)    │  │
-│  │  3. Monta prompt com contexto do negócio               │  │
-│  │  4. Chama Lovable AI Gateway com tools                 │  │
-│  │  5. Executa function calls (criar agendamento, etc)    │  │
-│  │  6. Retorna resposta (streaming)                       │  │
-│  └────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────┘
-                              ↓
-┌──────────────────────────────────────────────────────────────┐
-│                    Supabase Database                          │
-│  appointments, customers, tasks, financial_transactions,     │
-│  inventory_items, business_settings, etc.                    │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│ ANTES                                       │
+├─────────────────────────────────────────────┤
+│ Clique → Aguardar 100ms → Carregar Supabase │
+│        → Iniciar OAuth → Redirecionar       │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│ DEPOIS                                      │
+├─────────────────────────────────────────────┤
+│ Clique → OAuth imediato → Redirecionar      │
+└─────────────────────────────────────────────┘
 ```
 
-## Arquivos a serem criados/modificados
+### 2. Cookie Consent Apenas no Site Público
 
-### Novos arquivos:
+**Problema atual:** O `CookieConsent` aparece em todas as páginas via `GlobalProviders`.
 
-1. **`supabase/functions/ai-agent-assistant/index.ts`**
-   - Edge function principal do agente
-   - 10 tools para operações no banco de dados
-   - Usa Lovable AI Gateway (`google/gemini-3-flash-preview`)
-   - Streaming de respostas
+**Solução:** Criar dois componentes separados:
+- `PublicGlobalProviders` - Para páginas públicas (com CookieConsent)
+- `PrivateGlobalProviders` - Para páginas privadas (sem CookieConsent)
 
-2. **`src/components/AIAssistantButton.tsx`**
-   - Botão flutuante animado
-   - Gerencia estado de aberto/fechado do chat
-   - Posição fixa no canto inferior direito
+**Páginas que terão Cookie Consent:**
+- `/` (Landing)
+- `/auth`
+- `/pricing`
+- `/precos`
+- `/faq`
+- `/recursos`
+- `/depoimentos`
+- `/politica-privacidade`
+- `/termos-servico`
 
-3. **`src/components/AIAssistantChat.tsx`**
-   - Interface completa do chat
-   - Histórico de mensagens
-   - Input de texto com envio
-   - Renderização de markdown nas respostas
-   - Loading state enquanto processa
+**Páginas que NÃO terão Cookie Consent:**
+- `/dashboard`
+- `/agendamentos`
+- `/clientes`
+- E todas as outras rotas privadas
 
-### Arquivos modificados:
+### 3. Notificação Profissional de Verificação de Email
 
-4. **`src/components/Layout.tsx`**
-   - Adicionar o `<AIAssistantButton />` no layout principal
+**Problema atual:** A notificação atual usa emojis e é informal.
 
-## Tools do Agente (10 capacidades)
+**Solução:** Criar uma notificação mais limpa e profissional:
 
-| Tool | Descrição |
-|------|-----------|
-| `listar_agendamentos` | Lista agendamentos do dia/semana |
-| `criar_agendamento` | Cria novo agendamento com cliente |
-| `buscar_clientes` | Busca clientes por nome/telefone |
-| `cadastrar_cliente` | Cadastra novo cliente |
-| `consultar_financeiro` | Mostra saldo e últimas transações |
-| `registrar_transacao` | Registra receita ou despesa |
-| `verificar_estoque` | Lista itens do estoque |
-| `ajustar_estoque` | Adiciona/remove quantidade de item |
-| `criar_tarefa` | Cria nova tarefa |
-| `gerar_resumo_diario` | Resume estatísticas do dia |
+```text
+┌───────────────────────────────────────────────────────┐
+│ ✓ Conta criada com sucesso!                           │
+│                                                        │
+│ Enviamos um email de verificação para [email].        │
+│ Por favor, verifique sua caixa de entrada para        │
+│ ativar sua conta. Lembre-se de checar também a        │
+│ pasta de spam ou lixo eletrônico.                     │
+└───────────────────────────────────────────────────────┘
+```
 
-## Exemplos de uso
+- Remover emojis excessivos
+- Texto mais claro e direto
+- Duração adequada (8 segundos)
+- Usar um único toast bem formatado ao invés de dois
 
-O usuário poderá dizer:
-- *"Quais agendamentos tenho para hoje?"*
-- *"Agende um corte de cabelo para João amanhã às 14h"*
-- *"Cadastre o cliente Maria, telefone 48999001122"*
-- *"Quanto entrou de dinheiro essa semana?"*
-- *"Registre uma despesa de R$150 de material"*
-- *"Tem shampoo no estoque?"*
-- *"Crie uma tarefa para ligar para o cliente Pedro"*
-- *"Como foi meu dia hoje?"*
+---
 
-## Segurança e Escopo
+## Arquivos a Serem Modificados
 
-- Todas as operações usam o `owner_id` (dono da empresa) para garantir que colaboradores acessem os dados corretos
-- A IA não pode acessar dados de outras empresas
-- As configurações de personalidade da IA são respeitadas (mesmo treinamento do WhatsApp)
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/pages/Auth.tsx` | Carregar Supabase imediatamente + melhorar notificação de signup |
+| `src/components/CookieConsent.tsx` | Adicionar verificação de rota para exibir apenas em páginas públicas |
+| `src/components/GlobalProviders.tsx` | Nenhuma alteração necessária (CookieConsent se auto-ocultará) |
 
-## Próximos passos após implementação
+---
 
-1. Testar todas as funcionalidades do agente
-2. Verificar se os dados estão sendo salvos corretamente
-3. Ajustar o prompt caso necessário
+## Detalhes Técnicos
+
+### Auth.tsx - Carregamento Imediato
+```typescript
+// Carregar Supabase no topo, sem setTimeout
+useEffect(() => {
+  const loadSupabase = async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    setSupabaseClient(supabase);
+    // ... resto da lógica
+  };
+  loadSupabase(); // Sem delay
+}, [navigate]);
+```
+
+### CookieConsent.tsx - Verificação de Rota
+```typescript
+const PUBLIC_ROUTES = ['/', '/auth', '/pricing', '/precos', '/faq', '/recursos', '/depoimentos', '/politica-privacidade', '/termos-servico'];
+
+export function CookieConsent() {
+  const location = useLocation();
+  
+  // Só mostrar em rotas públicas
+  const isPublicRoute = PUBLIC_ROUTES.some(route => 
+    location.pathname === route || location.pathname.startsWith(route + '/')
+  );
+  
+  if (!isPublicRoute) return null;
+  // ... resto do componente
+}
+```
+
+### Auth.tsx - Notificação Profissional
+```typescript
+toast.success("Conta criada com sucesso!", {
+  duration: 8000,
+  description: `Enviamos um email de verificação para ${email}. Verifique sua caixa de entrada e também a pasta de spam para ativar sua conta.`,
+});
+```
+
+---
+
+## Resultado Esperado
+
+1. **Google Login** - Clique responde instantaneamente, sem delay perceptível
+2. **Cookie Banner** - Aparece apenas na landing page e páginas públicas
+3. **Cadastro Manual** - Mensagem clara e profissional orientando o usuário a verificar o email
+
