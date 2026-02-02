@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsSmallScreen } from "@/hooks/use-small-screen";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -206,6 +207,7 @@ export default function AIAssistantChat({ onClose, context }: AIAssistantChatPro
       ];
 
   const isMobile = useIsMobile();
+  const isSmallScreen = useIsSmallScreen();
 
   const chatContent = (
     <>
@@ -376,14 +378,18 @@ export default function AIAssistantChat({ onClose, context }: AIAssistantChatPro
     );
   }
 
-  // Desktop: usar panel flutuante
+  // Desktop: usar panel flutuante (responsivo para telas pequenas)
   return (
     <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className="fixed bottom-24 right-6 z-[9998] flex h-[550px] w-[400px] flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl"
+      className={`fixed z-[9998] flex flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl ${
+        isSmallScreen 
+          ? "bottom-20 right-3 left-3 h-[calc(100vh-160px)] max-h-[500px]" 
+          : "bottom-24 right-6 h-[550px] w-[400px]"
+      }`}
       style={{ position: 'fixed' }}
     >
       {/* Header */}
