@@ -78,6 +78,61 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "importar_clientes",
+      description: "Importa múltiplos clientes de uma vez. Use quando o usuário quiser importar uma lista de clientes de outro sistema.",
+      parameters: {
+        type: "object",
+        properties: {
+          clientes: {
+            type: "array",
+            description: "Lista de clientes para importar",
+            items: {
+              type: "object",
+              properties: {
+                nome: { type: "string", description: "Nome do cliente" },
+                telefone: { type: "string", description: "Telefone" },
+                email: { type: "string", description: "Email" }
+              },
+              required: ["nome"]
+            }
+          }
+        },
+        required: ["clientes"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "importar_estoque",
+      description: "Importa múltiplos itens de estoque de uma vez.",
+      parameters: {
+        type: "object",
+        properties: {
+          itens: {
+            type: "array",
+            description: "Lista de itens para importar",
+            items: {
+              type: "object",
+              properties: {
+                nome: { type: "string", description: "Nome do item" },
+                quantidade: { type: "number", description: "Quantidade em estoque" },
+                preco_custo: { type: "number", description: "Preço de custo" },
+                preco_venda: { type: "number", description: "Preço de venda" },
+                categoria: { type: "string", description: "Categoria do item" },
+                unidade: { type: "string", description: "Unidade (un, kg, L, etc.)" }
+              },
+              required: ["nome"]
+            }
+          }
+        },
+        required: ["itens"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "consultar_financeiro",
       description: "Consulta o saldo financeiro e últimas transações.",
       parameters: {
@@ -150,7 +205,8 @@ const tools = [
           titulo: { type: "string", description: "Título da tarefa" },
           descricao: { type: "string", description: "Descrição da tarefa (opcional)" },
           prioridade: { type: "string", enum: ["low", "medium", "high"], description: "Prioridade" },
-          data_vencimento: { type: "string", description: "Data de vencimento (ISO 8601, opcional)" }
+          data_vencimento: { type: "string", description: "Data de vencimento (ISO 8601, opcional)" },
+          customer_id: { type: "string", description: "ID do cliente relacionado (opcional)" }
         },
         required: ["titulo"]
       }
@@ -167,6 +223,43 @@ const tools = [
         required: []
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "analisar_cliente",
+      description: "Analisa um cliente específico: histórico de compras, agendamentos, valor gasto, frequência de visitas e sugere ações.",
+      parameters: {
+        type: "object",
+        properties: {
+          customer_id: { type: "string", description: "ID do cliente para analisar" }
+        },
+        required: ["customer_id"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "gerar_pdf_relatorio",
+      description: "Gera um relatório em PDF com os dados solicitados. Retorna o HTML formatado para PDF.",
+      parameters: {
+        type: "object",
+        properties: {
+          tipo: { 
+            type: "string", 
+            enum: ["resumo_diario", "clientes", "financeiro", "estoque"],
+            description: "Tipo de relatório" 
+          },
+          periodo: { 
+            type: "string", 
+            enum: ["hoje", "semana", "mes"],
+            description: "Período do relatório" 
+          }
+        },
+        required: ["tipo"]
+      }
+    }
   }
 ];
 
@@ -177,7 +270,7 @@ async function getOwnerUserId(supabase: any, userId: string): Promise<string> {
 }
 
 // Execute tool functions
-async function executeTool(supabase: any, ownerId: string, toolName: string, args: any): Promise<string> {
+async function executeTool(supabase: any, ownerId: string, toolName: string, args: any, businessSettings: any): Promise<{ result: string; dataChanged?: boolean; importCount?: number; pdfHtml?: string }> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -186,6 +279,9 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
   
   const weekEnd = new Date(today);
   weekEnd.setDate(weekEnd.getDate() + 7);
+  
+  const weekStart = new Date(today);
+  weekStart.setDate(weekStart.getDate() - 7);
   
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -215,18 +311,18 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
         if (error) throw error;
         
         if (!data || data.length === 0) {
-          return `Nenhum agendamento encontrado para ${args.periodo}.`;
+          return { result: `Nenhum agendamento encontrado para ${args.periodo}.` };
         }
         
         const lista = data.map((a: any) => {
           const hora = new Date(a.start_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-          const data = new Date(a.start_time).toLocaleDateString("pt-BR");
+          const dataStr = new Date(a.start_time).toLocaleDateString("pt-BR");
           const cliente = a.customers?.name || "Cliente não especificado";
           const servico = a.services?.name || a.title;
-          return `- ${data} às ${hora}: ${servico} com ${cliente} (${a.status || "agendado"})`;
+          return `- ${dataStr} às ${hora}: ${servico} com ${cliente} (${a.status || "agendado"})`;
         }).join("\n");
         
-        return `📅 Agendamentos para ${args.periodo}:\n${lista}`;
+        return { result: `📅 Agendamentos para ${args.periodo}:\n${lista}` };
       }
       
       case "criar_agendamento": {
@@ -248,7 +344,10 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
         if (error) throw error;
         
         const dataFormatada = new Date(args.start_time).toLocaleString("pt-BR");
-        return `✅ Agendamento criado com sucesso!\n📌 ${args.titulo}\n📆 ${dataFormatada}`;
+        return { 
+          result: `✅ Agendamento criado com sucesso!\n📌 ${args.titulo}\n📆 ${dataFormatada}`,
+          dataChanged: true
+        };
       }
       
       case "buscar_clientes": {
@@ -262,14 +361,14 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
         if (error) throw error;
         
         if (!data || data.length === 0) {
-          return `Nenhum cliente encontrado com "${args.termo}".`;
+          return { result: `Nenhum cliente encontrado com "${args.termo}".` };
         }
         
         const lista = data.map((c: any) => 
           `- ${c.name} | Tel: ${c.phone || "N/A"} | Email: ${c.email || "N/A"} (ID: ${c.id})`
         ).join("\n");
         
-        return `👥 Clientes encontrados:\n${lista}`;
+        return { result: `👥 Clientes encontrados:\n${lista}` };
       }
       
       case "cadastrar_cliente": {
@@ -286,7 +385,84 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
         
         if (error) throw error;
         
-        return `✅ Cliente cadastrado com sucesso!\n👤 ${args.nome}\n📞 ${args.telefone || "Não informado"}\n📧 ${args.email || "Não informado"}\nID: ${data.id}`;
+        return { 
+          result: `✅ Cliente cadastrado com sucesso!\n👤 ${args.nome}\n📞 ${args.telefone || "Não informado"}\n📧 ${args.email || "Não informado"}\nID: ${data.id}`,
+          dataChanged: true
+        };
+      }
+
+      case "importar_clientes": {
+        const clientes = args.clientes || [];
+        if (clientes.length === 0) {
+          return { result: "❌ Nenhum cliente fornecido para importar." };
+        }
+
+        // Processar em lotes de 500
+        const BATCH_SIZE = 500;
+        let importados = 0;
+        let erros = 0;
+
+        for (let i = 0; i < clientes.length; i += BATCH_SIZE) {
+          const batch = clientes.slice(i, i + BATCH_SIZE).map((c: any) => ({
+            user_id: ownerId,
+            name: c.nome,
+            phone: c.telefone || null,
+            email: c.email || null
+          }));
+
+          const { error } = await supabase.from("customers").insert(batch);
+          
+          if (error) {
+            console.error("Batch import error:", error);
+            erros += batch.length;
+          } else {
+            importados += batch.length;
+          }
+        }
+
+        return { 
+          result: `✅ Importação concluída!\n\n👥 ${importados} clientes importados com sucesso${erros > 0 ? `\n⚠️ ${erros} erros` : ""}`,
+          dataChanged: true,
+          importCount: importados
+        };
+      }
+
+      case "importar_estoque": {
+        const itens = args.itens || [];
+        if (itens.length === 0) {
+          return { result: "❌ Nenhum item fornecido para importar." };
+        }
+
+        const BATCH_SIZE = 500;
+        let importados = 0;
+        let erros = 0;
+
+        for (let i = 0; i < itens.length; i += BATCH_SIZE) {
+          const batch = itens.slice(i, i + BATCH_SIZE).map((item: any) => ({
+            user_id: ownerId,
+            name: item.nome,
+            current_stock: item.quantidade || 0,
+            cost_price: item.preco_custo || null,
+            unit_price: item.preco_venda || null,
+            category: item.categoria || null,
+            unit: item.unidade || "un"
+          }));
+
+          const { error } = await supabase.from("inventory_items").insert(batch);
+          
+          if (error) {
+            console.error("Batch import error:", error);
+            erros += batch.length;
+          } else {
+            importados += batch.length;
+          }
+        }
+
+        return { 
+          result: `✅ Importação de estoque concluída!\n\n📦 ${importados} itens importados com sucesso${erros > 0 ? `\n⚠️ ${erros} erros` : ""}`,
+          dataChanged: true,
+          importCount: importados
+        };
       }
       
       case "consultar_financeiro": {
@@ -294,8 +470,7 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
         let endDate = tomorrow;
         
         if (args.periodo === "semana") {
-          startDate = new Date(today);
-          startDate.setDate(startDate.getDate() - 7);
+          startDate = weekStart;
         } else if (args.periodo === "mes") {
           startDate = monthStart;
           endDate = monthEnd;
@@ -320,7 +495,7 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
         
         const saldo = receitas - despesas;
         
-        return `💰 Resumo financeiro (${args.periodo}):\n\n📈 Receitas: R$ ${receitas.toFixed(2)}\n📉 Despesas: R$ ${despesas.toFixed(2)}\n💵 Saldo: R$ ${saldo.toFixed(2)}\n\nTotal de ${data?.length || 0} transações.`;
+        return { result: `💰 Resumo financeiro (${args.periodo}):\n\n📈 Receitas: R$ ${receitas.toFixed(2)}\n📉 Despesas: R$ ${despesas.toFixed(2)}\n💵 Saldo: R$ ${saldo.toFixed(2)}\n\nTotal de ${data?.length || 0} transações.` };
       }
       
       case "registrar_transacao": {
@@ -340,7 +515,10 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
         if (error) throw error;
         
         const tipoTexto = args.tipo === "income" ? "📈 Receita" : "📉 Despesa";
-        return `✅ Transação registrada!\n${tipoTexto}: R$ ${args.valor.toFixed(2)}\n📝 ${args.descricao}`;
+        return { 
+          result: `✅ Transação registrada!\n${tipoTexto}: R$ ${args.valor.toFixed(2)}\n📝 ${args.descricao}`,
+          dataChanged: true
+        };
       }
       
       case "verificar_estoque": {
@@ -358,9 +536,9 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
         if (error) throw error;
         
         if (!data || data.length === 0) {
-          return args.termo 
+          return { result: args.termo 
             ? `Nenhum item encontrado com "${args.termo}".`
-            : "Estoque vazio.";
+            : "Estoque vazio." };
         }
         
         const lista = data.map((i: any) => {
@@ -368,11 +546,10 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
           return `${status} ${i.name}: ${i.current_stock || 0} ${i.unit || "un"} (ID: ${i.id})`;
         }).join("\n");
         
-        return `📦 Estoque:\n${lista}`;
+        return { result: `📦 Estoque:\n${lista}` };
       }
       
       case "ajustar_estoque": {
-        // Get current stock
         const { data: item, error: fetchError } = await supabase
           .from("inventory_items")
           .select("current_stock, name")
@@ -381,7 +558,7 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
           .single();
         
         if (fetchError || !item) {
-          return "❌ Item não encontrado.";
+          return { result: "❌ Item não encontrado." };
         }
         
         const novoEstoque = (item.current_stock || 0) + args.quantidade;
@@ -394,7 +571,10 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
         if (error) throw error;
         
         const acao = args.quantidade > 0 ? "adicionado" : "removido";
-        return `✅ Estoque atualizado!\n📦 ${item.name}: ${acao} ${Math.abs(args.quantidade)}\n📊 Novo estoque: ${novoEstoque}${args.motivo ? `\n📝 Motivo: ${args.motivo}` : ""}`;
+        return { 
+          result: `✅ Estoque atualizado!\n📦 ${item.name}: ${acao} ${Math.abs(args.quantidade)}\n📊 Novo estoque: ${novoEstoque}${args.motivo ? `\n📝 Motivo: ${args.motivo}` : ""}`,
+          dataChanged: true
+        };
       }
       
       case "criar_tarefa": {
@@ -406,6 +586,7 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
             description: args.descricao || null,
             priority: args.prioridade || "medium",
             due_date: args.data_vencimento || null,
+            customer_id: args.customer_id || null,
             status: "todo"
           })
           .select()
@@ -413,11 +594,13 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
         
         if (error) throw error;
         
-        return `✅ Tarefa criada!\n📌 ${args.titulo}\n⚡ Prioridade: ${args.prioridade || "média"}${args.data_vencimento ? `\n📆 Vencimento: ${new Date(args.data_vencimento).toLocaleDateString("pt-BR")}` : ""}`;
+        return { 
+          result: `✅ Tarefa criada!\n📌 ${args.titulo}\n⚡ Prioridade: ${args.prioridade || "média"}${args.data_vencimento ? `\n📆 Vencimento: ${new Date(args.data_vencimento).toLocaleDateString("pt-BR")}` : ""}`,
+          dataChanged: true
+        };
       }
       
       case "gerar_resumo_diario": {
-        // Appointments today
         const { data: appointments } = await supabase
           .from("appointments")
           .select("id, status")
@@ -428,7 +611,6 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
         const totalAgendamentos = appointments?.length || 0;
         const concluidos = appointments?.filter((a: any) => a.status === "completed").length || 0;
         
-        // Financial today
         const { data: transactions } = await supabase
           .from("financial_transactions")
           .select("type, amount")
@@ -442,7 +624,6 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
           else despesas += Number(t.amount);
         });
         
-        // Pending tasks
         const { data: tasks } = await supabase
           .from("tasks")
           .select("id")
@@ -451,16 +632,277 @@ async function executeTool(supabase: any, ownerId: string, toolName: string, arg
         
         const tarefasPendentes = tasks?.length || 0;
         
-        return `📊 **Resumo do Dia**\n\n📅 **Agendamentos:**\n- Total: ${totalAgendamentos}\n- Concluídos: ${concluidos}\n- Pendentes: ${totalAgendamentos - concluidos}\n\n💰 **Financeiro:**\n- Receitas: R$ ${receitas.toFixed(2)}\n- Despesas: R$ ${despesas.toFixed(2)}\n- Saldo do dia: R$ ${(receitas - despesas).toFixed(2)}\n\n📋 **Tarefas pendentes:** ${tarefasPendentes}`;
+        return { result: `📊 **Resumo do Dia**\n\n📅 **Agendamentos:**\n- Total: ${totalAgendamentos}\n- Concluídos: ${concluidos}\n- Pendentes: ${totalAgendamentos - concluidos}\n\n💰 **Financeiro:**\n- Receitas: R$ ${receitas.toFixed(2)}\n- Despesas: R$ ${despesas.toFixed(2)}\n- Saldo do dia: R$ ${(receitas - despesas).toFixed(2)}\n\n📋 **Tarefas pendentes:** ${tarefasPendentes}` };
+      }
+
+      case "analisar_cliente": {
+        const { data: customer, error: customerError } = await supabase
+          .from("customers")
+          .select("*")
+          .eq("id", args.customer_id)
+          .eq("user_id", ownerId)
+          .single();
+
+        if (customerError || !customer) {
+          return { result: "❌ Cliente não encontrado." };
+        }
+
+        // Buscar agendamentos do cliente
+        const { data: appointments } = await supabase
+          .from("appointments")
+          .select("*, services(name, price)")
+          .eq("customer_id", args.customer_id)
+          .order("start_time", { ascending: false })
+          .limit(10);
+
+        // Buscar transações relacionadas
+        const { data: transactions } = await supabase
+          .from("financial_transactions")
+          .select("*")
+          .eq("user_id", ownerId)
+          .ilike("description", `%${customer.name}%`)
+          .order("transaction_date", { ascending: false })
+          .limit(10);
+
+        // Calcular métricas
+        const totalAgendamentos = appointments?.length || 0;
+        const agendamentosConcluidos = appointments?.filter((a: any) => a.status === "completed").length || 0;
+        
+        let valorTotal = 0;
+        (appointments || []).forEach((a: any) => {
+          if (a.price) valorTotal += Number(a.price);
+          else if (a.services?.price) valorTotal += Number(a.services.price);
+        });
+
+        const ultimoAgendamento = appointments?.[0];
+        const diasDesdeUltimaVisita = ultimoAgendamento 
+          ? Math.floor((Date.now() - new Date(ultimoAgendamento.start_time).getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+
+        // Gerar sugestões
+        let sugestoes = [];
+        if (diasDesdeUltimaVisita && diasDesdeUltimaVisita > 30) {
+          sugestoes.push("🔔 Cliente inativo há mais de 30 dias - considere enviar uma mensagem de reativação");
+        }
+        if (totalAgendamentos >= 5) {
+          sugestoes.push("⭐ Cliente frequente - ofereça um programa de fidelidade ou desconto especial");
+        }
+        if (valorTotal > 500) {
+          sugestoes.push("💎 Cliente de alto valor - priorize o atendimento e personalize ofertas");
+        }
+
+        const resultado = `📊 **Análise do Cliente: ${customer.name}**
+
+📞 **Contato:**
+- Telefone: ${customer.phone || "Não informado"}
+- Email: ${customer.email || "Não informado"}
+
+📅 **Histórico de Agendamentos:**
+- Total: ${totalAgendamentos}
+- Concluídos: ${agendamentosConcluidos}
+${diasDesdeUltimaVisita !== null ? `- Última visita: há ${diasDesdeUltimaVisita} dias` : "- Sem agendamentos anteriores"}
+
+💰 **Valor Total Estimado:** R$ ${valorTotal.toFixed(2)}
+
+${sugestoes.length > 0 ? `\n💡 **Sugestões:**\n${sugestoes.join("\n")}` : ""}
+
+${appointments && appointments.length > 0 ? `\n📋 **Últimos Agendamentos:**\n${appointments.slice(0, 3).map((a: any) => {
+  const data = new Date(a.start_time).toLocaleDateString("pt-BR");
+  return `- ${data}: ${a.services?.name || a.title} (${a.status})`;
+}).join("\n")}` : ""}`;
+
+        return { result: resultado };
+      }
+
+      case "gerar_pdf_relatorio": {
+        const businessName = businessSettings?.business_name || "Meu Negócio";
+        const dataAtual = new Date().toLocaleDateString("pt-BR");
+        
+        let conteudoRelatorio = "";
+        let tituloRelatorio = "";
+
+        if (args.tipo === "resumo_diario") {
+          tituloRelatorio = "Resumo Diário";
+          
+          const { data: appointments } = await supabase
+            .from("appointments")
+            .select("*, customers(name), services(name)")
+            .eq("user_id", ownerId)
+            .gte("start_time", today.toISOString())
+            .lt("start_time", tomorrow.toISOString())
+            .order("start_time");
+
+          const { data: transactions } = await supabase
+            .from("financial_transactions")
+            .select("*")
+            .eq("user_id", ownerId)
+            .eq("transaction_date", today.toISOString().split("T")[0]);
+
+          let receitas = 0, despesas = 0;
+          (transactions || []).forEach((t: any) => {
+            if (t.type === "income") receitas += Number(t.amount);
+            else despesas += Number(t.amount);
+          });
+
+          conteudoRelatorio = `
+            <h2>Agendamentos do Dia</h2>
+            <table>
+              <tr><th>Horário</th><th>Cliente</th><th>Serviço</th><th>Status</th></tr>
+              ${(appointments || []).map((a: any) => `
+                <tr>
+                  <td>${new Date(a.start_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</td>
+                  <td>${a.customers?.name || "-"}</td>
+                  <td>${a.services?.name || a.title}</td>
+                  <td>${a.status || "Agendado"}</td>
+                </tr>
+              `).join("")}
+            </table>
+            
+            <h2>Resumo Financeiro</h2>
+            <p><strong>Receitas:</strong> R$ ${receitas.toFixed(2)}</p>
+            <p><strong>Despesas:</strong> R$ ${despesas.toFixed(2)}</p>
+            <p><strong>Saldo:</strong> R$ ${(receitas - despesas).toFixed(2)}</p>
+          `;
+        } else if (args.tipo === "clientes") {
+          tituloRelatorio = "Lista de Clientes";
+          
+          const { data: customers } = await supabase
+            .from("customers")
+            .select("*")
+            .eq("user_id", ownerId)
+            .order("name")
+            .limit(100);
+
+          conteudoRelatorio = `
+            <table>
+              <tr><th>Nome</th><th>Telefone</th><th>Email</th></tr>
+              ${(customers || []).map((c: any) => `
+                <tr>
+                  <td>${c.name}</td>
+                  <td>${c.phone || "-"}</td>
+                  <td>${c.email || "-"}</td>
+                </tr>
+              `).join("")}
+            </table>
+            <p><em>Total: ${customers?.length || 0} clientes</em></p>
+          `;
+        } else if (args.tipo === "financeiro") {
+          tituloRelatorio = `Relatório Financeiro - ${args.periodo || "Mês"}`;
+          
+          let startDate = monthStart;
+          if (args.periodo === "semana") startDate = weekStart;
+          else if (args.periodo === "hoje") startDate = today;
+
+          const { data: transactions } = await supabase
+            .from("financial_transactions")
+            .select("*")
+            .eq("user_id", ownerId)
+            .gte("transaction_date", startDate.toISOString().split("T")[0])
+            .order("transaction_date", { ascending: false });
+
+          let receitas = 0, despesas = 0;
+          (transactions || []).forEach((t: any) => {
+            if (t.type === "income") receitas += Number(t.amount);
+            else despesas += Number(t.amount);
+          });
+
+          conteudoRelatorio = `
+            <div class="summary">
+              <div class="summary-item income"><strong>Receitas:</strong> R$ ${receitas.toFixed(2)}</div>
+              <div class="summary-item expense"><strong>Despesas:</strong> R$ ${despesas.toFixed(2)}</div>
+              <div class="summary-item balance"><strong>Saldo:</strong> R$ ${(receitas - despesas).toFixed(2)}</div>
+            </div>
+            
+            <h2>Transações</h2>
+            <table>
+              <tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Valor</th></tr>
+              ${(transactions || []).map((t: any) => `
+                <tr>
+                  <td>${new Date(t.transaction_date).toLocaleDateString("pt-BR")}</td>
+                  <td>${t.type === "income" ? "Receita" : "Despesa"}</td>
+                  <td>${t.description || "-"}</td>
+                  <td class="${t.type}">R$ ${Number(t.amount).toFixed(2)}</td>
+                </tr>
+              `).join("")}
+            </table>
+          `;
+        } else if (args.tipo === "estoque") {
+          tituloRelatorio = "Relatório de Estoque";
+          
+          const { data: items } = await supabase
+            .from("inventory_items")
+            .select("*")
+            .eq("user_id", ownerId)
+            .order("name");
+
+          conteudoRelatorio = `
+            <table>
+              <tr><th>Item</th><th>Quantidade</th><th>Unidade</th><th>Mín.</th><th>Status</th></tr>
+              ${(items || []).map((i: any) => {
+                const baixo = (i.current_stock || 0) <= (i.min_quantity || 0);
+                return `
+                  <tr class="${baixo ? 'low-stock' : ''}">
+                    <td>${i.name}</td>
+                    <td>${i.current_stock || 0}</td>
+                    <td>${i.unit || "un"}</td>
+                    <td>${i.min_quantity || "-"}</td>
+                    <td>${baixo ? "⚠️ Baixo" : "✅ OK"}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </table>
+          `;
+        }
+
+        const pdfHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+              h1 { color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 10px; }
+              h2 { color: #4f46e5; margin-top: 30px; }
+              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+              th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+              th { background: #7c3aed; color: white; }
+              tr:nth-child(even) { background: #f9f9f9; }
+              .summary { display: flex; gap: 20px; margin: 20px 0; }
+              .summary-item { padding: 15px; border-radius: 8px; flex: 1; }
+              .income { background: #d1fae5; color: #065f46; }
+              .expense { background: #fee2e2; color: #991b1b; }
+              .balance { background: #e0e7ff; color: #3730a3; }
+              .low-stock { background: #fef3c7; }
+              .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+              .date { color: #666; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div>
+                <h1>${businessName}</h1>
+                <h2>${tituloRelatorio}</h2>
+              </div>
+              <div class="date">Gerado em: ${dataAtual}</div>
+            </div>
+            ${conteudoRelatorio}
+          </body>
+          </html>
+        `;
+
+        return { 
+          result: `✅ Relatório "${tituloRelatorio}" gerado com sucesso!\n\n📄 Clique no botão para baixar o PDF ou use os comandos abaixo para imprimir.`,
+          pdfHtml
+        };
       }
       
       default:
-        return `Função "${toolName}" não reconhecida.`;
+        return { result: `Função "${toolName}" não reconhecida.` };
     }
   } catch (error) {
     console.error(`Error executing ${toolName}:`, error);
     const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-    return `Erro ao executar ${toolName}: ${errorMessage}`;
+    return { result: `Erro ao executar ${toolName}: ${errorMessage}` };
   }
 }
 
@@ -470,7 +912,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, user_id } = await req.json();
+    const { messages, user_id, customer_context } = await req.json();
     
     if (!user_id) {
       return new Response(JSON.stringify({ error: "user_id é obrigatório" }), {
@@ -488,10 +930,8 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get owner ID (handles team members)
     const ownerId = await getOwnerUserId(supabase, user_id);
 
-    // Get business settings for context
     const { data: settings } = await supabase
       .from("business_settings")
       .select("business_name, business_type, ai_training")
@@ -502,6 +942,11 @@ serve(async (req) => {
     const businessType = settings?.business_type || "serviços";
     const aiTraining = settings?.ai_training || {};
 
+    // Contexto adicional do cliente se fornecido
+    const customerContextStr = customer_context 
+      ? `\n\nCONTEXTO DO CLIENTE:\nVocê está analisando o cliente "${customer_context.name}" (ID: ${customer_context.id}). Use a função analisar_cliente para obter detalhes completos.`
+      : "";
+
     const systemPrompt = `Você é um assistente inteligente do sistema de gestão "${businessName}" (${businessType}).
 
 Sua personalidade: ${aiTraining.personality || "profissional e prestativo"}
@@ -510,10 +955,21 @@ Tom: ${aiTraining.tone || "amigável mas profissional"}
 Você pode executar as seguintes ações no sistema:
 1. Listar e criar agendamentos
 2. Buscar e cadastrar clientes
-3. Consultar finanças e registrar transações
-4. Verificar e ajustar estoque
-5. Criar tarefas
-6. Gerar resumos do dia
+3. IMPORTAR CLIENTES EM MASSA - quando o usuário quiser importar uma lista de clientes
+4. IMPORTAR ESTOQUE EM MASSA - quando o usuário quiser importar itens de estoque
+5. Consultar finanças e registrar transações
+6. Verificar e ajustar estoque
+7. Criar tarefas
+8. Gerar resumos do dia
+9. ANALISAR CLIENTES - histórico, valor, sugestões de ações
+10. GERAR PDFs - relatórios em formato PDF
+
+REGRAS PARA IMPORTAÇÃO:
+- Quando o usuário quiser importar clientes ou estoque, peça a lista no formato:
+  nome, telefone, email (para clientes)
+  nome, quantidade, preço custo, preço venda, categoria (para estoque)
+- Você pode processar até 1000 registros de uma vez
+- Após importar, confirme a quantidade importada
 
 REGRAS IMPORTANTES:
 - Seja conciso e direto nas respostas
@@ -523,11 +979,11 @@ REGRAS IMPORTANTES:
 - Para criar agendamentos, você precisa do horário no formato correto (ISO 8601)
 - Ao buscar clientes, mostre o ID para usar em agendamentos
 - Fale sempre em português brasileiro
+${customerContextStr}
 
 Data atual: ${new Date().toLocaleDateString("pt-BR")}
 Hora atual: ${new Date().toLocaleTimeString("pt-BR")}`;
 
-    // First API call - may return tool calls
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -564,7 +1020,10 @@ Hora atual: ${new Date().toLocaleTimeString("pt-BR")}`;
     const aiData = await aiResponse.json();
     const assistantMessage = aiData.choices[0].message;
 
-    // Check if the AI wants to call tools
+    let dataChanged = false;
+    let importCount = 0;
+    let pdfHtml: string | undefined;
+
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
       const toolResults: any[] = [];
       
@@ -574,16 +1033,19 @@ Hora atual: ${new Date().toLocaleTimeString("pt-BR")}`;
         
         console.log(`Executing tool: ${functionName}`, functionArgs);
         
-        const result = await executeTool(supabase, ownerId, functionName, functionArgs);
+        const result = await executeTool(supabase, ownerId, functionName, functionArgs, settings);
+        
+        if (result.dataChanged) dataChanged = true;
+        if (result.importCount) importCount += result.importCount;
+        if (result.pdfHtml) pdfHtml = result.pdfHtml;
         
         toolResults.push({
           tool_call_id: toolCall.id,
           role: "tool",
-          content: result
+          content: result.result
         });
       }
 
-      // Second API call with tool results
       const finalResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -608,13 +1070,20 @@ Hora atual: ${new Date().toLocaleTimeString("pt-BR")}`;
       const finalData = await finalResponse.json();
       const finalContent = finalData.choices[0].message.content;
 
-      return new Response(JSON.stringify({ content: finalContent }), {
+      return new Response(JSON.stringify({ 
+        content: finalContent,
+        data_changed: dataChanged,
+        import_count: importCount > 0 ? importCount : undefined,
+        pdf_html: pdfHtml
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
-    // No tool calls, return direct response
-    return new Response(JSON.stringify({ content: assistantMessage.content }), {
+    return new Response(JSON.stringify({ 
+      content: assistantMessage.content,
+      data_changed: dataChanged
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
 

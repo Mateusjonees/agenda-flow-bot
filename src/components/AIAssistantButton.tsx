@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import AIAssistantChat from "./AIAssistantChat";
 
@@ -31,20 +32,30 @@ const CloseIcon = () => (
   </svg>
 );
 
-export default function AIAssistantButton() {
+interface AIAssistantButtonProps {
+  context?: {
+    type: "customer";
+    customerId: string;
+    customerName: string;
+  };
+}
+
+export default function AIAssistantButton({ context }: AIAssistantButtonProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
 
-  return (
+  // Renderizar via portal para garantir que fique sempre no topo
+  const buttonContent = (
     <>
-      {/* Floating Button */}
+      {/* Floating Button - usando portal para evitar problemas de z-index */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+        className="fixed bottom-6 right-6 z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
+        style={{ position: 'fixed' }} // Força posição fixa
       >
         <AnimatePresence mode="wait">
           {isOpen ? (
@@ -84,9 +95,16 @@ export default function AIAssistantButton() {
       {/* Chat Panel */}
       <AnimatePresence>
         {isOpen && (
-          <AIAssistantChat onClose={() => setIsOpen(false)} />
+          <AIAssistantChat onClose={() => setIsOpen(false)} context={context} />
         )}
       </AnimatePresence>
     </>
   );
+
+  // Usar portal para renderizar fora da hierarquia do DOM
+  if (typeof document !== 'undefined') {
+    return createPortal(buttonContent, document.body);
+  }
+
+  return buttonContent;
 }

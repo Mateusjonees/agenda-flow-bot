@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useQueryClient } from "@tanstack/react-query";
 
 const SendIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
@@ -37,23 +38,39 @@ interface Message {
 
 interface AIAssistantChatProps {
   onClose: () => void;
+  context?: {
+    type: "customer";
+    customerId: string;
+    customerName: string;
+  };
 }
 
-export default function AIAssistantChat({ onClose }: AIAssistantChatProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Olá! 👋 Sou seu assistente de IA. Posso ajudar você a:\n\n• 📅 Gerenciar agendamentos\n• 👥 Buscar e cadastrar clientes\n• 💰 Consultar finanças\n• 📦 Verificar estoque\n• ✅ Criar tarefas\n\nComo posso ajudar?"
+export default function AIAssistantChat({ onClose, context }: AIAssistantChatProps) {
+  const queryClient = useQueryClient();
+  
+  const getInitialMessage = () => {
+    if (context?.type === "customer") {
+      return {
+        role: "assistant" as const,
+        content: `Olá! 👋 Estou analisando o cliente **${context.customerName}**.\n\nPosso ajudar você a:\n\n• 📊 Analisar histórico de compras\n• 📅 Ver agendamentos\n• 💡 Sugerir ações de retenção\n• 📝 Criar tarefas de follow-up\n• 💰 Ver situação financeira\n\nO que você gostaria de saber sobre este cliente?`
+      };
     }
-  ]);
+    
+    return {
+      role: "assistant" as const,
+      content: "Olá! 👋 Sou seu assistente de IA. Posso ajudar você a:\n\n• 📅 Gerenciar agendamentos\n• 👥 Buscar e cadastrar clientes\n• 💰 Consultar finanças\n• 📦 Verificar estoque\n• ✅ Criar tarefas\n• 📥 Importar dados em massa\n• 📄 Gerar PDFs\n\nComo posso ajudar?"
+    };
+  };
+
+  const [messages, setMessages] = useState<Message[]>([getInitialMessage()]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Get user ID on mount
     const getUser = async () => {
       const { supabase } = await import("@/integrations/supabase/client");
       const { data: { user } } = await supabase.auth.getUser();
@@ -63,16 +80,26 @@ export default function AIAssistantChat({ onClose }: AIAssistantChatProps) {
   }, []);
 
   useEffect(() => {
-    // Scroll to bottom when messages change
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
   useEffect(() => {
-    // Focus input on open
     inputRef.current?.focus();
   }, []);
+
+  // Invalidar queries quando a IA faz operações
+  const refreshData = useCallback(() => {
+    // Invalidar todas as queries relacionadas
+    queryClient.invalidateQueries({ queryKey: ["customers"] });
+    queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
+    queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
+    queryClient.invalidateQueries({ queryKey: ["financial-categories"] });
+  }, [queryClient]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading || !userId) return;
@@ -85,26 +112,29 @@ export default function AIAssistantChat({ onClose }: AIAssistantChatProps) {
     try {
       const { supabase } = await import("@/integrations/supabase/client");
       
-      // Prepare messages for API (exclude the initial greeting)
       const apiMessages = [...messages.slice(1), userMessage].map(m => ({
         role: m.role,
         content: m.content
       }));
 
+      // Adicionar contexto do cliente se existir
+      const contextData = context ? {
+        customer_context: {
+          id: context.customerId,
+          name: context.customerName
+        }
+      } : {};
+
       const { data, error } = await supabase.functions.invoke("ai-agent-assistant", {
         body: {
           messages: apiMessages,
-          user_id: userId
+          user_id: userId,
+          ...contextData
         }
       });
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      if (error) throw new Error(error.message);
+      if (data.error) throw new Error(data.error);
 
       const assistantMessage: Message = {
         role: "assistant",
@@ -112,6 +142,23 @@ export default function AIAssistantChat({ onClose }: AIAssistantChatProps) {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Atualizar dados automaticamente após operações
+      if (data.data_changed) {
+        refreshData();
+        
+        // Se importou dados, mostrar progresso
+        if (data.import_count) {
+          toast.success(`✅ ${data.import_count} registros importados com sucesso!`);
+        }
+      }
+
+      // Se gerou PDF, abrir em nova aba
+      if (data.pdf_url) {
+        window.open(data.pdf_url, "_blank");
+        toast.success("PDF gerado com sucesso!");
+      }
+
     } catch (error) {
       console.error("Error sending message:", error);
       
@@ -132,6 +179,7 @@ export default function AIAssistantChat({ onClose }: AIAssistantChatProps) {
       }]);
     } finally {
       setIsLoading(false);
+      setImportProgress(null);
     }
   };
 
@@ -142,11 +190,18 @@ export default function AIAssistantChat({ onClose }: AIAssistantChatProps) {
     }
   };
 
-  const quickActions = [
-    { label: "📅 Agendamentos de hoje", message: "Quais são meus agendamentos de hoje?" },
-    { label: "💰 Resumo financeiro", message: "Como está meu financeiro esta semana?" },
-    { label: "📊 Resumo do dia", message: "Gere um resumo do meu dia" }
-  ];
+  const quickActions = context?.type === "customer" 
+    ? [
+        { label: "📊 Histórico do cliente", message: `Mostre o histórico completo do cliente ${context.customerName}` },
+        { label: "💡 Sugestões de ações", message: `Sugira ações para melhorar o relacionamento com ${context.customerName}` },
+        { label: "📅 Agendar follow-up", message: `Crie uma tarefa de follow-up para ${context.customerName}` }
+      ]
+    : [
+        { label: "📅 Agendamentos de hoje", message: "Quais são meus agendamentos de hoje?" },
+        { label: "💰 Resumo financeiro", message: "Como está meu financeiro esta semana?" },
+        { label: "📥 Importar clientes", message: "Quero importar uma lista de clientes" },
+        { label: "📄 Gerar relatório PDF", message: "Gere um relatório PDF do meu dia" }
+      ];
 
   return (
     <motion.div
@@ -154,7 +209,8 @@ export default function AIAssistantChat({ onClose }: AIAssistantChatProps) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className="fixed bottom-24 right-6 z-50 flex h-[500px] w-[380px] flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl sm:h-[550px] sm:w-[400px]"
+      className="fixed bottom-24 right-6 z-[9998] flex h-[500px] w-[380px] flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl sm:h-[550px] sm:w-[400px]"
+      style={{ position: 'fixed' }}
     >
       {/* Header */}
       <div className="flex items-center gap-3 border-b bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-3 text-white">
@@ -163,7 +219,9 @@ export default function AIAssistantChat({ onClose }: AIAssistantChatProps) {
         </div>
         <div className="flex-1">
           <h3 className="font-semibold">Assistente IA</h3>
-          <p className="text-xs text-white/80">Pronto para ajudar</p>
+          <p className="text-xs text-white/80">
+            {context?.type === "customer" ? `Analisando: ${context.customerName}` : "Pronto para ajudar"}
+          </p>
         </div>
         <button
           onClick={onClose}
@@ -216,22 +274,29 @@ export default function AIAssistantChat({ onClose }: AIAssistantChatProps) {
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
                 <BotIcon />
               </div>
-              <div className="flex items-center gap-1 rounded-2xl bg-muted px-4 py-3">
-                <motion.span
-                  className="h-2 w-2 rounded-full bg-purple-500"
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 1, repeat: Infinity, delay: 0 }}
-                />
-                <motion.span
-                  className="h-2 w-2 rounded-full bg-purple-500"
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
-                />
-                <motion.span
-                  className="h-2 w-2 rounded-full bg-purple-500"
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
-                />
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-1 rounded-2xl bg-muted px-4 py-3">
+                  <motion.span
+                    className="h-2 w-2 rounded-full bg-purple-500"
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+                  />
+                  <motion.span
+                    className="h-2 w-2 rounded-full bg-purple-500"
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+                  />
+                  <motion.span
+                    className="h-2 w-2 rounded-full bg-purple-500"
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+                  />
+                </div>
+                {importProgress && (
+                  <div className="text-xs text-muted-foreground px-2">
+                    Importando: {importProgress.current}/{importProgress.total}
+                  </div>
+                )}
               </div>
             </div>
           )}
