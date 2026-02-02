@@ -2,12 +2,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Lock } from "lucide-react";
+import { Lock, Mail, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { UserManagement } from "@/components/UserManagement";
+import { Link } from "react-router-dom";
 
 interface AccountSettingsProps {
   user: any;
@@ -113,6 +114,28 @@ export const AccountSettings = ({ user }: AccountSettingsProps) => {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Link para histórico de emails */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Mail className="w-5 h-5 text-primary" />
+            Emails Enviados
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Acompanhe todos os emails enviados pelo sistema (propostas, relatórios, lembretes)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline" className="w-full">
+            <Link to="/historico-emails">
+              <Mail className="mr-2 h-4 w-4" />
+              Ver Histórico de Emails
+              <ExternalLink className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
         </CardContent>
       </Card>
 

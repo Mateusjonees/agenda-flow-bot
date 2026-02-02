@@ -26,6 +26,7 @@ const ConversasWhatsApp = lazy(() => import("@/pages/ConversasWhatsApp"));
 const PedidosWhatsApp = lazy(() => import("@/pages/PedidosWhatsApp"));
 const TreinamentoIA = lazy(() => import("@/pages/TreinamentoIA"));
 const HistoricoAssinaturas = lazy(() => import("@/pages/HistoricoAssinaturas"));
+const HistoricoEmails = lazy(() => import("@/pages/HistoricoEmails"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const PageLoader = () => (
@@ -59,6 +60,7 @@ const PrivateRoutes = () => (
             <Route path="/configuracoes" element={<ProtectedRoute withSubscription={false}><Configuracoes /></ProtectedRoute>} />
             <Route path="/historico-pagamentos" element={<ProtectedRoute withSubscription={false}><HistoricoPagamentos /></ProtectedRoute>} />
             <Route path="/historico-assinaturas" element={<ProtectedRoute withSubscription={false}><HistoricoAssinaturas /></ProtectedRoute>} />
+            <Route path="/historico-emails" element={<ProtectedRoute withSubscription={false}><HistoricoEmails /></ProtectedRoute>} />
             
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/agendamentos" element={<ProtectedRoute><Agendamentos /></ProtectedRoute>} />

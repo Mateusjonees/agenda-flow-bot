@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { logEmailSent } from "../_shared/email-logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -184,6 +185,8 @@ serve(async (req: Request) => {
       throw new Error("RESEND_API_KEY não configurado");
     }
 
+    const emailSubject = `Fechamento do Dia - ${reportData.date}`;
+    
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -193,18 +196,41 @@ serve(async (req: Request) => {
       body: JSON.stringify({
         from: "Gestão Financeira <onboarding@resend.dev>",
         to: [userEmail],
-        subject: `Fechamento do Dia - ${reportData.date}`,
+        subject: emailSubject,
         html: htmlContent,
       }),
     });
 
     if (!emailResponse.ok) {
       const errorText = await emailResponse.text();
+      
+      // Log failed email
+      await logEmailSent({
+        user_id: user.id,
+        email_type: "daily_report",
+        recipient_email: userEmail,
+        subject: emailSubject,
+        status: "failed",
+        error_message: errorText,
+        metadata: { date: reportData.date },
+      });
+      
       throw new Error(`Erro ao enviar email: ${errorText}`);
     }
 
     const emailResult = await emailResponse.json();
     console.log("Email enviado com sucesso:", emailResult);
+    
+    // Log successful email
+    await logEmailSent({
+      user_id: user.id,
+      email_type: "daily_report",
+      recipient_email: userEmail,
+      subject: emailSubject,
+      status: "sent",
+      resend_email_id: emailResult.id,
+      metadata: { date: reportData.date },
+    });
 
     // TODO: Implementar envio via WhatsApp
     // Requer integração com WhatsApp Business API

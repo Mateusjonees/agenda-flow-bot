@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logEmailSent } from "../_shared/email-logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -206,6 +207,7 @@ serve(async (req: Request) => {
       try {
         console.log(`📤 Enviando email para: ${proposal.customers.email}`);
         
+        const emailSubject = `Proposta: ${proposal.title}`;
         const emailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -215,7 +217,7 @@ serve(async (req: Request) => {
           body: JSON.stringify({
             from: `${businessInfo.business_name} <onboarding@resend.dev>`,
             to: [proposal.customers.email],
-            subject: `Proposta: ${proposal.title}`,
+            subject: emailSubject,
             html: htmlContent,
           }),
         });
@@ -223,11 +225,36 @@ serve(async (req: Request) => {
         if (!emailResponse.ok) {
           const errorText = await emailResponse.text();
           console.error("❌ Erro ao enviar email:", emailResponse.status, errorText);
+          
+          // Log failed email
+          await logEmailSent({
+          user_id: user.id,
+            email_type: "proposal",
+            recipient_email: proposal.customers.email,
+            recipient_name: proposal.customers.name,
+            subject: emailSubject,
+            status: "failed",
+            error_message: errorText,
+            metadata: { proposal_id: proposal.id },
+          });
+          
           throw new Error(`Resend API error: ${errorText}`);
         }
 
         const emailData = await emailResponse.json();
         console.log("✅ Email enviado com sucesso!", emailData);
+        
+        // Log successful email
+        await logEmailSent({
+          user_id: user.id,
+          email_type: "proposal",
+          recipient_email: proposal.customers.email,
+          recipient_name: proposal.customers.name,
+          subject: emailSubject,
+          status: "sent",
+          resend_email_id: emailData.id,
+          metadata: { proposal_id: proposal.id },
+        });
         
       } catch (emailError: any) {
         console.error("❌ Erro ao enviar email:", emailError.message);
