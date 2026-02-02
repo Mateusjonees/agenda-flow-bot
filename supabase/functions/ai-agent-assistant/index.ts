@@ -868,22 +868,34 @@ ${appointments && appointments.length > 0 ? `\n📋 **Últimos Agendamentos:**\n
                 : "Mês atual";
           tituloRelatorio = `Relatório Financeiro - ${periodoLabel}`;
           
-          let startDate = monthStart;
+          let startDate = new Date(monthStart);
           if (args.periodo === "90_dias") {
             startDate = new Date(today);
             startDate.setDate(startDate.getDate() - 90);
-          } else if (args.periodo === "semana") startDate = weekStart;
-          else if (args.periodo === "hoje") startDate = today;
+          } else if (args.periodo === "semana") {
+            startDate = new Date(weekStart);
+          } else if (args.periodo === "hoje") {
+            startDate = new Date(today);
+          }
+          
+          // End date é fim do dia de hoje
+          const endDate = new Date(today);
+          endDate.setHours(23, 59, 59, 999);
 
-          const endDateStr = today.toISOString().split("T")[0];
+          console.log("Gerando relatório financeiro:", { ownerId, startDate: startDate.toISOString(), endDate: endDate.toISOString() });
 
-          const { data: transactions } = await supabase
+          const { data: transactions, error: transactionsError } = await supabase
             .from("financial_transactions")
             .select("*, financial_categories(name)")
             .eq("user_id", ownerId)
-            .gte("transaction_date", startDate.toISOString().split("T")[0])
-            .lte("transaction_date", endDateStr)
+            .gte("transaction_date", startDate.toISOString())
+            .lte("transaction_date", endDate.toISOString())
             .order("transaction_date", { ascending: false });
+          
+          if (transactionsError) {
+            console.error("Erro ao buscar transações:", transactionsError);
+          }
+          console.log("Transações encontradas:", transactions?.length || 0);
 
           totalRegistros = transactions?.length || 0;
 
