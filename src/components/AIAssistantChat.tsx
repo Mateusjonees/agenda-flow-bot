@@ -105,7 +105,11 @@ export default function AIAssistantChat({ onClose, context }: AIAssistantChatPro
   }, [queryClient]);
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading || !userId) return;
+    if (!input.trim() || isLoading) return;
+    if (!userId) {
+      toast.error("Carregando sua sessão... aguarde 1 segundo e tente novamente.");
+      return;
+    }
 
     const userMessage: Message = { role: "user", content: input.trim() };
     setMessages(prev => [...prev, userMessage]);
@@ -317,6 +321,10 @@ export default function AIAssistantChat({ onClose, context }: AIAssistantChatPro
               <button
                 key={index}
                 onClick={() => {
+                  if (!userId) {
+                    toast.error("Carregando sua sessão... aguarde 1 segundo e tente novamente.");
+                    return;
+                  }
                   setInput(action.message);
                   setTimeout(() => sendMessage(), 100);
                 }}
@@ -337,13 +345,13 @@ export default function AIAssistantChat({ onClose, context }: AIAssistantChatPro
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Digite sua mensagem..."
-            disabled={isLoading}
+            placeholder={userId ? "Digite sua mensagem..." : "Carregando sessão..."}
+            disabled={isLoading || !userId}
             className="flex-1 h-10 text-base sm:text-sm"
           />
           <Button
             onClick={sendMessage}
-            disabled={!input.trim() || isLoading}
+            disabled={!input.trim() || isLoading || !userId}
             size="icon"
             className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 h-10 w-10"
           >
