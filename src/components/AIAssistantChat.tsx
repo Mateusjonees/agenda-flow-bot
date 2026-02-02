@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { useQueryClient } from "@tanstack/react-query";
 
 const SendIcon = () => (
@@ -235,11 +235,19 @@ export default function AIAssistantChat({ onClose, context }: AIAssistantChatPro
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef as any}>
+      <div 
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto p-4"
+        style={{ display: 'flex', flexDirection: 'column' }}
+      >
+        <div className="flex-1" />
         <div className="space-y-4">
           {messages.map((message, index) => (
-            <div
+            <motion.div
               key={index}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
               className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}
             >
               <div
@@ -266,11 +274,15 @@ export default function AIAssistantChat({ onClose, context }: AIAssistantChatPro
                   <p className="text-sm">{message.content}</p>
                 )}
               </div>
-            </div>
+            </motion.div>
           ))}
           
           {isLoading && (
-            <div className="flex gap-3">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex gap-3"
+            >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
                 <BotIcon />
               </div>
@@ -298,10 +310,10 @@ export default function AIAssistantChat({ onClose, context }: AIAssistantChatPro
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Quick Actions */}
       {messages.length <= 2 && (
