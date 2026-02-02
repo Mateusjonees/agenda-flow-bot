@@ -197,7 +197,18 @@ const Auth = () => {
         fns.trackStartTrial?.({ value: 0 });
         fns.trackLead?.({ content_name: 'signup', content_category: 'registration' });
       }
-      toast.success("Conta criada! Verifique seu e-mail para confirmar.");
+      // Notificação detalhada sobre verificação de email
+      toast.success("Conta criada com sucesso! 🎉", {
+        duration: 8000,
+        description: "📧 Enviamos um email de verificação para você. Confira sua caixa de entrada e a pasta de SPAM.",
+      });
+      // Segunda notificação de lembrete
+      setTimeout(() => {
+        toast.info("💡 Dica: Verifique a caixa de SPAM!", {
+          duration: 6000,
+          description: "Muitos provedores enviam emails de verificação para a pasta de spam ou lixo eletrônico.",
+        });
+      }, 2000);
     }
   }, [supabaseClient, email, password, confirmPassword, name, pixelFns]);
 
@@ -230,15 +241,18 @@ const Auth = () => {
       toast.error("Aguarde o carregamento...");
       return;
     }
+    // Não usa setLoading para o OAuth pois o redirecionamento é imediato
+    // Isso torna o clique mais fluido e responsivo
     if (pixelFns) {
       pixelFns().trackLead?.({ content_name: 'google_oauth', content_category: 'authentication' });
     }
-    setLoading(true);
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` }
+      options: { 
+        redirectTo: `${window.location.origin}/dashboard`,
+        skipBrowserRedirect: false
+      }
     });
-    setLoading(false);
     if (error) {
       toast.error(`Erro ao entrar com Google: ${error.message}`);
     }
