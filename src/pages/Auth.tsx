@@ -102,6 +102,18 @@ const Auth = () => {
   useEffect(() => {
     const loadSupabase = async () => {
       const { supabase } = await import("@/integrations/supabase/client");
+      
+      // Limpa estado OAuth pendente/corrompido ao carregar a página
+      // Isso corrige o problema de clicar em "voltar" durante o fluxo OAuth
+      const url = new URL(window.location.href);
+      const hasOAuthError = url.searchParams.has('error') || url.searchParams.has('error_description');
+      const hasOAuthCode = url.searchParams.has('code');
+      
+      // Se não há código OAuth válido mas há parâmetros de erro, limpa a URL
+      if (hasOAuthError && !hasOAuthCode) {
+        window.history.replaceState({}, '', '/auth');
+      }
+      
       setSupabaseClient(supabase);
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -110,8 +122,11 @@ const Auth = () => {
         return;
       }
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-        if (session) navigate("/dashboard");
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        // Ignora eventos de erro de estado inválido
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+          if (session) navigate("/dashboard");
+        }
       });
 
       return () => subscription.unsubscribe();
