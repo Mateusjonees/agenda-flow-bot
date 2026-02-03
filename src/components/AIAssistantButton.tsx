@@ -104,15 +104,6 @@ export default function AIAssistantButton(props: AIAssistantButtonProps = {}) {
           )}
         </AnimatePresence>
         
-        {/* Pulse animation when closed */}
-        {!isOpen && (
-          <motion.span
-            className="absolute inset-0 rounded-full bg-purple-500"
-            initial={{ scale: 1, opacity: 0.5 }}
-            animate={{ scale: 1.5, opacity: 0 }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          />
-        )}
       </motion.button>
 
       {/* Chat Panel */}
