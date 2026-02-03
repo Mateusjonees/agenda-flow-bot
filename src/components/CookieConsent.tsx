@@ -64,7 +64,7 @@ const addNoscriptFallback = () => {
   document.body.appendChild(noscript);
 };
 
-const PUBLIC_ROUTES = ['/', '/auth', '/pricing', '/precos', '/faq', '/recursos', '/depoimentos', '/politica-privacidade', '/termos-servico', '/download'];
+const PUBLIC_ROUTES = ['/', '/pricing', '/precos', '/faq', '/recursos', '/depoimentos', '/politica-privacidade', '/termos-servico', '/download'];
 
 const usePageViewTracking = () => {
   const location = useLocation();
