@@ -17,37 +17,35 @@ export default defineConfig(({ mode }) => ({
       registerType: "prompt",
       includeAssets: ["logo.png", "robots.txt", "foguetinho.png"],
       manifest: {
+        id: "br.com.sistemafoguete.app",
         name: "Foguete Gestão Empresarial",
         short_name: "Foguete",
         description: "Sistema completo de gestão empresarial com automação inteligente",
-        theme_color: "#E31837",
-        background_color: "#0A0A0A",
+        start_url: "/auth",
+        scope: "/",
         display: "standalone",
         orientation: "portrait",
-        scope: "/",
-        start_url: "/",
+        background_color: "#0A0A0A",
+        theme_color: "#E31837",
         icons: [
           {
             src: "/icon-192.png",
             sizes: "192x192",
             type: "image/png",
-            purpose: "any maskable",
           },
           {
             src: "/icon-512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable",
+          },
+          {
+            src: "/icon-512-maskable.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
           },
         ],
         categories: ["business", "productivity"],
-        screenshots: [
-          {
-            src: "/logo.png",
-            sizes: "540x720",
-            type: "image/png",
-          }
-        ],
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
